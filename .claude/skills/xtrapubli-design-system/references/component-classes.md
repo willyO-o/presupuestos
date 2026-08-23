@@ -111,6 +111,35 @@ proyecto en una galería).
   `.rounded-pill` `.text-truncate` `.text-uppercase` `.fw-normal..bold` `.fs-xs..xl`
   `.position-relative` `.position-absolute` `.mb-0..5` `.mt-0..5` `.mx-auto`.
 
+## Tabla: paginación y estados (`DataTable.vue` / `TablePagination.vue`)
+
+Componentes en `resources/js/Components/Table/` (uso y API documentados en el propio
+`DataTable.vue`). Clases que los soportan, en `app.css` sección "17. TABLA: ESTADOS Y
+PAGINACION":
+
+```html
+<div class="table-responsive" :class="{ 'table-loading': loading }">
+  <table class="table-dashboard">...</table>
+</div>
+
+<nav class="pagination-wrap">
+  <p class="pagination-info">Mostrando 91–100 de 987 resultados</p>
+  <ul class="pagination">
+    <li class="page-item active"><button class="page-link">10</button></li>
+    <li class="page-item disabled"><span class="page-link page-ellipsis">…</span></li>
+  </ul>
+</nav>
+
+<td class="table-empty" colspan="...">No se encontraron resultados.</td>
+```
+
+- `.table-loading` — atenúa la tabla (`opacity-50 pointer-events-none`) durante una
+  petición Inertia en curso.
+- `.table-empty` — celda de estado vacío, texto centrado en `--text-muted`.
+- `.pagination-wrap` / `.pagination-info` / `.pagination` / `.page-item` / `.page-link` —
+  paginador con saltos de rango (`« ‹ 1 … 8 9 10 11 12 … 100 › »`). `.page-item.active` usa
+  `--c-primary`; `.page-item.disabled` y `.page-ellipsis` quedan atenuados y sin clic.
+
 ## Login (`.login-*`)
 
 Clases especificas de la pantalla de acceso (`resources/js/Pages/Auth/Login.vue`), panel

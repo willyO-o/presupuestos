@@ -41,6 +41,12 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user?->getAllPermissions()->pluck('name') ?? [],
                 'is_super_admin' => $user?->hasRole('super-admin') ?? false,
             ],
+            // Mensajes flash de una sola vista tras un redirect()->with(...).
+            // Closures para que se evaluen por request, no se cacheen.
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
         ];
     }
 }

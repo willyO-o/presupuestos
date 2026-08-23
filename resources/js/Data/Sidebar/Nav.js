@@ -136,6 +136,7 @@ export const NAV_MENU = [
     {
         menutitle: 'Catálogos',
         permission: [
+            'sucursales.ver',
             'conductores.ver',
             'vehiculos.ver',
             'grifos.ver',
@@ -145,6 +146,13 @@ export const NAV_MENU = [
             'grupos-vehiculo.ver',
             'repuestos.ver',
         ],
+    },
+    {
+        title: 'Sucursales',
+        icon: 'fa-solid fa-building-user',
+        type: 'link',
+        path: '/sucursales',
+        permission: 'sucursales.ver',
     },
 
 

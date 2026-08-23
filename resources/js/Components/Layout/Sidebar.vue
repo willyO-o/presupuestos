@@ -18,7 +18,17 @@ defineProps({
     },
 });
 
-defineEmits(['close']);
+const emit = defineEmits(['close']);
+
+/* Al hacer click en un enlace, el sidebar solo se debe auto-cerrar en
+   pantallas chicas (ahi tapa el contenido, como un drawer). En desktop
+   (>= 1024px, breakpoint 'lg') el usuario lo cierra a mano con el boton del
+   Topbar si quiere — un click de navegacion no deberia esconderlo solo. */
+function closeOnMobile() {
+    if (window.innerWidth < 1024) {
+        emit('close');
+    }
+}
 
 const page = usePage();
 const currentPath = computed(() => page.url.split('?')[0]);
@@ -92,7 +102,7 @@ function toggleKey(title) {
         <aside class="sidebar" :class="{ 'is-open': isOpen }">
             <div class="sidebar-brand">
                 <Link :href="route('dashboard')" class="sidebar-brand-logo">
-                    <img src="/img/logo/logo.webp" alt="XtraPubli" />
+                    <img src="/img/logo/logo-blanco.png" alt="XtraPubli" />
                 </Link>
             </div>
 
@@ -119,7 +129,7 @@ function toggleKey(title) {
                                 :href="item.path"
                                 class="nav-sidebar-link"
                                 :class="{ active: isActive(item.path) }"
-                                @click="$emit('close')"
+                                @click="closeOnMobile"
                             >
                                 <i
                                     v-if="item.icon"
@@ -180,7 +190,7 @@ function toggleKey(title) {
                                             :href="child.path"
                                             class="nav-sidebar-submenu-link"
                                             :class="{ active: isActive(child.path) }"
-                                            @click="$emit('close')"
+                                            @click="closeOnMobile"
                                         >
                                             {{ child.title }}
                                         </Link>
@@ -228,7 +238,7 @@ function toggleKey(title) {
                                                                 grandchild.path,
                                                             ),
                                                         }"
-                                                        @click="$emit('close')"
+                                                        @click="closeOnMobile"
                                                     >
                                                         {{ grandchild.title }}
                                                     </Link>

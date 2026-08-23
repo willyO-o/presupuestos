@@ -161,11 +161,11 @@
 /* Chip blanco detras del logotipo: el logo tiene la palabra "Xtra" en negro,
    invisible directo sobre el fondo oscuro del sidebar (--sidebar-bg). */
 .sidebar-brand-logo {
-    @apply inline-flex items-center rounded-lg bg-white px-3 py-2 transition-opacity duration-150 hover:opacity-90;
+    @apply inline-flex items-center rounded-lg  px-1 py-1 transition-opacity duration-150 hover:opacity-90;
 }
 
 .sidebar-brand-logo img {
-    @apply h-6 w-auto;
+    @apply h-12 w-auto;
 }
 
 .sidebar-body {
@@ -1441,4 +1441,110 @@
 
 .login-input-eye:hover {
     color: var(--c-primary);
+}
+
+/* ==========================================================================
+   17. TABLA: ESTADOS Y PAGINACION (DataTable.vue / TablePagination.vue)
+   ========================================================================== */
+
+/* Atenua la tabla mientras hay una peticion Inertia en curso (useServerTable().loading). */
+.table-loading {
+    @apply pointer-events-none opacity-50 transition-opacity duration-150;
+}
+
+.table-empty {
+    color: var(--text-muted);
+    @apply py-10 text-center text-sm;
+}
+
+.pagination-wrap {
+    @apply mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row;
+}
+
+.pagination-info {
+    color: var(--text-muted);
+    @apply text-xs;
+}
+
+.pagination {
+    @apply flex items-center gap-1;
+}
+
+.page-item {
+    @apply list-none;
+}
+
+.page-link {
+    color: var(--text-body);
+    border-color: var(--border-subtle);
+    @apply flex h-8 min-w-8 items-center justify-center rounded-lg border bg-transparent px-2 text-xs font-medium transition-colors duration-150 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent;
+}
+
+.dark .page-link:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.page-item.active .page-link {
+    background-color: var(--c-primary);
+    border-color: var(--c-primary);
+    @apply text-white hover:opacity-90;
+}
+
+.page-item.disabled .page-link,
+.page-ellipsis {
+    @apply pointer-events-none border-transparent bg-transparent opacity-60;
+}
+
+/* ==========================================================================
+   18. FORMULARIOS
+   ========================================================================== */
+
+.form-group {
+    @apply mb-4;
+}
+
+.form-label {
+    color: var(--text-heading);
+    @apply mb-1.5 block text-sm font-medium;
+}
+
+/* Sirve para <input>, <textarea> y <select> por igual. */
+.form-control {
+    color: var(--text-body);
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    @apply w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-150 placeholder:text-slate-400 focus:outline-none focus:ring-2;
+    --tw-ring-color: var(--c-primary);
+}
+
+.form-control:focus {
+    border-color: var(--c-primary);
+}
+
+.form-control.is-invalid {
+    border-color: var(--c-danger);
+    --tw-ring-color: var(--c-danger);
+}
+
+.form-error {
+    color: var(--c-danger);
+    @apply mt-1 text-xs;
+}
+
+/* ==========================================================================
+   19. MODAL (Components/Modal.vue): pie y cierre, el resto reusa .card-*
+   ========================================================================== */
+
+.modal-footer {
+    border-color: var(--border-subtle);
+    @apply flex items-center justify-end gap-2 border-t px-5 py-4;
+}
+
+.modal-close {
+    color: var(--text-muted);
+    @apply rounded-lg p-1.5 transition-colors duration-150 hover:bg-black/5;
+}
+
+.dark .modal-close:hover {
+    background-color: rgba(255, 255, 255, 0.06);
 }

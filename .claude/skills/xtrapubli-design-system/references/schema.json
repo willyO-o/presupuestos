@@ -1,0 +1,1774 @@
+{
+  "database": "xtrapubli",
+  "engine": "MySQL 8",
+  "framework": "Laravel 11 + Inertia (Vue 3)",
+  "naming_convention": "tablas propias en singular y minusculas (snake_case). Las tablas por defecto de Laravel y del paquete Spatie Laravel-Permission conservan su nombre y plural original para no romper su funcionamiento.",
+  "notes": "Los campos de estado booleanos se modelaron como ENUM en mayusculas ('ACTIVO'/'INACTIVO' u otros segun corresponda) para facilitar filtros y agrupaciones en el modulo de Inteligencia de Negocios (BI).",
+  "tables": [
+    {
+      "table": "users",
+      "laravel_default": true,
+      "description": "Usuarios del sistema (staff y clientes con acceso al portal). Tabla por defecto de Laravel, se conserva en plural.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "unique": true
+        },
+        {
+          "name": "email_verified_at",
+          "type": "timestamp",
+          "nullable": true
+        },
+        {
+          "name": "password",
+          "type": "string"
+        },
+        {
+          "name": "foto",
+          "type": "string",
+          "nullable": true,
+          "comment": "ruta/URL de la foto de perfil"
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "remember_token",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "email"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "table": "roles",
+      "laravel_default": true,
+      "package": "spatie/laravel-permission",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "comment": "ADMINISTRADOR, VENDEDOR, DISENADOR, JEFE_PRODUCCION, OPERARIO_PRODUCCION, CONTADOR, SECRETARIA, CLIENTE"
+        },
+        {
+          "name": "guard_name",
+          "type": "string",
+          "default": "web"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "permissions",
+      "laravel_default": true,
+      "package": "spatie/laravel-permission",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "comment": "cotizacion.crear, pedido.ver, material.gestionar, etc."
+        },
+        {
+          "name": "guard_name",
+          "type": "string",
+          "default": "web"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "model_has_roles",
+      "laravel_default": true,
+      "package": "spatie/laravel-permission",
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "fk": {
+            "table": "roles",
+            "column": "id"
+          }
+        },
+        {
+          "name": "model_type",
+          "type": "string"
+        },
+        {
+          "name": "model_id",
+          "type": "bigint"
+        }
+      ]
+    },
+    {
+      "table": "model_has_permissions",
+      "laravel_default": true,
+      "package": "spatie/laravel-permission",
+      "columns": [
+        {
+          "name": "permission_id",
+          "type": "bigint",
+          "fk": {
+            "table": "permissions",
+            "column": "id"
+          }
+        },
+        {
+          "name": "model_type",
+          "type": "string"
+        },
+        {
+          "name": "model_id",
+          "type": "bigint"
+        }
+      ]
+    },
+    {
+      "table": "role_has_permissions",
+      "laravel_default": true,
+      "package": "spatie/laravel-permission",
+      "columns": [
+        {
+          "name": "permission_id",
+          "type": "bigint",
+          "fk": {
+            "table": "permissions",
+            "column": "id"
+          }
+        },
+        {
+          "name": "role_id",
+          "type": "bigint",
+          "fk": {
+            "table": "roles",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "table": "sucursal",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "nombre",
+          "type": "string"
+        },
+        {
+          "name": "direccion",
+          "type": "string"
+        },
+        {
+          "name": "ciudad",
+          "type": "string"
+        },
+        {
+          "name": "telefono",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "area",
+      "description": "Departamentos: VENTAS, DISENO, GIGANTOGRAFIA, CERRAJERIA, CARPINTERIA, ACABADO, ADMINISTRACION",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "nombre",
+          "type": "string"
+        },
+        {
+          "name": "descripcion",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "empleado",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "fk": {
+            "table": "users",
+            "column": "id"
+          },
+          "nullable": true,
+          "comment": "nullable: no todo empleado tiene acceso al sistema"
+        },
+        {
+          "name": "sucursal_id",
+          "type": "bigint",
+          "fk": {
+            "table": "sucursal",
+            "column": "id"
+          }
+        },
+        {
+          "name": "area_id",
+          "type": "bigint",
+          "fk": {
+            "table": "area",
+            "column": "id"
+          }
+        },
+        {
+          "name": "nombre_completo",
+          "type": "string"
+        },
+        {
+          "name": "ci",
+          "type": "string"
+        },
+        {
+          "name": "cargo",
+          "type": "string"
+        },
+        {
+          "name": "telefono",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "fecha_ingreso",
+          "type": "date"
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "ci"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "table": "cliente",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "user_id",
+          "type": "bigint",
+          "fk": {
+            "table": "users",
+            "column": "id"
+          },
+          "nullable": true,
+          "comment": "nullable: solo si tiene acceso al portal"
+        },
+        {
+          "name": "tipo",
+          "type": "enum",
+          "values": [
+            "NATURAL",
+            "JURIDICO"
+          ]
+        },
+        {
+          "name": "razon_social",
+          "type": "string"
+        },
+        {
+          "name": "nit",
+          "type": "string"
+        },
+        {
+          "name": "contacto_nombre",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "telefono",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "direccion",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "ciudad",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "nit"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "table": "categoria_material",
+      "description": "GIGANTOGRAFIA, CERRAJERIA, CARPINTERIA, OTROS_MATERIALES, PINTURAS",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "nombre",
+          "type": "string"
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "material",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "categoria_material_id",
+          "type": "bigint",
+          "fk": {
+            "table": "categoria_material",
+            "column": "id"
+          }
+        },
+        {
+          "name": "nombre",
+          "type": "string",
+          "comment": "ej. Lona FrontLight 3,20x50m, Tubo 20x20x0,9mm"
+        },
+        {
+          "name": "presentacion",
+          "type": "string",
+          "comment": "Rollo, Plancha, Litro, Barra"
+        },
+        {
+          "name": "unidad_medida",
+          "type": "enum",
+          "values": [
+            "M2",
+            "METRO",
+            "UNIDAD",
+            "LITRO"
+          ]
+        },
+        {
+          "name": "precio_presentacion",
+          "type": "decimal(10,2)",
+          "comment": "costo total del rollo/plancha/litro"
+        },
+        {
+          "name": "precio_unitario",
+          "type": "decimal(10,2)",
+          "comment": "costo por m2/metro/unidad, usado en el calculo de cotizaciones"
+        },
+        {
+          "name": "stock_actual",
+          "type": "decimal(10,2)",
+          "default": 0
+        },
+        {
+          "name": "stock_minimo",
+          "type": "decimal(10,2)",
+          "default": 0
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "historial_precio_material",
+      "description": "Registro historico de precios de cada material, clave para el analisis BI de evolucion de costos.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "material_id",
+          "type": "bigint",
+          "fk": {
+            "table": "material",
+            "column": "id"
+          }
+        },
+        {
+          "name": "precio_presentacion",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "precio_unitario",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "vigente_desde",
+          "type": "date"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "material_id",
+            "vigente_desde"
+          ]
+        }
+      ]
+    },
+    {
+      "table": "proveedor",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "nombre",
+          "type": "string"
+        },
+        {
+          "name": "nit",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "contacto",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "telefono",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "direccion",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "compra",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "proveedor_id",
+          "type": "bigint",
+          "fk": {
+            "table": "proveedor",
+            "column": "id"
+          }
+        },
+        {
+          "name": "empleado_id",
+          "type": "bigint",
+          "fk": {
+            "table": "empleado",
+            "column": "id"
+          }
+        },
+        {
+          "name": "numero_factura",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "fecha",
+          "type": "date"
+        },
+        {
+          "name": "total",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "PENDIENTE",
+            "PAGADA",
+            "ANULADA"
+          ],
+          "default": "PENDIENTE"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "compra_detalle",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "compra_id",
+          "type": "bigint",
+          "fk": {
+            "table": "compra",
+            "column": "id"
+          }
+        },
+        {
+          "name": "material_id",
+          "type": "bigint",
+          "fk": {
+            "table": "material",
+            "column": "id"
+          }
+        },
+        {
+          "name": "cantidad",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "precio_unitario",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "categoria_producto",
+      "description": "BASTIDORES, BANNERS, GIGANTOGRAFIAS, VINYL_ROTULADO, EXHIBIDORES, MATERIAL_POP, TOLDOS, LETREROS_LUMINOSOS, ROTULADO_VEHICULAR",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "nombre",
+          "type": "string"
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "producto",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "categoria_producto_id",
+          "type": "bigint",
+          "fk": {
+            "table": "categoria_producto",
+            "column": "id"
+          }
+        },
+        {
+          "name": "nombre",
+          "type": "string"
+        },
+        {
+          "name": "descripcion",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "unidad_medida",
+          "type": "enum",
+          "values": [
+            "M2",
+            "UNIDAD",
+            "METRO_LINEAL"
+          ]
+        },
+        {
+          "name": "precio_base",
+          "type": "decimal(10,2)",
+          "nullable": true,
+          "comment": "referencial / mano de obra fija"
+        },
+        {
+          "name": "requiere_medidas",
+          "type": "enum",
+          "values": [
+            "SI",
+            "NO"
+          ],
+          "default": "SI"
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "ACTIVO",
+            "INACTIVO"
+          ],
+          "default": "ACTIVO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "producto_material",
+      "description": "Lista de materiales (BOM) que consume un producto por cada unidad/m2.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "producto_id",
+          "type": "bigint",
+          "fk": {
+            "table": "producto",
+            "column": "id"
+          }
+        },
+        {
+          "name": "material_id",
+          "type": "bigint",
+          "fk": {
+            "table": "material",
+            "column": "id"
+          }
+        },
+        {
+          "name": "cantidad_por_unidad",
+          "type": "decimal(10,4)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "cotizacion",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "codigo_verificacion",
+          "type": "string",
+          "unique": true
+        },
+        {
+          "name": "cliente_id",
+          "type": "bigint",
+          "fk": {
+            "table": "cliente",
+            "column": "id"
+          }
+        },
+        {
+          "name": "empleado_id",
+          "type": "bigint",
+          "fk": {
+            "table": "empleado",
+            "column": "id"
+          },
+          "comment": "vendedor"
+        },
+        {
+          "name": "sucursal_id",
+          "type": "bigint",
+          "fk": {
+            "table": "sucursal",
+            "column": "id"
+          }
+        },
+        {
+          "name": "fecha",
+          "type": "date"
+        },
+        {
+          "name": "fecha_vencimiento",
+          "type": "date",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "PENDIENTE",
+            "APROBADA",
+            "RECHAZADA",
+            "CONVERTIDA",
+            "VENCIDA"
+          ],
+          "default": "PENDIENTE"
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "descuento",
+          "type": "decimal(10,2)",
+          "default": 0
+        },
+        {
+          "name": "impuesto",
+          "type": "decimal(10,2)",
+          "default": 0
+        },
+        {
+          "name": "total",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "observaciones",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "codigo_verificacion"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "table": "cotizacion_detalle",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "cotizacion_id",
+          "type": "bigint",
+          "fk": {
+            "table": "cotizacion",
+            "column": "id"
+          }
+        },
+        {
+          "name": "producto_id",
+          "type": "bigint",
+          "fk": {
+            "table": "producto",
+            "column": "id"
+          },
+          "nullable": true,
+          "comment": "nullable si es un item personalizado"
+        },
+        {
+          "name": "descripcion",
+          "type": "string"
+        },
+        {
+          "name": "ancho",
+          "type": "decimal(10,2)",
+          "nullable": true
+        },
+        {
+          "name": "alto",
+          "type": "decimal(10,2)",
+          "nullable": true
+        },
+        {
+          "name": "area_m2",
+          "type": "decimal(10,2)",
+          "nullable": true,
+          "comment": "calculado = ancho x alto"
+        },
+        {
+          "name": "cantidad",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "precio_unitario",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "subtotal",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "pedido",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "cotizacion_id",
+          "type": "bigint",
+          "fk": {
+            "table": "cotizacion",
+            "column": "id"
+          },
+          "unique": true
+        },
+        {
+          "name": "numero_pedido",
+          "type": "string",
+          "unique": true
+        },
+        {
+          "name": "fecha_pedido",
+          "type": "date"
+        },
+        {
+          "name": "fecha_entrega_estimada",
+          "type": "date",
+          "nullable": true
+        },
+        {
+          "name": "fecha_entrega_real",
+          "type": "date",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "DISENO",
+            "ELABORACION",
+            "ACABADO",
+            "ENTREGADO",
+            "CANCELADO"
+          ],
+          "default": "DISENO"
+        },
+        {
+          "name": "total",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "numero_pedido"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "table": "pedido_detalle",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "pedido_id",
+          "type": "bigint",
+          "fk": {
+            "table": "pedido",
+            "column": "id"
+          }
+        },
+        {
+          "name": "cotizacion_detalle_id",
+          "type": "bigint",
+          "fk": {
+            "table": "cotizacion_detalle",
+            "column": "id"
+          }
+        },
+        {
+          "name": "descripcion",
+          "type": "string"
+        },
+        {
+          "name": "ancho",
+          "type": "decimal(10,2)",
+          "nullable": true
+        },
+        {
+          "name": "alto",
+          "type": "decimal(10,2)",
+          "nullable": true
+        },
+        {
+          "name": "cantidad",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "estado_item",
+          "type": "enum",
+          "values": [
+            "DISENO",
+            "ELABORACION",
+            "ACABADO",
+            "ENTREGADO"
+          ],
+          "default": "DISENO"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "pedido_seguimiento",
+      "description": "Bitacora de avance por area/etapa; representa el flujo Diseno -> Elaboracion -> Acabado -> Entrega.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "pedido_detalle_id",
+          "type": "bigint",
+          "fk": {
+            "table": "pedido_detalle",
+            "column": "id"
+          }
+        },
+        {
+          "name": "area_id",
+          "type": "bigint",
+          "fk": {
+            "table": "area",
+            "column": "id"
+          }
+        },
+        {
+          "name": "empleado_id",
+          "type": "bigint",
+          "fk": {
+            "table": "empleado",
+            "column": "id"
+          },
+          "comment": "responsable"
+        },
+        {
+          "name": "etapa",
+          "type": "enum",
+          "values": [
+            "DISENO",
+            "ELABORACION",
+            "ACABADO",
+            "ENTREGA"
+          ]
+        },
+        {
+          "name": "fecha_inicio",
+          "type": "datetime",
+          "nullable": true
+        },
+        {
+          "name": "fecha_fin",
+          "type": "datetime",
+          "nullable": true
+        },
+        {
+          "name": "observaciones",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "pedido_detalle_material",
+      "description": "Consumo REAL de materiales por item de pedido (compara contra el BOM presupuestado en producto_material).",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "pedido_detalle_id",
+          "type": "bigint",
+          "fk": {
+            "table": "pedido_detalle",
+            "column": "id"
+          }
+        },
+        {
+          "name": "material_id",
+          "type": "bigint",
+          "fk": {
+            "table": "material",
+            "column": "id"
+          }
+        },
+        {
+          "name": "cantidad_usada",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "costo_real",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "orden_compra_cliente",
+      "description": "Orden de compra formal que el cliente envia a XtraPubli como respaldo del pedido (ej. OC 11021545).",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "pedido_id",
+          "type": "bigint",
+          "fk": {
+            "table": "pedido",
+            "column": "id"
+          }
+        },
+        {
+          "name": "cliente_id",
+          "type": "bigint",
+          "fk": {
+            "table": "cliente",
+            "column": "id"
+          }
+        },
+        {
+          "name": "numero_oc",
+          "type": "string"
+        },
+        {
+          "name": "fecha",
+          "type": "date"
+        },
+        {
+          "name": "monto_total",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "condicion_pago",
+          "type": "string",
+          "nullable": true,
+          "comment": "ej. 60 DIAS"
+        },
+        {
+          "name": "archivo_pdf",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "PENDIENTE",
+            "VALIDADA",
+            "ANULADA"
+          ],
+          "default": "PENDIENTE"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "nota_entrega",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "pedido_id",
+          "type": "bigint",
+          "fk": {
+            "table": "pedido",
+            "column": "id"
+          }
+        },
+        {
+          "name": "empleado_id",
+          "type": "bigint",
+          "fk": {
+            "table": "empleado",
+            "column": "id"
+          }
+        },
+        {
+          "name": "numero_nota",
+          "type": "string",
+          "unique": true
+        },
+        {
+          "name": "fecha_entrega",
+          "type": "date"
+        },
+        {
+          "name": "recibido_por",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "cargo_receptor",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "observaciones",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "archivo_pdf",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "numero_nota"
+          ],
+          "unique": true
+        }
+      ]
+    },
+    {
+      "table": "nota_entrega_detalle",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "nota_entrega_id",
+          "type": "bigint",
+          "fk": {
+            "table": "nota_entrega",
+            "column": "id"
+          }
+        },
+        {
+          "name": "pedido_detalle_id",
+          "type": "bigint",
+          "fk": {
+            "table": "pedido_detalle",
+            "column": "id"
+          }
+        },
+        {
+          "name": "descripcion",
+          "type": "string"
+        },
+        {
+          "name": "cantidad_entregada",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "ubicacion",
+          "type": "string",
+          "nullable": true,
+          "comment": "ej. Bastidor ingreso tienda lado derecho"
+        },
+        {
+          "name": "foto_url",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "pago",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "pedido_id",
+          "type": "bigint",
+          "fk": {
+            "table": "pedido",
+            "column": "id"
+          }
+        },
+        {
+          "name": "monto",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "fecha_pago",
+          "type": "date"
+        },
+        {
+          "name": "metodo_pago",
+          "type": "enum",
+          "values": [
+            "EFECTIVO",
+            "TRANSFERENCIA",
+            "QR",
+            "TARJETA",
+            "CHEQUE"
+          ]
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": [
+            "PENDIENTE",
+            "PAGADO",
+            "PARCIAL"
+          ],
+          "default": "PENDIENTE"
+        },
+        {
+          "name": "comprobante_url",
+          "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "empleado.user_id",
+      "to": "users.id",
+      "type": "one_to_one_optional"
+    },
+    {
+      "from": "cliente.user_id",
+      "to": "users.id",
+      "type": "one_to_one_optional"
+    },
+    {
+      "from": "model_has_roles.model_id",
+      "to": "users.id",
+      "type": "polymorphic"
+    },
+    {
+      "from": "model_has_roles.role_id",
+      "to": "roles.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "role_has_permissions.role_id",
+      "to": "roles.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "role_has_permissions.permission_id",
+      "to": "permissions.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "empleado.sucursal_id",
+      "to": "sucursal.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "empleado.area_id",
+      "to": "area.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "material.categoria_material_id",
+      "to": "categoria_material.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "historial_precio_material.material_id",
+      "to": "material.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "compra.proveedor_id",
+      "to": "proveedor.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "compra.empleado_id",
+      "to": "empleado.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "compra_detalle.compra_id",
+      "to": "compra.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "compra_detalle.material_id",
+      "to": "material.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "producto.categoria_producto_id",
+      "to": "categoria_producto.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "producto_material.producto_id",
+      "to": "producto.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "producto_material.material_id",
+      "to": "material.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "cotizacion.cliente_id",
+      "to": "cliente.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "cotizacion.empleado_id",
+      "to": "empleado.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "cotizacion.sucursal_id",
+      "to": "sucursal.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "cotizacion_detalle.cotizacion_id",
+      "to": "cotizacion.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "cotizacion_detalle.producto_id",
+      "to": "producto.id",
+      "type": "many_to_one_optional"
+    },
+    {
+      "from": "pedido.cotizacion_id",
+      "to": "cotizacion.id",
+      "type": "one_to_one"
+    },
+    {
+      "from": "pedido_detalle.pedido_id",
+      "to": "pedido.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "pedido_detalle.cotizacion_detalle_id",
+      "to": "cotizacion_detalle.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "pedido_seguimiento.pedido_detalle_id",
+      "to": "pedido_detalle.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "pedido_seguimiento.area_id",
+      "to": "area.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "pedido_seguimiento.empleado_id",
+      "to": "empleado.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "pedido_detalle_material.pedido_detalle_id",
+      "to": "pedido_detalle.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "pedido_detalle_material.material_id",
+      "to": "material.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "orden_compra_cliente.pedido_id",
+      "to": "pedido.id",
+      "type": "one_to_one_optional"
+    },
+    {
+      "from": "orden_compra_cliente.cliente_id",
+      "to": "cliente.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "nota_entrega.pedido_id",
+      "to": "pedido.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "nota_entrega.empleado_id",
+      "to": "empleado.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "nota_entrega_detalle.nota_entrega_id",
+      "to": "nota_entrega.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "nota_entrega_detalle.pedido_detalle_id",
+      "to": "pedido_detalle.id",
+      "type": "many_to_one"
+    },
+    {
+      "from": "pago.pedido_id",
+      "to": "pedido.id",
+      "type": "many_to_one"
+    }
+  ]
+}

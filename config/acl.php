@@ -67,6 +67,15 @@ return [
                 'vehiculos.ver' => 'Ver vehículos',
             ],
         ],
+        'sucursales' => [
+            'label' => 'Sucursales',
+            'permissions' => [
+                'sucursales.ver' => 'Ver sucursales',
+                'sucursales.crear' => 'Crear sucursales',
+                'sucursales.editar' => 'Editar sucursales',
+                'sucursales.eliminar' => 'Eliminar sucursales',
+            ],
+        ],
         'grifos' => [
             'label' => 'Surtidores',
             'permissions' => [
