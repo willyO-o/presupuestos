@@ -1,0 +1,8 @@
+# Project Rules Index
+
+Before planning or editing, find the row whose globs match the file's path and read that rule file.
+
+| Applies to | Rule file |
+| --- | --- |
+| resources/js/**/*.vue | .ai/rules/js.md |
+| resources/js/Pages/**/*.vue | .ai/rules/pages.md |

@@ -1,3 +1,8 @@
+/* Fuentes de iconos gratuitas (ver .ai/rules/icons.md para cuando usar cada una) */
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import 'remixicon/fonts/remixicon.css';
+@import '@mdi/font/css/materialdesignicons.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,11 +16,26 @@
    ========================================================================== */
 
 :root {
+    /* ------------------------------------------------------------------
+       MARCA XTRAPUBLI — unica fuente de verdad del color de marca.
+       Si la empresa actualiza su identidad, solo hay que tocar estas 4
+       variables; el resto del archivo (tokens semanticos y componentes)
+       las hereda automaticamente.
+       - --brand-blue        -> azul del isotipo y de la palabra "Publi"
+       - --brand-blue-light  -> celeste del degradado del nadador/isotipo
+       - --brand-teal        -> turquesa usado en CTAs de xtrapubli.com
+       - --brand-dark        -> negro de la palabra "Xtra"
+       ------------------------------------------------------------------ */
+    --brand-blue: #1c7fc4;
+    --brand-blue-light: #6fcbec;
+    --brand-teal: #0e8b94;
+    --brand-dark: #14161a;
+
     --page-bg: #f3f3f9;
-    --sidebar-bg: #262a3d;
+    --sidebar-bg: #101a2c;
     --sidebar-bg-hover: rgba(255, 255, 255, 0.06);
-    --sidebar-bg-active: rgba(255, 255, 255, 0.08);
-    --sidebar-text: #8f9bc2;
+    --sidebar-bg-active: rgba(28, 127, 196, 0.22);
+    --sidebar-text: #8ea3c2;
     --sidebar-text-active: #ffffff;
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-width: 260px;
@@ -23,33 +43,58 @@
     --topbar-bg: #ffffff;
     --topbar-border: #eef0f5;
     --card-bg: #ffffff;
-    --card-shadow: 0 2px 4px rgba(30, 32, 66, 0.06), 0 8px 16px rgba(30, 32, 66, 0.04);
+    --card-shadow: 0 2px 4px rgba(20, 22, 26, 0.06), 0 8px 16px rgba(20, 22, 26, 0.04);
     --text-body: #495057;
     --text-heading: #343a40;
     --text-muted: #878a99;
     --border-subtle: #eef0f5;
 
-    --c-primary: #5b6ee1;
-    --c-primary-dark: #4756c9;
-    --c-primary-soft: #eaecfb;
+    /* ------------------------------------------------------------------
+       TOKENS SEMANTICOS (estilo Bootstrap) — derivados de la marca.
+       Formato por color: base / -dark (hover, active) / -soft (fondo tenue).
+       ------------------------------------------------------------------ */
+    --c-primary: var(--brand-blue);
+    --c-primary-dark: #145f97;
+    --c-primary-soft: #e3f1fa;
+
+    --c-secondary: #64748b;
+    --c-secondary-dark: #4b5768;
+    --c-secondary-soft: #eef1f4;
+
     --c-success: #17a673;
+    --c-success-dark: #128257;
     --c-success-soft: #e3f7ee;
-    --c-info: #299cdb;
-    --c-info-soft: #e2f3fb;
+
+    --c-info: var(--brand-teal);
+    --c-info-dark: #0b6e75;
+    --c-info-soft: #e1f3f4;
+
     --c-warning: #f7b84b;
+    --c-warning-dark: #e2a233;
     --c-warning-soft: #fef4e4;
-    --c-danger: #f06a6a;
-    --c-danger-soft: #fdeaea;
+
+    --c-danger: #e5484d;
+    --c-danger-dark: #c93a3f;
+    --c-danger-soft: #fdecec;
+
+    --c-light: #f3f3f9;
+    --c-light-dark: #e2e4ee;
+
+    --c-dark: var(--brand-dark);
+    --c-dark-dark: #000000;
+    --c-dark-soft: #e9eaec;
+
     --c-pink: #ee6a9f;
+    --c-pink-dark: #d94f87;
     --c-pink-soft: #fce9f1;
 }
 
 .dark {
     --page-bg: #1b1e2e;
-    --sidebar-bg: #1f2233;
+    --sidebar-bg: #0b1220;
     --sidebar-bg-hover: rgba(255, 255, 255, 0.05);
-    --sidebar-bg-active: rgba(255, 255, 255, 0.07);
-    --sidebar-text: #8f9bc2;
+    --sidebar-bg-active: rgba(28, 127, 196, 0.24);
+    --sidebar-text: #8ea3c2;
     --sidebar-text-active: #ffffff;
     --sidebar-border: rgba(255, 255, 255, 0.06);
     --topbar-bg: #262a3d;
@@ -61,11 +106,14 @@
     --text-muted: #8f97b8;
     --border-subtle: rgba(255, 255, 255, 0.08);
 
-    --c-primary-soft: rgba(91, 110, 225, 0.15);
+    --c-primary-soft: rgba(28, 127, 196, 0.16);
+    --c-secondary-soft: rgba(100, 116, 139, 0.18);
     --c-success-soft: rgba(23, 166, 115, 0.15);
-    --c-info-soft: rgba(41, 156, 219, 0.15);
+    --c-info-soft: rgba(14, 139, 148, 0.18);
     --c-warning-soft: rgba(247, 184, 75, 0.15);
-    --c-danger-soft: rgba(240, 106, 106, 0.15);
+    --c-danger-soft: rgba(229, 72, 77, 0.16);
+    --c-light-dark: rgba(255, 255, 255, 0.08);
+    --c-dark-soft: rgba(255, 255, 255, 0.08);
     --c-pink-soft: rgba(238, 106, 159, 0.15);
 }
 
@@ -528,9 +576,53 @@
     @apply rounded-full;
 }
 
+/* --- Badges solidos --- */
+.badge-primary {
+    background-color: var(--c-primary);
+    @apply text-white;
+}
+.badge-secondary {
+    background-color: var(--c-secondary);
+    @apply text-white;
+}
+.badge-success {
+    background-color: var(--c-success);
+    @apply text-white;
+}
+.badge-info {
+    background-color: var(--c-info);
+    @apply text-white;
+}
+.badge-warning {
+    background-color: var(--c-warning);
+    @apply text-white;
+}
+.badge-danger {
+    background-color: var(--c-danger);
+    @apply text-white;
+}
+.badge-dark {
+    background-color: var(--c-dark);
+    @apply text-white;
+}
+.badge-light {
+    background-color: var(--c-light-dark);
+    color: var(--text-heading);
+}
+.badge-pink {
+    background-color: var(--c-pink);
+    @apply text-white;
+}
+
+/* --- Badges tenues (soft) --- */
 .badge-soft-primary {
     background-color: var(--c-primary-soft);
     color: var(--c-primary);
+}
+
+.badge-soft-secondary {
+    background-color: var(--c-secondary-soft);
+    color: var(--c-secondary);
 }
 
 .badge-soft-success {
@@ -553,6 +645,11 @@
     color: var(--c-danger);
 }
 
+.badge-soft-dark {
+    background-color: var(--c-dark-soft);
+    color: var(--c-dark);
+}
+
 .badge-soft-pink {
     background-color: var(--c-pink-soft);
     color: var(--c-pink);
@@ -563,16 +660,15 @@
    ========================================================================== */
 
 .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 focus:outline-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .btn-sm {
     @apply px-3 py-1.5 text-xs;
 }
 
-.btn-primary {
-    background-color: var(--c-primary);
-    @apply text-white hover:opacity-90;
+.btn-lg {
+    @apply px-5 py-3 text-base;
 }
 
 .btn-light {
@@ -581,14 +677,133 @@
     @apply hover:opacity-80;
 }
 
+.btn-icon {
+    @apply flex h-8 w-8 items-center justify-center rounded-lg p-0;
+}
+
+/* --- Botones solidos --- */
+.btn-primary {
+    background-color: var(--c-primary);
+    @apply text-white hover:opacity-90;
+}
+.btn-secondary {
+    background-color: var(--c-secondary);
+    @apply text-white hover:opacity-90;
+}
+.btn-success {
+    background-color: var(--c-success);
+    @apply text-white hover:opacity-90;
+}
+.btn-info {
+    background-color: var(--c-info);
+    @apply text-white hover:opacity-90;
+}
+.btn-warning {
+    background-color: var(--c-warning);
+    @apply text-white hover:opacity-90;
+}
+.btn-danger {
+    background-color: var(--c-danger);
+    @apply text-white hover:opacity-90;
+}
+.btn-dark {
+    background-color: var(--c-dark);
+    @apply text-white hover:opacity-90;
+}
+
+/* --- Botones tenues (soft) --- */
 .btn-soft-primary {
     background-color: var(--c-primary-soft);
     color: var(--c-primary);
     @apply hover:opacity-80;
 }
+.btn-soft-secondary {
+    background-color: var(--c-secondary-soft);
+    color: var(--c-secondary);
+    @apply hover:opacity-80;
+}
+.btn-soft-success {
+    background-color: var(--c-success-soft);
+    color: var(--c-success);
+    @apply hover:opacity-80;
+}
+.btn-soft-info {
+    background-color: var(--c-info-soft);
+    color: var(--c-info);
+    @apply hover:opacity-80;
+}
+.btn-soft-warning {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning);
+    @apply hover:opacity-80;
+}
+.btn-soft-danger {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+    @apply hover:opacity-80;
+}
+.btn-soft-dark {
+    background-color: var(--c-dark-soft);
+    color: var(--c-dark);
+    @apply hover:opacity-80;
+}
 
-.btn-icon {
-    @apply flex h-8 w-8 items-center justify-center rounded-lg p-0;
+/* --- Botones outline (borde + texto de color, fondo transparente) --- */
+.btn-outline-primary {
+    border: 1px solid var(--c-primary);
+    color: var(--c-primary);
+    @apply bg-transparent hover:text-white;
+}
+.btn-outline-primary:hover {
+    background-color: var(--c-primary);
+}
+.btn-outline-secondary {
+    border: 1px solid var(--c-secondary);
+    color: var(--c-secondary);
+    @apply bg-transparent hover:text-white;
+}
+.btn-outline-secondary:hover {
+    background-color: var(--c-secondary);
+}
+.btn-outline-success {
+    border: 1px solid var(--c-success);
+    color: var(--c-success);
+    @apply bg-transparent hover:text-white;
+}
+.btn-outline-success:hover {
+    background-color: var(--c-success);
+}
+.btn-outline-info {
+    border: 1px solid var(--c-info);
+    color: var(--c-info);
+    @apply bg-transparent hover:text-white;
+}
+.btn-outline-info:hover {
+    background-color: var(--c-info);
+}
+.btn-outline-warning {
+    border: 1px solid var(--c-warning);
+    color: var(--c-warning);
+    @apply bg-transparent hover:text-white;
+}
+.btn-outline-warning:hover {
+    background-color: var(--c-warning);
+}
+.btn-outline-danger {
+    border: 1px solid var(--c-danger);
+    color: var(--c-danger);
+    @apply bg-transparent hover:text-white;
+}
+.btn-outline-danger:hover {
+    background-color: var(--c-danger);
+}
+.btn-outline-dark {
+    border: 1px solid var(--c-dark);
+    color: var(--c-dark);
+    @apply bg-transparent hover:text-white;
+}
+.btn-outline-dark:hover {
+    background-color: var(--c-dark);
 }
 
 /* ==========================================================================
@@ -615,10 +830,53 @@
     @apply h-20 w-20;
 }
 
+.avatar-xl {
+    @apply h-24 w-24;
+}
+
 .avatar-title {
     background-color: var(--c-primary-soft);
     color: var(--c-primary);
     @apply flex h-full w-full items-center justify-center text-sm font-semibold;
+}
+
+.avatar-title-secondary {
+    background-color: var(--c-secondary-soft);
+    color: var(--c-secondary);
+}
+.avatar-title-success {
+    background-color: var(--c-success-soft);
+    color: var(--c-success);
+}
+.avatar-title-info {
+    background-color: var(--c-info-soft);
+    color: var(--c-info);
+}
+.avatar-title-warning {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+.avatar-title-danger {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+.avatar-title-dark {
+    background-color: var(--c-dark-soft);
+    color: var(--c-dark);
+}
+
+/* ==========================================================================
+   9b. IMAGENES
+   ========================================================================== */
+
+.img-fluid {
+    @apply block h-auto max-w-full;
+}
+
+.img-thumbnail {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    @apply block h-auto max-w-full rounded-lg border p-1;
 }
 
 /* ==========================================================================
@@ -814,14 +1072,32 @@
 .text-primary {
     color: var(--c-primary);
 }
+.text-secondary {
+    color: var(--c-secondary);
+}
 .text-success {
     color: var(--c-success);
+}
+.text-info {
+    color: var(--c-info);
 }
 .text-danger {
     color: var(--c-danger);
 }
 .text-warning {
     color: var(--c-warning);
+}
+.text-dark {
+    color: var(--c-dark);
+}
+.text-light {
+    color: var(--c-light);
+}
+.text-pink {
+    color: var(--c-pink);
+}
+.text-white {
+    color: #ffffff;
 }
 
 .fw-normal {
@@ -936,4 +1212,136 @@
 }
 .col-lg-9 {
     @apply col-span-12 lg:col-span-9;
+}
+
+/* ==========================================================================
+   14. FONDOS POR COLOR (bg-*, bg-soft-*, bg-outline-*)
+   ------------------------------------------------------------------------
+   Equivalente a las utilidades bg-primary / bg-soft-primary / bg-outline-*
+   de Bootstrap. Los colores salen siempre de las variables --c-*, que a su
+   vez heredan de las variables de MARCA definidas arriba en :root.
+   ========================================================================== */
+
+/* --- Solidas (texto blanco excepto en light) --- */
+.bg-primary {
+    background-color: var(--c-primary);
+    @apply text-white;
+}
+.bg-secondary {
+    background-color: var(--c-secondary);
+    @apply text-white;
+}
+.bg-success {
+    background-color: var(--c-success);
+    @apply text-white;
+}
+.bg-info {
+    background-color: var(--c-info);
+    @apply text-white;
+}
+.bg-warning {
+    background-color: var(--c-warning);
+    @apply text-white;
+}
+.bg-danger {
+    background-color: var(--c-danger);
+    @apply text-white;
+}
+.bg-dark {
+    background-color: var(--c-dark);
+    @apply text-white;
+}
+.bg-light {
+    background-color: var(--c-light);
+    color: var(--text-heading);
+}
+.bg-pink {
+    background-color: var(--c-pink);
+    @apply text-white;
+}
+.bg-white {
+    background-color: #ffffff;
+}
+
+/* --- Tenues (fondo pastel + texto del mismo color) --- */
+.bg-soft-primary {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+}
+.bg-soft-secondary {
+    background-color: var(--c-secondary-soft);
+    color: var(--c-secondary);
+}
+.bg-soft-success {
+    background-color: var(--c-success-soft);
+    color: var(--c-success);
+}
+.bg-soft-info {
+    background-color: var(--c-info-soft);
+    color: var(--c-info);
+}
+.bg-soft-warning {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+.bg-soft-danger {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+.bg-soft-dark {
+    background-color: var(--c-dark-soft);
+    color: var(--c-dark);
+}
+.bg-soft-pink {
+    background-color: var(--c-pink-soft);
+    color: var(--c-pink);
+}
+
+/* --- Outline (transparente + borde + texto del color) --- */
+.bg-outline-primary {
+    border: 1px solid var(--c-primary);
+    color: var(--c-primary);
+    @apply bg-transparent;
+}
+.bg-outline-secondary {
+    border: 1px solid var(--c-secondary);
+    color: var(--c-secondary);
+    @apply bg-transparent;
+}
+.bg-outline-success {
+    border: 1px solid var(--c-success);
+    color: var(--c-success);
+    @apply bg-transparent;
+}
+.bg-outline-info {
+    border: 1px solid var(--c-info);
+    color: var(--c-info);
+    @apply bg-transparent;
+}
+.bg-outline-warning {
+    border: 1px solid var(--c-warning);
+    color: var(--c-warning);
+    @apply bg-transparent;
+}
+.bg-outline-danger {
+    border: 1px solid var(--c-danger);
+    color: var(--c-danger);
+    @apply bg-transparent;
+}
+.bg-outline-dark {
+    border: 1px solid var(--c-dark);
+    color: var(--c-dark);
+    @apply bg-transparent;
+}
+
+/* ==========================================================================
+   15. CARD CON IMAGEN
+   ========================================================================== */
+
+.card-img-top {
+    @apply block w-full rounded-t-xl object-cover;
+}
+
+.card-img-overlay {
+    @apply absolute inset-0 flex flex-col justify-end rounded-xl bg-gradient-to-t from-black/70 via-black/10 to-transparent p-5;
 }
