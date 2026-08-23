@@ -20,3 +20,12 @@ Ese mismo seeder crea 2 usuarios de prueba (`superadmin@gmail.com` / `operador@g
 - Props compartidas: `App\Http\Middleware\HandleInertiaRequests::share()` manda `auth.roles`, `auth.permissions`, `auth.is_super_admin`.
 
 Los nombres de permiso en `acl.php` deben coincidir exactamente con los `permission` que usa `resources/js/Data/Sidebar/Nav.js` (ver `.ai/rules/data.md`) — si renombras uno, renombra el otro.
+
+## acl.php reescrito para el negocio XtraPubli (ya no es la app de combustible/flota)
+config/acl.php se reescribió (2026-08-23) para alinearse a database-design.md: se eliminaron TODOS los módulos/permisos de la app de flota/combustible (vales, cargas-combustible, operacion-diaria, mantenimiento, conductores, vehiculos, grifos, tipos-*, grupos-vehiculo, repuestos, personas, parametros-empresa) — no tenían pantallas reales, eran solo scaffolding de la plantilla base. El seeder (RolesAndPermissionsSeeder) ahora también BORRA de la base de datos cualquier Role/Permission que ya no esté en acl.php (antes solo agregaba, nunca limpiaba), así que acl.php es fuente de verdad real, no solo de arranque.
+
+Roles nuevos (organigrama de database-design.md 3.1): administrador, vendedor, disenador, jefe-produccion, operario-produccion, contador, secretaria, cliente — más `super-admin` que se mantiene igual (bypass total, sin depender de la lista de permisos). Se eliminó el rol `operador` y su usuario de prueba `operador@gmail.com` (era de la app de flota). El usuario `superadmin@gmail.com` se mantiene con rol `super-admin` — es el usuario real que se usa para operar el sistema mientras se construyen los módulos.
+
+El rol `cliente` NO tiene `cotizaciones.aprobar` a propósito, aunque database-design.md menciona que el cliente "aprueba la propia": eso debe resolverse con una policy scopeada por `cliente_id` desde el futuro portal, no dándole el permiso plano (que le dejaría aprobar cualquier cotización).
+
+De momento solo existen pantallas reales para 3 módulos (sucursales, categorias-material, categorias-producto, ver [[table]]) — el resto de módulos en acl.php y en Nav.js (empleados, clientes, materiales, proveedores, compras, productos, cotizaciones, pedidos, ordenes-compra-cliente, notas-entrega, pagos, reportes, usuarios, roles) son scaffolding de permisos/menú a propósito, para ir construyendo el resto sin retocar ACL/Nav.js en cada módulo nuevo — sus rutas todavía no existen (404 si se navega ahí).

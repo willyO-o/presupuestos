@@ -49,13 +49,18 @@ const headers = [
 const showFormModal = ref(false);
 const editingSucursal = ref(null);
 
-const form = useForm({
+// Los datos se pasan como funcion (no un objeto plano): Inertia v2 actualiza
+// los "defaults" del form automaticamente en cada submit exitoso, asi que
+// con un objeto plano form.reset() dejaba de volver a los campos vacios
+// despues de crear/editar (volvia a los ultimos datos enviados). Con una
+// funcion, reset() siempre re-evalua estos valores desde cero.
+const form = useForm(() => ({
     nombre: '',
     ciudad: '',
     direccion: '',
     telefono: '',
     estado: 'ACTIVO',
-});
+}));
 
 function openCreate() {
     editingSucursal.value = null;

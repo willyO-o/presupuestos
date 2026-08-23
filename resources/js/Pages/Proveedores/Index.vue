@@ -10,7 +10,7 @@ import { confirmation } from '@/Utils/AlertUtil';
 defineOptions({ layout: MainDashboardLayout });
 
 const props = defineProps({
-    categoriasProducto: {
+    proveedores: {
         type: Object,
         required: true,
     },
@@ -27,24 +27,27 @@ const props = defineProps({
  * con cambiar `mode` a 'auto' aquí.
  */
 const table = useServerTable({
-    url: route('categorias-producto.index'),
+    url: route('proveedores.index'),
     filters: {
         search: props.filters.search ?? '',
         estado: props.filters.estado ?? '',
     },
     mode: 'manual',
-    only: ['categoriasProducto', 'filters'],
+    only: ['proveedores', 'filters'],
 });
 
 const headers = [
     { label: 'Nombre', key: 'nombre' },
+    { label: 'NIT', key: 'nit' },
+    { label: 'Contacto', key: 'contacto' },
+    { label: 'Teléfono', key: 'telefono' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
 /* ── Modal crear / editar ────────────────────────────────────────────── */
 
 const showFormModal = ref(false);
-const editingCategoria = ref(null);
+const editingProveedor = ref(null);
 
 // Los datos se pasan como funcion (no un objeto plano): Inertia v2 actualiza
 // los "defaults" del form automaticamente en cada submit exitoso, asi que
@@ -53,21 +56,29 @@ const editingCategoria = ref(null);
 // funcion, reset() siempre re-evalua estos valores desde cero.
 const form = useForm(() => ({
     nombre: '',
+    nit: '',
+    contacto: '',
+    telefono: '',
+    direccion: '',
     estado: 'ACTIVO',
 }));
 
 function openCreate() {
-    editingCategoria.value = null;
+    editingProveedor.value = null;
     form.clearErrors();
     form.reset();
     showFormModal.value = true;
 }
 
-function openEdit(categoria) {
-    editingCategoria.value = categoria;
+function openEdit(proveedor) {
+    editingProveedor.value = proveedor;
     form.clearErrors();
-    form.nombre = categoria.nombre;
-    form.estado = categoria.estado;
+    form.nombre = proveedor.nombre;
+    form.nit = proveedor.nit;
+    form.contacto = proveedor.contacto;
+    form.telefono = proveedor.telefono;
+    form.direccion = proveedor.direccion;
+    form.estado = proveedor.estado;
     showFormModal.value = true;
 }
 
@@ -81,10 +92,10 @@ function submitForm() {
         onSuccess: () => closeFormModal(),
     };
 
-    if (editingCategoria.value) {
-        form.put(route('categorias-producto.update', editingCategoria.value.id), options);
+    if (editingProveedor.value) {
+        form.put(route('proveedores.update', editingProveedor.value.id), options);
     } else {
-        form.post(route('categorias-producto.store'), options);
+        form.post(route('proveedores.store'), options);
     }
 }
 
@@ -92,10 +103,10 @@ function submitForm() {
 
 const deleteForm = useForm({});
 
-async function confirmDelete(categoria) {
+async function confirmDelete(proveedor) {
     const confirmed = await confirmation(
-        `¿Seguro que deseas eliminar la categoría <strong>${categoria.nombre}</strong>? Esta acción no se puede deshacer.`,
-        'Eliminar categoría de producto',
+        `¿Seguro que deseas eliminar el proveedor <strong>${proveedor.nombre}</strong>? Esta acción no se puede deshacer.`,
+        'Eliminar proveedor',
     );
 
     if (!confirmed) {
@@ -104,7 +115,7 @@ async function confirmDelete(categoria) {
 
     // El toast de exito/error lo dispara el listener global de
     // Composables/UseFlashNotifications.js — no hace falta onSuccess aqui.
-    deleteForm.delete(route('categorias-producto.destroy', categoria.id), {
+    deleteForm.delete(route('proveedores.destroy', proveedor.id), {
         preserveScroll: true,
     });
 }
@@ -112,7 +123,7 @@ async function confirmDelete(categoria) {
 
 <template>
 
-    <Head title="Categorías de producto" />
+    <Head title="Proveedores" />
 
     <!-- Filtros: búsqueda + estado, se aplican al enviar el formulario -->
     <div class="card mb-4">
@@ -121,7 +132,7 @@ async function confirmDelete(categoria) {
                 <div class="col-lg-6">
                     <label class="form-label" for="filter-search">Buscar</label>
                     <input id="filter-search" v-model="table.filters.search" type="text" class="form-control"
-                        placeholder="Nombre de la categoría..." />
+                        placeholder="Nombre, NIT o contacto..." />
                 </div>
 
                 <div class="col-lg-3">
@@ -148,17 +159,28 @@ async function confirmDelete(categoria) {
 
     <div class="card">
         <div class="card-header">
-            <span class="card-title">Listado de categorías de producto</span>
-            <button v-can="'categorias-producto.crear'" type="button" class="btn btn-primary btn-sm" @click="openCreate">
+            <span class="card-title">Listado de proveedores</span>
+            <button v-can="'proveedores.crear'" type="button" class="btn btn-primary btn-sm" @click="openCreate">
                 <i class="fa-solid fa-plus"></i>
-                Nueva categoría
+                Nuevo proveedor
             </button>
         </div>
 
         <div class="card-body">
-            <DataTable :headers="headers" :items="categoriasProducto.data" :paginator="categoriasProducto"
-                :loading="table.loading" empty-text="No hay categorías de producto registradas."
-                @page-change="table.changePage">
+            <DataTable :headers="headers" :items="proveedores.data" :paginator="proveedores" :loading="table.loading"
+                empty-text="No hay proveedores registrados." @page-change="table.changePage">
+                <template #cell-nit="{ value }">
+                    {{ value || '—' }}
+                </template>
+
+                <template #cell-contacto="{ value }">
+                    {{ value || '—' }}
+                </template>
+
+                <template #cell-telefono="{ value }">
+                    {{ value || '—' }}
+                </template>
+
                 <template #cell-estado="{ item }">
                     <span class="badge" :class="item.estado === 'ACTIVO'
                             ? 'badge-soft-success'
@@ -170,12 +192,12 @@ async function confirmDelete(categoria) {
 
                 <template #actions="{ item }">
                     <div class="d-flex gap-1">
-                        <button v-can="'categorias-producto.editar'" type="button" class="btn btn-sm btn-icon btn-soft-primary"
-                            aria-label="Editar categoría" @click="openEdit(item)">
+                        <button v-can="'proveedores.editar'" type="button" class="btn btn-sm btn-icon btn-soft-primary"
+                            aria-label="Editar proveedor" @click="openEdit(item)">
                             <i class="fa-solid fa-pen"></i>
                         </button>
-                        <button v-can="'categorias-producto.eliminar'" type="button" class="btn btn-sm btn-icon btn-soft-danger"
-                            aria-label="Eliminar categoría" @click="confirmDelete(item)">
+                        <button v-can="'proveedores.eliminar'" type="button" class="btn btn-sm btn-icon btn-soft-danger"
+                            aria-label="Eliminar proveedor" @click="confirmDelete(item)">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
@@ -188,7 +210,7 @@ async function confirmDelete(categoria) {
     <Modal :show="showFormModal" max-width="md" @close="closeFormModal">
         <div class="card-header">
             <span class="card-title">
-                {{ editingCategoria ? 'Editar categoría de producto' : 'Nueva categoría de producto' }}
+                {{ editingProveedor ? 'Editar proveedor' : 'Nuevo proveedor' }}
             </span>
             <button type="button" class="modal-close" aria-label="Cerrar" @click="closeFormModal">
                 <i class="fa-solid fa-xmark"></i>
@@ -206,12 +228,60 @@ async function confirmDelete(categoria) {
                     </p>
                 </div>
 
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="nit">NIT</label>
+                            <input id="nit" v-model="form.nit" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.nit }" />
+                            <p v-if="form.errors.nit" class="form-error">
+                                {{ form.errors.nit }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="contacto">Contacto</label>
+                            <input id="contacto" v-model="form.contacto" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.contacto }" />
+                            <p v-if="form.errors.contacto" class="form-error">
+                                {{ form.errors.contacto }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label class="form-label" for="estado">Estado</label>
-                    <select id="estado" v-model="form.estado" class="form-control">
-                        <option value="ACTIVO">Activo</option>
-                        <option value="INACTIVO">Inactivo</option>
-                    </select>
+                    <label class="form-label" for="direccion">Dirección</label>
+                    <input id="direccion" v-model="form.direccion" type="text" class="form-control"
+                        :class="{ 'is-invalid': form.errors.direccion }" />
+                    <p v-if="form.errors.direccion" class="form-error">
+                        {{ form.errors.direccion }}
+                    </p>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="telefono">Teléfono</label>
+                            <input id="telefono" v-model="form.telefono" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.telefono }" />
+                            <p v-if="form.errors.telefono" class="form-error">
+                                {{ form.errors.telefono }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="estado">Estado</label>
+                            <select id="estado" v-model="form.estado" class="form-control">
+                                <option value="ACTIVO">Activo</option>
+                                <option value="INACTIVO">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -221,7 +291,7 @@ async function confirmDelete(categoria) {
                 </button>
                 <button type="submit" class="btn btn-primary" :class="{ 'opacity-50': form.processing }"
                     :disabled="form.processing">
-                    {{ editingCategoria ? 'Guardar cambios' : 'Crear categoría' }}
+                    {{ editingProveedor ? 'Guardar cambios' : 'Crear proveedor' }}
                 </button>
             </div>
         </form>

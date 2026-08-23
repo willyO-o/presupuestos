@@ -24,6 +24,14 @@
  *                                     directiva v-can oculta el elemento si el valor viene vacio
  *                                     (falla cerrado a proposito), asi que un item sin permission
  *                                     desaparece para cualquier usuario que no sea super-admin.
+ *
+ * Módulos alineados a `.claude/skills/xtrapubli-design-system/references/database-design.md`
+ * (sistema de costos y presupuestos XtraPubli) y a `config/acl.php` — ver `.ai/rules/config.md`.
+ * OJO: a la fecha solo Sucursales, Categorías de Material y Categorías de Producto tienen
+ * pantalla real (`resources/js/Pages/**`); el resto de items de este menú son la navegación
+ * ya preparada para los módulos que faltan por construir — sus `path` no tienen ruta/página
+ * Inertia todavía (404 hasta que se implementen), quedan visibles a proposito para ir
+ * completando el sistema sin tener que retocar el menú en cada módulo nuevo.
  */
 
 export const NAV_MENU = [
@@ -36,125 +44,123 @@ export const NAV_MENU = [
         permission: 'dashboard.ver',
     },
 
+
+
+
     {
-        menutitle: 'Gestión',
+        menutitle: 'Ventas',
         permission: [
-            'vales.ver',
-            'cargas-combustible.ver',
-            'operacion-diaria.ver',
-            'mantenimiento.solicitudes.ver',
-            'mantenimiento.ordenes.ver',
+            'cotizaciones.ver',
+            'pedidos.ver',
+            'ordenes-compra-cliente.ver',
+            'notas-entrega.ver',
+            'pagos.ver',
         ],
     },
     {
-        title: 'Vales',
-        icon: 'fa-solid fa-ticket',
+        title: 'Cotizaciones',
+        icon: 'fa-solid fa-file-invoice-dollar',
         type: 'link',
-        path: '/vales',
-        permission: 'vales.ver',
+        path: '/cotizaciones',
+        permission: 'cotizaciones.ver',
     },
     {
-        title: 'Cargas de Combustible',
-        icon: 'fa-solid fa-gas-pump',
+        title: 'Pedidos',
+        icon: 'fa-solid fa-dolly',
         type: 'link',
-        path: '/cargas',
-        permission: 'cargas-combustible.ver',
+        path: '/pedidos',
+        permission: 'pedidos.ver',
     },
     {
-        title: 'Operación Diaria',
-        icon: 'fa-solid fa-list-check',
-        type: 'sub',
-        permission: ['operacion-diaria.ver', 'operacion-diaria.crear'],
-        children: [
-            {
-                title: 'Actividades',
-                type: 'link',
-                path: '/operacion-diaria',
-                permission: 'operacion-diaria.ver',
-            },
-            {
-                title: 'Registrar Actividad',
-                type: 'link',
-                path: '/operacion-diaria/create',
-                permission: 'operacion-diaria.crear',
-            },
-        ],
+        title: 'Órdenes de Compra',
+        icon: 'fa-solid fa-file-contract',
+        type: 'link',
+        path: '/ordenes-compra-cliente',
+        permission: 'ordenes-compra-cliente.ver',
     },
     {
-        title: 'Mantenimiento',
-        icon: 'fa-solid fa-screwdriver-wrench',
-        type: 'sub',
-        permission: [
-            'mantenimiento.solicitudes.ver',
-            'mantenimiento.solicitudes.crear',
-            'mantenimiento.ordenes.ver',
-        ],
-        children: [
-            {
-                title: 'Solicitudes',
-                type: 'link',
-                path: '/mantenimiento/solicitudes',
-                permission: 'mantenimiento.solicitudes.ver',
-            },
-            {
-                title: 'Crear Solicitud',
-                type: 'link',
-                path: '/mantenimiento/solicitudes/crear',
-                permission: 'mantenimiento.solicitudes.crear',
-            },
-            {
-                title: 'Órdenes de Trabajo',
-                type: 'link',
-                path: '/mantenimiento/ordenes',
-                permission: 'mantenimiento.ordenes.ver',
-            },
-        ],
+        title: 'Notas de Entrega',
+        icon: 'fa-solid fa-truck-ramp-box',
+        type: 'link',
+        path: '/notas-entrega',
+        permission: 'notas-entrega.ver',
     },
+    {
+        title: 'Pagos',
+        icon: 'fa-solid fa-money-check-dollar',
+        type: 'link',
+        path: '/pagos',
+        permission: 'pagos.ver',
+    },
+
+    {
+        menutitle: 'Clientes',
+        permission: 'clientes.ver',
+    },
+    {
+        title: 'Clientes',
+        icon: 'fa-solid fa-people-group',
+        type: 'link',
+        path: '/clientes',
+        permission: 'clientes.ver',
+    },
+
 
     {
         menutitle: 'Reportes',
-        permission: [
-            'cargas-combustible.reporte',
-            'cargas-combustible.reporte.rendimiento',
-        ],
+        permission: ['reportes.financiero', 'reportes.produccion', 'reportes.bi'],
     },
     {
-        title: 'Reportes de Combustible',
+        title: 'Reporte Financiero',
         icon: 'fa-solid fa-chart-column',
         type: 'link',
-        path: '/reportes/cargas-combustible',
-        permission: 'cargas-combustible.reporte',
+        path: '/reportes/financiero',
+        permission: 'reportes.financiero',
     },
     {
-        title: 'Rendimiento de Combustible',
+        title: 'Reporte de Producción',
+        icon: 'fa-solid fa-industry',
+        type: 'link',
+        path: '/reportes/produccion',
+        permission: 'reportes.produccion',
+    },
+    {
+        title: 'Inteligencia de Negocios',
         icon: 'fa-solid fa-chart-line',
         type: 'link',
-        path: '/reportes/cargas-combustible/rendimiento',
-        permission: 'cargas-combustible.reporte.rendimiento',
+        path: '/reportes/bi',
+        permission: 'reportes.bi',
     },
 
     {
-        menutitle: 'Catálogos',
-        permission: [
-            'sucursales.ver',
-            'categorias-material.ver',
-            'categorias-producto.ver',
-            'conductores.ver',
-            'vehiculos.ver',
-            'grifos.ver',
-            'tipos-combustible.ver',
-            'tipos-mantenimiento.ver',
-            'tipos-vehiculo.ver',
-            'grupos-vehiculo.ver',
-            'repuestos.ver',
-        ],
+        menutitle: 'Catálogo de Productos',
+        permission: ['categorias-producto.ver', 'productos.ver'],
     },
     {
-        title: 'Sucursales',
-        icon: 'fa-solid fa-building-user',
+        title: 'Categorías de Producto',
+        icon: 'fa-solid fa-tags',
         type: 'link',
-        path: '/sucursales',
-        permission: 'sucursales.ver',
+        path: '/categorias-producto',
+        permission: 'categorias-producto.ver',
+    },
+    {
+        title: 'Productos',
+        icon: 'fa-solid fa-box-open',
+        type: 'link',
+        path: '/productos',
+        permission: 'productos.ver',
+    },
+
+
+
+    {
+        menutitle: 'Materiales e Insumos',
+        permission: [
+            'categorias-material.ver',
+            'materiales.ver',
+            'proveedores.ver',
+            'compras.ver',
+        ],
     },
     {
         title: 'Categorías de Material',
@@ -164,30 +170,36 @@ export const NAV_MENU = [
         permission: 'categorias-material.ver',
     },
     {
-        title: 'Categorías de Producto',
-        icon: 'fa-solid fa-tags',
+        title: 'Materiales',
+        icon: 'fa-solid fa-layer-group',
         type: 'link',
-        path: '/categorias-producto',
-        permission: 'categorias-producto.ver',
-    },
-
-
-    {
-        menutitle: 'Administración',
-        permission: [
-            'usuarios.ver',
-            'personas.ver',
-            'areas.ver',
-            'roles.ver',
-            'parametros-empresa.ver',
-        ],
+        path: '/materiales',
+        permission: 'materiales.ver',
     },
     {
-        title: 'Personas',
-        icon: 'fa-solid fa-user',
+        title: 'Proveedores',
+        icon: 'fa-solid fa-truck-field',
         type: 'link',
-        path: '/personas',
-        permission: 'personas.ver',
+        path: '/proveedores',
+        permission: 'proveedores.ver',
+    },
+    {
+        title: 'Compras',
+        icon: 'fa-solid fa-cart-shopping',
+        type: 'link',
+        path: '/compras',
+        permission: 'compras.ver',
+    },
+    {
+        menutitle: 'Organización',
+        permission: ['sucursales.ver', 'areas.ver', 'empleados.ver'],
+    },
+    {
+        title: 'Sucursales',
+        icon: 'fa-solid fa-building-user',
+        type: 'link',
+        path: '/sucursales',
+        permission: 'sucursales.ver',
     },
     {
         title: 'Áreas',
@@ -196,5 +208,30 @@ export const NAV_MENU = [
         path: '/areas',
         permission: 'areas.ver',
     },
+    {
+        title: 'Empleados',
+        icon: 'fa-solid fa-id-badge',
+        type: 'link',
+        path: '/empleados',
+        permission: 'empleados.ver',
+    },
 
+    {
+        menutitle: 'Administración',
+        permission: ['usuarios.ver', 'roles.ver'],
+    },
+    {
+        title: 'Usuarios',
+        icon: 'fa-solid fa-user-gear',
+        type: 'link',
+        path: '/usuarios',
+        permission: 'usuarios.ver',
+    },
+    {
+        title: 'Roles y Permisos',
+        icon: 'fa-solid fa-user-shield',
+        type: 'link',
+        path: '/roles',
+        permission: 'roles.ver',
+    },
 ];

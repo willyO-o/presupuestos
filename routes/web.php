@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoriaMaterialController;
 use App\Http\Controllers\CategoriaProductoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\SucursalController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +64,19 @@ Route::middleware('auth')->group(function () {
     Route::delete('/categorias-producto/{categoriaProducto}', [CategoriaProductoController::class, 'destroy'])
         ->middleware('can:categorias-producto.eliminar')
         ->name('categorias-producto.destroy');
+
+    Route::get('/proveedores', [ProveedorController::class, 'index'])
+        ->middleware('can:proveedores.ver')
+        ->name('proveedores.index');
+    Route::post('/proveedores', [ProveedorController::class, 'store'])
+        ->middleware('can:proveedores.crear')
+        ->name('proveedores.store');
+    Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])
+        ->middleware('can:proveedores.editar')
+        ->name('proveedores.update');
+    Route::delete('/proveedores/{proveedor}', [ProveedorController::class, 'destroy'])
+        ->middleware('can:proveedores.eliminar')
+        ->name('proveedores.destroy');
 });
 
 require __DIR__.'/auth.php';

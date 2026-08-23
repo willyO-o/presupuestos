@@ -2,9 +2,9 @@
  * Controla la visibilidad de un elemento según los permisos compartidos por Inertia.
  *
  * Uso:
- *   v-can="'vales.crear'"                         // Requiere un permiso.
- *   v-can="['vales.crear', 'vales.editar']"       // Requiere cualquiera (OR).
- *   v-can.all="['vales.crear', 'vales.editar']"   // Requiere todos (AND).
+ *   v-can="'sucursales.crear'"                              // Requiere un permiso.
+ *   v-can="['sucursales.crear', 'sucursales.editar']"       // Requiere cualquiera (OR).
+ *   v-can.all="['sucursales.crear', 'sucursales.editar']"   // Requiere todos (AND).
  *   Los usuarios con el rol "super-admin" siempre tienen acceso.
  *
  * La directiva solo mejora la interfaz. Las rutas y acciones del backend deben
