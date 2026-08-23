@@ -22,6 +22,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    usuarios: {
+        type: Array,
+        default: () => [],
+    },
     filters: {
         type: Object,
         default: () => ({}),
@@ -66,9 +70,12 @@ const editingEmpleado = ref(null);
 // despues de crear/editar (volvia a los ultimos datos enviados). Con una
 // funcion, reset() siempre re-evalua estos valores desde cero.
 const form = useForm(() => ({
+    user_id: '',
     sucursal_id: props.sucursales[0]?.id ?? '',
     area_id: props.areas[0]?.id ?? '',
-    nombre_completo: '',
+    nombres: '',
+    paterno: '',
+    materno: '',
     ci: '',
     cargo: '',
     telefono: '',
@@ -86,9 +93,12 @@ function openCreate() {
 function openEdit(empleado) {
     editingEmpleado.value = empleado;
     form.clearErrors();
+    form.user_id = empleado.user_id ?? '';
     form.sucursal_id = empleado.sucursal_id;
     form.area_id = empleado.area_id;
-    form.nombre_completo = empleado.nombre_completo;
+    form.nombres = empleado.nombres;
+    form.paterno = empleado.paterno;
+    form.materno = empleado.materno;
     form.ci = empleado.ci;
     form.cargo = empleado.cargo;
     form.telefono = empleado.telefono;
@@ -102,10 +112,14 @@ function closeFormModal() {
 }
 
 function submitForm() {
+    // El select "Usuario" usa '' como opcion "Sin vincular"; el backend
+    // espera null para la FK nullable, no una cadena vacia.
     const options = {
         preserveScroll: true,
         onSuccess: () => closeFormModal(),
     };
+
+    form.transform((data) => ({ ...data, user_id: data.user_id || null }));
 
     if (editingEmpleado.value) {
         form.put(route('empleados.update', editingEmpleado.value.id), options);
@@ -179,7 +193,7 @@ async function confirmDelete(empleado) {
                     </select>
                 </div>
 
-                <div class="col-lg-12 flex items-end gap-2">
+                <div class="col-12 flex items-end gap-2">
                     <button type="submit" class="btn btn-primary" :disabled="table.loading">
                         <i class="fa-solid fa-magnifying-glass"></i>
                         Buscar
@@ -251,24 +265,64 @@ async function confirmDelete(empleado) {
         <form @submit.prevent="submitForm">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-lg-8">
+                    <div class="col-lg-4">
                         <div class="form-group">
-                            <label class="form-label" for="nombre_completo">Nombre completo</label>
-                            <input id="nombre_completo" v-model="form.nombre_completo" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.nombre_completo }" required autofocus />
-                            <p v-if="form.errors.nombre_completo" class="form-error">
-                                {{ form.errors.nombre_completo }}
+                            <label class="form-label" for="nombres">Nombres</label>
+                            <input id="nombres" v-model="form.nombres" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.nombres }" required autofocus />
+                            <p v-if="form.errors.nombres" class="form-error">
+                                {{ form.errors.nombres }}
                             </p>
                         </div>
                     </div>
 
                     <div class="col-lg-4">
                         <div class="form-group">
+                            <label class="form-label" for="paterno">Apellido paterno</label>
+                            <input id="paterno" v-model="form.paterno" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.paterno }" />
+                            <p v-if="form.errors.paterno" class="form-error">
+                                {{ form.errors.paterno }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="form-group">
+                            <label class="form-label" for="materno">Apellido materno</label>
+                            <input id="materno" v-model="form.materno" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.materno }" />
+                            <p v-if="form.errors.materno" class="form-error">
+                                {{ form.errors.materno }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-group">
                             <label class="form-label" for="ci">CI</label>
                             <input id="ci" v-model="form.ci" type="text" class="form-control"
                                 :class="{ 'is-invalid': form.errors.ci }" required />
                             <p v-if="form.errors.ci" class="form-error">
                                 {{ form.errors.ci }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="user_id">Cuenta de usuario (opcional)</label>
+                            <select id="user_id" v-model="form.user_id" class="form-control"
+                                :class="{ 'is-invalid': form.errors.user_id }">
+                                <option value="">Sin vincular</option>
+                                <option v-for="usuario in usuarios" :key="usuario.id" :value="usuario.id">
+                                    {{ usuario.name }} ({{ usuario.email }})
+                                </option>
+                            </select>
+                            <p v-if="form.errors.user_id" class="form-error">
+                                {{ form.errors.user_id }}
                             </p>
                         </div>
                     </div>

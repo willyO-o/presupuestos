@@ -6,14 +6,18 @@ use Database\Factories\EmpleadoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
+    'user_id',
     'sucursal_id',
     'area_id',
-    'nombre_completo',
+    'nombres',
+    'paterno',
+    'materno',
     'ci',
     'cargo',
     'telefono',
@@ -34,6 +38,14 @@ class Empleado extends Model
     protected $table = 'empleado';
 
     /**
+     * Se agrega al array/JSON para no repetir la concatenación de
+     * nombres/paterno/materno en cada pantalla (listado, perfil).
+     *
+     * @var list<string>
+     */
+    protected $appends = ['nombre_completo'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -41,6 +53,11 @@ class Empleado extends Model
         return [
             'fecha_ingreso' => 'date',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function sucursal(): BelongsTo
@@ -54,7 +71,20 @@ class Empleado extends Model
     }
 
     /**
-     * Filtra por coincidencia parcial en nombre completo, CI o cargo. Sin
+     * Nombres + apellido paterno + apellido materno, sin espacios dobles
+     * cuando paterno/materno vienen vacíos.
+     */
+    protected function nombreCompleto(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => collect([$this->nombres, $this->paterno, $this->materno])
+                ->filter()
+                ->implode(' '),
+        );
+    }
+
+    /**
+     * Filtra por coincidencia parcial en nombres, apellidos, CI o cargo. Sin
      * término, no aplica ningún filtro.
      */
     #[Scope]
@@ -62,7 +92,9 @@ class Empleado extends Model
     {
         $query->when($term, function (Builder $query) use ($term) {
             $query->where(function (Builder $query) use ($term) {
-                $query->where('nombre_completo', 'like', "%{$term}%")
+                $query->where('nombres', 'like', "%{$term}%")
+                    ->orWhere('paterno', 'like', "%{$term}%")
+                    ->orWhere('materno', 'like', "%{$term}%")
                     ->orWhere('ci', 'like', "%{$term}%")
                     ->orWhere('cargo', 'like', "%{$term}%");
             });

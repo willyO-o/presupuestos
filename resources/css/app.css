@@ -141,9 +141,24 @@
    sin importar el breakpoint. En desktop ademas se le quita al contenido el
    margen reservado para el sidebar (ver .main-wrapper.sidebar-open) para
    que el contenido aproveche el ancho completo cuando esta oculto. */
+/* Foto (public/img/banner/img-1.jpg) con el color del sidebar encima,
+   semitransparente (color-mix), para que el menu siga siendo legible sobre
+   la imagen. `background-attachment: fixed` ademas de ignorar el scroll
+   interno de .sidebar-body, queda anclada al viewport durante la animacion
+   de apertura/cierre (transform en .sidebar): al deslizar el sidebar la
+   imagen no "viaja" con el panel, solo el panel revela/oculta la imagen. */
 .sidebar {
     width: var(--sidebar-width);
     background-color: var(--sidebar-bg);
+    background-image: linear-gradient(
+            color-mix(in srgb, var(--sidebar-bg) 88%, transparent),
+            color-mix(in srgb, var(--sidebar-bg) 88%, transparent)
+        ),
+        url('/img/banner/img-1.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     transform: translateX(-100%);
     @apply fixed inset-y-0 start-0 z-40 flex flex-col transition-transform duration-200 ease-in-out;
 }
@@ -935,6 +950,12 @@
     color: var(--c-dark);
 }
 
+/* Iniciales dentro de un .avatar-lg/.avatar-xl: el tamaño de texto por
+   defecto de .avatar-title (text-sm) se ve chico en esos tamaños. */
+.avatar-title-lg {
+    @apply text-2xl;
+}
+
 /* ==========================================================================
    9b. IMAGENES
    ========================================================================== */
@@ -1297,6 +1318,9 @@
 
 .col-12 {
     @apply col-span-12;
+}
+.col-lg-2 {
+    @apply col-span-12 sm:col-span-6 lg:col-span-2;
 }
 .col-lg-3 {
     @apply col-span-12 sm:col-span-6 lg:col-span-3;
@@ -1716,4 +1740,108 @@
 
 .swal2-toast .swal2-title {
     @apply text-sm font-medium;
+}
+
+/* ==========================================================================
+   21. PERFIL DE USUARIO (Pages/Profile)
+   ------------------------------------------------------------------------
+   Portada + avatar superpuesto + tarjeta de tabs, ver Pages/Profile/Edit.vue
+   y sus Partials/*.
+   ========================================================================== */
+
+/* Foto (public/img/banner/profile-bg.jpg) con el degradado de marca encima,
+   semitransparente (color-mix), para que el fondo se note sin competir con
+   el avatar/nombre que se superponen abajo.
+   Ancho completo: .page-content tiene padding (p-4 sm:p-6, ver seccion 1),
+   asi que se "escapa" de ese padding con margenes negativos del mismo
+   tamano en vez de mover el componente fuera de <main>/page-content — no
+   toca el layout, solo estira esta franja de punta a punta. Por eso pierde
+   el rounded-md: al llegar a los bordes ya no hay esquina que redondear. */
+.profile-cover {
+    background-image: linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--c-primary) 82%, transparent) 0%,
+            color-mix(in srgb, var(--brand-teal) 82%, transparent) 100%
+        ),
+        url('/img/banner/profile-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    @apply relative -mx-4 h-32 sm:-mx-6 sm:h-44;
+}
+
+/* Fila de tarjetas debajo de .profile-cover: se sube encima de la portada
+   como bloque (no solo la tarjeta izquierda), asi la tarjeta de tabs de la
+   derecha queda al mismo nivel que .profile-header-card, no mas abajo. */
+.profile-content-row {
+    @apply relative -mt-16 sm:-mt-20;
+}
+
+.profile-header-card {
+    @apply relative px-5 pb-5 pt-8 text-center;
+}
+
+.profile-avatar-frame {
+    @apply relative inline-block;
+}
+
+.profile-avatar-frame .avatar {
+    border: 4px solid var(--card-bg);
+}
+
+.profile-avatar-edit {
+    background-color: var(--c-primary);
+    border-color: var(--card-bg);
+    color: #fff;
+    @apply absolute bottom-0 end-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 text-xs transition-colors duration-150;
+}
+
+.profile-avatar-edit:hover {
+    background-color: var(--c-primary-dark);
+}
+
+.profile-info-item {
+    border-color: var(--border-subtle);
+    @apply flex items-center gap-3 border-b py-3 text-start last:border-b-0;
+}
+
+.profile-info-icon {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
+}
+
+.profile-info-label {
+    color: var(--text-muted);
+    @apply text-xs;
+}
+
+.profile-info-value {
+    color: var(--text-heading);
+    @apply text-sm font-medium break-words;
+}
+
+.profile-section-divider {
+    border-color: var(--border-subtle);
+    @apply mt-6 border-t pt-5;
+}
+
+/* Tabs: Datos personales / Seguridad / Cuenta */
+.nav-tabs {
+    border-color: var(--border-subtle);
+    @apply flex flex-wrap gap-1 border-b px-5;
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-muted);
+    @apply -mb-px cursor-pointer border-b-2 border-transparent bg-transparent px-3 py-3 text-sm font-medium transition-colors duration-150;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--c-primary);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--c-primary);
+    border-color: var(--c-primary);
 }

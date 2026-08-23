@@ -29,9 +29,15 @@ class UpdateEmpleadoRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'user_id' => [
+                'nullable', 'integer', Rule::exists('users', 'id'),
+                Rule::unique('empleado', 'user_id')->ignore($this->route('empleado')),
+            ],
             'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id')],
             'area_id' => ['required', 'integer', Rule::exists('area', 'id')],
-            'nombre_completo' => ['required', 'string', 'max:255'],
+            'nombres' => ['required', 'string', 'max:255'],
+            'paterno' => ['nullable', 'string', 'max:255'],
+            'materno' => ['nullable', 'string', 'max:255'],
             'ci' => ['required', 'string', 'max:255', Rule::unique('empleado', 'ci')->ignore($this->route('empleado'))],
             'cargo' => ['required', 'string', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:25'],

@@ -22,7 +22,9 @@ class EmpleadoFactory extends Factory
         return [
             'sucursal_id' => Sucursal::factory(),
             'area_id' => Area::factory(),
-            'nombre_completo' => fake()->name(),
+            'nombres' => fake()->firstName(),
+            'paterno' => fake()->lastName(),
+            'materno' => fake()->lastName(),
             'ci' => fake()->unique()->numerify('#######'),
             'cargo' => fake()->randomElement([
                 'Vendedor', 'Diseñador Gráfico', 'Jefe de Producción', 'Operario de Producción', 'Contador', 'Secretaria',

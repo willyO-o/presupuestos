@@ -31,3 +31,12 @@ Al crear una carpeta o archivo `.js` nuevo bajo `resources/js`, respeta esta con
 
 ## CSS va en resources/css/app.css, no en <style> de componentes .vue
 No agregues bloques `<style scoped>` (ni sin scoped) dentro de archivos `.vue`. Todo CSS nuevo — clases reutilizables o específicas de una página — va como clase global en `resources/css/app.css`, bajo la sección numerada correspondiente (o una nueva al final), usando los tokens `--c-*`/`--text-*`/`--border-subtle` ya definidos ahí. Detalle completo y motivo (mantenimiento, tema claro/oscuro centralizado, reutilización entre páginas) en la skill `xtrapubli-design-system`, Rule 3. Ejemplo ya aplicado: `.login-*` (usado por `AuthSplitLayout.vue` y todas las `Pages/Auth/**`).
+
+## Subir archivos con useForm: nunca .put()/.patch() directo, siempre POST + _method spoofeado
+Bug real encontrado en Pages/Profile/Edit.vue (subida de foto de perfil): `fotoForm.patch(route('profile.update'), {...})` con un `File` en el payload no actualizaba nada, sin error visible.
+
+Causa: cuando el payload de `useForm` trae un archivo, Inertia lo convierte a `multipart/form-data` (ver `hasFiles()`/`transformUrlAndData()` en `@inertiajs/core`). Con una request PUT/PATCH real, PHP no parsea `$_FILES` (ni el resto del body) de un `multipart/form-data` — es una limitación de PHP, no de Laravel — así que el archivo Y el resto de campos se pierden en silencio; si el Form Request tiene campos `required` (ej. `name`/`email`), la respuesta es un 422 que el componente puede no estar mostrando en pantalla, así que "no pasa nada" a simple vista.
+
+**Trampa extra:** los Feature tests con `$this->patch('/profile', ['foto' => UploadedFile::fake()...])` SÍ pasan aunque el bug esté presente — el test client de Laravel arma el `Request` a mano (`extractFilesFromDataArray`) sin pasar por el parseo real de PHP, así que no reproduce esta limitación. No confiar en que un Feature test verde signifique que la subida funciona en el navegador real.
+
+**Cómo aplicar:** cualquier form de Inertia que suba un archivo debe mandarse siempre por POST, con `_method: 'put'`/`'patch'` como campo más dentro del objeto de `useForm(() => ({ _method: 'patch', ... , archivo: null }))`, y `form.post(url, {...})` en vez de `form.put()`/`form.patch()`. La ruta del backend se queda igual (`Route::patch(...)`), Laravel matchea por el `_method` spoofeado.

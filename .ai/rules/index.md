@@ -13,4 +13,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 | database/migrations/2026_08_23_04*.php, database/migrations/** | .ai/rules/migrations.md |
 | app/Models/Sucursal.php | .ai/rules/models.md |
 | resources/js/Pages/**/*.vue | .ai/rules/pages.md |
+| resources/js/Pages/Profile/** | .ai/rules/profile.md |
+| routes/auth.php | .ai/rules/routes.md |
 | resources/js/Components/Table/** | .ai/rules/table.md |

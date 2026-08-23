@@ -48,16 +48,16 @@ test('a user with permission sees the paginated list', function () {
     );
 });
 
-test('the list can be searched by nombre_completo, ci or cargo', function () {
-    Empleado::factory()->create(['nombre_completo' => 'Juan Pérez', 'ci' => '1234567']);
-    Empleado::factory()->create(['nombre_completo' => 'Ana López', 'ci' => '7654321']);
+test('the list can be searched by nombres, apellidos, ci or cargo', function () {
+    Empleado::factory()->create(['nombres' => 'Juan', 'paterno' => 'Pérez', 'materno' => 'Gómez', 'ci' => '1234567']);
+    Empleado::factory()->create(['nombres' => 'Ana', 'paterno' => 'López', 'materno' => 'Ruiz', 'ci' => '7654321']);
     $user = userWithEmpleadoPermissions('empleados.ver');
 
     $response = $this->actingAs($user)->get(route('empleados.index', ['search' => 'Juan']));
 
     $response->assertInertia(fn ($page) => $page
         ->has('empleados.data', 1)
-        ->where('empleados.data.0.nombre_completo', 'Juan Pérez')
+        ->where('empleados.data.0.nombre_completo', 'Juan Pérez Gómez')
     );
 });
 
@@ -97,7 +97,9 @@ test('a user with permission can create an empleado', function () {
     $response = $this->actingAs($user)->post(route('empleados.store'), [
         'sucursal_id' => $sucursal->id,
         'area_id' => $area->id,
-        'nombre_completo' => 'Juan Pérez',
+        'nombres' => 'Juan',
+        'paterno' => 'Pérez',
+        'materno' => 'Gómez',
         'ci' => '1234567',
         'cargo' => 'Diseñador Gráfico',
         'telefono' => '71234567',
@@ -107,7 +109,28 @@ test('a user with permission can create an empleado', function () {
 
     $response->assertRedirect(route('empleados.index'));
     $response->assertSessionHas('success');
-    $this->assertDatabaseHas('empleado', ['nombre_completo' => 'Juan Pérez', 'ci' => '1234567']);
+    $this->assertDatabaseHas('empleado', ['nombres' => 'Juan', 'paterno' => 'Pérez', 'ci' => '1234567']);
+});
+
+test('an empleado can be created without paterno or materno', function () {
+    $sucursal = Sucursal::factory()->create();
+    $area = Area::factory()->create();
+    $user = userWithEmpleadoPermissions('empleados.ver', 'empleados.crear');
+
+    $response = $this->actingAs($user)->post(route('empleados.store'), [
+        'sucursal_id' => $sucursal->id,
+        'area_id' => $area->id,
+        'nombres' => 'Juan',
+        'paterno' => '',
+        'materno' => '',
+        'ci' => '1234567',
+        'cargo' => 'Diseñador Gráfico',
+        'fecha_ingreso' => '2026-01-15',
+        'estado' => 'ACTIVO',
+    ]);
+
+    $response->assertRedirect(route('empleados.index'));
+    $this->assertDatabaseHas('empleado', ['nombres' => 'Juan', 'paterno' => null, 'materno' => null]);
 });
 
 test('a user without permission cannot create an empleado', function () {
@@ -118,7 +141,8 @@ test('a user without permission cannot create an empleado', function () {
     $this->actingAs($user)->post(route('empleados.store'), [
         'sucursal_id' => $sucursal->id,
         'area_id' => $area->id,
-        'nombre_completo' => 'Juan Pérez',
+        'nombres' => 'Juan',
+        'paterno' => 'Pérez',
         'ci' => '1234567',
         'cargo' => 'Diseñador Gráfico',
         'fecha_ingreso' => '2026-01-15',
@@ -137,7 +161,8 @@ test('creating an empleado requires ci to be unique', function () {
     $response = $this->actingAs($user)->post(route('empleados.store'), [
         'sucursal_id' => $sucursal->id,
         'area_id' => $area->id,
-        'nombre_completo' => 'Otro Empleado',
+        'nombres' => 'Otro',
+        'paterno' => 'Empleado',
         'ci' => '1234567',
         'cargo' => 'Operario',
         'fecha_ingreso' => '2026-01-15',
@@ -148,31 +173,33 @@ test('creating an empleado requires ci to be unique', function () {
     $this->assertDatabaseCount('empleado', 1);
 });
 
-test('creating an empleado requires valid sucursal, area, nombre_completo, ci and fecha_ingreso', function () {
+test('creating an empleado requires valid sucursal, area, nombres, ci and fecha_ingreso', function () {
     $user = userWithEmpleadoPermissions('empleados.ver', 'empleados.crear');
 
     $response = $this->actingAs($user)->post(route('empleados.store'), [
         'sucursal_id' => 999,
         'area_id' => 999,
-        'nombre_completo' => '',
+        'nombres' => '',
         'ci' => '',
         'cargo' => '',
         'fecha_ingreso' => '',
         'estado' => 'ACTIVO',
     ]);
 
-    $response->assertSessionHasErrors(['sucursal_id', 'area_id', 'nombre_completo', 'ci', 'cargo', 'fecha_ingreso']);
+    $response->assertSessionHasErrors(['sucursal_id', 'area_id', 'nombres', 'ci', 'cargo', 'fecha_ingreso']);
     $this->assertDatabaseCount('empleado', 0);
 });
 
 test('a user with permission can update an empleado', function () {
-    $empleado = Empleado::factory()->create(['nombre_completo' => 'Original']);
+    $empleado = Empleado::factory()->create(['nombres' => 'Original']);
     $user = userWithEmpleadoPermissions('empleados.ver', 'empleados.editar');
 
     $response = $this->actingAs($user)->put(route('empleados.update', $empleado), [
         'sucursal_id' => $empleado->sucursal_id,
         'area_id' => $empleado->area_id,
-        'nombre_completo' => 'Actualizado',
+        'nombres' => 'Actualizado',
+        'paterno' => $empleado->paterno,
+        'materno' => $empleado->materno,
         'ci' => $empleado->ci,
         'cargo' => $empleado->cargo,
         'fecha_ingreso' => $empleado->fecha_ingreso->format('Y-m-d'),
@@ -182,26 +209,26 @@ test('a user with permission can update an empleado', function () {
     $response->assertRedirect(route('empleados.index'));
     $this->assertDatabaseHas('empleado', [
         'id' => $empleado->id,
-        'nombre_completo' => 'Actualizado',
+        'nombres' => 'Actualizado',
         'estado' => 'INACTIVO',
     ]);
 });
 
 test('a user without permission cannot update an empleado', function () {
-    $empleado = Empleado::factory()->create(['nombre_completo' => 'Original']);
+    $empleado = Empleado::factory()->create(['nombres' => 'Original']);
     $user = userWithEmpleadoPermissions('empleados.ver');
 
     $this->actingAs($user)->put(route('empleados.update', $empleado), [
         'sucursal_id' => $empleado->sucursal_id,
         'area_id' => $empleado->area_id,
-        'nombre_completo' => 'Actualizado',
+        'nombres' => 'Actualizado',
         'ci' => $empleado->ci,
         'cargo' => $empleado->cargo,
         'fecha_ingreso' => $empleado->fecha_ingreso->format('Y-m-d'),
         'estado' => 'ACTIVO',
     ])->assertForbidden();
 
-    $this->assertDatabaseHas('empleado', ['id' => $empleado->id, 'nombre_completo' => 'Original']);
+    $this->assertDatabaseHas('empleado', ['id' => $empleado->id, 'nombres' => 'Original']);
 });
 
 test('a user with permission can delete an empleado', function () {

@@ -7,6 +7,7 @@ use App\Http\Requests\Empleado\UpdateEmpleadoRequest;
 use App\Models\Area;
 use App\Models\Empleado;
 use App\Models\Sucursal;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -27,7 +28,7 @@ class EmpleadoController extends Controller
             ->sucursalId($request->query('sucursal'))
             ->areaId($request->query('area'))
             ->estado($request->query('estado'))
-            ->orderBy('nombre_completo')
+            ->orderBy('nombres')
             ->paginate(10)
             ->withQueryString();
 
@@ -35,6 +36,11 @@ class EmpleadoController extends Controller
             'empleados' => $empleados,
             'sucursales' => Sucursal::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
             'areas' => Area::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
+            // Cuentas de acceso disponibles para vincular a la ficha del
+            // empleado (opcional: no todo empleado necesita login). Un
+            // usuario ya vinculado a otro empleado se rechaza al guardar
+            // (Rule::unique en el Form Request), no se filtra aquí.
+            'usuarios' => User::query()->orderBy('name')->get(['id', 'name', 'email']),
             'filters' => $request->only(['search', 'sucursal', 'area', 'estado']),
             'pageTitle' => 'Empleados',
             'breadcrumbs' => ['Organización', 'Empleados'],

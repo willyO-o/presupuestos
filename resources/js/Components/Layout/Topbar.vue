@@ -204,7 +204,13 @@ function toggleFullscreen() {
                 <template #trigger>
                     <button type="button" class="topbar-user">
                         <span class="avatar avatar-sm">
-                            <span class="avatar-title">{{
+                            <img
+                                v-if="$page.props.auth.user?.foto_url"
+                                :src="$page.props.auth.user.foto_url"
+                                alt="Foto de perfil"
+                                class="h-full w-full object-cover"
+                            />
+                            <span v-else class="avatar-title">{{
                                 $page.props.auth.user?.name
                                     ?.charAt(0)
                                     ?.toUpperCase() ?? 'U'
@@ -214,9 +220,9 @@ function toggleFullscreen() {
                             <span class="topbar-user-name d-block">{{
                                 $page.props.auth.user?.name ?? 'Usuario'
                             }}</span>
-                            <span class="topbar-user-role d-block"
-                                >Administrador</span
-                            >
+                            <span class="topbar-user-role d-block capitalize">{{
+                                $page.props.auth.roles?.[0]?.replaceAll('-', ' ') ?? 'Usuario'
+                            }}</span>
                         </span>
                         <svg
                             class="hidden h-4 w-4 opacity-60 sm:block"
