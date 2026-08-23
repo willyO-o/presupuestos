@@ -221,6 +221,8 @@ async function confirmDelete(categoria) {
                 </button>
                 <button type="submit" class="btn btn-primary" :class="{ 'opacity-50': form.processing }"
                     :disabled="form.processing">
+                    <i v-if="form.processing" class="fa-solid fa-spinner fa-spin"></i>
+                    <i v-else class="fa-solid fa-floppy-disk"></i>
                     {{ editingCategoria ? 'Guardar cambios' : 'Crear categoría' }}
                 </button>
             </div>

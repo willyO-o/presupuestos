@@ -1,7 +1,12 @@
 <?php
 
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\CategoriaMaterialController;
 use App\Http\Controllers\CategoriaProductoController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\SucursalController;
@@ -77,6 +82,71 @@ Route::middleware('auth')->group(function () {
     Route::delete('/proveedores/{proveedor}', [ProveedorController::class, 'destroy'])
         ->middleware('can:proveedores.eliminar')
         ->name('proveedores.destroy');
+
+    Route::get('/areas', [AreaController::class, 'index'])
+        ->middleware('can:areas.ver')
+        ->name('areas.index');
+    Route::post('/areas', [AreaController::class, 'store'])
+        ->middleware('can:areas.crear')
+        ->name('areas.store');
+    Route::put('/areas/{area}', [AreaController::class, 'update'])
+        ->middleware('can:areas.editar')
+        ->name('areas.update');
+    Route::delete('/areas/{area}', [AreaController::class, 'destroy'])
+        ->middleware('can:areas.eliminar')
+        ->name('areas.destroy');
+
+    Route::get('/empleados', [EmpleadoController::class, 'index'])
+        ->middleware('can:empleados.ver')
+        ->name('empleados.index');
+    Route::post('/empleados', [EmpleadoController::class, 'store'])
+        ->middleware('can:empleados.crear')
+        ->name('empleados.store');
+    Route::put('/empleados/{empleado}', [EmpleadoController::class, 'update'])
+        ->middleware('can:empleados.editar')
+        ->name('empleados.update');
+    Route::delete('/empleados/{empleado}', [EmpleadoController::class, 'destroy'])
+        ->middleware('can:empleados.eliminar')
+        ->name('empleados.destroy');
+
+    Route::get('/clientes', [ClienteController::class, 'index'])
+        ->middleware('can:clientes.ver')
+        ->name('clientes.index');
+    Route::post('/clientes', [ClienteController::class, 'store'])
+        ->middleware('can:clientes.crear')
+        ->name('clientes.store');
+    Route::put('/clientes/{cliente}', [ClienteController::class, 'update'])
+        ->middleware('can:clientes.editar')
+        ->name('clientes.update');
+    Route::delete('/clientes/{cliente}', [ClienteController::class, 'destroy'])
+        ->middleware('can:clientes.eliminar')
+        ->name('clientes.destroy');
+
+    Route::get('/materiales', [MaterialController::class, 'index'])
+        ->middleware('can:materiales.ver')
+        ->name('materiales.index');
+    Route::post('/materiales', [MaterialController::class, 'store'])
+        ->middleware('can:materiales.crear')
+        ->name('materiales.store');
+    Route::put('/materiales/{material}', [MaterialController::class, 'update'])
+        ->middleware('can:materiales.editar')
+        ->name('materiales.update');
+    Route::delete('/materiales/{material}', [MaterialController::class, 'destroy'])
+        ->middleware('can:materiales.eliminar')
+        ->name('materiales.destroy');
+
+    Route::get('/productos', [ProductoController::class, 'index'])
+        ->middleware('can:productos.ver')
+        ->name('productos.index');
+    Route::post('/productos', [ProductoController::class, 'store'])
+        ->middleware('can:productos.crear')
+        ->name('productos.store');
+    Route::put('/productos/{producto}', [ProductoController::class, 'update'])
+        ->middleware('can:productos.editar')
+        ->name('productos.update');
+    Route::delete('/productos/{producto}', [ProductoController::class, 'destroy'])
+        ->middleware('can:productos.eliminar')
+        ->name('productos.destroy');
 });
 
 require __DIR__.'/auth.php';

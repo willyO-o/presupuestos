@@ -10,7 +10,7 @@ import { confirmation } from '@/Utils/AlertUtil';
 defineOptions({ layout: MainDashboardLayout });
 
 const props = defineProps({
-    proveedores: {
+    clientes: {
         type: Object,
         required: true,
     },
@@ -27,27 +27,29 @@ const props = defineProps({
  * con cambiar `mode` a 'auto' aquí.
  */
 const table = useServerTable({
-    url: route('proveedores.index'),
+    url: route('clientes.index'),
     filters: {
         search: props.filters.search ?? '',
         estado: props.filters.estado ?? '',
     },
     mode: 'manual',
-    only: ['proveedores', 'filters'],
+    only: ['clientes', 'filters'],
 });
 
 const headers = [
-    { label: 'Nombre', key: 'nombre' },
+    { label: 'Razón social', key: 'razon_social' },
+    { label: 'Tipo', key: 'tipo', class: 'text-center', cellClass: 'text-center' },
     { label: 'NIT', key: 'nit' },
-    { label: 'Contacto', key: 'contacto' },
+    { label: 'Contacto', key: 'contacto_nombre' },
     { label: 'Teléfono', key: 'telefono' },
+    { label: 'Ciudad', key: 'ciudad' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
 /* ── Modal crear / editar ────────────────────────────────────────────── */
 
 const showFormModal = ref(false);
-const editingProveedor = ref(null);
+const editingCliente = ref(null);
 
 // Los datos se pasan como funcion (no un objeto plano): Inertia v2 actualiza
 // los "defaults" del form automaticamente en cada submit exitoso, asi que
@@ -55,30 +57,36 @@ const editingProveedor = ref(null);
 // despues de crear/editar (volvia a los ultimos datos enviados). Con una
 // funcion, reset() siempre re-evalua estos valores desde cero.
 const form = useForm(() => ({
-    nombre: '',
+    tipo: 'JURIDICO',
+    razon_social: '',
     nit: '',
-    contacto: '',
+    contacto_nombre: '',
     telefono: '',
+    email: '',
     direccion: '',
+    ciudad: '',
     estado: 'ACTIVO',
 }));
 
 function openCreate() {
-    editingProveedor.value = null;
+    editingCliente.value = null;
     form.clearErrors();
     form.reset();
     showFormModal.value = true;
 }
 
-function openEdit(proveedor) {
-    editingProveedor.value = proveedor;
+function openEdit(cliente) {
+    editingCliente.value = cliente;
     form.clearErrors();
-    form.nombre = proveedor.nombre;
-    form.nit = proveedor.nit;
-    form.contacto = proveedor.contacto;
-    form.telefono = proveedor.telefono;
-    form.direccion = proveedor.direccion;
-    form.estado = proveedor.estado;
+    form.tipo = cliente.tipo;
+    form.razon_social = cliente.razon_social;
+    form.nit = cliente.nit;
+    form.contacto_nombre = cliente.contacto_nombre;
+    form.telefono = cliente.telefono;
+    form.email = cliente.email;
+    form.direccion = cliente.direccion;
+    form.ciudad = cliente.ciudad;
+    form.estado = cliente.estado;
     showFormModal.value = true;
 }
 
@@ -92,10 +100,10 @@ function submitForm() {
         onSuccess: () => closeFormModal(),
     };
 
-    if (editingProveedor.value) {
-        form.put(route('proveedores.update', editingProveedor.value.id), options);
+    if (editingCliente.value) {
+        form.put(route('clientes.update', editingCliente.value.id), options);
     } else {
-        form.post(route('proveedores.store'), options);
+        form.post(route('clientes.store'), options);
     }
 }
 
@@ -103,10 +111,10 @@ function submitForm() {
 
 const deleteForm = useForm({});
 
-async function confirmDelete(proveedor) {
+async function confirmDelete(cliente) {
     const confirmed = await confirmation(
-        `¿Seguro que deseas eliminar el proveedor <strong>${proveedor.nombre}</strong>? Esta acción no se puede deshacer.`,
-        'Eliminar proveedor',
+        `¿Seguro que deseas eliminar el cliente <strong>${cliente.razon_social}</strong>? Esta acción no se puede deshacer.`,
+        'Eliminar cliente',
     );
 
     if (!confirmed) {
@@ -115,7 +123,7 @@ async function confirmDelete(proveedor) {
 
     // El toast de exito/error lo dispara el listener global de
     // Composables/UseFlashNotifications.js — no hace falta onSuccess aqui.
-    deleteForm.delete(route('proveedores.destroy', proveedor.id), {
+    deleteForm.delete(route('clientes.destroy', cliente.id), {
         preserveScroll: true,
     });
 }
@@ -123,7 +131,7 @@ async function confirmDelete(proveedor) {
 
 <template>
 
-    <Head title="Proveedores" />
+    <Head title="Clientes" />
 
     <!-- Filtros: búsqueda + estado, se aplican al enviar el formulario -->
     <div class="card mb-4">
@@ -132,7 +140,7 @@ async function confirmDelete(proveedor) {
                 <div class="col-lg-6">
                     <label class="form-label" for="filter-search">Buscar</label>
                     <input id="filter-search" v-model="table.filters.search" type="text" class="form-control"
-                        placeholder="Nombre, NIT o contacto..." />
+                        placeholder="Razón social, NIT o contacto..." />
                 </div>
 
                 <div class="col-lg-3">
@@ -159,25 +167,31 @@ async function confirmDelete(proveedor) {
 
     <div class="card">
         <div class="card-header">
-            <span class="card-title">Listado de proveedores</span>
-            <button v-can="'proveedores.crear'" type="button" class="btn btn-primary btn-sm" @click="openCreate">
+            <span class="card-title">Listado de clientes</span>
+            <button v-can="'clientes.crear'" type="button" class="btn btn-primary btn-sm" @click="openCreate">
                 <i class="fa-solid fa-plus"></i>
-                Nuevo proveedor
+                Nuevo cliente
             </button>
         </div>
 
         <div class="card-body">
-            <DataTable :headers="headers" :items="proveedores.data" :paginator="proveedores" :loading="table.loading"
-                empty-text="No hay proveedores registrados." @page-change="table.changePage">
-                <template #cell-nit="{ value }">
-                    {{ value || '—' }}
+            <DataTable :headers="headers" :items="clientes.data" :paginator="clientes" :loading="table.loading"
+                empty-text="No hay clientes registrados." @page-change="table.changePage">
+                <template #cell-tipo="{ value }">
+                    <span class="badge badge-soft-secondary">
+                        {{ value === 'NATURAL' ? 'Natural' : 'Jurídico' }}
+                    </span>
                 </template>
 
-                <template #cell-contacto="{ value }">
+                <template #cell-contacto_nombre="{ value }">
                     {{ value || '—' }}
                 </template>
 
                 <template #cell-telefono="{ value }">
+                    {{ value || '—' }}
+                </template>
+
+                <template #cell-ciudad="{ value }">
                     {{ value || '—' }}
                 </template>
 
@@ -192,12 +206,12 @@ async function confirmDelete(proveedor) {
 
                 <template #actions="{ item }">
                     <div class="d-flex gap-1">
-                        <button v-can="'proveedores.editar'" type="button" class="btn btn-sm btn-icon btn-soft-primary"
-                            aria-label="Editar proveedor" @click="openEdit(item)">
+                        <button v-can="'clientes.editar'" type="button" class="btn btn-sm btn-icon btn-soft-primary"
+                            aria-label="Editar cliente" @click="openEdit(item)">
                             <i class="fa-solid fa-pen"></i>
                         </button>
-                        <button v-can="'proveedores.eliminar'" type="button" class="btn btn-sm btn-icon btn-soft-danger"
-                            aria-label="Eliminar proveedor" @click="confirmDelete(item)">
+                        <button v-can="'clientes.eliminar'" type="button" class="btn btn-sm btn-icon btn-soft-danger"
+                            aria-label="Eliminar cliente" @click="confirmDelete(item)">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
@@ -207,10 +221,10 @@ async function confirmDelete(proveedor) {
     </div>
 
     <!-- Modal crear / editar -->
-    <Modal :show="showFormModal" max-width="md" @close="closeFormModal">
+    <Modal :show="showFormModal" max-width="lg" @close="closeFormModal">
         <div class="card-header">
             <span class="card-title">
-                {{ editingProveedor ? 'Editar proveedor' : 'Nuevo proveedor' }}
+                {{ editingCliente ? 'Editar cliente' : 'Nuevo cliente' }}
             </span>
             <button type="button" class="modal-close" aria-label="Cerrar" @click="closeFormModal">
                 <i class="fa-solid fa-xmark"></i>
@@ -219,13 +233,27 @@ async function confirmDelete(proveedor) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <div class="form-group">
-                    <label class="form-label" for="nombre">Nombre</label>
-                    <input id="nombre" v-model="form.nombre" type="text" class="form-control"
-                        :class="{ 'is-invalid': form.errors.nombre }" required autofocus />
-                    <p v-if="form.errors.nombre" class="form-error">
-                        {{ form.errors.nombre }}
-                    </p>
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="form-group">
+                            <label class="form-label" for="tipo">Tipo</label>
+                            <select id="tipo" v-model="form.tipo" class="form-control">
+                                <option value="JURIDICO">Jurídico</option>
+                                <option value="NATURAL">Natural</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="form-group">
+                            <label class="form-label" for="razon_social">Razón social</label>
+                            <input id="razon_social" v-model="form.razon_social" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.razon_social }" required autofocus />
+                            <p v-if="form.errors.razon_social" class="form-error">
+                                {{ form.errors.razon_social }}
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -233,7 +261,7 @@ async function confirmDelete(proveedor) {
                         <div class="form-group">
                             <label class="form-label" for="nit">NIT</label>
                             <input id="nit" v-model="form.nit" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.nit }" />
+                                :class="{ 'is-invalid': form.errors.nit }" required />
                             <p v-if="form.errors.nit" class="form-error">
                                 {{ form.errors.nit }}
                             </p>
@@ -242,23 +270,14 @@ async function confirmDelete(proveedor) {
 
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label class="form-label" for="contacto">Contacto</label>
-                            <input id="contacto" v-model="form.contacto" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.contacto }" />
-                            <p v-if="form.errors.contacto" class="form-error">
-                                {{ form.errors.contacto }}
+                            <label class="form-label" for="contacto_nombre">Contacto</label>
+                            <input id="contacto_nombre" v-model="form.contacto_nombre" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.contacto_nombre }" />
+                            <p v-if="form.errors.contacto_nombre" class="form-error">
+                                {{ form.errors.contacto_nombre }}
                             </p>
                         </div>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="direccion">Dirección</label>
-                    <input id="direccion" v-model="form.direccion" type="text" class="form-control"
-                        :class="{ 'is-invalid': form.errors.direccion }" />
-                    <p v-if="form.errors.direccion" class="form-error">
-                        {{ form.errors.direccion }}
-                    </p>
                 </div>
 
                 <div class="row">
@@ -275,13 +294,46 @@ async function confirmDelete(proveedor) {
 
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label class="form-label" for="estado">Estado</label>
-                            <select id="estado" v-model="form.estado" class="form-control">
-                                <option value="ACTIVO">Activo</option>
-                                <option value="INACTIVO">Inactivo</option>
-                            </select>
+                            <label class="form-label" for="email">Email</label>
+                            <input id="email" v-model="form.email" type="email" class="form-control"
+                                :class="{ 'is-invalid': form.errors.email }" />
+                            <p v-if="form.errors.email" class="form-error">
+                                {{ form.errors.email }}
+                            </p>
                         </div>
                     </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="direccion">Dirección</label>
+                            <input id="direccion" v-model="form.direccion" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.direccion }" />
+                            <p v-if="form.errors.direccion" class="form-error">
+                                {{ form.errors.direccion }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="ciudad">Ciudad</label>
+                            <input id="ciudad" v-model="form.ciudad" type="text" class="form-control"
+                                :class="{ 'is-invalid': form.errors.ciudad }" />
+                            <p v-if="form.errors.ciudad" class="form-error">
+                                {{ form.errors.ciudad }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="estado">Estado</label>
+                    <select id="estado" v-model="form.estado" class="form-control">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
                 </div>
             </div>
 
@@ -293,7 +345,7 @@ async function confirmDelete(proveedor) {
                     :disabled="form.processing">
                     <i v-if="form.processing" class="fa-solid fa-spinner fa-spin"></i>
                     <i v-else class="fa-solid fa-floppy-disk"></i>
-                    {{ editingProveedor ? 'Guardar cambios' : 'Crear proveedor' }}
+                    {{ editingCliente ? 'Guardar cambios' : 'Crear cliente' }}
                 </button>
             </div>
         </form>

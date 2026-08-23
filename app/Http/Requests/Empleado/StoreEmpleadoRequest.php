@@ -1,24 +1,24 @@
 <?php
 
-namespace App\Http\Requests\Sucursal;
+namespace App\Http\Requests\Empleado;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateSucursalRequest extends FormRequest
+class StoreEmpleadoRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      *
-     * La ruta ya exige el permiso via middleware `can:sucursales.editar`; se
+     * La ruta ya exige el permiso via middleware `can:empleados.crear`; se
      * repite aquí porque es el lugar recomendado por Laravel para esta
      * comprobación y protege el Form Request si algún día se usa desde otra
      * ruta que no lleve el middleware.
      */
     public function authorize(): bool
     {
-        return $this->user()->can('sucursales.editar');
+        return $this->user()->can('empleados.crear');
     }
 
     /**
@@ -29,10 +29,13 @@ class UpdateSucursalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => ['required', 'string', 'max:255'],
-            'ciudad' => ['required', 'string', 'max:255'],
-            'direccion' => ['required', 'string', 'max:255'],
-            'telefono' => ['required', 'string', 'max:25'],
+            'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id')],
+            'area_id' => ['required', 'integer', Rule::exists('area', 'id')],
+            'nombre_completo' => ['required', 'string', 'max:255'],
+            'ci' => ['required', 'string', 'max:255', Rule::unique('empleado', 'ci')],
+            'cargo' => ['required', 'string', 'max:255'],
+            'telefono' => ['nullable', 'string', 'max:25'],
+            'fecha_ingreso' => ['required', 'date'],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],
         ];
     }

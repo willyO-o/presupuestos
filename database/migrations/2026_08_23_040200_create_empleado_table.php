@@ -13,7 +13,9 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('sucursal_id')->constrained('sucursal')->restrictOnDelete();
             $table->foreignId('area_id')->constrained('area')->restrictOnDelete();
-            $table->string('nombre_completo');
+            $table->string('nombres');
+            $table->string('paterno')->nullable();
+            $table->string('materno')->nullable();
             $table->string('ci');
             $table->string('cargo');
             $table->string('telefono')->nullable();

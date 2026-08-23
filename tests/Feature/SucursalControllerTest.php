@@ -77,6 +77,7 @@ test('a user with permission can create a sucursal', function () {
 
     $response = $this->actingAs($user)->post(route('sucursales.store'), [
         'nombre' => 'Sucursal El Alto',
+        'ciudad' => 'La Paz',
         'direccion' => 'Av. 6 de Marzo 123',
         'telefono' => '71234567',
         'estado' => 'ACTIVO',
@@ -95,6 +96,7 @@ test('a user without permission cannot create a sucursal', function () {
 
     $this->actingAs($user)->post(route('sucursales.store'), [
         'nombre' => 'Sucursal El Alto',
+        'ciudad' => 'La Paz',
         'direccion' => 'Av. 6 de Marzo 123',
         'telefono' => '71234567',
         'estado' => 'ACTIVO',
@@ -103,17 +105,18 @@ test('a user without permission cannot create a sucursal', function () {
     $this->assertDatabaseCount('sucursal', 0);
 });
 
-test('creating a sucursal requires nombre, direccion, telefono and a valid estado', function () {
+test('creating a sucursal requires nombre, ciudad, direccion, telefono and a valid estado', function () {
     $user = userWithPermissions('sucursales.ver', 'sucursales.crear');
 
     $response = $this->actingAs($user)->post(route('sucursales.store'), [
         'nombre' => '',
+        'ciudad' => '',
         'direccion' => '',
         'telefono' => '',
         'estado' => 'EN_MANTENIMIENTO',
     ]);
 
-    $response->assertSessionHasErrors(['nombre', 'direccion', 'telefono', 'estado']);
+    $response->assertSessionHasErrors(['nombre', 'ciudad', 'direccion', 'telefono', 'estado']);
     $this->assertDatabaseCount('sucursal', 0);
 });
 
@@ -123,6 +126,7 @@ test('a user with permission can update a sucursal', function () {
 
     $response = $this->actingAs($user)->put(route('sucursales.update', $sucursal), [
         'nombre' => 'Actualizada',
+        'ciudad' => $sucursal->ciudad,
         'direccion' => $sucursal->direccion,
         'telefono' => $sucursal->telefono,
         'estado' => 'INACTIVO',
@@ -142,6 +146,7 @@ test('a user without permission cannot update a sucursal', function () {
 
     $this->actingAs($user)->put(route('sucursales.update', $sucursal), [
         'nombre' => 'Actualizada',
+        'ciudad' => $sucursal->ciudad,
         'direccion' => $sucursal->direccion,
         'telefono' => $sucursal->telefono,
         'estado' => 'ACTIVO',

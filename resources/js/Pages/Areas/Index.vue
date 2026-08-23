@@ -10,7 +10,7 @@ import { confirmation } from '@/Utils/AlertUtil';
 defineOptions({ layout: MainDashboardLayout });
 
 const props = defineProps({
-    sucursales: {
+    areas: {
         type: Object,
         required: true,
     },
@@ -27,27 +27,25 @@ const props = defineProps({
  * con cambiar `mode` a 'auto' aquí.
  */
 const table = useServerTable({
-    url: route('sucursales.index'),
+    url: route('areas.index'),
     filters: {
         search: props.filters.search ?? '',
         estado: props.filters.estado ?? '',
     },
     mode: 'manual',
-    only: ['sucursales', 'filters'],
+    only: ['areas', 'filters'],
 });
 
 const headers = [
     { label: 'Nombre', key: 'nombre' },
-    { label: 'Ciudad', key: 'ciudad' },
-    { label: 'Dirección', key: 'direccion' },
-    { label: 'Teléfono', key: 'telefono' },
+    { label: 'Descripción', key: 'descripcion' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
 /* ── Modal crear / editar ────────────────────────────────────────────── */
 
 const showFormModal = ref(false);
-const editingSucursal = ref(null);
+const editingArea = ref(null);
 
 // Los datos se pasan como funcion (no un objeto plano): Inertia v2 actualiza
 // los "defaults" del form automaticamente en cada submit exitoso, asi que
@@ -56,27 +54,23 @@ const editingSucursal = ref(null);
 // funcion, reset() siempre re-evalua estos valores desde cero.
 const form = useForm(() => ({
     nombre: '',
-    ciudad: '',
-    direccion: '',
-    telefono: '',
+    descripcion: '',
     estado: 'ACTIVO',
 }));
 
 function openCreate() {
-    editingSucursal.value = null;
+    editingArea.value = null;
     form.clearErrors();
     form.reset();
     showFormModal.value = true;
 }
 
-function openEdit(sucursal) {
-    editingSucursal.value = sucursal;
+function openEdit(area) {
+    editingArea.value = area;
     form.clearErrors();
-    form.nombre = sucursal.nombre;
-    form.ciudad = sucursal.ciudad;
-    form.direccion = sucursal.direccion;
-    form.telefono = sucursal.telefono;
-    form.estado = sucursal.estado;
+    form.nombre = area.nombre;
+    form.descripcion = area.descripcion;
+    form.estado = area.estado;
     showFormModal.value = true;
 }
 
@@ -90,10 +84,10 @@ function submitForm() {
         onSuccess: () => closeFormModal(),
     };
 
-    if (editingSucursal.value) {
-        form.put(route('sucursales.update', editingSucursal.value.id), options);
+    if (editingArea.value) {
+        form.put(route('areas.update', editingArea.value.id), options);
     } else {
-        form.post(route('sucursales.store'), options);
+        form.post(route('areas.store'), options);
     }
 }
 
@@ -101,10 +95,10 @@ function submitForm() {
 
 const deleteForm = useForm({});
 
-async function confirmDelete(sucursal) {
+async function confirmDelete(area) {
     const confirmed = await confirmation(
-        `¿Seguro que deseas eliminar la sucursal <strong>${sucursal.nombre}</strong>? Esta acción no se puede deshacer.`,
-        'Eliminar sucursal',
+        `¿Seguro que deseas eliminar el área <strong>${area.nombre}</strong>? Esta acción no se puede deshacer.`,
+        'Eliminar área',
     );
 
     if (!confirmed) {
@@ -113,7 +107,7 @@ async function confirmDelete(sucursal) {
 
     // El toast de exito/error lo dispara el listener global de
     // Composables/UseFlashNotifications.js — no hace falta onSuccess aqui.
-    deleteForm.delete(route('sucursales.destroy', sucursal.id), {
+    deleteForm.delete(route('areas.destroy', area.id), {
         preserveScroll: true,
     });
 }
@@ -121,7 +115,7 @@ async function confirmDelete(sucursal) {
 
 <template>
 
-    <Head title="Sucursales" />
+    <Head title="Áreas" />
 
     <!-- Filtros: búsqueda + estado, se aplican al enviar el formulario -->
     <div class="card mb-4">
@@ -130,7 +124,7 @@ async function confirmDelete(sucursal) {
                 <div class="col-lg-6">
                     <label class="form-label" for="filter-search">Buscar</label>
                     <input id="filter-search" v-model="table.filters.search" type="text" class="form-control"
-                        placeholder="Nombre, dirección o teléfono..." />
+                        placeholder="Nombre del área..." />
                 </div>
 
                 <div class="col-lg-3">
@@ -157,18 +151,22 @@ async function confirmDelete(sucursal) {
 
     <div class="card">
         <div class="card-header">
-            <span class="card-title">Listado de sucursales</span>
-            <button v-can="'sucursales.crear'" type="button" class="btn btn-primary btn-sm" @click="openCreate">
+            <span class="card-title">Listado de áreas</span>
+            <button v-can="'areas.crear'" type="button" class="btn btn-primary btn-sm" @click="openCreate">
                 <i class="fa-solid fa-plus"></i>
-                Nueva sucursal
+                Nueva área
             </button>
         </div>
 
         <div class="card-body">
-            <DataTable table-class="table-sm" :headers="headers" :items="sucursales.data" :paginator="sucursales" :loading="table.loading"
-                empty-text="No hay sucursales registradas." @page-change="table.changePage">
-                <template #cell-estado="{ item }" >
-                    <span class="badge " :class="item.estado === 'ACTIVO'
+            <DataTable :headers="headers" :items="areas.data" :paginator="areas" :loading="table.loading"
+                empty-text="No hay áreas registradas." @page-change="table.changePage">
+                <template #cell-descripcion="{ value }">
+                    {{ value || '—' }}
+                </template>
+
+                <template #cell-estado="{ item }">
+                    <span class="badge" :class="item.estado === 'ACTIVO'
                             ? 'badge-soft-success'
                             : 'badge-soft-danger'
                         ">
@@ -178,16 +176,15 @@ async function confirmDelete(sucursal) {
 
                 <template #actions="{ item }">
                     <div class="d-flex gap-1">
-                        <button v-can="'sucursales.editar'" type="button" class="btn btn-sm btn-icon btn-soft-secondary"
-                            aria-label="Editar sucursal" @click="openEdit(item)">
+                        <button v-can="'areas.editar'" type="button" class="btn btn-sm btn-icon btn-soft-primary"
+                            aria-label="Editar área" @click="openEdit(item)">
                             <i class="fa-solid fa-pen"></i>
                         </button>
-                        <button v-can="'sucursales.eliminar'" type="button" class="btn btn-sm btn-icon btn-soft-secondary"
-                            aria-label="Eliminar sucursal" @click="confirmDelete(item)">
+                        <button v-can="'areas.eliminar'" type="button" class="btn btn-sm btn-icon btn-soft-danger"
+                            aria-label="Eliminar área" @click="confirmDelete(item)">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
-
                 </template>
             </DataTable>
         </div>
@@ -197,7 +194,7 @@ async function confirmDelete(sucursal) {
     <Modal :show="showFormModal" max-width="md" @close="closeFormModal">
         <div class="card-header">
             <span class="card-title">
-                {{ editingSucursal ? 'Editar sucursal' : 'Nueva sucursal' }}
+                {{ editingArea ? 'Editar área' : 'Nueva área' }}
             </span>
             <button type="button" class="modal-close" aria-label="Cerrar" @click="closeFormModal">
                 <i class="fa-solid fa-xmark"></i>
@@ -214,45 +211,22 @@ async function confirmDelete(sucursal) {
                         {{ form.errors.nombre }}
                     </p>
                 </div>
+
                 <div class="form-group">
-                    <label class="form-label" for="ciudad">Ciudad</label>
-                    <input id="ciudad" v-model="form.ciudad" type="text" class="form-control"
-                        :class="{ 'is-invalid': form.errors.ciudad }" required autofocus />
-                    <p v-if="form.errors.ciudad" class="form-error">
-                        {{ form.errors.ciudad }}
+                    <label class="form-label" for="descripcion">Descripción</label>
+                    <input id="descripcion" v-model="form.descripcion" type="text" class="form-control"
+                        :class="{ 'is-invalid': form.errors.descripcion }" />
+                    <p v-if="form.errors.descripcion" class="form-error">
+                        {{ form.errors.descripcion }}
                     </p>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="direccion">Dirección</label>
-                    <input id="direccion" v-model="form.direccion" type="text" class="form-control"
-                        :class="{ 'is-invalid': form.errors.direccion }" required />
-                    <p v-if="form.errors.direccion" class="form-error">
-                        {{ form.errors.direccion }}
-                    </p>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="telefono">Teléfono</label>
-                            <input id="telefono" v-model="form.telefono" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.telefono }" required />
-                            <p v-if="form.errors.telefono" class="form-error">
-                                {{ form.errors.telefono }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="estado">Estado</label>
-                            <select id="estado" v-model="form.estado" class="form-control">
-                                <option value="ACTIVO">Activo</option>
-                                <option value="INACTIVO">Inactivo</option>
-                            </select>
-                        </div>
-                    </div>
+                    <label class="form-label" for="estado">Estado</label>
+                    <select id="estado" v-model="form.estado" class="form-control">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
                 </div>
             </div>
 
@@ -264,7 +238,7 @@ async function confirmDelete(sucursal) {
                     :disabled="form.processing">
                     <i v-if="form.processing" class="fa-solid fa-spinner fa-spin"></i>
                     <i v-else class="fa-solid fa-floppy-disk"></i>
-                    {{ editingSucursal ? 'Guardar cambios' : 'Crear sucursal' }}
+                    {{ editingArea ? 'Guardar cambios' : 'Crear área' }}
                 </button>
             </div>
         </form>
