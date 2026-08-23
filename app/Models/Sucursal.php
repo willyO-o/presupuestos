@@ -3,10 +3,19 @@
 namespace App\Models;
 
 use Database\Factories\SucursalFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+
+#[Fillable([
+    'nombre',
+    'ciudad',
+    'direccion',
+    'telefono',
+    'estado',
+])]
 
 class Sucursal extends Model
 {
@@ -20,15 +29,6 @@ class Sucursal extends Model
      */
     protected $table = 'sucursal';
 
-    /**
-     * @var list<string>
-     */
-    protected $fillable = [
-        'nombre',
-        'direccion',
-        'telefono',
-        'estado',
-    ];
 
     /**
      * Filtra por coincidencia parcial en nombre, dirección o teléfono.

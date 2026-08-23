@@ -40,6 +40,7 @@ const table = useServerTable({
 
 const headers = [
     { label: 'Nombre', key: 'nombre' },
+    { label: 'Ciudad', key: 'ciudad' },
     { label: 'Dirección', key: 'direccion' },
     { label: 'Teléfono', key: 'telefono' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
@@ -52,6 +53,7 @@ const editingSucursal = ref(null);
 
 const form = useForm({
     nombre: '',
+    ciudad: '',
     direccion: '',
     telefono: '',
     estado: 'ACTIVO',
@@ -258,6 +260,21 @@ function destroySucursal() {
                     />
                     <p v-if="form.errors.nombre" class="form-error">
                         {{ form.errors.nombre }}
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ciudad">Ciudad</label>
+                    <input
+                        id="ciudad"
+                        v-model="form.ciudad"
+                        type="text"
+                        class="form-control"
+                        :class="{ 'is-invalid': form.errors.ciudad }"
+                        required
+                        autofocus
+                    />
+                    <p v-if="form.errors.ciudad" class="form-error">
+                        {{ form.errors.ciudad }}
                     </p>
                 </div>
 

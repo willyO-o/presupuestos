@@ -30,6 +30,7 @@ class StoreSucursalRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
+            'ciudad' => ['required', 'string', 'max:255'],
             'direccion' => ['required', 'string', 'max:255'],
             'telefono' => ['required', 'string', 'max:25'],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],

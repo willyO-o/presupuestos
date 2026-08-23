@@ -7,25 +7,21 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * BASTIDORES, BANNERS, GIGANTOGRAFIAS, VINYL_ROTULADO, EXHIBIDORES,
+     * MATERIAL_POP, TOLDOS, LETREROS_LUMINOSOS, ROTULADO_VEHICULAR.
      */
     public function up(): void
     {
-        Schema::create('sucursal', function (Blueprint $table) {
+        Schema::create('categoria_producto', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->string('direccion');
-            $table->string('telefono');
             $table->enum('estado', ['ACTIVO', 'INACTIVO'])->default('ACTIVO');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('sucursal');
+        Schema::dropIfExists('categoria_producto');
     }
 };

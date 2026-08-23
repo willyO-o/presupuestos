@@ -19,6 +19,7 @@ class SucursalFactory extends Factory
     {
         return [
             'nombre' => 'Sucursal '.fake()->unique()->city(),
+            'ciudad' => fake()->city(),
             'direccion' => fake()->streetAddress(),
             'telefono' => fake()->numerify('7#######'),
             'estado' => 'ACTIVO',
