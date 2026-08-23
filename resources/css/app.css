@@ -133,20 +133,21 @@
     background-color: var(--page-bg);
 }
 
-/* --- Sidebar --- */
+/* --- Sidebar ---
+   El boton mostrar/ocultar (Topbar) esta disponible en todos los tamanos de
+   pantalla: el sidebar se oculta con translateX salvo que tenga .is-open,
+   sin importar el breakpoint. En desktop ademas se le quita al contenido el
+   margen reservado para el sidebar (ver .main-wrapper.sidebar-open) para
+   que el contenido aproveche el ancho completo cuando esta oculto. */
 .sidebar {
     width: var(--sidebar-width);
     background-color: var(--sidebar-bg);
+    transform: translateX(-100%);
     @apply fixed inset-y-0 start-0 z-40 flex flex-col transition-transform duration-200 ease-in-out;
 }
 
-@media (max-width: 1023.98px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-    .sidebar.is-open {
-        transform: translateX(0);
-    }
+.sidebar.is-open {
+    transform: translateX(0);
 }
 
 .sidebar-brand {
@@ -226,11 +227,11 @@
 
 /* --- Main column / topbar --- */
 .main-wrapper {
-    @apply flex min-h-screen flex-col;
+    @apply flex min-h-screen flex-col transition-[margin-inline-start] duration-200 ease-in-out;
 }
 
 @media (min-width: 1024px) {
-    .main-wrapper {
+    .main-wrapper.sidebar-open {
         margin-inline-start: var(--sidebar-width);
     }
 }
@@ -333,6 +334,12 @@
 .breadcrumb .breadcrumb-item.active {
     color: var(--text-heading);
     @apply font-medium;
+}
+
+.app-footer {
+    border-color: var(--border-subtle);
+    color: var(--text-muted);
+    @apply flex flex-wrap items-center justify-between gap-2 border-t px-4 py-4 text-xs sm:px-6;
 }
 
 /* ==========================================================================

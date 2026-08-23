@@ -29,6 +29,9 @@ Two things this skill exists to protect:
   **Bootstrap-named component layer** (`.card`, `.btn-primary`, `.avatar-sm`, `.bg-soft-info`, ...),
   which is a project convention, not a Tailwind or Laravel Boost default. It did not exist
   anywhere else before this skill — check here first.
+- For form inputs (numeric/decimal fields, character limits) or role/permission-gated UI, use the
+  `vue-custom-directives` skill (`v-decimal`, `v-entero`, `v-max-length`, `v-can`) instead of writing
+  manual `@input` handlers or `v-if` permission checks.
 
 ## Rule 1 — Never hardcode a brand color
 

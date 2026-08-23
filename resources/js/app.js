@@ -6,6 +6,13 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
+import can from '@/Directives/Can';
+import Decimal from '@/Directives/Decimal';
+import Entero from '@/Directives/Entero';
+import MaxLength from '@/Directives/MaxLength';
+
+
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
@@ -19,6 +26,10 @@ createInertiaApp({
         return createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)
+            .directive('can', can)
+            .directive('decimal', Decimal)
+            .directive('entero', Entero)
+            .directive('max-length', MaxLength)
             .mount(el);
     },
     progress: {
