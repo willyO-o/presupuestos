@@ -1,6 +1,7 @@
 ---
 paths:
   - 'resources/js/**/*.vue'
+  - 'resources/js/**'
 ---
 
 # Js
@@ -22,3 +23,8 @@ Para iconografía de interfaz (botones, sidebar, menús, alerts, badges, inputs)
 No mezcles las tres dentro del mismo componente sin necesidad; mantené consistencia dentro de una misma página/sección. Actualiza siempre a `npm install <pkg>@latest` en vez de fijar versiones viejas manualmente.
 
 Excepción — no reemplazar por icon-fonts: los iconos dentro de tarjetas/widgets del dashboard (`.stat-icon`, `.list-icon`, gráficos como `.donut-chart`/`.bar-chart` y cualquier ilustración de card) se quedan como SVG inline hecho a mano (ver `resources/js/Pages/Dashboard.vue`), porque usan `stroke="currentColor"`/`fill="currentColor"` para heredar el color semántico (`--c-primary`, etc.) de forma nítida a cualquier tamaño, cosa que un icon-font no logra igual de bien en esos tamaños grandes de tarjeta.
+
+## Carpetas y archivos .js dentro de resources/js van en PascalCase
+Toda carpeta dentro de `resources/js/` empieza con mayúscula (`Pages/`, `Components/`, `Layouts/`, `Directives/`, `Data/`, `Data/Sidebar/`, ...) y todo archivo `.js` (no `.vue`) también empieza con mayúscula (`Can.js`, `Decimal.js`, `Nav.js`, ...). Excepción: los archivos de entrada/config de Vite en la raíz de `resources/js` (`app.js`, `bootstrap.js`) se quedan en minúscula porque son los nombres que Vite/Laravel esperan ahí.
+
+Al crear una carpeta o archivo `.js` nuevo bajo `resources/js`, respeta esta convención desde el nombre — no crear en minúscula y renombrar después.

@@ -4,6 +4,9 @@ Before planning or editing, find the row whose globs match the file's path and r
 
 | Applies to | Rule file |
 | --- | --- |
-| resources/js/**/*.vue | .ai/rules/js.md |
+| config/acl.php | .ai/rules/config.md |
+| app/Http/Controllers/** | .ai/rules/controllers.md |
+| resources/js/Data/** | .ai/rules/data.md |
+| resources/js/**/*.vue, resources/js/** | .ai/rules/js.md |
 | resources/js/Layouts/**/*.vue | .ai/rules/layouts.md |
 | resources/js/Pages/**/*.vue | .ai/rules/pages.md |

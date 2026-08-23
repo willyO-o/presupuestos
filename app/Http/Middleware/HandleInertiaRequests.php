@@ -29,10 +29,17 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                // Consumidos en el frontend por la directiva v-can
+                // (resources/js/Directives/Can.js) para roles/permisos.
+                'roles' => $user?->getRoleNames() ?? [],
+                'permissions' => $user?->getAllPermissions()->pluck('name') ?? [],
+                'is_super_admin' => $user?->hasRole('super-admin') ?? false,
             ],
         ];
     }

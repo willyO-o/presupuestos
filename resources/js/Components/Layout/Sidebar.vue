@@ -1,11 +1,15 @@
 <script setup>
-import { ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { computed, reactive } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { NAV_MENU } from '@/Data/Sidebar/Nav';
 
 /**
- * Sidebar del dashboard. El estado de apertura movil vive en el layout
- * (MainDashboardLayout) porque el boton que la abre esta en el Topbar;
- * el acordeon de submenus es un detalle interno de este componente.
+ * Sidebar del dashboard. El menu (items, permisos, iconos) vive en
+ * resources/js/Data/Sidebar/Nav.js — este componente solo sabe renderizarlo,
+ * hasta 3 niveles de profundidad (item -> children -> children.children).
+ *
+ * El estado de apertura movil llega del layout (el boton esta en el Topbar);
+ * que submenus estan expandidos es un detalle interno de este componente.
  */
 defineProps({
     isOpen: {
@@ -16,11 +20,66 @@ defineProps({
 
 defineEmits(['close']);
 
-const openMenu = ref('dashboards');
+const page = usePage();
+const currentPath = computed(() => page.url.split('?')[0]);
 
-function toggleMenu(key) {
-    openMenu.value = openMenu.value === key ? null : key;
+function isActive(path) {
+    if (!path) {
+        return false;
+    }
+    return currentPath.value === path || currentPath.value.startsWith(`${path}/`);
 }
+
+/* Agrupa el arreglo plano de NAV_MENU (separadores + items intercalados) en
+   secciones, para poder renderizar un <ul> por cada bloque con su titulo. */
+const sections = computed(() => {
+    const result = [];
+    let current = null;
+
+    for (const entry of NAV_MENU) {
+        if (entry.menutitle) {
+            current = { label: entry.menutitle, permission: entry.permission, items: [] };
+            result.push(current);
+        } else if (current) {
+            current.items.push(entry);
+        }
+    }
+
+    return result;
+});
+
+/* Acordeon de submenus: guarda el titulo de cada item tipo 'sub' que esta
+   expandido (a cualquier nivel). Se usa el titulo como key porque debe ser
+   unico dentro del menu. */
+const openKeys = reactive(new Set());
+
+function isOpenKey(title) {
+    return openKeys.has(title);
+}
+
+function toggleKey(title) {
+    if (openKeys.has(title)) {
+        openKeys.delete(title);
+    } else {
+        openKeys.add(title);
+    }
+}
+
+/* Al cargar, expande automaticamente los submenus que contienen la ruta
+   actual, para que el usuario vea donde esta parado. */
+(function openAncestorsOfCurrentRoute(items) {
+    for (const item of items) {
+        if (item.type === 'sub') {
+            if (openAncestorsOfCurrentRoute(item.children ?? [])) {
+                openKeys.add(item.title);
+                return true;
+            }
+        } else if (item.type === 'link' && isActive(item.path)) {
+            return true;
+        }
+    }
+    return false;
+})(NAV_MENU);
 </script>
 
 <template>
@@ -46,388 +105,150 @@ function toggleMenu(key) {
             </div>
 
             <div class="sidebar-body">
-                <p class="sidebar-menu-label">Menu</p>
-                <ul class="nav-sidebar">
-                    <!-- Dashboards (con submenu) -->
-                    <li
-                        class="nav-sidebar-item"
-                        :class="{ 'is-expanded': openMenu === 'dashboards' }"
-                    >
-                        <a
-                            href="#"
-                            class="nav-sidebar-link"
-                            :class="{ active: openMenu === 'dashboards' }"
-                            @click.prevent="toggleMenu('dashboards')"
+                <template v-for="section in sections" :key="section.label">
+                    <p v-can="section.permission" class="sidebar-menu-label">
+                        {{ section.label }}
+                    </p>
+
+                    <ul class="nav-sidebar">
+                        <li
+                            v-for="item in section.items"
+                            :key="item.title"
+                            v-can="item.permission"
+                            class="nav-sidebar-item"
+                            :class="{
+                                'is-expanded':
+                                    item.type === 'sub' && isOpenKey(item.title),
+                            }"
                         >
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
+                            <!-- Nivel 1: enlace directo -->
+                            <Link
+                                v-if="item.type === 'link'"
+                                :href="item.path"
+                                class="nav-sidebar-link"
+                                :class="{ active: isActive(item.path) }"
+                                @click="$emit('close')"
                             >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M3 9.5 12 3l9 6.5M5 8.5V20a1 1 0 0 0 1 1h4v-5a2 2 0 1 1 4 0v5h4a1 1 0 0 0 1-1V8.5"
-                                />
-                            </svg>
-                            <span class="nav-text">Dashboards</span>
-                            <svg
-                                class="nav-chevron"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m6 9 6 6 6-6"
-                                />
-                            </svg>
-                        </a>
-                        <ul
-                            v-show="openMenu === 'dashboards'"
-                            class="nav-sidebar-submenu"
-                        >
-                            <li>
-                                <Link
-                                    :href="route('dashboard')"
-                                    class="nav-sidebar-submenu-link"
-                                    :class="{
-                                        active: route().current('dashboard'),
-                                    }"
-                                    @click="$emit('close')"
-                                >
-                                    Analytics
-                                </Link>
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >CRM</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >Ecommerce</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >Crypto</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >Projects</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >NFT</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >Job</a
-                                >
-                            </li>
-                            <li class="d-flex align-items-center gap-2">
+                                <i
+                                    v-if="item.icon"
+                                    :class="item.icon"
+                                    class="nav-icon-i"
+                                ></i>
+                                <span class="nav-text">{{ item.title }}</span>
+                            </Link>
+
+                            <!-- Nivel 1: submenu (nivel 2 adentro) -->
+                            <template v-else>
                                 <a
                                     href="#"
-                                    class="nav-sidebar-submenu-link flex-fill"
-                                    >Blog</a
+                                    class="nav-sidebar-link"
+                                    :class="{ active: isOpenKey(item.title) }"
+                                    @click.prevent="toggleKey(item.title)"
                                 >
-                                <span class="badge badge-soft-success"
-                                    >New</span
-                                >
-                            </li>
-                        </ul>
-                    </li>
+                                    <i
+                                        v-if="item.icon"
+                                        :class="item.icon"
+                                        class="nav-icon-i"
+                                    ></i>
+                                    <span class="nav-text">{{ item.title }}</span>
+                                    <svg
+                                        class="nav-chevron"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="m6 9 6 6 6-6"
+                                        />
+                                    </svg>
+                                </a>
 
-                    <!-- Apps -->
-                    <li
-                        class="nav-sidebar-item"
-                        :class="{ 'is-expanded': openMenu === 'apps' }"
-                    >
-                        <a
-                            href="#"
-                            class="nav-sidebar-link"
-                            @click.prevent="toggleMenu('apps')"
-                        >
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z"
-                                />
-                            </svg>
-                            <span class="nav-text">Apps</span>
-                            <svg
-                                class="nav-chevron"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m6 9 6 6 6-6"
-                                />
-                            </svg>
-                        </a>
-                        <ul
-                            v-show="openMenu === 'apps'"
-                            class="nav-sidebar-submenu"
-                        >
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >Calendar</a
+                                <ul
+                                    v-show="isOpenKey(item.title)"
+                                    class="nav-sidebar-submenu"
                                 >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >Chat</a
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >File Manager</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
+                                    <li
+                                        v-for="child in item.children"
+                                        :key="child.title"
+                                        v-can="child.permission"
+                                        :class="{
+                                            'nav-sidebar-item':
+                                                child.type === 'sub',
+                                            'is-expanded':
+                                                child.type === 'sub' &&
+                                                isOpenKey(child.title),
+                                        }"
+                                    >
+                                        <!-- Nivel 2: enlace directo -->
+                                        <Link
+                                            v-if="child.type === 'link'"
+                                            :href="child.path"
+                                            class="nav-sidebar-submenu-link"
+                                            :class="{ active: isActive(child.path) }"
+                                            @click="$emit('close')"
+                                        >
+                                            {{ child.title }}
+                                        </Link>
 
-                    <!-- Layouts -->
-                    <li
-                        class="nav-sidebar-item"
-                        :class="{ 'is-expanded': openMenu === 'layouts' }"
-                    >
-                        <a
-                            href="#"
-                            class="nav-sidebar-link"
-                            @click.prevent="toggleMenu('layouts')"
-                        >
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M4 5h16v4H4V5Zm0 6h7v8H4v-8Zm9 0h7v8h-7v-8Z"
-                                />
-                            </svg>
-                            <span class="nav-text">Layouts</span>
-                            <span class="badge badge-soft-danger">Hot</span>
-                        </a>
-                    </li>
-                </ul>
+                                        <!-- Nivel 2: submenu (nivel 3, el maximo soportado) -->
+                                        <template v-else>
+                                            <a
+                                                href="#"
+                                                class="nav-sidebar-link"
+                                                :class="{ active: isOpenKey(child.title) }"
+                                                @click.prevent="toggleKey(child.title)"
+                                            >
+                                                <span class="nav-text">{{
+                                                    child.title
+                                                }}</span>
+                                                <svg
+                                                    class="nav-chevron"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        d="m6 9 6 6 6-6"
+                                                    />
+                                                </svg>
+                                            </a>
 
-                <p class="sidebar-menu-label">Pages</p>
-                <ul class="nav-sidebar">
-                    <li
-                        class="nav-sidebar-item"
-                        :class="{ 'is-expanded': openMenu === 'auth' }"
-                    >
-                        <a
-                            href="#"
-                            class="nav-sidebar-link"
-                            @click.prevent="toggleMenu('auth')"
-                        >
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 6v-1a6 6 0 0 1 12 0v1"
-                                />
-                                <circle
-                                    cx="12"
-                                    cy="7"
-                                    r="4"
-                                    stroke-linecap="round"
-                                />
-                            </svg>
-                            <span class="nav-text">Authentication</span>
-                            <svg
-                                class="nav-chevron"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m6 9 6 6 6-6"
-                                />
-                            </svg>
-                        </a>
-                        <ul
-                            v-show="openMenu === 'auth'"
-                            class="nav-sidebar-submenu"
-                        >
-                            <li>
-                                <Link
-                                    :href="route('login')"
-                                    class="nav-sidebar-submenu-link"
-                                    @click="$emit('close')"
-                                    >Login</Link
-                                >
-                            </li>
-                            <li>
-                                <Link
-                                    :href="route('register')"
-                                    class="nav-sidebar-submenu-link"
-                                    @click="$emit('close')"
-                                    >Register</Link
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li
-                        class="nav-sidebar-item"
-                        :class="{ 'is-expanded': openMenu === 'pages' }"
-                    >
-                        <a
-                            href="#"
-                            class="nav-sidebar-link"
-                            @click.prevent="toggleMenu('pages')"
-                        >
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm7 0v5h5"
-                                />
-                            </svg>
-                            <span class="nav-text">Pages</span>
-                            <svg
-                                class="nav-chevron"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m6 9 6 6 6-6"
-                                />
-                            </svg>
-                        </a>
-                        <ul
-                            v-show="openMenu === 'pages'"
-                            class="nav-sidebar-submenu"
-                        >
-                            <li>
-                                <Link
-                                    :href="route('profile.edit')"
-                                    class="nav-sidebar-submenu-link"
-                                    @click="$emit('close')"
-                                    >Profile</Link
-                                >
-                            </li>
-                            <li>
-                                <a href="#" class="nav-sidebar-submenu-link"
-                                    >Pricing</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <p class="sidebar-menu-label">Components</p>
-                <ul class="nav-sidebar">
-                    <li class="nav-sidebar-item">
-                        <a href="#" class="nav-sidebar-link">
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <rect x="3" y="3" width="7" height="7" rx="1" />
-                                <rect
-                                    x="14"
-                                    y="3"
-                                    width="7"
-                                    height="7"
-                                    rx="1"
-                                />
-                                <rect
-                                    x="3"
-                                    y="14"
-                                    width="7"
-                                    height="7"
-                                    rx="1"
-                                />
-                            </svg>
-                            <span class="nav-text">Base UI</span>
-                        </a>
-                    </li>
-                    <li class="nav-sidebar-item">
-                        <a href="#" class="nav-sidebar-link">
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M12 2v20M2 12h20"
-                                />
-                            </svg>
-                            <span class="nav-text">Advance UI</span>
-                        </a>
-                    </li>
-                    <li class="nav-sidebar-item">
-                        <a href="#" class="nav-sidebar-link">
-                            <svg
-                                class="nav-icon"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M4 6h16M4 12h16M4 18h7"
-                                />
-                            </svg>
-                            <span class="nav-text">Widgets</span>
-                        </a>
-                    </li>
-                </ul>
+                                            <ul
+                                                v-show="isOpenKey(child.title)"
+                                                class="nav-sidebar-submenu"
+                                            >
+                                                <li
+                                                    v-for="grandchild in child.children"
+                                                    :key="grandchild.title"
+                                                    v-can="grandchild.permission"
+                                                >
+                                                    <Link
+                                                        :href="grandchild.path"
+                                                        class="nav-sidebar-submenu-link"
+                                                        :class="{
+                                                            active: isActive(
+                                                                grandchild.path,
+                                                            ),
+                                                        }"
+                                                        @click="$emit('close')"
+                                                    >
+                                                        {{ grandchild.title }}
+                                                    </Link>
+                                                </li>
+                                            </ul>
+                                        </template>
+                                    </li>
+                                </ul>
+                            </template>
+                        </li>
+                    </ul>
+                </template>
             </div>
         </aside>
     </div>
