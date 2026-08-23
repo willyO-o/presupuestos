@@ -37,6 +37,17 @@
  * La prop `paginator` acepta el paginador de Laravel tal cual (paginate())
  * o su version normalizada en camelCase. Emite `@page-change="page"`.
  *
+ * ── Clases de la tabla ───────────────────────────────────────────────────
+ * La prop `tableClass` agrega clases al <table> ademas de `.table-dashboard`
+ * (no la reemplaza), ej: `table-class="table-sm"` para una version compacta
+ * (menos padding/tipografia mas chica, ver app.css seccion "6. TABLE").
+ *
+ * ── Loader ───────────────────────────────────────────────────────────────
+ * Mientras `loading` es true se atenua la tabla y se superpone un loader
+ * centrado (3 puntos con los colores de marca, `--c-primary`/`--c-secondary`).
+ * Para uno personalizado, usa el slot `#loader` (reemplaza los 3 puntos por
+ * completo, ej. un spinner o texto propio).
+ *
  * ── Ejemplo minimo ───────────────────────────────────────────────────────
  *   <DataTable
  *       :headers="[{ label: 'Nombre', key: 'name' }, { label: 'Correo', key: 'email' }]"
@@ -100,11 +111,18 @@ const props = defineProps({
     },
     actionsClass: {
         type: String,
-        default: 'text-end',
+        default: 'text-end ',
     },
     siblingCount: {
         type: Number,
         default: 2,
+    },
+    // Clases extra para el <table>, ademas de `.table-dashboard` (se
+    // combinan, no la reemplazan). Acepta cualquier formato de :class
+    // (string, array u objeto), ej: 'table-sm' para una version compacta.
+    tableClass: {
+        type: [String, Array, Object],
+        default: '',
     },
 });
 
@@ -177,68 +195,81 @@ function resolveRowKey(row, index) {
 </script>
 
 <template>
-    <div class="table-responsive" :class="{ 'table-loading': loading }">
-        <table class="table-dashboard">
-            <thead>
-                <tr>
-                    <th
-                        v-for="header in normalizedHeaders"
-                        :key="header.key"
-                        :class="header.class"
-                    >
-                        <span v-if="header.html" v-html="header.html"></span>
-                        <template v-else>{{ header.label }}</template>
-                    </th>
-                    <th v-if="hasActionsColumn" :class="actionsClass">
-                        {{ actionsLabel }}
-                    </th>
-                </tr>
-            </thead>
-
-            <!-- Escape hatch: control total sobre el tbody para tablas complejas -->
-            <slot
-                v-if="$slots.tbody"
-                name="tbody"
-                :items="items"
-                :headers="normalizedHeaders"
-            />
-
-            <tbody v-else-if="items.length">
-                <tr
-                    v-for="(item, index) in items"
-                    :key="resolveRowKey(item, index)"
-                >
-                    <td
-                        v-for="header in normalizedHeaders"
-                        :key="header.key"
-                        :class="header.cellClass"
-                    >
-                        <slot
-                            :name="`cell-${header.key}`"
-                            :item="item"
-                            :index="index"
-                            :value="cellValue(item, header)"
+    <div class="table-wrap">
+        <div class="table-responsive" :class="{ 'table-loading': loading }">
+            <table class="table-dashboard" :class="tableClass">
+                <thead>
+                    <tr>
+                        <th
+                            v-for="header in normalizedHeaders"
+                            :key="header.key"
+                            :class="header.class"
                         >
-                            {{ cellValue(item, header) }}
-                        </slot>
-                    </td>
-                    <td v-if="hasActionsColumn" :class="actionsClass">
-                        <slot name="actions" :item="item" :index="index" />
-                    </td>
-                </tr>
-            </tbody>
+                            <span v-if="header.html" v-html="header.html"></span>
+                            <template v-else>{{ header.label }}</template>
+                        </th>
+                        <th v-if="hasActionsColumn" :class="actionsClass">
+                            {{ actionsLabel }}
+                        </th>
+                    </tr>
+                </thead>
 
-            <tbody v-else>
-                <tr>
-                    <td
-                        class="table-empty"
-                        :colspan="normalizedHeaders.length + (hasActionsColumn ? 1 : 0)"
+                <!-- Escape hatch: control total sobre el tbody para tablas complejas -->
+                <slot
+                    v-if="$slots.tbody"
+                    name="tbody"
+                    :items="items"
+                    :headers="normalizedHeaders"
+                />
+
+                <tbody v-else-if="items.length">
+                    <tr
+                        v-for="(item, index) in items"
+                        :key="resolveRowKey(item, index)"
                     >
-                        {{ emptyText }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                        <td
+                            v-for="header in normalizedHeaders"
+                            :key="header.key"
+                            :class="header.cellClass"
+                        >
+                            <slot
+                                :name="`cell-${header.key}`"
+                                :item="item"
+                                :index="index"
+                                :value="cellValue(item, header)"
+                            >
+                                {{ cellValue(item, header) }}
+                            </slot>
+                        </td>
+                        <td v-if="hasActionsColumn" :class="actionsClass">
+                            <slot name="actions" :item="item" :index="index" />
+                        </td>
+                    </tr>
+                </tbody>
+
+                <tbody v-else>
+                    <tr>
+                        <td
+                            class="table-empty p-10 " colspan="100%"
+                        >
+                            {{ emptyText }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Loader por defecto (3 puntos, colores de marca) mientras `loading`
+             es true. Se puede reemplazar por completo con el slot #loader. -->
+        <div v-if="loading" class="table-loading-overlay">
+            <slot name="loader">
+                <div class="table-loading-dots">
+                    <span class="table-loading-dot"></span>
+                    <span class="table-loading-dot"></span>
+                    <span class="table-loading-dot"></span>
+                </div>
+            </slot>
+        </div>
     </div>
 
     <TablePagination

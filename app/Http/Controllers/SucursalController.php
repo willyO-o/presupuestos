@@ -22,7 +22,7 @@ class SucursalController extends Controller
             ->search($request->query('search'))
             ->estado($request->query('estado'))
             ->orderBy('nombre')
-            ->paginate(10)
+            ->paginate(5)
             ->withQueryString();
 
         return inertia('Sucursales/Index', [

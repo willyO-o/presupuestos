@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Database\Factories\SucursalFactory;
+use Database\Factories\CategoriaMaterialFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,15 +11,12 @@ use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
     'nombre',
-    'ciudad',
-    'direccion',
-    'telefono',
     'estado',
 ])]
 
-class Sucursal extends Model
+class CategoriaMaterial extends Model
 {
-    /** @use HasFactory<SucursalFactory> */
+    /** @use HasFactory<CategoriaMaterialFactory> */
     use HasFactory;
 
     /**
@@ -27,24 +24,15 @@ class Sucursal extends Model
      *
      * @var string
      */
-    protected $table = 'sucursal';
+    protected $table = 'categoria_material';
 
     /**
-     * Filtra por coincidencia parcial en nombre, dirección o teléfono.
-     * Sin término, no aplica ningún filtro.
+     * Filtra por coincidencia parcial en nombre. Sin término, no aplica ningún filtro.
      */
     #[Scope]
     protected function search(Builder $query, ?string $term): void
     {
-        $query->when($term, function (Builder $query) use ($term) {
-            $query->where(function (Builder $query) use ($term) {
-                $query->where('nombre', 'like', "%{$term}%")
-                    ->orWhere('ciudad', 'like', "%{$term}%")
-                    ->orWhere('direccion', 'like', "%{$term}%")
-                    ->orWhere('telefono', 'like', "%{$term}%");
-
-            });
-        });
+        $query->when($term, fn (Builder $query) => $query->where('nombre', 'like', "%{$term}%"));
     }
 
     /**

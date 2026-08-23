@@ -33,7 +33,8 @@ import { router } from '@inertiajs/vue3';
  *
  * @param {object} options
  * @param {string} options.url - Ruta Inertia a visitar (normalmente `route('recurso.index')`).
- * @param {object} [options.filters] - Valores iniciales de los filtros (search, selects, ...).
+ * @param {object} [options.filters] - Valores iniciales de los filtros (search, selects, ...). Suelen venir de una prop `filters` del backend, asi que si la pagina se carga con querystring (?search=..., un refresh, un enlace compartido) estos "iniciales" ya vienen filtrados.
+ * @param {object} [options.defaults] - Valores a los que `reset()` vuelve. Si se omite, cada clave de `filters` se vacia a `''` (string vacio) — cubre el caso comun de inputs de busqueda y selects. Pasalo explicito si algun filtro no es texto o su "vacio" no es `''` (ej. `{ estado: 'ACTIVO' }`).
  * @param {'manual'|'auto'} [options.mode] - 'manual': solo busca al llamar search(). 'auto': busca solo al cambiar los filtros (debounced).
  * @param {number} [options.debounce] - Milisegundos de espera en modo 'auto' antes de disparar la busqueda.
  * @param {string[]|null} [options.only] - Claves de props a pedir en la respuesta parcial de Inertia (`router.get(..., { only })`). `null` pide la pagina completa.
@@ -45,6 +46,7 @@ export function useServerTable(options = {}) {
     const {
         url,
         filters = {},
+        defaults = null,
         mode = 'manual',
         debounce = 400,
         only = null,
@@ -58,8 +60,15 @@ export function useServerTable(options = {}) {
         );
     }
 
-    const initialFilters = { ...filters };
-    const filterState = reactive({ ...initialFilters });
+    const filterState = reactive({ ...filters });
+
+    // Valores a los que reset() vuelve. OJO: NO son los mismos `filters` de
+    // arriba — esos son el valor inicial de la URL/props (que si la pagina
+    // se cargo ya filtrada, ya vienen "sucios"). Sin `defaults` explicito,
+    // "limpiar" vacia cada filtro declarado a '' (string vacio).
+    const resetValues =
+        defaults ?? Object.fromEntries(Object.keys(filters).map((key) => [key, '']));
+
     const loading = ref(false);
 
     let debounceTimer = null;
@@ -97,10 +106,10 @@ export function useServerTable(options = {}) {
         visit({ page });
     }
 
-    /** Vuelve los filtros a su valor inicial y vuelve a consultar. */
+    /** Vacía los filtros (ver `defaults` arriba) y vuelve a consultar. */
     function reset() {
         Object.keys(filterState).forEach((key) => delete filterState[key]);
-        Object.assign(filterState, initialFilters);
+        Object.assign(filterState, resetValues);
         search();
     }
 

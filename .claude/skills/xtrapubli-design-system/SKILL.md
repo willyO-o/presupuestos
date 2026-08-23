@@ -101,6 +101,55 @@ Run `npm run build` (or confirm `npm run dev` / `composer run dev` is running) a
 `app.css` — per the project's frontend-bundling rule, CSS changes are invisible until the
 assets are rebuilt.
 
+## Rule 5 — Building a new CRUD module (listado + alta/edición)
+
+Follow this shape for any new resource (`Pages/{Recurso}/Index.vue` + backend), instead of
+hand-rolling a `<table>` or a custom notification/confirmation flow. `Pages/Sucursales/Index.vue`
+is the reference implementation — copy its structure for the next module.
+
+**Listado**: always `resources/js/Components/Table/DataTable.vue` +
+`resources/js/Composables/UseServerTable.js`, never a raw `<table>`. `DataTable` takes
+`headers` (string HTML or `{ label, key, class, cellClass }` objects), renders rows from
+`items`, and exposes `#cell-<key>` slots per column, an `#actions` slot for the buttons
+column, a `#tbody` escape hatch for very custom layouts (rowspans, grids), a `table-class`
+prop for modifiers like `table-sm`, and shows a default 3-dot loader (overridable with
+`#loader`) while `loading` is true — see the component's own JSDoc for the full API and
+[`references/component-classes.md`](references/component-classes.md) for the CSS classes
+involved. `useServerTable({ url, filters, mode, only })` wires search/filter state, pagination
+and the `router.get()` visit for you (`mode: 'manual'` = button-triggered, `'auto'` = debounced
+on change) — see `.ai/rules/table.md` for the full contract, including `reset()`/`defaults`.
+
+**Alta/edición — modal vs. vista independiente**: decide by field complexity, don't default
+to always-a-modal:
+
+- **Campos simples** (un puñado de inputs planos, sin sub-tablas ni relaciones que gestionar a
+  la vez): reusa `resources/js/Components/Modal.vue` con un único formulario (`useForm`) que
+  sirve tanto para crear como editar, alternando el título y el método (`post`/`put`) según si
+  hay un registro en edición — exactamente como `Pages/Sucursales/Index.vue` (`showFormModal`,
+  `editingSucursal`, `openCreate()`/`openEdit()`/`submitForm()`).
+- **Información compleja** (múltiples tablas relacionadas, líneas de detalle repetibles, pasos,
+  o cualquier formulario demasiado largo para un modal): usa una vista independiente en vez de
+  forzarlo en un modal — `Pages/{Recurso}/Create.vue` y `Pages/{Recurso}/Edit.vue` navegando por
+  rutas propias (`{recurso}.create` / `{recurso}.edit`), pero **reutilizando el mismo
+  formulario**: extrae los campos compartidos a un componente parcial (ej.
+  `Pages/{Recurso}/Partials/{Recurso}Form.vue`) que ambas vistas montan, en vez de duplicar el
+  markup entre Create y Edit.
+
+**Notificaciones y confirmaciones**: siempre `resources/js/Utils/AlertUtil.js`
+(`showToast`, `showError`, `confirmation`), nunca un banner o `<Modal>` de confirmación a
+medida.
+
+- Los toasts de éxito/error tras crear/editar/eliminar **no se llaman a mano** — hay un listener
+  global (`resources/js/Composables/UseFlashNotifications.js`, conectado una sola vez en
+  `app.js`) que escucha el evento `success` de Inertia y muestra `showToast()` con lo que el
+  controlador mande vía `redirect(...)->with('success', '...')` / `->with('error', ...)` (prop
+  compartida `flash`, ver `HandleInertiaRequests::share()`). Un módulo nuevo no necesita
+  `onSuccess` en el form para esto — alcanza con el `->with(...)` del backend.
+- Para confirmar una acción destructiva (borrar, cancelar, etc.), usa `await confirmation(...)`
+  antes de disparar la petición — no un `<Modal>` con botones "Sí/No" a medida.
+- Los popups ya están temados a la marca (`app.css` sección "20. SWEETALERT2") — no pases
+  colores a mano al llamar `Swal`/`AlertUtil`.
+
 ## Known state / pending items
 
 - `resources/js/Layouts/MainDashboardLayout.vue` still has placeholder demo content inherited

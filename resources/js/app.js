@@ -10,8 +10,7 @@ import can from '@/Directives/Can';
 import Decimal from '@/Directives/Decimal';
 import Entero from '@/Directives/Entero';
 import MaxLength from '@/Directives/MaxLength';
-
-
+import { useFlashNotifications } from '@/Composables/UseFlashNotifications';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -23,6 +22,11 @@ createInertiaApp({
             import.meta.glob('./Pages/**/*.vue'),
         ),
     setup({ el, App, props, plugin }) {
+        // Toasts de exito/error automaticos en cualquier pagina, sin que
+        // cada formulario tenga que llamar showToast() a mano — ver
+        // Composables/UseFlashNotifications.js.
+        useFlashNotifications();
+
         return createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)

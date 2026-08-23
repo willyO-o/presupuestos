@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CategoriaMaterialController;
+use App\Http\Controllers\CategoriaProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SucursalController;
 use Illuminate\Foundation\Application;
@@ -35,6 +37,32 @@ Route::middleware('auth')->group(function () {
     Route::delete('/sucursales/{sucursal}', [SucursalController::class, 'destroy'])
         ->middleware('can:sucursales.eliminar')
         ->name('sucursales.destroy');
+
+    Route::get('/categorias-material', [CategoriaMaterialController::class, 'index'])
+        ->middleware('can:categorias-material.ver')
+        ->name('categorias-material.index');
+    Route::post('/categorias-material', [CategoriaMaterialController::class, 'store'])
+        ->middleware('can:categorias-material.crear')
+        ->name('categorias-material.store');
+    Route::put('/categorias-material/{categoriaMaterial}', [CategoriaMaterialController::class, 'update'])
+        ->middleware('can:categorias-material.editar')
+        ->name('categorias-material.update');
+    Route::delete('/categorias-material/{categoriaMaterial}', [CategoriaMaterialController::class, 'destroy'])
+        ->middleware('can:categorias-material.eliminar')
+        ->name('categorias-material.destroy');
+
+    Route::get('/categorias-producto', [CategoriaProductoController::class, 'index'])
+        ->middleware('can:categorias-producto.ver')
+        ->name('categorias-producto.index');
+    Route::post('/categorias-producto', [CategoriaProductoController::class, 'store'])
+        ->middleware('can:categorias-producto.crear')
+        ->name('categorias-producto.store');
+    Route::put('/categorias-producto/{categoriaProducto}', [CategoriaProductoController::class, 'update'])
+        ->middleware('can:categorias-producto.editar')
+        ->name('categorias-producto.update');
+    Route::delete('/categorias-producto/{categoriaProducto}', [CategoriaProductoController::class, 'destroy'])
+        ->middleware('can:categorias-producto.eliminar')
+        ->name('categorias-producto.destroy');
 });
 
 require __DIR__.'/auth.php';

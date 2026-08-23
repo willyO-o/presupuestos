@@ -137,6 +137,8 @@ export const NAV_MENU = [
         menutitle: 'Catálogos',
         permission: [
             'sucursales.ver',
+            'categorias-material.ver',
+            'categorias-producto.ver',
             'conductores.ver',
             'vehiculos.ver',
             'grifos.ver',
@@ -153,6 +155,20 @@ export const NAV_MENU = [
         type: 'link',
         path: '/sucursales',
         permission: 'sucursales.ver',
+    },
+    {
+        title: 'Categorías de Material',
+        icon: 'fa-solid fa-boxes-stacked',
+        type: 'link',
+        path: '/categorias-material',
+        permission: 'categorias-material.ver',
+    },
+    {
+        title: 'Categorías de Producto',
+        icon: 'fa-solid fa-tags',
+        type: 'link',
+        path: '/categorias-producto',
+        permission: 'categorias-producto.ver',
     },
 
 

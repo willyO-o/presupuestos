@@ -291,8 +291,14 @@
 .topbar-search input {
     background-color: var(--page-bg);
     color: var(--text-body);
-    @apply w-full rounded-lg border-0 py-2.5 ps-10 pe-3 text-sm ring-0 placeholder:text-slate-400 focus:outline-none focus:ring-2;
-    --tw-ring-color: var(--c-primary);
+    @apply w-full rounded-lg border-0 py-2.5 ps-10 pe-3 text-sm ring-0 placeholder:text-slate-400 focus:outline-none;
+}
+
+/* Foco fino + sombra suave, igual que .form-control (ver seccion 18). */
+.topbar-search input:focus {
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--c-primary) 15%, transparent),
+        0 1px 2px color-mix(in srgb, var(--c-primary) 25%, transparent);
 }
 
 .dark .topbar-search input {
@@ -390,7 +396,7 @@
 .card {
     background-color: var(--card-bg);
     box-shadow: var(--card-shadow);
-    @apply rounded-xl border-0;
+    @apply rounded-md border-0;
 }
 
 .card-header {
@@ -603,6 +609,16 @@
     background-color: rgba(255, 255, 255, 0.03);
 }
 
+/* Modificador opcional (se combina: class="table-dashboard table-sm") para
+   listados densos — reduce padding y tipografia de celdas/encabezados. */
+.table-dashboard.table-sm thead th {
+    @apply px-2 py-2 text-[0.6875rem];
+}
+
+.table-dashboard.table-sm tbody td {
+    @apply px-2 py-1.5 text-xs;
+}
+
 .article-thumb {
     @apply h-10 w-10 shrink-0 rounded-lg object-cover;
 }
@@ -708,7 +724,7 @@
    ========================================================================== */
 
 .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .btn-sm {
@@ -727,6 +743,12 @@
 
 .btn-icon {
     @apply flex h-8 w-8 items-center justify-center rounded-lg p-0;
+}
+
+/* .btn-sm por si solo no achica .btn-icon (px/py se pisan con el p-0 de
+   arriba) — este combo cubre ese caso, ej. botones de accion en tablas. */
+.btn-icon.btn-sm {
+    @apply h-7 w-7 text-xs;
 }
 
 /* --- Botones solidos --- */
@@ -1189,44 +1211,80 @@
 }
 
 .mb-0 {
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
 }
 .mb-1 {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.25rem !important;
 }
 .mb-2 {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.5rem !important;
 }
 .mb-3 {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.75rem !important;
 }
 .mb-4 {
-    margin-bottom: 1rem;
+    margin-bottom: 1rem !important;
 }
 .mb-5 {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.25rem !important;
 }
 .mt-0 {
-    margin-top: 0;
+    margin-top: 0 !important;
 }
 .mt-1 {
-    margin-top: 0.25rem;
+    margin-top: 0.25rem !important;
 }
 .mt-2 {
-    margin-top: 0.5rem;
+    margin-top: 0.5rem !important;
 }
 .mt-3 {
-    margin-top: 0.75rem;
+    margin-top: 0.75rem !important;
 }
 .mt-4 {
-    margin-top: 1rem;
+    margin-top: 1rem !important;
 }
 .mt-5 {
-    margin-top: 1.25rem;
+    margin-top: 1.25rem !important  ;
 }
 .mx-auto {
     margin-left: auto;
     margin-right: auto;
+}
+
+/* Padding en las 4 direcciones (misma escala que .gap-, .mb- y .mt-, paso de
+   0.25rem por nivel, igual que Tailwind). */
+.p-0 {
+    padding: 0 !important;
+}
+.p-1 {
+    padding: 0.25rem !important;
+}
+.p-2 {
+    padding: 0.5rem !important;
+}
+.p-3 {
+    padding: 0.75rem !important;
+}
+.p-4 {
+    padding: 1rem !important;
+}
+.p-5 {
+    padding: 1.25rem !important;
+}
+.p-6 {
+    padding: 1.5rem !important;
+}
+.p-7 {
+    padding: 1.75rem !important;
+}
+.p-8 {
+    padding: 2rem !important;
+}
+.p-9 {
+    padding: 2.25rem !important;
+}
+.p-10 {
+    padding: 2.5rem !important;
 }
 
 /* ==========================================================================
@@ -1447,14 +1505,62 @@
    17. TABLA: ESTADOS Y PAGINACION (DataTable.vue / TablePagination.vue)
    ========================================================================== */
 
+/* Contenedor relativo para poder superponer el loader (.table-loading-overlay)
+   encima de la tabla sin que herede su opacidad atenuada. */
+.table-wrap {
+    @apply relative;
+}
+
 /* Atenua la tabla mientras hay una peticion Inertia en curso (useServerTable().loading). */
 .table-loading {
     @apply pointer-events-none opacity-50 transition-opacity duration-150;
 }
 
+/* Loader por defecto: 3 puntos centrados sobre la tabla, con los colores de
+   marca. Reemplazable por completo con el slot #loader de DataTable.vue. */
+.table-loading-overlay {
+    @apply pointer-events-none absolute inset-0 z-10 flex items-center justify-center;
+}
+
+.table-loading-dots {
+    @apply flex items-center gap-1.5;
+}
+
+.table-loading-dot {
+    background-color: var(--c-primary);
+    @apply h-2.5 w-2.5 rounded-full;
+    animation: table-loading-bounce 1.4s ease-in-out infinite both;
+}
+
+.table-loading-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.table-loading-dot:nth-child(2) {
+    background-color: var(--c-secondary);
+    animation-delay: -0.16s;
+}
+
+.table-loading-dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes table-loading-bounce {
+    0%,
+    80%,
+    100% {
+        transform: scale(0.6);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 .table-empty {
     color: var(--text-muted);
-    @apply py-10 text-center text-sm;
+    @apply text-center text-sm;
 }
 
 .pagination-wrap {
@@ -1513,17 +1619,26 @@
     color: var(--text-body);
     background-color: var(--card-bg);
     border-color: var(--border-subtle);
-    @apply w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-150 placeholder:text-slate-400 focus:outline-none focus:ring-2;
-    --tw-ring-color: var(--c-primary);
+    @apply w-full rounded-lg border px-3 py-2 text-sm transition-all duration-150 placeholder:text-slate-400 focus:outline-none;
 }
 
+/* Foco: borde fino (1px, no un anillo grueso) + sombra suave del mismo
+   color, en vez del ring-2 solido de Tailwind. */
 .form-control:focus {
     border-color: var(--c-primary);
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--c-primary) 15%, transparent),
+        0 1px 2px color-mix(in srgb, var(--c-primary) 25%, transparent);
 }
 
 .form-control.is-invalid {
     border-color: var(--c-danger);
-    --tw-ring-color: var(--c-danger);
+}
+
+.form-control.is-invalid:focus {
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--c-danger) 15%, transparent),
+        0 1px 2px color-mix(in srgb, var(--c-danger) 25%, transparent);
 }
 
 .form-error {
@@ -1547,4 +1662,58 @@
 
 .dark .modal-close:hover {
     background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================================
+   20. SWEETALERT2 (Utils/AlertUtil.js): tema de marca sobre los popups
+   ------------------------------------------------------------------------
+   SweetAlert2 inyecta su propio CSS y sus popups van directo en <body>, no
+   dentro de #app — por eso esto no puede vivir en el <script> del
+   componente (se perdería) y va aca, como el resto del CSS del proyecto
+   (ver skill xtrapubli-design-system, Rule 3). Como .dark se aplica en
+   <html>, las variables de color se heredan igual aunque el popup cuelgue
+   fuera del arbol de Vue.
+   ========================================================================== */
+
+.swal2-popup {
+    background-color: var(--card-bg) !important;
+    color: var(--text-body) !important;
+    @apply rounded-2xl !important;
+}
+
+.swal2-title {
+    color: var(--text-heading) !important;
+}
+
+.swal2-html-container {
+    color: var(--text-body) !important;
+}
+
+.swal2-confirm {
+    background-color: var(--c-primary) !important;
+    @apply shadow-none !important;
+}
+
+.swal2-confirm:focus {
+    box-shadow: 0 0 0 3px var(--c-primary-soft) !important;
+}
+
+.swal2-cancel {
+    background-color: var(--c-secondary) !important;
+    @apply shadow-none !important;
+}
+
+.swal2-cancel:focus {
+    box-shadow: 0 0 0 3px var(--c-secondary-soft) !important;
+}
+
+/* Toast (showToast en AlertUtil.js): misma superficie que .card, sin el
+   layout de popup centrado (icono + texto en fila, esquina superior derecha). */
+.swal2-toast.swal2-popup {
+    box-shadow: var(--card-shadow) !important;
+    @apply rounded-xl !important;
+}
+
+.swal2-toast .swal2-title {
+    @apply text-sm font-medium;
 }

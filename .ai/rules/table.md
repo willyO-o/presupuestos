@@ -11,3 +11,11 @@ Para cualquier listado con tabla (index de un recurso), usa `resources/js/Compon
 Para conectar filtros + paginación con una ruta Inertia, usa el composable `resources/js/Composables/UseServerTable.js` (`useServerTable({ url, filters, mode: 'auto'|'manual', only })`) en vez de escribir `router.get()` a mano en cada página — `mode: 'manual'` requiere llamar `table.search()` (botón "Buscar"); `mode: 'auto'` dispara la búsqueda solo al cambiar `table.filters` (debounced), para no sobrecargar el servidor en listados pesados. Ver el JSDoc de ambos archivos para el ejemplo completo de una página `Index.vue`.
 
 Estilos de estas tablas (`.table-loading`, `.table-empty`, `.pagination*`, `.page-*`) viven en `app.css` sección "17. TABLA: ESTADOS Y PAGINACION" — no en `<style>` de los componentes (ver skill `xtrapubli-design-system`, Rule 3).
+
+## DataTable.vue: tamaño compacto vía prop `table-class` + clase `.table-sm`
+Para una tabla mas compacta (menos padding, texto mas chico) usa la prop `table-class="table-sm"` en `<DataTable>` — se combina con `.table-dashboard`, no la reemplaza. Acepta cualquier formato de `:class` (string/array/objeto), no solo `table-sm`, para poder pasar clases dinamicas segun el caso de uso.
+Estilos en app.css seccion "6. TABLE" (`.table-dashboard.table-sm thead th` / `tbody td`), no en `<style>` de componentes (ver skill xtrapubli-design-system, Rule 3).
+
+## DataTable.vue: loader por defecto (3 puntos) + slot #loader
+Cuando `loading` es true, DataTable.vue ademas de atenuar la tabla (`.table-loading`) superpone un loader centrado por defecto: 3 puntos animados con los colores de marca (`--c-primary`/`--c-secondary`), clases `.table-loading-overlay`/`.table-loading-dots`/`.table-loading-dot` en app.css seccion "17. TABLA...". Para uno personalizado (spinner, texto, etc.) usa el slot `#loader`, que reemplaza los 3 puntos por completo — no hace falta tocar el componente.
+El overlay vive en un `.table-wrap` (position relative) que envuelve a `.table-responsive`, para que no herede la opacidad atenuada de la tabla.

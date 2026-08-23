@@ -136,9 +136,46 @@ PAGINACION":
 - `.table-loading` — atenúa la tabla (`opacity-50 pointer-events-none`) durante una
   petición Inertia en curso.
 - `.table-empty` — celda de estado vacío, texto centrado en `--text-muted`.
+- `.table-sm` — modificador opcional, se combina con `.table-dashboard` (no la reemplaza):
+  reduce padding y tipografía de encabezados/celdas para listados densos. Se pasa vía la prop
+  `table-class` de `DataTable.vue` (acepta cualquier formato de `:class`), ej:
+  `<DataTable table-class="table-sm" ...>`.
+- `.table-loading-overlay` / `.table-loading-dots` / `.table-loading-dot` — loader por defecto
+  de `DataTable.vue`: 3 puntos centrados sobre la tabla (colores `--c-primary`/`--c-secondary`)
+  mientras `loading` es `true`. Se reemplaza por completo con el slot `#loader` si hace falta
+  uno personalizado (spinner, texto, etc.).
 - `.pagination-wrap` / `.pagination-info` / `.pagination` / `.page-item` / `.page-link` —
   paginador con saltos de rango (`« ‹ 1 … 8 9 10 11 12 … 100 › »`). `.page-item.active` usa
   `--c-primary`; `.page-item.disabled` y `.page-ellipsis` quedan atenuados y sin clic.
+
+## SweetAlert2 (`Utils/AlertUtil.js`)
+
+Los popups de SweetAlert2 (toasts de éxito/error, confirmaciones) van temados a la marca en
+`app.css` sección "20. SWEETALERT2" — `.swal2-popup`, `.swal2-title`, `.swal2-confirm`,
+`.swal2-cancel`, `.swal2-toast`, usando `--card-bg`/`--text-*`/`--c-primary`/`--c-secondary`. No
+hay que pasar colores a mano al llamar `Swal.fire()`; el tema ya los aplica global (incluye modo
+oscuro, porque `.dark` vive en `<html>` y el popup, aunque cuelga de `<body>`, hereda las
+variables igual).
+
+```js
+import { showToast, showError, confirmation } from '@/Utils/AlertUtil';
+
+showToast('Guardado correctamente.');           // toast arriba a la derecha, 3s
+showToast('Algo falló.', 'error');
+showError(form.errors);                          // popup centrado con la lista de errores
+const ok = await confirmation('¿Eliminar este registro?', 'Confirmar');
+```
+
+Los toasts de éxito/error de las acciones CRUD (crear/editar/eliminar) **no se llaman a mano**
+en cada página: hay un listener global en `Composables/UseFlashNotifications.js` (conectado una
+sola vez en `app.js`) que escucha el evento `success` de Inertia y muestra `showToast()` solo
+con lo que el controlador mande vía `redirect(...)->with('success', '...')` /
+`->with('error', '...')` (prop compartida `flash`, ver `HandleInertiaRequests::share()`). Un
+controlador nuevo no necesita `onSuccess` en el form del frontend para esto — alcanza con el
+`->with(...)` del lado backend.
+
+Para confirmar un borrado, usar `confirmation()` (ver `Pages/Sucursales/Index.vue`) en vez de un
+`<Modal>` a medida — más corto y consistente en toda la app.
 
 ## Login (`.login-*`)
 

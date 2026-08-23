@@ -76,6 +76,24 @@ return [
                 'sucursales.eliminar' => 'Eliminar sucursales',
             ],
         ],
+        'categorias-material' => [
+            'label' => 'Categorías de material',
+            'permissions' => [
+                'categorias-material.ver' => 'Ver categorías de material',
+                'categorias-material.crear' => 'Crear categorías de material',
+                'categorias-material.editar' => 'Editar categorías de material',
+                'categorias-material.eliminar' => 'Eliminar categorías de material',
+            ],
+        ],
+        'categorias-producto' => [
+            'label' => 'Categorías de producto',
+            'permissions' => [
+                'categorias-producto.ver' => 'Ver categorías de producto',
+                'categorias-producto.crear' => 'Crear categorías de producto',
+                'categorias-producto.editar' => 'Editar categorías de producto',
+                'categorias-producto.eliminar' => 'Eliminar categorías de producto',
+            ],
+        ],
         'grifos' => [
             'label' => 'Surtidores',
             'permissions' => [
