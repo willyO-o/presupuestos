@@ -1,3 +1,939 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================================================
+   DASHBOARD DESIGN SYSTEM
+   ------------------------------------------------------------------------
+   Clases con nomenclatura estilo Bootstrap (card, btn, badge, d-flex, ...)
+   construidas sobre Tailwind. Edita las variables de :root / .dark para
+   cambiar la paleta global; el resto de clases heredan de ahi.
+   ========================================================================== */
+
+:root {
+    --page-bg: #f3f3f9;
+    --sidebar-bg: #262a3d;
+    --sidebar-bg-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-bg-active: rgba(255, 255, 255, 0.08);
+    --sidebar-text: #8f9bc2;
+    --sidebar-text-active: #ffffff;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-width: 260px;
+    --sidebar-width-collapsed: 80px;
+    --topbar-bg: #ffffff;
+    --topbar-border: #eef0f5;
+    --card-bg: #ffffff;
+    --card-shadow: 0 2px 4px rgba(30, 32, 66, 0.06), 0 8px 16px rgba(30, 32, 66, 0.04);
+    --text-body: #495057;
+    --text-heading: #343a40;
+    --text-muted: #878a99;
+    --border-subtle: #eef0f5;
+
+    --c-primary: #5b6ee1;
+    --c-primary-dark: #4756c9;
+    --c-primary-soft: #eaecfb;
+    --c-success: #17a673;
+    --c-success-soft: #e3f7ee;
+    --c-info: #299cdb;
+    --c-info-soft: #e2f3fb;
+    --c-warning: #f7b84b;
+    --c-warning-soft: #fef4e4;
+    --c-danger: #f06a6a;
+    --c-danger-soft: #fdeaea;
+    --c-pink: #ee6a9f;
+    --c-pink-soft: #fce9f1;
+}
+
+.dark {
+    --page-bg: #1b1e2e;
+    --sidebar-bg: #1f2233;
+    --sidebar-bg-hover: rgba(255, 255, 255, 0.05);
+    --sidebar-bg-active: rgba(255, 255, 255, 0.07);
+    --sidebar-text: #8f9bc2;
+    --sidebar-text-active: #ffffff;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+    --topbar-bg: #262a3d;
+    --topbar-border: rgba(255, 255, 255, 0.06);
+    --card-bg: #262a3d;
+    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.16);
+    --text-body: #c3c9e6;
+    --text-heading: #e9ecef;
+    --text-muted: #8f97b8;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+
+    --c-primary-soft: rgba(91, 110, 225, 0.15);
+    --c-success-soft: rgba(23, 166, 115, 0.15);
+    --c-info-soft: rgba(41, 156, 219, 0.15);
+    --c-warning-soft: rgba(247, 184, 75, 0.15);
+    --c-danger-soft: rgba(240, 106, 106, 0.15);
+    --c-pink-soft: rgba(238, 106, 159, 0.15);
+}
+
+@layer base {
+    body {
+        background-color: var(--page-bg);
+        color: var(--text-body);
+    }
+}
+
+/* ==========================================================================
+   1. LAYOUT: shell, sidebar, topbar
+   ========================================================================== */
+
+.app-shell {
+    @apply min-h-screen;
+    background-color: var(--page-bg);
+}
+
+/* --- Sidebar --- */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    @apply fixed inset-y-0 start-0 z-40 flex flex-col transition-transform duration-200 ease-in-out;
+}
+
+@media (max-width: 1023.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.is-open {
+        transform: translateX(0);
+    }
+}
+
+.sidebar-brand {
+    height: 70px;
+    border-color: var(--sidebar-border);
+    @apply flex shrink-0 items-center gap-2 border-b px-6;
+}
+
+.sidebar-brand-text {
+    color: var(--sidebar-text-active);
+    @apply text-xl font-bold tracking-wide;
+}
+
+.sidebar-body {
+    @apply flex-1 overflow-y-auto px-4 py-4;
+    scrollbar-width: thin;
+}
+
+.sidebar-menu-label {
+    color: var(--sidebar-text);
+    @apply mb-2 mt-5 px-2 text-xs font-semibold uppercase tracking-wider opacity-60;
+}
+
+.sidebar-menu-label:first-child {
+    @apply mt-0;
+}
+
+.nav-sidebar {
+    @apply flex flex-col gap-1;
+}
+
+.nav-sidebar-link {
+    color: var(--sidebar-text);
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150;
+}
+
+.nav-sidebar-link:hover {
+    background-color: var(--sidebar-bg-hover);
+    color: var(--sidebar-text-active);
+}
+
+.nav-sidebar-link.active {
+    background-color: var(--sidebar-bg-active);
+    color: var(--sidebar-text-active);
+}
+
+.nav-sidebar-link .nav-icon {
+    @apply h-[18px] w-[18px] shrink-0;
+}
+
+.nav-sidebar-link .nav-text {
+    @apply flex-1 truncate;
+}
+
+.nav-sidebar-link .nav-chevron {
+    @apply h-4 w-4 shrink-0 opacity-60 transition-transform duration-150;
+}
+
+.nav-sidebar-item.is-expanded > .nav-sidebar-link .nav-chevron {
+    @apply rotate-180;
+}
+
+.nav-sidebar-submenu {
+    @apply ms-[26px] mt-1 flex flex-col gap-1 border-s ps-4;
+    border-color: var(--sidebar-border);
+}
+
+.nav-sidebar-submenu-link {
+    color: var(--sidebar-text);
+    @apply block rounded-lg px-3 py-2 text-sm transition-colors duration-150;
+}
+
+.nav-sidebar-submenu-link:hover,
+.nav-sidebar-submenu-link.active {
+    color: var(--sidebar-text-active);
+}
+
+/* --- Main column / topbar --- */
+.main-wrapper {
+    @apply flex min-h-screen flex-col;
+}
+
+@media (min-width: 1024px) {
+    .main-wrapper {
+        margin-inline-start: var(--sidebar-width);
+    }
+}
+
+.topbar {
+    height: 70px;
+    background-color: var(--topbar-bg);
+    border-color: var(--topbar-border);
+    @apply sticky top-0 z-30 flex items-center justify-between gap-3 border-b px-4 sm:px-6;
+}
+
+.topbar-search {
+    @apply relative hidden w-full max-w-xs sm:block;
+}
+
+.topbar-search input {
+    background-color: var(--page-bg);
+    color: var(--text-body);
+    @apply w-full rounded-lg border-0 py-2.5 ps-10 pe-3 text-sm ring-0 placeholder:text-slate-400 focus:outline-none focus:ring-2;
+    --tw-ring-color: var(--c-primary);
+}
+
+.dark .topbar-search input {
+    background-color: var(--page-bg);
+}
+
+.topbar-search .topbar-search-icon {
+    color: var(--text-muted);
+    @apply pointer-events-none absolute inset-y-0 start-3 flex items-center;
+}
+
+.topbar-search-icon svg {
+    @apply h-4 w-4;
+}
+
+.topbar-actions {
+    @apply flex items-center gap-1 sm:gap-2;
+}
+
+.topbar-icon-btn {
+    color: var(--text-body);
+    @apply relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-black/5;
+}
+
+.dark .topbar-icon-btn:hover {
+    @apply bg-white/5;
+}
+
+.topbar-icon-btn svg {
+    @apply h-5 w-5;
+}
+
+.topbar-icon-btn .badge-dot {
+    @apply absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2;
+    background-color: var(--c-danger);
+    --tw-ring-color: var(--topbar-bg);
+}
+
+.topbar-user {
+    @apply flex items-center gap-3 rounded-lg py-1.5 ps-2 pe-1 transition-colors duration-150 hover:bg-black/5;
+}
+
+.dark .topbar-user:hover {
+    @apply bg-white/5;
+}
+
+.topbar-user-name {
+    color: var(--text-heading);
+    @apply text-sm font-semibold leading-tight;
+}
+
+.topbar-user-role {
+    color: var(--text-muted);
+    @apply text-xs leading-tight;
+}
+
+.sidebar-overlay {
+    @apply fixed inset-0 z-30 bg-slate-900/50 lg:hidden;
+}
+
+/* --- Page content --- */
+.page-content {
+    @apply flex-1 p-4 sm:p-6;
+}
+
+.page-title-box {
+    @apply mb-6 flex flex-wrap items-center justify-between gap-2;
+}
+
+.page-title {
+    color: var(--text-heading);
+    @apply text-lg font-semibold uppercase tracking-wide;
+}
+
+.breadcrumb {
+    color: var(--text-muted);
+    @apply flex items-center gap-2 text-sm;
+}
+
+.breadcrumb .breadcrumb-item.active {
+    color: var(--text-heading);
+    @apply font-medium;
+}
+
+/* ==========================================================================
+   2. CARDS
+   ========================================================================== */
+
+.card {
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    @apply rounded-xl border-0;
+}
+
+.card-header {
+    border-color: var(--border-subtle);
+    @apply flex flex-wrap items-center justify-between gap-2 border-b px-5 py-4;
+}
+
+.card-body {
+    @apply p-5;
+}
+
+.card-title {
+    color: var(--text-heading);
+    @apply text-base font-semibold;
+}
+
+.card-subtitle {
+    color: var(--text-muted);
+    @apply text-xs;
+}
+
+.card-header-action {
+    color: var(--text-muted);
+    @apply text-xs font-semibold uppercase tracking-wide;
+}
+
+.card-link {
+    color: var(--c-primary);
+    @apply text-sm font-semibold;
+}
+
+/* ==========================================================================
+   3. STAT CARDS
+   ========================================================================== */
+
+.stat-card {
+    @apply flex items-center gap-4 p-5;
+}
+
+.stat-icon {
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl;
+}
+
+.stat-icon svg {
+    @apply h-6 w-6;
+}
+
+.stat-icon-primary {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+}
+
+.stat-icon-success {
+    background-color: var(--c-success-soft);
+    color: var(--c-success);
+}
+
+.stat-icon-warning {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+
+.stat-icon-danger {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.stat-icon-info {
+    background-color: var(--c-info-soft);
+    color: var(--c-info);
+}
+
+.stat-icon-pink {
+    background-color: var(--c-pink-soft);
+    color: var(--c-pink);
+}
+
+.stat-value {
+    color: var(--text-heading);
+    @apply text-xl font-bold leading-tight;
+}
+
+.stat-label {
+    color: var(--text-muted);
+    @apply text-sm;
+}
+
+/* ==========================================================================
+   4. BAR CHART (CSS puro, sin librerias)
+   ========================================================================== */
+
+.bar-chart {
+    @apply flex h-56 items-end justify-between gap-2 sm:gap-3;
+}
+
+.bar-chart-col {
+    @apply flex h-full flex-1 flex-col items-center justify-end gap-2;
+}
+
+.bar-chart-value {
+    color: var(--text-muted);
+    @apply text-[11px] font-medium;
+}
+
+.bar-chart-bar {
+    background-color: var(--c-primary);
+    @apply w-full max-w-[26px] rounded-t-md opacity-90 transition-all duration-300;
+}
+
+.bar-chart-label {
+    color: var(--text-muted);
+    @apply mt-1 text-xs;
+}
+
+/* ==========================================================================
+   5. LIST GROUP / SHARES / COMMENTS
+   ========================================================================== */
+
+.list-group {
+    @apply flex flex-col;
+}
+
+.list-group-item {
+    border-color: var(--border-subtle);
+    @apply flex items-center justify-between gap-3 border-b py-3 last:border-b-0;
+}
+
+.list-group-item-start {
+    @apply flex min-w-0 items-center gap-3;
+}
+
+.list-icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
+}
+
+.list-icon svg,
+.list-icon img {
+    @apply h-5 w-5;
+}
+
+.list-group-item-title {
+    color: var(--text-heading);
+    @apply truncate text-sm font-medium;
+}
+
+.list-group-item-value {
+    color: var(--text-muted);
+    @apply shrink-0 text-sm font-semibold;
+}
+
+.comment-list {
+    @apply flex flex-col gap-4;
+}
+
+.comment-item {
+    @apply flex items-start gap-3;
+}
+
+.comment-author {
+    color: var(--text-heading);
+    @apply text-sm font-semibold;
+}
+
+.comment-author .comment-meta {
+    color: var(--text-muted);
+    @apply font-normal;
+}
+
+.comment-text {
+    color: var(--text-muted);
+    @apply mt-1 text-sm leading-relaxed;
+}
+
+/* ==========================================================================
+   6. TABLE
+   ========================================================================== */
+
+.table-responsive {
+    @apply w-full overflow-x-auto;
+}
+
+.table-dashboard {
+    @apply w-full min-w-[640px] border-collapse text-sm;
+}
+
+.table-dashboard thead th {
+    color: var(--text-muted);
+    border-color: var(--border-subtle);
+    @apply border-b px-3 py-3 text-start text-xs font-semibold uppercase tracking-wide;
+}
+
+.table-dashboard tbody td {
+    border-color: var(--border-subtle);
+    @apply border-b px-3 py-3 align-middle;
+}
+
+.table-dashboard tbody tr:last-child td {
+    @apply border-b-0;
+}
+
+.table-dashboard tbody tr {
+    @apply transition-colors duration-150;
+}
+
+.table-dashboard tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.025);
+}
+
+.dark .table-dashboard tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.article-thumb {
+    @apply h-10 w-10 shrink-0 rounded-lg object-cover;
+}
+
+.article-title {
+    color: var(--text-heading);
+    @apply text-sm font-medium;
+}
+
+/* ==========================================================================
+   7. BADGES
+   ========================================================================== */
+
+.badge {
+    @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold leading-none;
+}
+
+.badge-pill {
+    @apply rounded-full;
+}
+
+.badge-soft-primary {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+}
+
+.badge-soft-success {
+    background-color: var(--c-success-soft);
+    color: var(--c-success);
+}
+
+.badge-soft-info {
+    background-color: var(--c-info-soft);
+    color: var(--c-info);
+}
+
+.badge-soft-warning {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+
+.badge-soft-danger {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.badge-soft-pink {
+    background-color: var(--c-pink-soft);
+    color: var(--c-pink);
+}
+
+/* ==========================================================================
+   8. BUTTONS
+   ========================================================================== */
+
+.btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 focus:outline-none;
+}
+
+.btn-sm {
+    @apply px-3 py-1.5 text-xs;
+}
+
+.btn-primary {
+    background-color: var(--c-primary);
+    @apply text-white hover:opacity-90;
+}
+
+.btn-light {
+    background-color: var(--page-bg);
+    color: var(--text-body);
+    @apply hover:opacity-80;
+}
+
+.btn-soft-primary {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply hover:opacity-80;
+}
+
+.btn-icon {
+    @apply flex h-8 w-8 items-center justify-center rounded-lg p-0;
+}
+
+/* ==========================================================================
+   9. AVATARS
+   ========================================================================== */
+
+.avatar {
+    @apply inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full object-cover;
+}
+
+.avatar-xs {
+    @apply h-8 w-8;
+}
+
+.avatar-sm {
+    @apply h-10 w-10;
+}
+
+.avatar-md {
+    @apply h-14 w-14;
+}
+
+.avatar-lg {
+    @apply h-20 w-20;
+}
+
+.avatar-title {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-full w-full items-center justify-center text-sm font-semibold;
+}
+
+/* ==========================================================================
+   10. DONUT CHART (CSS conic-gradient, sin librerias)
+   ========================================================================== */
+
+.donut-chart {
+    @apply relative mx-auto h-44 w-44 shrink-0 rounded-full;
+}
+
+.donut-chart::after {
+    content: '';
+    background-color: var(--card-bg);
+    @apply absolute inset-[18px] rounded-full;
+}
+
+.donut-chart-center {
+    @apply absolute inset-0 z-10 flex flex-col items-center justify-center;
+}
+
+.donut-chart-center .donut-value {
+    color: var(--text-heading);
+    @apply text-lg font-bold;
+}
+
+.donut-chart-center .donut-label {
+    color: var(--text-muted);
+    @apply text-xs;
+}
+
+.donut-legend {
+    @apply flex flex-col gap-2;
+}
+
+.donut-legend-item {
+    color: var(--text-body);
+    @apply flex items-center justify-between gap-2 text-sm;
+}
+
+.donut-legend-dot {
+    @apply inline-block h-2.5 w-2.5 shrink-0 rounded-full;
+}
+
+/* ==========================================================================
+   11. PROFILE WIDGET
+   ========================================================================== */
+
+.profile-widget-header {
+    @apply flex items-center justify-between gap-3 px-5 pt-5;
+}
+
+.profile-widget-body {
+    @apply flex flex-col items-center px-5 pb-2 pt-2 text-center;
+}
+
+.profile-widget-name {
+    color: var(--text-heading);
+    @apply mt-3 text-base font-semibold;
+}
+
+.profile-widget-role {
+    color: var(--text-muted);
+    @apply text-sm;
+}
+
+.profile-stats {
+    border-color: var(--border-subtle);
+    @apply mt-5 grid grid-cols-3 border-t;
+}
+
+.profile-stat {
+    border-color: var(--border-subtle);
+    @apply flex flex-col items-center gap-1 border-s px-2 py-4 first:border-s-0;
+}
+
+.profile-stat-value {
+    color: var(--text-heading);
+    @apply text-sm font-bold;
+}
+
+.profile-stat-label {
+    color: var(--text-muted);
+    @apply text-xs;
+}
+
+/* ==========================================================================
+   12. UTILIDADES ESTILO BOOTSTRAP
+   ========================================================================== */
+
+.d-flex {
+    @apply flex;
+}
+.d-inline-flex {
+    @apply inline-flex;
+}
+.d-block {
+    @apply block;
+}
+.d-inline-block {
+    @apply inline-block;
+}
+.d-none {
+    @apply hidden;
+}
+.d-grid {
+    @apply grid;
+}
+
+.flex-row {
+    flex-direction: row;
+}
+.flex-column {
+    @apply flex-col;
+}
+.flex-wrap {
+    flex-wrap: wrap;
+}
+.flex-nowrap {
+    flex-wrap: nowrap;
+}
+.flex-fill {
+    @apply flex-1;
+}
+
+.align-items-start {
+    @apply items-start;
+}
+.align-items-center {
+    @apply items-center;
+}
+.align-items-end {
+    @apply items-end;
+}
+
+.justify-content-start {
+    @apply justify-start;
+}
+.justify-content-center {
+    @apply justify-center;
+}
+.justify-content-between {
+    @apply justify-between;
+}
+.justify-content-end {
+    @apply justify-end;
+}
+
+.gap-1 {
+    gap: 0.25rem;
+}
+.gap-2 {
+    gap: 0.5rem;
+}
+.gap-3 {
+    gap: 0.75rem;
+}
+.gap-4 {
+    gap: 1rem;
+}
+
+.w-100 {
+    @apply w-full;
+}
+.h-100 {
+    @apply h-full;
+}
+
+.rounded {
+    border-radius: 0.5rem;
+}
+.rounded-circle {
+    @apply rounded-full;
+}
+.rounded-pill {
+    @apply rounded-full;
+}
+
+.text-center {
+    text-align: center;
+}
+.text-truncate {
+    @apply truncate;
+}
+.text-uppercase {
+    @apply uppercase;
+}
+.text-muted {
+    color: var(--text-muted);
+}
+.text-heading {
+    color: var(--text-heading);
+}
+.text-primary {
+    color: var(--c-primary);
+}
+.text-success {
+    color: var(--c-success);
+}
+.text-danger {
+    color: var(--c-danger);
+}
+.text-warning {
+    color: var(--c-warning);
+}
+
+.fw-normal {
+    @apply font-normal;
+}
+.fw-medium {
+    @apply font-medium;
+}
+.fw-semibold {
+    @apply font-semibold;
+}
+.fw-bold {
+    @apply font-bold;
+}
+
+.fs-xs {
+    @apply text-xs;
+}
+.fs-sm {
+    @apply text-sm;
+}
+.fs-base {
+    @apply text-base;
+}
+.fs-lg {
+    @apply text-lg;
+}
+.fs-xl {
+    @apply text-xl;
+}
+
+.position-relative {
+    @apply relative;
+}
+.position-absolute {
+    @apply absolute;
+}
+
+.shadow-none {
+    box-shadow: none !important;
+}
+
+.mb-0 {
+    margin-bottom: 0;
+}
+.mb-1 {
+    margin-bottom: 0.25rem;
+}
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+.mb-3 {
+    margin-bottom: 0.75rem;
+}
+.mb-4 {
+    margin-bottom: 1rem;
+}
+.mb-5 {
+    margin-bottom: 1.25rem;
+}
+.mt-0 {
+    margin-top: 0;
+}
+.mt-1 {
+    margin-top: 0.25rem;
+}
+.mt-2 {
+    margin-top: 0.5rem;
+}
+.mt-3 {
+    margin-top: 0.75rem;
+}
+.mt-4 {
+    margin-top: 1rem;
+}
+.mt-5 {
+    margin-top: 1.25rem;
+}
+.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ==========================================================================
+   13. GRID DE DASHBOARD (responsive)
+   ========================================================================== */
+
+.row {
+    @apply grid grid-cols-12 gap-4 sm:gap-6;
+}
+
+.col-12 {
+    @apply col-span-12;
+}
+.col-lg-3 {
+    @apply col-span-12 sm:col-span-6 lg:col-span-3;
+}
+.col-lg-4 {
+    @apply col-span-12 lg:col-span-4;
+}
+.col-lg-5 {
+    @apply col-span-12 lg:col-span-5;
+}
+.col-lg-6 {
+    @apply col-span-12 lg:col-span-6;
+}
+.col-lg-7 {
+    @apply col-span-12 lg:col-span-7;
+}
+.col-lg-8 {
+    @apply col-span-12 lg:col-span-8;
+}
+.col-lg-9 {
+    @apply col-span-12 lg:col-span-9;
+}
