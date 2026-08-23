@@ -1,10 +1,8 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import AuthSplitLayout from '@/Layouts/AuthSplitLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     email: {
@@ -24,6 +22,9 @@ const form = useForm({
     password_confirmation: '',
 });
 
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
+
 const submit = () => {
     form.post(route('password.store'), {
         onFinish: () => form.reset('password', 'password_confirmation'),
@@ -32,55 +33,96 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Reset Password" />
+    <AuthSplitLayout title="RESTABLECER CONTRASEÑA">
+        <Head title="Restablecer contraseña" />
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
+                <div class="login-input-group">
+                    <i class="fa-solid fa-envelope login-input-icon"></i>
+                    <input
+                        id="email"
+                        v-model="form.email"
+                        type="email"
+                        class="login-input"
+                        placeholder="Correo electrónico"
+                        required
+                        autofocus
+                        autocomplete="username"
+                    />
+                </div>
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
+            <div class="mt-5">
+                <div class="login-input-group">
+                    <i class="fa-solid fa-lock login-input-icon"></i>
+                    <input
+                        id="password"
+                        v-model="form.password"
+                        :type="showPassword ? 'text' : 'password'"
+                        class="login-input"
+                        placeholder="Nueva contraseña"
+                        required
+                        autocomplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        class="login-input-eye"
+                        :aria-label="
+                            showPassword
+                                ? 'Ocultar contraseña'
+                                : 'Mostrar contraseña'
+                        "
+                        @click="showPassword = !showPassword"
+                    >
+                        <i
+                            :class="
+                                showPassword
+                                    ? 'fa-solid fa-eye-slash'
+                                    : 'fa-solid fa-eye'
+                            "
+                        ></i>
+                    </button>
+                </div>
 
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
+            <div class="mt-5">
+                <div class="login-input-group">
+                    <i class="fa-solid fa-lock login-input-icon"></i>
+                    <input
+                        id="password_confirmation"
+                        v-model="form.password_confirmation"
+                        :type="showPasswordConfirmation ? 'text' : 'password'"
+                        class="login-input"
+                        placeholder="Confirmar contraseña"
+                        required
+                        autocomplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        class="login-input-eye"
+                        :aria-label="
+                            showPasswordConfirmation
+                                ? 'Ocultar contraseña'
+                                : 'Mostrar contraseña'
+                        "
+                        @click="
+                            showPasswordConfirmation = !showPasswordConfirmation
+                        "
+                    >
+                        <i
+                            :class="
+                                showPasswordConfirmation
+                                    ? 'fa-solid fa-eye-slash'
+                                    : 'fa-solid fa-eye'
+                            "
+                        ></i>
+                    </button>
+                </div>
 
                 <InputError
                     class="mt-2"
@@ -88,14 +130,14 @@ const submit = () => {
                 />
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Reset Password
-                </PrimaryButton>
-            </div>
+            <button
+                type="submit"
+                class="btn btn-primary mt-6 w-full justify-center rounded-full py-3 text-sm tracking-widest uppercase"
+                :class="{ 'opacity-25': form.processing }"
+                :disabled="form.processing"
+            >
+                Restablecer contraseña
+            </button>
         </form>
-    </GuestLayout>
+    </AuthSplitLayout>
 </template>

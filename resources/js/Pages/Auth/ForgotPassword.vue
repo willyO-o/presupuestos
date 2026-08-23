@@ -1,9 +1,6 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import AuthSplitLayout from '@/Layouts/AuthSplitLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 
 defineProps({
@@ -22,47 +19,50 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Forgot Password" />
+    <AuthSplitLayout title="RECUPERAR CONTRASEÑA">
+        <Head title="Recuperar contraseña" />
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            Forgot your password? No problem. Just let us know your email
-            address and we will email you a password reset link that will allow
-            you to choose a new one.
-        </div>
+        <template #status>
+            <div
+                v-if="status"
+                class="badge-soft-success mb-4 w-full justify-center py-2 text-sm"
+            >
+                {{ status }}
+            </div>
+        </template>
 
-        <div
-            v-if="status"
-            class="mb-4 text-sm font-medium text-green-600 dark:text-green-400"
-        >
-            {{ status }}
-        </div>
+        <p class="mb-5 text-center text-sm text-muted">
+            ¿Olvidaste tu contraseña? No hay problema. Indícanos tu correo y
+            te enviaremos un enlace para elegir una nueva.
+        </p>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
+                <div class="login-input-group">
+                    <i class="fa-solid fa-envelope login-input-icon"></i>
+                    <input
+                        id="email"
+                        v-model="form.email"
+                        type="email"
+                        class="login-input"
+                        placeholder="Correo electrónico"
+                        required
+                        autofocus
+                        autocomplete="username"
+                    />
+                </div>
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Email Password Reset Link
-                </PrimaryButton>
-            </div>
+            <button
+                type="submit"
+                class="btn btn-primary mt-6 w-full justify-center rounded-full py-3 text-sm tracking-widest uppercase"
+                :class="{ 'opacity-25': form.processing }"
+                :disabled="form.processing"
+            >
+                Enviar enlace de restablecimiento
+            </button>
         </form>
-    </GuestLayout>
+    </AuthSplitLayout>
 </template>

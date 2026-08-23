@@ -1407,7 +1407,7 @@
    las letras parezcan "mirar" hacia el centro de la pantalla, donde esta el
    formulario. La sombra proyectada refuerza la sensacion de profundidad. */
 .login-logo-3d {
-    transform: perspective(500px) rotateY(-26deg) rotateX(4deg);
+    transform: perspective(300px) rotateY(30deg) rotateX(-4deg);
     filter: drop-shadow(14px 18px 16px rgba(20, 22, 26, 0.4));
 }
 

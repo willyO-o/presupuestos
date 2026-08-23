@@ -28,3 +28,6 @@ Excepción — no reemplazar por icon-fonts: los iconos dentro de tarjetas/widge
 Toda carpeta dentro de `resources/js/` empieza con mayúscula (`Pages/`, `Components/`, `Layouts/`, `Directives/`, `Data/`, `Data/Sidebar/`, ...) y todo archivo `.js` (no `.vue`) también empieza con mayúscula (`Can.js`, `Decimal.js`, `Nav.js`, ...). Excepción: los archivos de entrada/config de Vite en la raíz de `resources/js` (`app.js`, `bootstrap.js`) se quedan en minúscula porque son los nombres que Vite/Laravel esperan ahí.
 
 Al crear una carpeta o archivo `.js` nuevo bajo `resources/js`, respeta esta convención desde el nombre — no crear en minúscula y renombrar después.
+
+## CSS va en resources/css/app.css, no en <style> de componentes .vue
+No agregues bloques `<style scoped>` (ni sin scoped) dentro de archivos `.vue`. Todo CSS nuevo — clases reutilizables o específicas de una página — va como clase global en `resources/css/app.css`, bajo la sección numerada correspondiente (o una nueva al final), usando los tokens `--c-*`/`--text-*`/`--border-subtle` ya definidos ahí. Detalle completo y motivo (mantenimiento, tema claro/oscuro centralizado, reutilización entre páginas) en la skill `xtrapubli-design-system`, Rule 3. Ejemplo ya aplicado: `.login-*` (usado por `AuthSplitLayout.vue` y todas las `Pages/Auth/**`).

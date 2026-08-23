@@ -1,10 +1,8 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import AuthSplitLayout from '@/Layouts/AuthSplitLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const form = useForm({
     name: '',
@@ -12,6 +10,9 @@ const form = useForm({
     password: '',
     password_confirmation: '',
 });
+
+const showPassword = ref(false);
+const showPasswordConfirmation = ref(false);
 
 const submit = () => {
     form.post(route('register'), {
@@ -21,70 +22,113 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Register" />
+    <AuthSplitLayout title="CREAR CUENTA">
+        <Head title="Registro" />
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="name" value="Name" />
-
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
+                <div class="login-input-group">
+                    <i class="fa-solid fa-user login-input-icon"></i>
+                    <input
+                        id="name"
+                        v-model="form.name"
+                        type="text"
+                        class="login-input"
+                        placeholder="Nombre"
+                        required
+                        autofocus
+                        autocomplete="name"
+                    />
+                </div>
 
                 <InputError class="mt-2" :message="form.errors.name" />
             </div>
 
-            <div class="mt-4">
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
+            <div class="mt-5">
+                <div class="login-input-group">
+                    <i class="fa-solid fa-envelope login-input-icon"></i>
+                    <input
+                        id="email"
+                        v-model="form.email"
+                        type="email"
+                        class="login-input"
+                        placeholder="Correo electrónico"
+                        required
+                        autocomplete="username"
+                    />
+                </div>
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
+            <div class="mt-5">
+                <div class="login-input-group">
+                    <i class="fa-solid fa-lock login-input-icon"></i>
+                    <input
+                        id="password"
+                        v-model="form.password"
+                        :type="showPassword ? 'text' : 'password'"
+                        class="login-input"
+                        placeholder="Contraseña"
+                        required
+                        autocomplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        class="login-input-eye"
+                        :aria-label="
+                            showPassword
+                                ? 'Ocultar contraseña'
+                                : 'Mostrar contraseña'
+                        "
+                        @click="showPassword = !showPassword"
+                    >
+                        <i
+                            :class="
+                                showPassword
+                                    ? 'fa-solid fa-eye-slash'
+                                    : 'fa-solid fa-eye'
+                            "
+                        ></i>
+                    </button>
+                </div>
 
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
+            <div class="mt-5">
+                <div class="login-input-group">
+                    <i class="fa-solid fa-lock login-input-icon"></i>
+                    <input
+                        id="password_confirmation"
+                        v-model="form.password_confirmation"
+                        :type="showPasswordConfirmation ? 'text' : 'password'"
+                        class="login-input"
+                        placeholder="Confirmar contraseña"
+                        required
+                        autocomplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        class="login-input-eye"
+                        :aria-label="
+                            showPasswordConfirmation
+                                ? 'Ocultar contraseña'
+                                : 'Mostrar contraseña'
+                        "
+                        @click="
+                            showPasswordConfirmation = !showPasswordConfirmation
+                        "
+                    >
+                        <i
+                            :class="
+                                showPasswordConfirmation
+                                    ? 'fa-solid fa-eye-slash'
+                                    : 'fa-solid fa-eye'
+                            "
+                        ></i>
+                    </button>
+                </div>
 
                 <InputError
                     class="mt-2"
@@ -92,22 +136,23 @@ const submit = () => {
                 />
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
+            <div class="mt-4 text-center">
                 <Link
                     :href="route('login')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
+                    class="text-xs text-muted italic hover:text-primary"
                 >
-                    Already registered?
+                    ¿Ya tienes una cuenta? Inicia sesión
                 </Link>
-
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Register
-                </PrimaryButton>
             </div>
+
+            <button
+                type="submit"
+                class="btn btn-primary mt-4 w-full justify-center rounded-full py-3 text-sm tracking-widest uppercase"
+                :class="{ 'opacity-25': form.processing }"
+                :disabled="form.processing"
+            >
+                Registrarse
+            </button>
         </form>
-    </GuestLayout>
+    </AuthSplitLayout>
 </template>

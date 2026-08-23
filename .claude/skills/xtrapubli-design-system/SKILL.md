@@ -15,11 +15,13 @@ roll-ups, stands, promotional islands, commercial signage and vehicle wrapping/b
 for consumer brands and agencies. Positioning: an execution partner ("ejecutamos ideas
 que generan impacto, no solo producimos"), professional/corporate B2B tone, portfolio-driven.
 
-Two things this skill exists to protect:
+Three things this skill exists to protect:
 
 1. **One source of truth for brand color** — [`references/color-palette.md`](references/color-palette.md).
 2. **One catalog of reusable classes** — [`references/component-classes.md`](references/component-classes.md) —
    so nobody re-invents `.btn-primary` or hand-rolls a new shade of blue in a `<div style>`.
+3. **One stylesheet** — `resources/css/app.css` — so styling never fragments across dozens of
+   per-component `<style>` blocks (see Rule 3).
 
 ## Relationship to other skills
 
@@ -67,7 +69,33 @@ falling back to a long string of raw Tailwind utilities for a common pattern:
    `laravel-best-practices` "Consistency First").
 3. Update `references/component-classes.md` when you add a class so the catalog stays accurate.
 
-## Rule 3 — Verifying a change
+## Rule 3 — CSS lives in `app.css`, never in a component's `<style>` block
+
+When a Vue page or component needs styling that isn't already covered by a Tailwind utility
+or an existing class (Rule 2), write it as a plain global class in
+[`resources/css/app.css`](../../../resources/css/app.css) — not in a `<style scoped>` (or
+unscoped) block inside the `.vue` file.
+
+- Add it under the most relevant numbered section, or start a new one at the end (`16.`, `17.`,
+  ...) with a short comment banner matching the existing style, e.g. `.login-*` under
+  `16. LOGIN (pantalla de acceso)`.
+- Prefix the class with the page/feature it belongs to (`.login-input`, `.login-brand-blob`)
+  so it reads as scoped-by-name even though the CSS itself is global — this also makes it
+  reusable the moment a second page needs the same look (see `AuthSplitLayout.vue` reusing
+  `.login-*` across every `Pages/Auth/**` view).
+- Use the existing `--c-*` / `--text-*` / `--border-subtle` tokens inside it (Rule 1) instead
+  of new hardcoded values.
+- Update [`references/component-classes.md`](references/component-classes.md) with the new
+  class group, same as Rule 2.
+
+Why: a single `app.css` is one file to search, one file to theme (light/dark), and one place
+that survives a component being renamed or moved — a `<style scoped>` block silently
+duplicates rules per-component and drifts from the design system the moment someone copies
+the component instead of reusing the class. The only style attribute allowed inline is a
+one-off `var(--c-primary)` reference where a class genuinely doesn't make sense (e.g.
+`style="accent-color: var(--c-primary)"` on a native checkbox).
+
+## Rule 4 — Verifying a change
 
 Run `npm run build` (or confirm `npm run dev` / `composer run dev` is running) after editing
 `app.css` — per the project's frontend-bundling rule, CSS changes are invisible until the
