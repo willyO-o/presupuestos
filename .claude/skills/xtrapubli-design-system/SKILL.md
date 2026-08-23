@@ -80,5 +80,10 @@ assets are rebuilt.
   Crypto/NFT/Job that are not real app features). This is pre-existing, not something to
   "fix" silently — flag it to the user if asked to touch that file, rather than assuming
   which text is correct.
-- The XtraPubli logo file itself is not yet committed into `public/` or `resources/`. If asked
-  to render the real logo (not just its colors), ask the user for the asset file first.
+- The real logo files live in `public/img/logo/`: `logo.webp` (full horizontal wordmark, used in
+  the sidebar brand via `.sidebar-brand-logo`) and `logo-mini.png` (circular mark, used as the
+  favicon in `resources/views/app.blade.php`). `logo.webp` has a transparent background and
+  includes the word "Xtra" in black — never place it directly on a dark surface (like
+  `--sidebar-bg`) without a light backing (see `.sidebar-brand-logo`'s white chip), or "Xtra"
+  becomes unreadable. Reference these paths (`/img/logo/logo.webp`, `/img/logo/logo-mini.png`)
+  instead of re-asking the user for the asset.

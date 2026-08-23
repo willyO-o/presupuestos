@@ -146,62 +146,7 @@ export const NAV_MENU = [
             'repuestos.ver',
         ],
     },
-    {
-        title: 'Conductores',
-        icon: 'fa-solid fa-id-card',
-        type: 'link',
-        path: '/conductores',
-        permission: 'conductores.ver',
-    },
-    {
-        title: 'Vehículos',
-        icon: 'fa-solid fa-truck',
-        type: 'link',
-        path: '/vehiculos',
-        permission: 'vehiculos.ver',
-    },
-    {
-        title: 'Surtidores',
-        icon: 'fa-solid fa-oil-can',
-        type: 'link',
-        path: '/grifos',
-        permission: 'grifos.ver',
-    },
-    {
-        title: 'Tipos de Combustible',
-        icon: 'fa-solid fa-droplet',
-        type: 'link',
-        path: '/tipos-combustible',
-        permission: 'tipos-combustible.ver',
-    },
-    {
-        title: 'Tipos de Mantenimiento',
-        icon: 'fa-solid fa-toolbox',
-        type: 'link',
-        path: '/tipos-mantenimiento',
-        permission: 'tipos-mantenimiento.ver',
-    },
-    {
-        title: 'Tipos de Vehículo',
-        icon: 'fa-solid fa-car-side',
-        type: 'link',
-        path: '/tipos-vehiculo',
-        permission: 'tipos-vehiculo.ver',
-    },
-    {
-        title: 'Grupos de Vehículo',
-        icon: 'fa-solid fa-layer-group',
-        type: 'link',
-        path: '/grupos-vehiculo',
-        permission: 'grupos-vehiculo.ver',
-    },
-    {
-        title: 'Repuestos',
-        icon: 'fa-solid fa-gears',
-        type: 'link',
-        path: '/repuestos',
-        permission: 'repuestos.ver',
-    },
+
 
     {
         menutitle: 'Administración',
@@ -227,25 +172,5 @@ export const NAV_MENU = [
         path: '/areas',
         permission: 'areas.ver',
     },
-    {
-        title: 'Usuarios',
-        icon: 'fa-solid fa-users',
-        type: 'link',
-        path: '/usuarios',
-        permission: 'usuarios.ver',
-    },
-    {
-        title: 'Roles y Permisos',
-        icon: 'fa-solid fa-user-shield',
-        type: 'link',
-        path: '/roles',
-        permission: 'roles.ver',
-    },
-    {
-        title: 'Parámetros de la Empresa',
-        icon: 'fa-solid fa-sliders',
-        type: 'link',
-        path: '/parametros-empresa',
-        permission: 'parametros-empresa.ver',
-    },
+
 ];

@@ -91,17 +91,9 @@ function toggleKey(title) {
 
         <aside class="sidebar" :class="{ 'is-open': isOpen }">
             <div class="sidebar-brand">
-                <svg
-                    class="h-8 w-8 shrink-0 text-white"
-                    style="color: var(--c-primary)"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
-                    <path
-                        d="M12 2 3 7v10l9 5 9-5V7l-9-5Zm0 2.3 6.5 3.6L12 11.5 5.5 7.9 12 4.3ZM5 9.6l6 3.3v7L5 16.6V9.6Zm8 10.3v-7l6-3.3v7l-6 3.3Z"
-                    />
-                </svg>
-                <span class="sidebar-brand-text">FUELPRO</span>
+                <Link :href="route('dashboard')" class="sidebar-brand-logo">
+                    <img src="/img/logo/logo.webp" alt="XtraPubli" />
+                </Link>
             </div>
 
             <div class="sidebar-body">

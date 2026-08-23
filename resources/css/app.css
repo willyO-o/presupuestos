@@ -155,12 +155,17 @@
 .sidebar-brand {
     height: 70px;
     border-color: var(--sidebar-border);
-    @apply flex shrink-0 items-center gap-2 border-b px-6;
+    @apply flex shrink-0 items-center justify-center gap-2 border-b px-6;
 }
 
-.sidebar-brand-text {
-    color: var(--sidebar-text-active);
-    @apply text-xl font-bold tracking-wide;
+/* Chip blanco detras del logotipo: el logo tiene la palabra "Xtra" en negro,
+   invisible directo sobre el fondo oscuro del sidebar (--sidebar-bg). */
+.sidebar-brand-logo {
+    @apply inline-flex items-center rounded-lg bg-white px-3 py-2 transition-opacity duration-150 hover:opacity-90;
+}
+
+.sidebar-brand-logo img {
+    @apply h-6 w-auto;
 }
 
 .sidebar-body {
