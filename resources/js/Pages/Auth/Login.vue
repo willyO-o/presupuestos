@@ -1,11 +1,7 @@
 <script setup>
-import Checkbox from '@/Components/Checkbox.vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 defineProps({
     canResetPassword: {
@@ -22,6 +18,8 @@ const form = useForm({
     remember: false,
 });
 
+const showPassword = ref(false);
+
 const submit = () => {
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
@@ -30,71 +28,137 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Log in" />
+    <Head title="Iniciar sesión" />
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
-            {{ status }}
+    <div class="relative flex min-h-screen w-full overflow-hidden bg-white">
+        <!-- Blob decorativo de marca -->
+        <div
+            class="login-brand-blob bg-primary pointer-events-none absolute -top-[10%] -left-[14%] hidden h-[120%] w-[62%] md:block"
+        ></div>
+
+        <!-- Panel izquierdo: marca -->
+        <div
+            class="relative z-10 hidden w-1/2 flex-col items-center justify-center gap-6 px-10 md:flex"
+        >
+            <img
+                src="/img/logo/logo-blanco.png"
+                alt="Logo XtraPubli"
+                class="login-logo-3d w-96 max-w-full"
+            />
         </div>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4 block">
-                <label class="flex items-center">
-                    <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400"
-                        >Remember me</span
+        <!-- Panel derecho: formulario -->
+        <div
+            class="relative z-10 flex w-full items-center justify-center px-6 py-12 md:w-1/2"
+        >
+            <div class="w-full max-w-sm">
+                <div class="mb-8 flex flex-col items-center text-center">
+                    <span
+                        class="avatar avatar-xl mb-4 overflow-hidden rounded-full shadow-lg ring-4 ring-white"
                     >
-                </label>
-            </div>
+                        <img
+                            src="/img/logo/logo-mini.png"
+                            alt="XtraPubli"
+                            class="h-full w-full object-cover"
+                        />
+                    </span>
+                    <h1 class="text-2xl font-bold tracking-wide text-heading">
+                        BIENVENIDO
+                    </h1>
+                </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    v-if="canResetPassword"
-                    :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
+                <div
+                    v-if="status"
+                    class="badge-soft-success mb-4 w-full justify-center py-2 text-sm"
                 >
-                    Forgot your password?
-                </Link>
+                    {{ status }}
+                </div>
 
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Log in
-                </PrimaryButton>
+                <form @submit.prevent="submit">
+                    <div>
+                        <div class="login-input-group">
+                            <i class="fa-solid fa-user login-input-icon"></i>
+                            <input
+                                id="email"
+                                v-model="form.email"
+                                type="email"
+                                class="login-input"
+                                placeholder="Usuario"
+                                required
+                                autofocus
+                                autocomplete="username"
+                            />
+                        </div>
+
+                        <InputError class="mt-2" :message="form.errors.email" />
+                    </div>
+
+                    <div class="mt-5">
+                        <div class="login-input-group">
+                            <i class="fa-solid fa-lock login-input-icon"></i>
+                            <input
+                                id="password"
+                                v-model="form.password"
+                                :type="showPassword ? 'text' : 'password'"
+                                class="login-input"
+                                placeholder="Contraseña"
+                                required
+                                autocomplete="current-password"
+                            />
+                            <button
+                                type="button"
+                                class="login-input-eye"
+                                :aria-label="
+                                    showPassword
+                                        ? 'Ocultar contraseña'
+                                        : 'Mostrar contraseña'
+                                "
+                                @click="showPassword = !showPassword"
+                            >
+                                <i
+                                    :class="
+                                        showPassword
+                                            ? 'fa-solid fa-eye-slash'
+                                            : 'fa-solid fa-eye'
+                                    "
+                                ></i>
+                            </button>
+                        </div>
+
+                        <InputError class="mt-2" :message="form.errors.password" />
+                    </div>
+
+                    <div class="mt-4 flex items-center justify-between">
+                        <label class="flex items-center gap-2">
+                            <input
+                                v-model="form.remember"
+                                type="checkbox"
+                                name="remember"
+                                class="rounded"
+                                style="accent-color: var(--c-primary)"
+                            />
+                            <span class="text-xs text-muted">Recuérdame</span>
+                        </label>
+
+                        <Link
+                            v-if="canResetPassword"
+                            :href="route('password.request')"
+                            class="text-xs text-muted italic hover:text-primary"
+                        >
+                            Olvidaste tu contraseña
+                        </Link>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary mt-6 w-full justify-center rounded-full py-3 text-sm tracking-widest uppercase"
+                        :class="{ 'opacity-25': form.processing }"
+                        :disabled="form.processing"
+                    >
+                        Iniciar sesión
+                    </button>
+                </form>
             </div>
-        </form>
-    </GuestLayout>
+        </div>
+    </div>
 </template>

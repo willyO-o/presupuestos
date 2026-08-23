@@ -1393,3 +1393,52 @@
 .card-img-overlay {
     @apply absolute inset-0 flex flex-col justify-end rounded-xl bg-gradient-to-t from-black/70 via-black/10 to-transparent p-5;
 }
+
+/* ==========================================================================
+   16. LOGIN (pantalla de acceso)
+   ========================================================================== */
+
+/* Blob decorativo del panel de marca en el login */
+.login-brand-blob {
+    border-radius: 50%;
+}
+
+/* Logo con efecto 3D: leve giro sobre el eje Y (unos pocos grados) para que
+   las letras parezcan "mirar" hacia el centro de la pantalla, donde esta el
+   formulario. La sombra proyectada refuerza la sensacion de profundidad. */
+.login-logo-3d {
+    transform: perspective(500px) rotateY(-26deg) rotateX(4deg);
+    filter: drop-shadow(14px 18px 16px rgba(20, 22, 26, 0.4));
+}
+
+.login-input-group {
+    @apply relative flex items-center;
+}
+
+.login-input-icon {
+    color: var(--text-muted);
+    @apply pointer-events-none absolute left-0 text-sm;
+}
+
+.login-input {
+    color: var(--text-heading);
+    border-color: var(--border-subtle);
+    @apply w-full border-0 border-b bg-transparent py-2 pr-8 pl-6 text-sm transition-colors focus:ring-0 focus:outline-none;
+}
+
+.login-input:focus {
+    border-color: var(--c-primary);
+}
+
+.login-input::placeholder {
+    color: var(--text-muted);
+}
+
+.login-input-eye {
+    color: var(--text-muted);
+    @apply absolute right-0 flex items-center;
+}
+
+.login-input-eye:hover {
+    color: var(--c-primary);
+}

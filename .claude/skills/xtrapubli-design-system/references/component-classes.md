@@ -111,6 +111,28 @@ proyecto en una galería).
   `.rounded-pill` `.text-truncate` `.text-uppercase` `.fw-normal..bold` `.fs-xs..xl`
   `.position-relative` `.position-absolute` `.mb-0..5` `.mt-0..5` `.mx-auto`.
 
+## Login (`.login-*`)
+
+Clases especificas de la pantalla de acceso (`resources/js/Pages/Auth/Login.vue`), panel
+partido con blob de marca:
+
+```html
+<div class="login-brand-blob bg-primary ..."></div>
+<img src="/img/logo/logo-blanco.png" class="login-logo-3d w-96 max-w-full" />
+
+<div class="login-input-group">
+  <i class="fa-solid fa-user login-input-icon"></i>
+  <input class="login-input" placeholder="Usuario" />
+</div>
+```
+
+- `.login-brand-blob` — recorta el panel de marca en un óvalo (`border-radius: 50%`).
+- `.login-logo-3d` — leve giro 3D (`perspective` + `rotateY`/`rotateX` de solo unos grados) más
+  `drop-shadow`, para que el logo "mire" hacia el centro de la pantalla sin perder legibilidad.
+- `.login-input-group` / `.login-input-icon` / `.login-input` / `.login-input-eye` — input tipo
+  subrayado con ícono a la izquierda y botón opcional a la derecha (mostrar/ocultar contraseña),
+  usando `--text-muted` / `--border-subtle` / `--c-primary` en vez de colores nuevos.
+
 ## Al agregar una clase nueva
 
 Sigue el patrón de color de tres variables (`--c-{nombre}` / `-dark` / `-soft`) y añade la
