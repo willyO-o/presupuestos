@@ -64,3 +64,10 @@ la restricción real coincida con lo documentado (a lo sumo una OC por pedido).
 mal ordenado); reseedear después con `php artisan db:seed --class=RolesAndPermissionsSeeder`. El
 orden de archivos importa: una tabla con `foreignId(...)->constrained(...)` necesita que la
 migración de la tabla referenciada tenga timestamp **anterior**.
+
+## Motor de cálculo por tipo de producto (letras 3D, muebles): pendiente de diseño, decidido diferir (2026-08-24)
+El usuario preguntó si haría falta una tabla de fórmulas para calcular el costo de productos heterogéneos (muebles, banners, letras 3D). Análisis: el modelo actual (producto_material.cantidad_por_unidad × material.precio_unitario, según producto.unidad_medida M2/UNIDAD/METRO_LINEAL, con cotizacion_detalle.ancho/alto/area_m2) cubre bien productos que se cotizan por un solo driver (m² o unidad). NO cubre bien: letras corpóreas 3D (necesitan área de cara + perímetro de canto + profundidad combinados) ni muebles/exhibidores a medida (varias dimensiones a la vez, no solo ancho×alto).
+
+Importante: el esquema anterior del proyecto SÍ tenía `formula`/`variable_formula`/`formula_material` y se eliminó por completo el 2026-08-23 al simplificar hacia el esquema actual (ver la nota ya existente más arriba en este archivo, "Fuente de verdad del esquema"). No reintroducir esa complejidad sin releer esta nota primero.
+
+Se le presentaron 3 opciones al usuario (extender el BOM actual con `producto_material.variable_calculo` ENUM AREA/PERIMETRO/ANCHO/ALTO/PROFUNDO/CANTIDAD + agregar profundo/perimetro_m a cotizacion_detalle — sin tablas nuevas; vs. reintroducir un motor de fórmulas completo con expresiones evaluadas en runtime; vs. no tocar el cálculo todavía). Eligió la tercera: **por ahora no se tocó el esquema de cálculo**, solo se crearon seeders (ver .ai/rules/seeders.md). Diseñar esto es la primera decisión pendiente cuando se empiece el módulo de Cotización (que hoy no tiene controlador ni vistas, solo las migraciones `cotizacion`/`cotizacion_detalle`/`producto_material`) — retomar desde esta nota, no desde cero.

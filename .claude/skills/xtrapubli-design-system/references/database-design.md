@@ -282,6 +282,8 @@ Este es el núcleo de la solución al problema del proyecto ("error en el cálcu
 
 Con esto, el sistema calcula automáticamente: `costo_material = Σ(cantidad_por_unidad × precio_unitario_material)`, más margen/mano de obra que se define al momento de cotizar.
 
+> **Límite conocido de este modelo (2026-08-24):** `cantidad_por_unidad` es un solo factor fijo por línea de receta, disparado por el `unidad_medida` del producto (M2/UNIDAD/METRO_LINEAL). Esto alcanza para productos que se cotizan por un único driver (gigantografías/banners por m², productos simples por unidad), pero no para **letras corpóreas 3D** (necesitan área de cara + perímetro de canto + profundidad combinados) ni **muebles/exhibidores a medida** (varias dimensiones a la vez). El esquema anterior de este proyecto sí tenía un motor de fórmulas (`formula`/`variable_formula`/`formula_material`) y se eliminó al simplificar hacia este esquema — no reintroducirlo sin releer `.ai/rules/migrations.md` (nota "Motor de cálculo por tipo de producto"), que documenta las opciones evaluadas y por qué quedó diferido hasta que se construya el módulo de Cotización.
+
 ---
 
 ## 8. Cotizaciones (Presupuestos)
