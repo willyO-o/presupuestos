@@ -26,6 +26,8 @@ class DatabaseSeeder extends Seeder
             EmpleadoSeeder::class,
             MaterialSeeder::class,
             ProductoSeeder::class,
+            FormulaSeeder::class,
+            ProductoMaterialSeeder::class,
         ]);
 
         // User::factory(10)->create();

@@ -132,6 +132,18 @@ return [
                 'productos.eliminar' => 'Eliminar productos',
             ],
         ],
+        // Catálogo de fórmulas dinámicas reutilizables (ver
+        // App\Services\Calculo\FormulaCalculator y .ai/rules/calculo.md),
+        // usadas por las líneas de receta/BOM de 'productos.editar'.
+        'formulas' => [
+            'label' => 'Fórmulas',
+            'permissions' => [
+                'formulas.ver' => 'Ver fórmulas',
+                'formulas.crear' => 'Crear fórmulas',
+                'formulas.editar' => 'Editar fórmulas',
+                'formulas.eliminar' => 'Eliminar fórmulas',
+            ],
+        ],
 
         // --- Cotizaciones ---
         'cotizaciones' => [
@@ -256,6 +268,7 @@ return [
                 'compras.ver', 'compras.crear', 'compras.aprobar',
                 'categorias-producto.ver', 'categorias-producto.crear', 'categorias-producto.editar', 'categorias-producto.eliminar',
                 'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar',
+                'formulas.ver', 'formulas.crear', 'formulas.editar', 'formulas.eliminar',
                 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.aprobar', 'cotizaciones.eliminar',
                 'pedidos.ver', 'pedidos.crear', 'pedidos.asignar_area', 'pedidos.actualizar_estado', 'pedidos.ver_todas_sucursales',
                 'ordenes-compra-cliente.ver', 'ordenes-compra-cliente.crear', 'ordenes-compra-cliente.validar',

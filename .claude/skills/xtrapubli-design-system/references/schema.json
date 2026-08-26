@@ -895,8 +895,60 @@
           }
         },
         {
+          "name": "formula_id",
+          "type": "bigint",
+          "nullable": true,
+          "fk": {
+            "table": "formula",
+            "column": "id"
+          },
+          "comment": "si está presente, la cantidad se calcula dinámicamente en vez de con cantidad_por_unidad"
+        },
+        {
           "name": "cantidad_por_unidad",
-          "type": "decimal(10,4)"
+          "type": "decimal(10,4)",
+          "nullable": true,
+          "comment": "factor fijo; exactamente uno de formula_id/cantidad_por_unidad debe estar presente"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "formula",
+      "description": "Fórmulas reutilizables para calcular dinámicamente cuánto material consume una línea de producto_material, cuando un factor fijo no alcanza (ej. letras corpóreas 3D: área de cara + perímetro de canto + profundidad). Agregada 2026-08-25, evaluada con nxp/math-executor vía App\\Services\\Calculo\\FormulaCalculator — ver .ai/rules/migrations.md.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "nombre",
+          "type": "string"
+        },
+        {
+          "name": "expresion",
+          "type": "string",
+          "comment": "ej. (ancho + alto) * 2 * profundo — variables disponibles: ancho, alto, profundo, area, perimetro"
+        },
+        {
+          "name": "descripcion",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "estado",
+          "type": "enum",
+          "values": ["ACTIVO", "INACTIVO"],
+          "default": "ACTIVO"
         },
         {
           "name": "created_at",
@@ -1669,6 +1721,11 @@
       "from": "producto_material.material_id",
       "to": "material.id",
       "type": "many_to_one"
+    },
+    {
+      "from": "producto_material.formula_id",
+      "to": "formula.id",
+      "type": "many_to_one_optional"
     },
     {
       "from": "cotizacion.cliente_id",

@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
@@ -224,6 +224,10 @@ async function confirmDelete(producto) {
 
                 <template #actions="{ item }">
                     <div class="d-flex gap-1">
+                        <Link v-can="'productos.editar'" :href="route('productos.materiales.index', item.id)"
+                            class="btn btn-sm btn-icon btn-soft-info" aria-label="Receta / BOM">
+                            <i class="fa-solid fa-flask"></i>
+                        </Link>
                         <button v-can="'productos.editar'" type="button" class="btn btn-sm btn-icon btn-soft-primary"
                             aria-label="Editar producto" @click="openEdit(item)">
                             <i class="fa-solid fa-pen"></i>

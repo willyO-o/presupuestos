@@ -2,30 +2,24 @@
 
 namespace App\Models;
 
-use Database\Factories\MaterialFactory;
+use Database\Factories\FormulaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'categoria_material_id',
     'nombre',
-    'presentacion',
-    'unidad_medida',
-    'precio_presentacion',
-    'precio_unitario',
-    'stock_actual',
-    'stock_minimo',
+    'expresion',
+    'descripcion',
     'estado',
 ])]
 
-class Material extends Model
+class Formula extends Model
 {
-    /** @use HasFactory<MaterialFactory> */
+    /** @use HasFactory<FormulaFactory> */
     use HasFactory;
 
     /**
@@ -33,15 +27,11 @@ class Material extends Model
      *
      * @var string
      */
-    protected $table = 'material';
-
-    public function categoriaMaterial(): BelongsTo
-    {
-        return $this->belongsTo(CategoriaMaterial::class);
-    }
+    protected $table = 'formula';
 
     /**
-     * Líneas de BOM (producto_material) que consumen este material.
+     * Líneas de BOM (producto_material) que calculan su cantidad usando
+     * esta fórmula en vez de un factor fijo.
      */
     public function productoMateriales(): HasMany
     {
@@ -49,8 +39,8 @@ class Material extends Model
     }
 
     /**
-     * Filtra por coincidencia parcial en nombre o presentación. Sin
-     * término, no aplica ningún filtro.
+     * Filtra por coincidencia parcial en nombre o expresión. Sin término,
+     * no aplica ningún filtro.
      */
     #[Scope]
     protected function search(Builder $query, ?string $term): void
@@ -58,18 +48,9 @@ class Material extends Model
         $query->when($term, function (Builder $query) use ($term) {
             $query->where(function (Builder $query) use ($term) {
                 $query->where('nombre', 'like', "%{$term}%")
-                    ->orWhere('presentacion', 'like', "%{$term}%");
+                    ->orWhere('expresion', 'like', "%{$term}%");
             });
         });
-    }
-
-    /**
-     * Filtra por categoría de material exacta. Sin valor, no aplica filtro.
-     */
-    #[Scope]
-    protected function categoria(Builder $query, ?string $categoriaMaterialId): void
-    {
-        $query->when($categoriaMaterialId, fn (Builder $query) => $query->where('categoria_material_id', $categoriaMaterialId));
     }
 
     /**

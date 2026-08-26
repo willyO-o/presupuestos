@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'categoria_producto_id',
@@ -35,6 +36,16 @@ class Producto extends Model
     public function categoriaProducto(): BelongsTo
     {
         return $this->belongsTo(CategoriaProducto::class);
+    }
+
+    /**
+     * Receta de costo (BOM): materiales que consume este producto, cada
+     * uno con un factor fijo o una fórmula dinámica (ver
+     * App\Models\ProductoMaterial::esDinamica()).
+     */
+    public function productoMateriales(): HasMany
+    {
+        return $this->hasMany(ProductoMaterial::class);
     }
 
     /**

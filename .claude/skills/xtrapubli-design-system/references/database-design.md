@@ -34,13 +34,13 @@ Este diseño se basa en:
 | Organización | `sucursal`, `area`, `empleado` | Estructura interna de la empresa |
 | Clientes | `cliente` | Empresas/clientes, con o sin portal |
 | Materiales e insumos | `categoria_material`, `material`, `historial_precio_material`, `proveedor`, `compra`, `compra_detalle` | Catálogo de insumos, precios, stock, compras |
-| Catálogo de productos | `categoria_producto`, `producto`, `producto_material` | Productos publicitarios y su receta de costo (BOM) |
+| Catálogo de productos | `categoria_producto`, `producto`, `producto_material`, `formula` | Productos publicitarios y su receta de costo (BOM), con fórmulas dinámicas para consumos que dependen de varias medidas a la vez |
 | Cotizaciones | `cotizacion`, `cotizacion_detalle` | Presupuestos entregados al cliente |
 | Pedidos / órdenes de trabajo | `pedido`, `pedido_detalle`, `pedido_seguimiento`, `pedido_detalle_material` | Ejecución del pedido por áreas |
 | Documentos comerciales | `orden_compra_cliente`, `nota_entrega`, `nota_entrega_detalle` | Respaldo formal y evidencia de entrega |
 | Pagos | `pago` | Registro de cobros |
 
-**29 tablas en total** (6 de Laravel/Spatie + 23 propias del dominio).
+**30 tablas en total** (6 de Laravel/Spatie + 24 propias del dominio — `formula` se agregó el 2026-08-25, ver §7).
 
 ---
 
@@ -277,12 +277,25 @@ Este es el núcleo de la solución al problema del proyecto ("error en el cálcu
 | id | bigint PK | |
 | producto_id | bigint FK → `producto.id` | |
 | material_id | bigint FK → `material.id` | |
-| cantidad_por_unidad | decimal(10,4) | cuánto material consume 1 m²/unidad del producto |
+| formula_id | bigint FK → `formula.id`, nullable | si está presente, la cantidad se calcula dinámicamente (ver abajo) en vez de con el factor fijo |
+| cantidad_por_unidad | decimal(10,4), nullable | factor fijo: cuánto material consume 1 m²/unidad del producto. Exactamente uno de `formula_id`/`cantidad_por_unidad` debe estar presente por línea |
 | created_at / updated_at | timestamp | |
 
-Con esto, el sistema calcula automáticamente: `costo_material = Σ(cantidad_por_unidad × precio_unitario_material)`, más margen/mano de obra que se define al momento de cotizar.
+### `formula` (motor de cálculo dinámico, 2026-08-25)
+Una línea de BOM "estática" (`cantidad_por_unidad` × un solo driver: área para M2, un lado para METRO_LINEAL, 1 para UNIDAD) alcanza para productos que se cotizan por un único driver (gigantografías/banners por m², productos simples por unidad), pero no para **letras corpóreas 3D** (área de cara + perímetro de canto + profundidad combinados) ni **muebles/exhibidores a medida** (varias dimensiones a la vez). Para esos casos, una línea de `producto_material` puede apuntar a una `formula` en vez de traer un factor fijo.
 
-> **Límite conocido de este modelo (2026-08-24):** `cantidad_por_unidad` es un solo factor fijo por línea de receta, disparado por el `unidad_medida` del producto (M2/UNIDAD/METRO_LINEAL). Esto alcanza para productos que se cotizan por un único driver (gigantografías/banners por m², productos simples por unidad), pero no para **letras corpóreas 3D** (necesitan área de cara + perímetro de canto + profundidad combinados) ni **muebles/exhibidores a medida** (varias dimensiones a la vez). El esquema anterior de este proyecto sí tenía un motor de fórmulas (`formula`/`variable_formula`/`formula_material`) y se eliminó al simplificar hacia este esquema — no reintroducirlo sin releer `.ai/rules/migrations.md` (nota "Motor de cálculo por tipo de producto"), que documenta las opciones evaluadas y por qué quedó diferido hasta que se construya el módulo de Cotización.
+| Campo | Tipo | Nota |
+|---|---|---|
+| id | bigint PK | |
+| nombre | string | ej. "Perímetro con profundidad" |
+| expresion | string | ej. `(ancho + alto) * 2 * profundo` |
+| descripcion | text, nullable | |
+| estado | `ENUM('ACTIVO','INACTIVO')`, default `ACTIVO` | |
+| created_at / updated_at | timestamp | |
+
+`expresion` se evalúa con el paquete `nxp/math-executor` vía `App\Services\Calculo\FormulaCalculator`, con las variables `ancho`/`alto`/`profundo`/`area` (=ancho×alto) /`perimetro` (=(ancho+alto)×2) — ver `App\Services\Calculo\MedidasCotizacion`. `App\Services\Calculo\CosteoProductoService` recorre el BOM completo de un producto (mezclando líneas estáticas y dinámicas) y devuelve el costo total más el desglose por línea; es el punto de entrada que debe usar el futuro módulo de Cotización, no una reimplementación a mano. `cantidad` (unidades pedidas) no es variable de fórmula — se aplica como multiplicador uniforme fuera de la fórmula/factor. Detalle completo, historia de la decisión y datos de prueba (`FormulaSeeder`/`ProductoMaterialSeeder`) en `.ai/rules/migrations.md` ("Motor de cálculo por tipo de producto") y `.ai/rules/calculo.md`.
+
+Con esto, el sistema calcula automáticamente el costo de materiales de un producto en vez de que el vendedor lo haga a mano, más margen/mano de obra que se define al momento de cotizar.
 
 ---
 

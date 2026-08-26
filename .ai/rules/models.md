@@ -1,6 +1,7 @@
 ---
 paths:
   - app/Models/Sucursal.php
+  - app/Models/Formula.php
 ---
 
 # Models
@@ -19,3 +20,8 @@ La migración `sucursal` se reescribió (2026-08-23) para seguir `schema.json`/`
 
 ## Sucursal ciudad — ya no está pendiente, quedó resuelto
 Las notas previas sobre "falta ciudad" en Sucursal (modelo/CRUD desactualizado tras el nuevo schema.json) ya no aplican: UpdateSucursalRequest ahora valida `ciudad` igual que StoreSucursalRequest, y SucursalControllerTest manda `ciudad` en los payloads de create/update. Los 152 tests del proyecto pasan. No repetir ese trabajo.
+
+## Formula y ProductoMaterial: modelos nuevos del motor de fórmulas dinámicas
+`App\Models\Formula` (tabla `formula`) y `App\Models\ProductoMaterial` (tabla `producto_material`, no existía como modelo Eloquent hasta 2026-08-25 pese a que la tabla sí existía) son parte del motor de cálculo dinámico — ver la nota completa en `.ai/rules/migrations.md` ("Motor de cálculo por tipo de producto: implementado") y `App\Services\Calculo\*`.
+
+`ProductoMaterial::esDinamica()` indica si la línea usa `formula_id` (cantidad calculada en runtime) en vez del factor fijo `cantidad_por_unidad` (nullable ahora, exactamente uno de los dos debe estar presente). No evalúes `formula->expresion` a mano en un controller/modelo — siempre a través de `App\Services\Calculo\FormulaCalculator`.

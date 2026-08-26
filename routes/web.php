@@ -5,8 +5,10 @@ use App\Http\Controllers\CategoriaMaterialController;
 use App\Http\Controllers\CategoriaProductoController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\FormulaController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ProductoMaterialController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\SucursalController;
@@ -146,6 +148,38 @@ Route::middleware('auth')->group(function () {
     Route::delete('/productos/{producto}', [ProductoController::class, 'destroy'])
         ->middleware('can:productos.eliminar')
         ->name('productos.destroy');
+
+    // Receta/BOM de un producto (App\Models\ProductoMaterial) — gestionada
+    // bajo el mismo permiso que editar el producto (config/acl.php:
+    // "productos.editar (incluye receta/BOM)").
+    Route::get('/productos/{producto}/materiales', [ProductoMaterialController::class, 'index'])
+        ->middleware('can:productos.editar')
+        ->name('productos.materiales.index');
+    Route::post('/productos/{producto}/materiales', [ProductoMaterialController::class, 'store'])
+        ->middleware('can:productos.editar')
+        ->name('productos.materiales.store');
+    Route::put('/productos/{producto}/materiales/{productoMaterial}', [ProductoMaterialController::class, 'update'])
+        ->middleware('can:productos.editar')
+        ->name('productos.materiales.update');
+    Route::delete('/productos/{producto}/materiales/{productoMaterial}', [ProductoMaterialController::class, 'destroy'])
+        ->middleware('can:productos.editar')
+        ->name('productos.materiales.destroy');
+
+    Route::get('/formulas', [FormulaController::class, 'index'])
+        ->middleware('can:formulas.ver')
+        ->name('formulas.index');
+    Route::post('/formulas', [FormulaController::class, 'store'])
+        ->middleware('can:formulas.crear')
+        ->name('formulas.store');
+    Route::put('/formulas/{formula}', [FormulaController::class, 'update'])
+        ->middleware('can:formulas.editar')
+        ->name('formulas.update');
+    Route::delete('/formulas/{formula}', [FormulaController::class, 'destroy'])
+        ->middleware('can:formulas.eliminar')
+        ->name('formulas.destroy');
+    Route::post('/formulas/probar', [FormulaController::class, 'probar'])
+        ->middleware('can:formulas.ver')
+        ->name('formulas.probar');
 });
 
 require __DIR__.'/auth.php';

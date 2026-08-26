@@ -134,7 +134,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Catálogo de Productos',
-        permission: ['categorias-producto.ver', 'productos.ver'],
+        permission: ['categorias-producto.ver', 'productos.ver', 'formulas.ver'],
     },
     {
         title: 'Categorías de Producto',
@@ -149,6 +149,13 @@ export const NAV_MENU = [
         type: 'link',
         path: '/productos',
         permission: 'productos.ver',
+    },
+    {
+        title: 'Fórmulas',
+        icon: 'fa-solid fa-flask',
+        type: 'link',
+        path: '/formulas',
+        permission: 'formulas.ver',
     },
 
 
