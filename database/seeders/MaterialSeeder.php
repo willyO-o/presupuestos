@@ -17,37 +17,43 @@ class MaterialSeeder extends Seeder
      */
     public function run(): void
     {
+        // `redondeo_compra`: múltiplo (en la unidad del material) al que se
+        // redondea hacia arriba la cantidad consumida al costear —
+        // null si el material se corta a medida (rollo), o la unidad real
+        // de compra si el sobrante no se reutiliza (barra de 6 m, plancha,
+        // galón, unidad). Ver .ai/rules/calculo.md.
         $porCategoria = [
             'Gigantografía' => [
-                ['nombre' => 'Lona FrontLight 13oz', 'presentacion' => 'Rollo 3,20x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 2800.00, 'precio_unitario' => 17.50],
-                ['nombre' => 'Lona Backlight', 'presentacion' => 'Rollo 3,20x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 3600.00, 'precio_unitario' => 22.50],
-                ['nombre' => 'Vinil adhesivo brillante', 'presentacion' => 'Rollo 1,52x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 2280.00, 'precio_unitario' => 30.00],
-                ['nombre' => 'Vinil microperforado (vision control)', 'presentacion' => 'Rollo 1,52x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 3040.00, 'precio_unitario' => 40.00],
+                ['nombre' => 'Lona FrontLight 13oz', 'presentacion' => 'Rollo 3,20x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 2800.00, 'precio_unitario' => 17.50, 'redondeo_compra' => null],
+                ['nombre' => 'Lona Backlight', 'presentacion' => 'Rollo 3,20x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 3600.00, 'precio_unitario' => 22.50, 'redondeo_compra' => null],
+                ['nombre' => 'Vinil adhesivo brillante', 'presentacion' => 'Rollo 1,52x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 2280.00, 'precio_unitario' => 30.00, 'redondeo_compra' => null],
+                ['nombre' => 'Vinil microperforado (vision control)', 'presentacion' => 'Rollo 1,52x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 3040.00, 'precio_unitario' => 40.00, 'redondeo_compra' => null],
             ],
             'Cerrajería' => [
-                ['nombre' => 'Tubo cuadrado 20x20x0,9mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 66.00, 'precio_unitario' => 11.00],
-                ['nombre' => 'Tubo cuadrado 40x40x1,5mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 132.00, 'precio_unitario' => 22.00],
-                ['nombre' => 'Platina 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 54.00, 'precio_unitario' => 9.00],
-                ['nombre' => 'Angular 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 60.00, 'precio_unitario' => 10.00],
+                ['nombre' => 'Tubo cuadrado 20x20x0,9mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 66.00, 'precio_unitario' => 11.00, 'redondeo_compra' => 6],
+                ['nombre' => 'Tubo cuadrado 40x40x1,5mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 132.00, 'precio_unitario' => 22.00, 'redondeo_compra' => 6],
+                ['nombre' => 'Platina 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 54.00, 'precio_unitario' => 9.00, 'redondeo_compra' => 6],
+                ['nombre' => 'Angular 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 60.00, 'precio_unitario' => 10.00, 'redondeo_compra' => 6],
             ],
             'Carpintería' => [
-                ['nombre' => 'MDF 9mm', 'presentacion' => 'Plancha 2,44x1,22m', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 180.00, 'precio_unitario' => 180.00],
-                ['nombre' => 'Melamina blanca 18mm', 'presentacion' => 'Plancha 2,44x1,83m', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 420.00, 'precio_unitario' => 420.00],
-                ['nombre' => 'Triplay 12mm', 'presentacion' => 'Plancha 2,44x1,22m', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 260.00, 'precio_unitario' => 260.00],
-                ['nombre' => 'Tornillos autorroscantes', 'presentacion' => 'Caja 100u', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 35.00, 'precio_unitario' => 0.35],
+                ['nombre' => 'MDF 9mm', 'presentacion' => 'Plancha 2,44x1,22m', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 180.00, 'precio_unitario' => 180.00, 'redondeo_compra' => 1],
+                ['nombre' => 'Melamina blanca 18mm', 'presentacion' => 'Plancha 2,44x1,83m', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 420.00, 'precio_unitario' => 420.00, 'redondeo_compra' => 1],
+                ['nombre' => 'Triplay 12mm', 'presentacion' => 'Plancha 2,44x1,22m', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 260.00, 'precio_unitario' => 260.00, 'redondeo_compra' => 1],
+                ['nombre' => 'Tornillos autorroscantes', 'presentacion' => 'Caja 100u', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 35.00, 'precio_unitario' => 0.35, 'redondeo_compra' => 1],
             ],
             'Otros materiales' => [
-                ['nombre' => 'Silicona industrial', 'presentacion' => 'Tubo 280ml', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 28.00, 'precio_unitario' => 28.00],
-                ['nombre' => 'Cinta doble contacto', 'presentacion' => 'Rollo 50m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 90.00, 'precio_unitario' => 1.80],
-                ['nombre' => 'Remaches pop', 'presentacion' => 'Caja 100u', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 40.00, 'precio_unitario' => 0.40],
-                ['nombre' => 'Acrílico transparente 3mm', 'presentacion' => 'Plancha 1,22x2,44m', 'unidad_medida' => 'M2', 'precio_presentacion' => 520.00, 'precio_unitario' => 175.00],
-                ['nombre' => 'Acrílico transparente 5mm', 'presentacion' => 'Plancha 1,22x2,44m', 'unidad_medida' => 'M2', 'precio_presentacion' => 780.00, 'precio_unitario' => 262.00],
+                ['nombre' => 'Silicona industrial', 'presentacion' => 'Tubo 280ml', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 28.00, 'precio_unitario' => 28.00, 'redondeo_compra' => 1],
+                ['nombre' => 'Cinta doble contacto', 'presentacion' => 'Rollo 50m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 90.00, 'precio_unitario' => 1.80, 'redondeo_compra' => null],
+                ['nombre' => 'Remaches pop', 'presentacion' => 'Caja 100u', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 40.00, 'precio_unitario' => 0.40, 'redondeo_compra' => 1],
+                // Plancha de acrílico 1,22×2,44 ≈ 2,98 m²: se compra entera.
+                ['nombre' => 'Acrílico transparente 3mm', 'presentacion' => 'Plancha 1,22x2,44m', 'unidad_medida' => 'M2', 'precio_presentacion' => 520.00, 'precio_unitario' => 175.00, 'redondeo_compra' => 2.98],
+                ['nombre' => 'Acrílico transparente 5mm', 'presentacion' => 'Plancha 1,22x2,44m', 'unidad_medida' => 'M2', 'precio_presentacion' => 780.00, 'precio_unitario' => 262.00, 'redondeo_compra' => 2.98],
             ],
             'Pinturas' => [
-                ['nombre' => 'Pintura esmalte sintético', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 145.00, 'precio_unitario' => 38.40],
-                ['nombre' => 'Laca automotriz', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 210.00, 'precio_unitario' => 55.60],
-                ['nombre' => 'Thinner', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 70.00, 'precio_unitario' => 18.50],
-                ['nombre' => 'Primer anticorrosivo', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 130.00, 'precio_unitario' => 34.40],
+                ['nombre' => 'Pintura esmalte sintético', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 145.00, 'precio_unitario' => 38.40, 'redondeo_compra' => 3.78],
+                ['nombre' => 'Laca automotriz', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 210.00, 'precio_unitario' => 55.60, 'redondeo_compra' => 3.78],
+                ['nombre' => 'Thinner', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 70.00, 'precio_unitario' => 18.50, 'redondeo_compra' => 3.78],
+                ['nombre' => 'Primer anticorrosivo', 'presentacion' => 'Galón 3,78L', 'unidad_medida' => 'LITRO', 'precio_presentacion' => 130.00, 'precio_unitario' => 34.40, 'redondeo_compra' => 3.78],
             ],
         ];
 
@@ -64,6 +70,7 @@ class MaterialSeeder extends Seeder
                         'precio_unitario' => $material['precio_unitario'],
                         'stock_actual' => fake()->randomFloat(2, 10, 200),
                         'stock_minimo' => fake()->randomFloat(2, 5, 20),
+                        'redondeo_compra' => $material['redondeo_compra'],
                         'estado' => 'ACTIVO',
                     ],
                 );

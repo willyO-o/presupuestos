@@ -4,6 +4,7 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\CategoriaMaterialController;
 use App\Http\Controllers\CategoriaProductoController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FormulaController;
 use App\Http\Controllers\MaterialController;
@@ -180,6 +181,40 @@ Route::middleware('auth')->group(function () {
     Route::post('/formulas/probar', [FormulaController::class, 'probar'])
         ->middleware('can:formulas.ver')
         ->name('formulas.probar');
+
+    // --- Cotizaciones (presupuestos) ---
+    Route::get('/cotizaciones', [CotizacionController::class, 'index'])
+        ->middleware('can:cotizaciones.ver')
+        ->name('cotizaciones.index');
+    Route::get('/cotizaciones/crear', [CotizacionController::class, 'create'])
+        ->middleware('can:cotizaciones.crear')
+        ->name('cotizaciones.create');
+    Route::post('/cotizaciones', [CotizacionController::class, 'store'])
+        ->middleware('can:cotizaciones.crear')
+        ->name('cotizaciones.store');
+    // Costeo de un producto para una línea (JSON, sin guardar) — antes de la
+    // ruta con {cotizacion} para que "costear" no se tome como un id.
+    Route::post('/cotizaciones/costear', [CotizacionController::class, 'costear'])
+        ->middleware('can:cotizaciones.crear')
+        ->name('cotizaciones.costear');
+    Route::get('/cotizaciones/{cotizacion}', [CotizacionController::class, 'show'])
+        ->middleware('can:cotizaciones.ver')
+        ->name('cotizaciones.show');
+    Route::get('/cotizaciones/{cotizacion}/editar', [CotizacionController::class, 'edit'])
+        ->middleware('can:cotizaciones.editar')
+        ->name('cotizaciones.edit');
+    Route::put('/cotizaciones/{cotizacion}', [CotizacionController::class, 'update'])
+        ->middleware('can:cotizaciones.editar')
+        ->name('cotizaciones.update');
+    Route::delete('/cotizaciones/{cotizacion}', [CotizacionController::class, 'destroy'])
+        ->middleware('can:cotizaciones.eliminar')
+        ->name('cotizaciones.destroy');
+    Route::post('/cotizaciones/{cotizacion}/aprobar', [CotizacionController::class, 'aprobar'])
+        ->middleware('can:cotizaciones.aprobar')
+        ->name('cotizaciones.aprobar');
+    Route::post('/cotizaciones/{cotizacion}/rechazar', [CotizacionController::class, 'rechazar'])
+        ->middleware('can:cotizaciones.aprobar')
+        ->name('cotizaciones.rechazar');
 });
 
 require __DIR__.'/auth.php';

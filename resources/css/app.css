@@ -1845,3 +1845,100 @@
     color: var(--c-primary);
     border-color: var(--c-primary);
 }
+
+/* ==========================================================================
+   22. COTIZACIONES (Pages/Cotizaciones)
+   ------------------------------------------------------------------------
+   Formulario de armado (líneas de detalle repetibles + panel de totales) y
+   documento de presupuesto imprimible (Show.vue). Ver .ai/rules/pages.md
+   (info compleja → vista propia) y skill xtrapubli-design-system Rule 3.
+   ========================================================================== */
+
+.text-prewrap {
+    white-space: pre-line;
+}
+
+/* --- Formulario: cada ítem del detalle --- */
+.cotizacion-linea {
+    border-color: var(--border-subtle);
+    @apply mb-4 rounded-lg border p-4;
+}
+
+.cotizacion-linea:last-child {
+    @apply mb-0;
+}
+
+.cotizacion-linea-head {
+    @apply mb-3 flex items-center justify-between;
+}
+
+.cotizacion-linea-foot {
+    border-color: var(--border-subtle);
+    @apply mt-1 flex flex-col gap-2 border-t pt-3;
+}
+
+.cotizacion-costeo-lista {
+    color: var(--text-muted);
+    @apply m-0 list-disc pl-5 text-xs;
+}
+
+/* --- Panel de totales (form y documento) --- */
+.cotizacion-total-row {
+    color: var(--text-body);
+    @apply flex items-center justify-between gap-3 py-2 text-sm;
+}
+
+.cotizacion-total-row + .cotizacion-total-row {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.cotizacion-total-input {
+    @apply max-w-[9rem] text-right;
+}
+
+.cotizacion-total-grand {
+    color: var(--text-heading);
+    border-top: 2px solid var(--border-subtle);
+    @apply mt-1 pt-3 text-base font-bold;
+}
+
+/* --- Documento imprimible (Show.vue) --- */
+.cotizacion-doc-head {
+    border-color: var(--border-subtle);
+    @apply mb-5 flex flex-wrap items-start justify-between gap-3 border-b pb-4;
+}
+
+.cotizacion-doc-meta {
+    @apply mb-5 grid gap-4 sm:grid-cols-2;
+}
+
+.cotizacion-doc-totals {
+    @apply mt-4 ml-auto w-full max-w-sm;
+}
+
+.cotizacion-doc-notes {
+    border-color: var(--border-subtle);
+    @apply mt-5 border-t pt-4;
+}
+
+@media print {
+
+    .app-shell .sidebar,
+    .app-shell .topbar,
+    .app-footer,
+    .page-title-box,
+    .cotizacion-actions {
+        display: none !important;
+    }
+
+    .main-wrapper,
+    .page-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .cotizacion-doc {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}

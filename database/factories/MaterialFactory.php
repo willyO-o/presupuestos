@@ -29,6 +29,7 @@ class MaterialFactory extends Factory
             'precio_unitario' => round($precioPresentacion / fake()->randomFloat(2, 1, 50), 2),
             'stock_actual' => fake()->randomFloat(2, 0, 200),
             'stock_minimo' => fake()->randomFloat(2, 5, 20),
+            'redondeo_compra' => null,
             'estado' => 'ACTIVO',
         ];
     }
@@ -40,6 +41,18 @@ class MaterialFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'estado' => 'INACTIVO',
+        ]);
+    }
+
+    /**
+     * Material que se compra en unidades enteras de presentación: la
+     * cantidad consumida se redondea hacia arriba al múltiplo dado al
+     * costear (ver App\Services\Calculo\CosteoProductoService).
+     */
+    public function redondeoCompra(float $multiplo = 1.0): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'redondeo_compra' => $multiplo,
         ]);
     }
 }

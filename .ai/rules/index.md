@@ -6,6 +6,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | --- | --- |
 | resources/js/Pages/Auth/** | .ai/rules/auth.md |
 | app/Services/Calculo/** | .ai/rules/calculo.md |
+| app/Http/Controllers/CotizacionController.php, app/Models/Cotizacion.php, app/Models/CotizacionDetalle.php, resources/js/Pages/Cotizaciones/**, database/seeders/CotizacionSeeder.php, config/cotizacion.php | .ai/rules/cotizaciones.md |
 | config/acl.php | .ai/rules/config.md |
 | app/Http/Controllers/**, app/Http/Controllers/FormulaController.php | .ai/rules/controllers.md |
 | resources/js/Data/** | .ai/rules/data.md |

@@ -37,6 +37,10 @@ class StoreMaterialRequest extends FormRequest
             'precio_unitario' => ['required', 'numeric', 'min:0'],
             'stock_actual' => ['required', 'numeric', 'min:0'],
             'stock_minimo' => ['required', 'numeric', 'min:0'],
+            // Múltiplo de compra al que se redondea la cantidad consumida al
+            // costear (ver migración add_redondeo_compra_to_material_table).
+            // Vacío = sin redondeo.
+            'redondeo_compra' => ['nullable', 'numeric', 'min:0'],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],
         ];
     }

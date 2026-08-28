@@ -88,6 +88,61 @@ test('combina lineas estaticas y dinamicas, el caso de letras corporeas 3D', fun
         ->and($resultado->lineas)->toHaveCount(3);
 });
 
+test('redondea hacia arriba la cantidad consumida a la unidad de compra del material', function () {
+    $producto = productoDe('M2');
+    // Plancha de acrílico ≈ 2.98 m²: se compra entera aunque se use menos.
+    $acrilico = materialA(['precio_unitario' => 175.0, 'redondeo_compra' => 2.98]);
+
+    ProductoMaterial::factory()->for($producto)->for($acrilico)->create(['cantidad_por_unidad' => 1.0]);
+
+    $resultado = app(CosteoProductoService::class)->calcular(
+        $producto,
+        new MedidasCotizacion(ancho: 1.0, alto: 0.6), // area = 0.6 m²
+        cantidad: 1.0,
+    );
+
+    $linea = $resultado->lineas[0];
+
+    expect($linea->cantidadBruta)->toBe(0.6)
+        ->and($linea->cantidadConsumida)->toBe(2.98) // redondeado a 1 plancha
+        ->and($linea->fueRedondeada())->toBeTrue()
+        ->and($resultado->costoMaterial)->toBe(521.5); // 2.98 * 175
+});
+
+test('el redondeo de compra se aplica al total del pedido, no por unidad', function () {
+    $producto = productoDe('UNIDAD');
+    $material = materialA(['precio_unitario' => 10.0, 'redondeo_compra' => 1.0]); // unidades enteras
+
+    ProductoMaterial::factory()->for($producto)->for($material)->create(['cantidad_por_unidad' => 0.35]);
+
+    $resultado = app(CosteoProductoService::class)->calcular(
+        $producto,
+        new MedidasCotizacion,
+        cantidad: 10.0,
+    );
+
+    // 0.35 * 10 = 3.5 → ceil a 4 (NO ceil(0.35)=1 por unidad * 10 = 10).
+    expect($resultado->lineas[0]->cantidadConsumida)->toBe(4.0)
+        ->and($resultado->costoMaterial)->toBe(40.0);
+});
+
+test('sin redondeo_compra la cantidad consumida queda exacta', function () {
+    $producto = productoDe('M2');
+    $material = materialA(['precio_unitario' => 20.0, 'redondeo_compra' => null]);
+
+    ProductoMaterial::factory()->for($producto)->for($material)->create(['cantidad_por_unidad' => 1.0]);
+
+    $resultado = app(CosteoProductoService::class)->calcular(
+        $producto,
+        new MedidasCotizacion(ancho: 1.3, alto: 1.0), // area 1.3
+        cantidad: 1.0,
+    );
+
+    expect($resultado->lineas[0]->cantidadConsumida)->toBe(1.3)
+        ->and($resultado->lineas[0]->fueRedondeada())->toBeFalse()
+        ->and($resultado->costoMaterial)->toBe(26.0);
+});
+
 test('lanza excepcion si un producto M2 no recibe ancho/alto', function () {
     $producto = productoDe('M2');
     ProductoMaterial::factory()->for($producto)->for(materialA())->create(['cantidad_por_unidad' => 1.0]);

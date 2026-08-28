@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'precio_unitario',
     'stock_actual',
     'stock_minimo',
+    'redondeo_compra',
     'estado',
 ])]
 
@@ -34,6 +35,16 @@ class Material extends Model
      * @var string
      */
     protected $table = 'material';
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'redondeo_compra' => 'decimal:4',
+        ];
+    }
 
     public function categoriaMaterial(): BelongsTo
     {

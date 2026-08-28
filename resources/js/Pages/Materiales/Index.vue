@@ -45,6 +45,7 @@ const headers = [
     { label: 'Nombre', key: 'nombre' },
     { label: 'Categoría', key: 'categoria' },
     { label: 'Presentación', key: 'presentacion' },
+    { label: 'Compra', key: 'redondeo_compra', class: 'text-center', cellClass: 'text-center' },
     { label: 'Unidad', key: 'unidad_medida', class: 'text-center', cellClass: 'text-center' },
     { label: 'Precio unitario', key: 'precio_unitario', class: 'text-end', cellClass: 'text-end' },
     { label: 'Stock', key: 'stock_actual', class: 'text-end', cellClass: 'text-end' },
@@ -77,6 +78,7 @@ const form = useForm(() => ({
     precio_unitario: '',
     stock_actual: 0,
     stock_minimo: 0,
+    redondeo_compra: '',
     estado: 'ACTIVO',
 }));
 
@@ -98,6 +100,7 @@ function openEdit(material) {
     form.precio_unitario = material.precio_unitario;
     form.stock_actual = material.stock_actual;
     form.stock_minimo = material.stock_minimo;
+    form.redondeo_compra = material.redondeo_compra ?? '';
     form.estado = material.estado;
     showFormModal.value = true;
 }
@@ -201,6 +204,14 @@ async function confirmDelete(material) {
                 empty-text="No hay materiales registrados." @page-change="table.changePage">
                 <template #cell-categoria="{ item }">
                     {{ item.categoria_material?.nombre ?? '—' }}
+                </template>
+
+                <template #cell-redondeo_compra="{ value }">
+                    <span v-if="value && Number(value) > 0" class="badge badge-soft-info"
+                        title="La cantidad consumida se redondea hacia arriba a este múltiplo al costear">
+                        × {{ Number(value) }}
+                    </span>
+                    <span v-else class="text-muted">exacta</span>
                 </template>
 
                 <template #cell-unidad_medida="{ item }">
@@ -359,6 +370,26 @@ async function confirmDelete(material) {
                         </div>
                     </div>
 
+                    <div class="col-lg-4">
+                        <div class="form-group">
+                            <label class="form-label" for="redondeo_compra">Redondeo de compra</label>
+                            <input id="redondeo_compra" v-model="form.redondeo_compra" v-decimal="4" type="text"
+                                inputmode="decimal" class="form-control"
+                                :class="{ 'is-invalid': form.errors.redondeo_compra }" placeholder="Sin redondeo" />
+                            <p v-if="form.errors.redondeo_compra" class="form-error">
+                                {{ form.errors.redondeo_compra }}
+                            </p>
+                            <p class="fs-sm text-muted mt-1">
+                                Al costear, la cantidad consumida se redondea hacia arriba a este múltiplo (en
+                                {{ unidadesMedida.find((u) => u.value === form.unidad_medida)?.label ?? form.unidad_medida }}).
+                                Vacío = se usa la cantidad exacta. Ej.: <code>1</code> unidades enteras,
+                                <code>6</code> barra de 6 m, <code>2.98</code> plancha de acrílico.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
                     <div class="col-lg-4">
                         <div class="form-group">
                             <label class="form-label" for="estado">Estado</label>

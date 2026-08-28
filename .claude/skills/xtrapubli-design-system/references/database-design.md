@@ -194,6 +194,7 @@ Modela filas como *"Lona FrontLight 3,20x50m"*, *"Tubo 20x20x0,9mm"*, *"MDF 9mm"
 | precio_unitario | decimal(10,2) | costo por m²/metro/unidad (el dato que realmente se usa al cotizar) |
 | stock_actual | decimal(10,2), default 0 | control de inventario |
 | stock_minimo | decimal(10,2), default 0 | alerta de reposición |
+| redondeo_compra | decimal(10,4), nullable | *(2026-08-28)* múltiplo (en `unidad_medida`) al que `CosteoProductoService` redondea **hacia arriba** la cantidad consumida — el material se compra en unidades enteras (plancha, barra de 6 m, galón) y el sobrante rara vez se reutiliza. `null` = cantidad exacta (se corta del rollo). Ej.: `1` unidades enteras, `6` barra de 6 m, `2.98` plancha de acrílico |
 | estado | `ENUM('ACTIVO','INACTIVO')`, default `ACTIVO` | |
 | created_at / updated_at | timestamp | |
 
@@ -293,7 +294,7 @@ Una línea de BOM "estática" (`cantidad_por_unidad` × un solo driver: área pa
 | estado | `ENUM('ACTIVO','INACTIVO')`, default `ACTIVO` | |
 | created_at / updated_at | timestamp | |
 
-`expresion` se evalúa con el paquete `nxp/math-executor` vía `App\Services\Calculo\FormulaCalculator`, con las variables `ancho`/`alto`/`profundo`/`area` (=ancho×alto) /`perimetro` (=(ancho+alto)×2) — ver `App\Services\Calculo\MedidasCotizacion`. `App\Services\Calculo\CosteoProductoService` recorre el BOM completo de un producto (mezclando líneas estáticas y dinámicas) y devuelve el costo total más el desglose por línea; es el punto de entrada que debe usar el futuro módulo de Cotización, no una reimplementación a mano. `cantidad` (unidades pedidas) no es variable de fórmula — se aplica como multiplicador uniforme fuera de la fórmula/factor. Detalle completo, historia de la decisión y datos de prueba (`FormulaSeeder`/`ProductoMaterialSeeder`) en `.ai/rules/migrations.md` ("Motor de cálculo por tipo de producto") y `.ai/rules/calculo.md`.
+`expresion` se evalúa con el paquete `nxp/math-executor` vía `App\Services\Calculo\FormulaCalculator`, con las variables `ancho`/`alto`/`profundo`/`area` (=ancho×alto) /`perimetro` (=(ancho+alto)×2) — ver `App\Services\Calculo\MedidasCotizacion`. `App\Services\Calculo\CosteoProductoService` recorre el BOM completo de un producto (mezclando líneas estáticas y dinámicas) y devuelve el costo total más el desglose por línea; es el punto de entrada que debe usar el futuro módulo de Cotización, no una reimplementación a mano. `cantidad` (unidades pedidas) no es variable de fórmula — se aplica como multiplicador uniforme fuera de la fórmula/factor. Tras multiplicar por `cantidad`, la cantidad total consumida de cada línea se **redondea hacia arriba** al múltiplo `material.redondeo_compra` (si está definido) — el material se compra en unidades enteras (plancha, barra de 6 m, galón). Detalle completo, historia de la decisión y datos de prueba (`FormulaSeeder`/`ProductoMaterialSeeder`) en `.ai/rules/migrations.md` ("Motor de cálculo por tipo de producto") y `.ai/rules/calculo.md`.
 
 Con esto, el sistema calcula automáticamente el costo de materiales de un producto en vez de que el vendedor lo haga a mano, más margen/mano de obra que se define al momento de cotizar.
 

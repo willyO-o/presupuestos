@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             ProductoSeeder::class,
             FormulaSeeder::class,
             ProductoMaterialSeeder::class,
+            CotizacionSeeder::class,
         ]);
 
         // User::factory(10)->create();

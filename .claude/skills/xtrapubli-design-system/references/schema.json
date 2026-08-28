@@ -547,6 +547,12 @@
           "default": 0
         },
         {
+          "name": "redondeo_compra",
+          "type": "decimal(10,4)",
+          "nullable": true,
+          "comment": "multiplo (en unidad_medida) al que CosteoProductoService redondea hacia arriba la cantidad consumida: se compra en unidades enteras (plancha, barra 6m, galon) y el sobrante no se reutiliza. null = cantidad exacta (corte de rollo). Agregado 2026-08-28."
+        },
+        {
           "name": "estado",
           "type": "enum",
           "values": [

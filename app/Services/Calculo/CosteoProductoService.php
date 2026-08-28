@@ -36,16 +36,41 @@ class CosteoProductoService
                     ? $this->formulaCalculator->evaluar($linea->formula->expresion, $medidas)
                     : (float) $linea->cantidad_por_unidad * $driver;
 
-                $cantidadConsumida = $cantidadPorUnidad * $cantidad;
+                $cantidadBruta = $cantidadPorUnidad * $cantidad;
+                $cantidadConsumida = $this->redondearACompra($cantidadBruta, $linea->material->redondeo_compra);
                 $costo = $cantidadConsumida * (float) $linea->material->precio_unitario;
 
-                return new LineaCosteo($linea, $cantidadConsumida, $costo);
+                return new LineaCosteo($linea, $cantidadConsumida, $costo, $cantidadBruta);
             });
 
         return new ResultadoCosteo(
             costoMaterial: round((float) $lineas->sum(fn (LineaCosteo $linea): float => $linea->costo), 2),
             lineas: $lineas->all(),
         );
+    }
+
+    /**
+     * Redondea hacia arriba la cantidad total consumida al múltiplo
+     * `material.redondeo_compra` (en la unidad del material): los materiales
+     * se compran en unidades enteras de presentación (una plancha, una barra
+     * de 6 m, una caja) y el sobrante de un corte rara vez se reutiliza, así
+     * que costear "1/4 de plancha" subestima el costo real. `null`/0 = sin
+     * redondeo (material que se corta a medida: lona/vinil de rollo,
+     * líquidos). Ver la migración `add_redondeo_compra_to_material_table`.
+     */
+    private function redondearACompra(float $cantidad, int|float|string|null $multiplo): float
+    {
+        $multiplo = (float) $multiplo;
+
+        if ($multiplo <= 0.0 || $cantidad <= 0.0) {
+            return $cantidad;
+        }
+
+        // Epsilon para que el ruido de coma flotante (p. ej. 2.00000001 tras
+        // multiplicar) no empuje al siguiente múltiplo/unidad de compra.
+        $unidades = (int) ceil($cantidad / $multiplo - 1e-9);
+
+        return round($unidades * $multiplo, 4);
     }
 
     /**

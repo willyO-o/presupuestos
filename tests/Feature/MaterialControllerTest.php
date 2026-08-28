@@ -108,6 +108,51 @@ test('a user with permission can create a material', function () {
     $this->assertDatabaseHas('material', ['nombre' => 'Lona FrontLight 3,20x50m', 'categoria_material_id' => $categoria->id]);
 });
 
+test('a material can be created with a redondeo_compra, and it is optional', function () {
+    $categoria = CategoriaMaterial::factory()->create();
+    $user = userWithMaterialPermissions('materiales.crear');
+
+    $base = [
+        'categoria_material_id' => $categoria->id,
+        'presentacion' => 'Plancha 1,22x2,44m',
+        'unidad_medida' => 'M2',
+        'precio_presentacion' => 520,
+        'precio_unitario' => 175,
+        'stock_actual' => 10,
+        'stock_minimo' => 2,
+        'estado' => 'ACTIVO',
+    ];
+
+    $this->actingAs($user)->post(route('materiales.store'), [
+        ...$base, 'nombre' => 'Acrílico 3mm', 'redondeo_compra' => 2.98,
+    ])->assertRedirect(route('materiales.index'));
+
+    $this->actingAs($user)->post(route('materiales.store'), [
+        ...$base, 'nombre' => 'Lona', 'redondeo_compra' => '',
+    ])->assertRedirect(route('materiales.index'));
+
+    expect((float) Material::where('nombre', 'Acrílico 3mm')->value('redondeo_compra'))->toBe(2.98)
+        ->and(Material::where('nombre', 'Lona')->value('redondeo_compra'))->toBeNull();
+});
+
+test('a negative redondeo_compra is rejected', function () {
+    $categoria = CategoriaMaterial::factory()->create();
+    $user = userWithMaterialPermissions('materiales.crear');
+
+    $this->actingAs($user)->post(route('materiales.store'), [
+        'categoria_material_id' => $categoria->id,
+        'nombre' => 'X',
+        'presentacion' => 'Y',
+        'unidad_medida' => 'M2',
+        'precio_presentacion' => 10,
+        'precio_unitario' => 10,
+        'stock_actual' => 0,
+        'stock_minimo' => 0,
+        'redondeo_compra' => -1,
+        'estado' => 'ACTIVO',
+    ])->assertSessionHasErrors('redondeo_compra');
+});
+
 test('a user without permission cannot create a material', function () {
     $categoria = CategoriaMaterial::factory()->create();
     $user = userWithMaterialPermissions('materiales.ver');
