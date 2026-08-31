@@ -6,6 +6,7 @@ use Database\Factories\MaterialFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +38,14 @@ class Material extends Model
     protected $table = 'material';
 
     /**
+     * Se agrega al array/JSON para que el listado pueda resaltar el material
+     * sin repetir la comparación stock_actual/stock_minimo en cada pantalla.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['stock_bajo'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -57,6 +66,44 @@ class Material extends Model
     public function productoMateriales(): HasMany
     {
         return $this->hasMany(ProductoMaterial::class);
+    }
+
+    /**
+     * Líneas de compra que ingresaron este material al inventario.
+     */
+    public function compraDetalles(): HasMany
+    {
+        return $this->hasMany(CompraDetalle::class);
+    }
+
+    /**
+     * Historial de precios (una fila por cada compra PAGADA que cambió el
+     * precio del material).
+     */
+    public function historialPrecios(): HasMany
+    {
+        return $this->hasMany(HistorialPrecioMaterial::class);
+    }
+
+    /**
+     * true si el stock actual quedó en o por debajo del mínimo de
+     * reposición.
+     */
+    protected function stockBajo(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => (float) $this->stock_actual <= (float) $this->stock_minimo,
+        );
+    }
+
+    /**
+     * Solo materiales con stock en o por debajo del mínimo. Con `false`, no
+     * aplica el filtro (para poder encadenarlo condicionalmente).
+     */
+    #[Scope]
+    protected function conStockBajo(Builder $query, bool $soloBajos = true): void
+    {
+        $query->when($soloBajos, fn (Builder $query) => $query->whereColumn('stock_actual', '<=', 'stock_minimo'));
     }
 
     /**

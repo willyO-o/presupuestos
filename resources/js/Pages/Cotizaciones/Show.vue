@@ -19,6 +19,19 @@ const estadoBadge = {
 };
 
 const esPendiente = computed(() => props.cotizacion.estado === 'PENDIENTE');
+const esConvertible = computed(() => props.cotizacion.estado === 'APROBADA' && !props.cotizacion.pedido);
+
+const convertirForm = useForm({ cotizacion_id: props.cotizacion.id });
+
+async function convertirEnPedido() {
+    const ok = await confirmation(
+        `¿Generar un pedido / orden de trabajo desde la cotización <strong>${props.cotizacion.codigo_verificacion}</strong>?`,
+        'Convertir en pedido',
+        'Sí, generar',
+    );
+    if (!ok) return;
+    convertirForm.post(route('pedidos.store'), { preserveScroll: true });
+}
 
 function money(value) {
     return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -92,6 +105,16 @@ async function eliminar() {
                     <i class="fa-solid fa-xmark"></i>
                     Rechazar
                 </button>
+                <button v-if="esConvertible" v-can="'pedidos.crear'" type="button" class="btn btn-primary btn-sm"
+                    @click="convertirEnPedido">
+                    <i class="fa-solid fa-dolly"></i>
+                    Convertir en pedido
+                </button>
+                <Link v-if="cotizacion.pedido" :href="route('pedidos.show', cotizacion.pedido.id)"
+                    class="btn btn-soft-info btn-sm">
+                    <i class="fa-solid fa-dolly"></i>
+                    Ver pedido {{ cotizacion.pedido.numero_pedido }}
+                </Link>
                 <button v-if="cotizacion.estado !== 'CONVERTIDA'" v-can="'cotizaciones.eliminar'" type="button"
                     class="btn btn-soft-danger btn-sm" @click="eliminar">
                     <i class="fa-solid fa-trash"></i>

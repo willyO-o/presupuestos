@@ -32,6 +32,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // El rol `cliente` va a su portal, no al panel interno.
+        if ($request->user()->hasRole('cliente')) {
+            return redirect()->route('portal.cotizaciones');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

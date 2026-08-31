@@ -71,10 +71,33 @@ class CotizacionSeeder extends Seeder
             ['VENCIDA', [
                 ['Gigantografía backlight', 'Backlight sala de ventas', 2.40, 1.20, 1],
             ], 0, false],
+
+            // Más cotizaciones APROBADAS para que PedidoSeeder genere pedidos
+            // en distintas etapas (incluidos entregados) — insumo del BI.
+            ['APROBADA', [
+                ['Gigantografía frontlight', 'Gigantografía campaña verano', 3.00, 2.00, 2],
+                ['Banner lona frontlight', 'Banners sucursales', 2.00, 1.00, 6],
+            ], 0, true],
+            ['APROBADA', [
+                ['Exhibidor de piso MDF a medida', 'Exhibidores lanzamiento', 0.60, 1.60, 8],
+            ], 200, true],
+            ['APROBADA', [
+                ['Rotulado vinil adhesivo', 'Vinilos vidrieras temporada', 3.50, 1.20, 4],
+                ['Habladores/Stoppers', 'Habladores góndola', null, null, 80],
+            ], 0, false],
+            ['APROBADA', [
+                ['Letras corpóreas 3D iluminadas', 'Logo corpóreo fachada', 2.00, 0.60, 1],
+            ], 0, true],
+            ['APROBADA', [
+                ['Letrero luminoso caja de luz', 'Caja de luz sucursal centro', 2.20, 0.90, 3],
+            ], 0, true],
+            ['APROBADA', [
+                ['Rotulado vehicular completo', 'Rotulado 3 vehículos flota', null, null, 3],
+            ], 300, true],
         ];
 
         foreach ($plantillas as [$estado, $lineas, $descuento, $conImpuesto]) {
-            $fecha = now()->subDays(fake()->numberBetween(3, 90));
+            $fecha = now()->subDays(fake()->numberBetween(3, 330));
 
             $detalles = [];
             foreach ($lineas as $linea) {

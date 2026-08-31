@@ -1,136 +1,44 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 
 defineOptions({ layout: MainDashboardLayout });
 
-/* ------------------------------------------------------------------ */
-/* Datos estaticos de maquetado                                        */
-/* ------------------------------------------------------------------ */
-const stats = [
-    { label: 'Litros despachados', value: '17.6k', icon: 'success' },
-    { label: 'Presupuestos activos', value: '149', icon: 'warning' },
-    { label: 'Solicitudes aprobadas', value: '24.8k', icon: 'danger' },
-    { label: 'Consumo mensual', value: '54.3k', icon: 'primary' },
-];
+const props = defineProps({
+    resumen: { type: Object, required: true },
+});
 
-const chartData = [
-    { label: 'Ene', value: 2.5 },
-    { label: 'Feb', value: 3.2 },
-    { label: 'Mar', value: 5 },
-    { label: 'Abr', value: 10.1 },
-    { label: 'May', value: 4.2 },
-    { label: 'Jun', value: 3.8 },
-    { label: 'Jul', value: 3 },
-    { label: 'Ago', value: 2.4 },
-    { label: 'Sep', value: 4 },
-    { label: 'Oct', value: 1.2 },
-    { label: 'Nov', value: 3.5 },
-    { label: 'Dic', value: 0.8 },
-];
-const chartMax = Math.max(...chartData.map((item) => item.value));
+function money(value) {
+    return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
 
-const shares = [
-    { label: 'Estaciones propias', value: '32k', color: 'primary' },
-    { label: 'Proveedores externos', value: '13k', color: 'danger' },
-    { label: 'Transporte', value: '11k', color: 'success' },
-    { label: 'Flotas corporativas', value: '19k', color: 'warning' },
-    { label: 'Maquinaria pesada', value: '18k', color: 'pink' },
-    { label: 'Generadores', value: '26k', color: 'info' },
-];
+const stats = computed(() => [
+    { label: 'Cotizaciones este mes', value: props.resumen.cotizaciones_mes, icon: 'primary' },
+    { label: 'Tasa de conversión', value: `${props.resumen.tasa_conversion}%`, icon: 'success' },
+    { label: 'Ingresos del mes', value: money(props.resumen.ingresos_mes), icon: 'info' },
+    { label: 'Materiales con stock bajo', value: props.resumen.materiales_bajo_stock, icon: 'warning' },
+]);
 
-const comments = [
-    {
-        author: 'Diana Kohler',
-        text: 'Excelente ajuste en el presupuesto, la reduccion de consumo se nota desde la primera semana.',
-    },
-    {
-        author: 'Tonya Noble',
-        text: 'Muy util el detalle por estacion, me ayuda a proyectar el siguiente trimestre sin problema.',
-    },
-    {
-        author: 'Donald Palmer',
-        text: 'El reporte de litros despachados quedo bastante claro, gracias por compartirlo.',
-    },
-    {
-        author: 'Joseph Parker',
-        text: 'Buen resumen, facil de leer y con los datos que realmente necesitamos revisar.',
-    },
-];
+const ventasMax = computed(() => Math.max(1, ...props.resumen.ventas_por_mes.map((m) => m.total)));
 
-const articles = [
-    {
-        title: 'Optimizacion de rutas para reducir consumo',
-        date: '20 Sep, 2026',
-        category: 'Logistica',
-        badge: 'success',
-        comments: 23,
-        likes: 157,
-        shared: 11,
-        views: '2149',
-    },
-    {
-        title: 'Como leer tu presupuesto de combustible mensual',
-        date: '11 Feb, 2026',
-        category: 'Finanzas',
-        badge: 'info',
-        comments: 547,
-        likes: 1458,
-        shared: 317,
-        views: '34978',
-    },
-    {
-        title: 'Mantenimiento preventivo y ahorro de litros',
-        date: '15 Sep, 2026',
-        category: 'Flotas',
-        badge: 'warning',
-        comments: 88,
-        likes: 649,
-        shared: 237,
-        views: '1982',
-    },
-];
+const etapas = computed(() => Object.entries(props.resumen.pedidos_por_etapa).map(([etapa, n]) => ({ etapa, n })));
+const etapasMax = computed(() => Math.max(1, ...etapas.value.map((e) => e.n)));
 
-const devices = [
-    { label: 'Camiones', value: 48, color: 'var(--c-primary)' },
-    { label: 'Autos', value: 32, color: 'var(--c-success)' },
-    { label: 'Maquinaria', value: 20, color: 'var(--c-warning)' },
-];
-
-const donutGradient = (() => {
-    let acc = 0;
-    const stops = devices.map((d) => {
-        const start = acc;
-        acc += d.value;
-        return `${d.color} ${start}% ${acc}%`;
-    });
-    return `conic-gradient(${stops.join(', ')})`;
-})();
+const entregasTotal = computed(() => props.resumen.entregas.a_tiempo + props.resumen.entregas.tarde);
 </script>
 
 <template>
     <Head title="Dashboard" />
 
     <div class="row">
-        <!-- ================= STAT CARDS ================= -->
         <div v-for="stat in stats" :key="stat.label" class="col-lg-3">
             <div class="card">
                 <div class="stat-card">
-                    <span
-                        class="stat-icon"
-                        :class="`stat-icon-${stat.icon}`"
-                    >
-                        <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M4 15c3-6 7-9 8-9s5 3 8 9M4 15l8 5 8-5M4 15v3l8 5 8-5v-3"
-                            />
+                    <span class="stat-icon" :class="`stat-icon-${stat.icon}`">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 17l6-6 4 4 8-8M21 7v6M21 7h-6" />
                         </svg>
                     </span>
                     <div>
@@ -141,269 +49,65 @@ const donutGradient = (() => {
             </div>
         </div>
 
-        <!-- ================= BAR CHART ================= -->
-        <div class="col-lg-6">
-            <div class="card ">
+        <div class="col-lg-8">
+            <div class="card">
                 <div class="card-header">
                     <div>
-                        <p class="card-title">Visitas al sitio</p>
-                        <p class="card-subtitle">Consumo estimado por mes</p>
+                        <p class="card-title">Ventas por mes</p>
+                        <p class="card-subtitle">Total cotizado de cotizaciones aprobadas · últimos 6 meses</p>
                     </div>
-                    <span class="card-header-action">Semana actual</span>
                 </div>
                 <div class="card-body">
                     <div class="bar-chart">
-                        <div
-                            v-for="col in chartData"
-                            :key="col.label"
-                            class="bar-chart-col"
-                        >
-                            <span class="bar-chart-value">{{ col.value }}%</span>
-                            <div
-                                class="bar-chart-bar"
-                                :style="{
-                                    height: (col.value / chartMax) * 100 + '%',
-                                }"
-                            ></div>
-                            <span class="bar-chart-label">{{
-                                col.label
-                            }}</span>
+                        <div v-for="col in resumen.ventas_por_mes" :key="col.mes" class="bar-chart-col">
+                            <span class="bar-chart-value">{{ money(col.total) }}</span>
+                            <div class="bar-chart-bar" :style="{ height: (col.total / ventasMax) * 100 + '%' }"></div>
+                            <span class="bar-chart-label">{{ col.mes }}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= TOP SHARES ================= -->
-        <div class="col-lg-3">
-            <div class="card ">
-                <div class="card-header">
-                    <span class="card-title">Principales canales</span>
-                    <button type="button" class="btn-icon">
-                        <svg
-                            class="h-4 w-4 text-muted"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                        >
-                            <circle cx="12" cy="5" r="1.5" />
-                            <circle cx="12" cy="12" r="1.5" />
-                            <circle cx="12" cy="19" r="1.5" />
-                        </svg>
-                    </button>
-                </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><span class="card-title">Pedidos en producción</span></div>
                 <div class="card-body">
                     <ul class="list-group">
-                        <li
-                            v-for="share in shares"
-                            :key="share.label"
-                            class="list-group-item"
-                        >
+                        <li v-for="e in etapas" :key="e.etapa" class="list-group-item">
                             <div class="list-group-item-start">
-                                <span
-                                    class="list-icon"
-                                    :class="`stat-icon-${share.color}`"
-                                >
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="1.8"
-                                    >
-                                        <circle cx="12" cy="12" r="8" />
-                                    </svg>
-                                </span>
-                                <span class="list-group-item-title">{{
-                                    share.label
-                                }}</span>
+                                <span class="list-group-item-title">{{ e.etapa }}</span>
                             </div>
-                            <span class="list-group-item-value">{{
-                                share.value
-                            }}</span>
+                            <span class="list-group-item-value">{{ e.n }}</span>
                         </li>
                     </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= RECENT COMMENTS ================= -->
-        <div class="col-lg-3">
-            <div class="card ">
-                <div class="card-header">
-                    <span class="card-title">Comentarios recientes</span>
-                    <a href="#" class="card-link">Ver todo</a>
-                </div>
-                <div class="card-body">
-                    <div class="comment-list">
-                        <div
-                            v-for="comment in comments"
-                            :key="comment.author"
-                            class="comment-item"
-                        >
-                            <span class="avatar avatar-xs">
-                                <span class="avatar-title">{{
-                                    comment.author.charAt(0)
-                                }}</span>
-                            </span>
-                            <div class="min-w-0">
-                                <p class="comment-author">
-                                    {{ comment.author }}
-                                    <span class="comment-meta"
-                                        >ha comentado</span
-                                    >
-                                </p>
-                                <p class="comment-text">
-                                    &laquo;{{ comment.text }}&raquo;
-                                </p>
+                    <div class="mt-3">
+                        <p class="fs-sm text-muted mb-1">Entregas a tiempo</p>
+                        <div class="reporte-progress">
+                            <div class="reporte-progress-bar"
+                                :style="{ width: (entregasTotal ? resumen.entregas.a_tiempo / entregasTotal * 100 : 0) + '%' }">
                             </div>
                         </div>
+                        <p class="fs-xs text-muted mt-1">
+                            {{ resumen.entregas.a_tiempo }} a tiempo · {{ resumen.entregas.tarde }} tarde
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= RECENT ARTICLES TABLE ================= -->
-        <div class="col-lg-6">
+        <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Reportes recientes</span>
-                    <span class="card-header-action">Mas populares</span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table-dashboard">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Titulo</th>
-                                    <th>Fecha</th>
-                                    <th>Categoria</th>
-                                    <th>Comentarios</th>
-                                    <th>Likes</th>
-                                    <th>Vistas</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="(article, index) in articles"
-                                    :key="article.title"
-                                >
-                                    <td class="text-muted">{{
-                                        String(index + 1).padStart(2, '0')
-                                    }}</td>
-                                    <td>
-                                        <span class="article-title">{{
-                                            article.title
-                                        }}</span>
-                                    </td>
-                                    <td class="text-muted fs-sm">{{
-                                        article.date
-                                    }}</td>
-                                    <td>
-                                        <span
-                                            class="badge badge-pill"
-                                            :class="`badge-soft-${article.badge}`"
-                                            >{{ article.category }}</span
-                                        >
-                                    </td>
-                                    <td class="text-muted fs-sm">{{
-                                        article.comments
-                                    }}</td>
-                                    <td class="text-muted fs-sm">{{
-                                        article.likes
-                                    }}</td>
-                                    <td class="fw-semibold fs-sm">{{
-                                        article.views
-                                    }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= PROFILE WIDGET ================= -->
-        <div class="col-lg-3">
-            <div class="card">
-                <div class="profile-widget-header">
-                    <span class="fs-xs fw-semibold text-muted">Perfil</span>
-                    <button type="button" class="btn btn-light btn-sm">
-                        Ajustes
-                    </button>
-                </div>
-                <div class="profile-widget-body">
-                    <span class="avatar avatar-md">
-                        <span class="avatar-title fs-lg">{{
-                            $page.props.auth.user?.name?.charAt(0) ?? 'U'
-                        }}</span>
-                    </span>
-                    <p class="profile-widget-name">{{
-                        $page.props.auth.user?.name ?? 'Usuario'
-                    }}</p>
-                    <p class="profile-widget-role">Administrador</p>
-                </div>
-                <div class="profile-stats">
-                    <div class="profile-stat">
-                        <span class="profile-stat-value">26</span>
-                        <span class="profile-stat-label">Reportes</span>
-                    </div>
-                    <div class="profile-stat">
-                        <span class="profile-stat-value">17k</span>
-                        <span class="profile-stat-label">Estaciones</span>
-                    </div>
-                    <div class="profile-stat">
-                        <span class="profile-stat-value">487k</span>
-                        <span class="profile-stat-label">Litros</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= USED DEVICE (DONUT) ================= -->
-        <div class="col-lg-3">
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Vehiculos activos</span>
-                    <button type="button" class="btn-icon">
-                        <svg
-                            class="h-4 w-4 text-muted"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                        >
-                            <circle cx="12" cy="5" r="1.5" />
-                            <circle cx="12" cy="12" r="1.5" />
-                            <circle cx="12" cy="19" r="1.5" />
-                        </svg>
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div
-                        class="donut-chart"
-                        :style="{ background: donutGradient }"
-                    >
-                        <div class="donut-chart-center">
-                            <span class="donut-value">100%</span>
-                            <span class="donut-label">Total</span>
-                        </div>
-                    </div>
-                    <div class="donut-legend mt-4">
-                        <div
-                            v-for="device in devices"
-                            :key="device.label"
-                            class="donut-legend-item"
-                        >
-                            <span class="d-flex align-items-center gap-2">
-                                <span
-                                    class="donut-legend-dot"
-                                    :style="{ backgroundColor: device.color }"
-                                ></span>
-                                {{ device.label }}
-                            </span>
-                            <span class="fw-semibold">{{
-                                device.value
-                            }}%</span>
-                        </div>
-                    </div>
+                <div class="card-body d-flex flex-wrap gap-2">
+                    <Link :href="route('reportes.financiero')" v-can="'reportes.financiero'" class="btn btn-soft-primary btn-sm">
+                        <i class="fa-solid fa-chart-column"></i> Reporte financiero
+                    </Link>
+                    <Link :href="route('reportes.produccion')" v-can="'reportes.produccion'" class="btn btn-soft-primary btn-sm">
+                        <i class="fa-solid fa-industry"></i> Reporte de producción
+                    </Link>
+                    <Link :href="route('reportes.bi')" v-can="'reportes.bi'" class="btn btn-soft-primary btn-sm">
+                        <i class="fa-solid fa-chart-line"></i> Inteligencia de negocios
+                    </Link>
                 </div>
             </div>
         </div>

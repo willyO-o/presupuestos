@@ -14,12 +14,17 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'estado'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
+
+    /**
+     * `INACTIVO` impide iniciar sesión (ver App\Http\Requests\Auth\LoginRequest).
+     */
+    public const ESTADOS = ['ACTIVO', 'INACTIVO'];
 
     /**
      * Se agrega al array/JSON (compartido vía Inertia en `auth.user`) para
@@ -49,6 +54,23 @@ class User extends Authenticatable
     public function empleado(): HasOne
     {
         return $this->hasOne(Empleado::class);
+    }
+
+    /**
+     * Ficha de cliente vinculada a esta cuenta (solo si el usuario tiene
+     * acceso al portal, `cliente.user_id`).
+     */
+    public function cliente(): HasOne
+    {
+        return $this->hasOne(Cliente::class);
+    }
+
+    /**
+     * true si la cuenta puede iniciar sesión.
+     */
+    public function estaActivo(): bool
+    {
+        return $this->estado !== 'INACTIVO';
     }
 
     /**

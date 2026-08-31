@@ -24,6 +24,7 @@ class MaterialController extends Controller
             ->search($request->query('search'))
             ->categoria($request->query('categoria'))
             ->estado($request->query('estado'))
+            ->conStockBajo($request->boolean('stock_bajo'))
             ->orderBy('nombre')
             ->paginate(10)
             ->withQueryString();
@@ -31,7 +32,8 @@ class MaterialController extends Controller
         return inertia('Materiales/Index', [
             'materiales' => $materiales,
             'categoriasMaterial' => CategoriaMaterial::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
-            'filters' => $request->only(['search', 'categoria', 'estado']),
+            'stockBajoTotal' => Material::query()->estado('ACTIVO')->conStockBajo()->count(),
+            'filters' => $request->only(['search', 'categoria', 'estado', 'stock_bajo']),
             'pageTitle' => 'Materiales',
             'breadcrumbs' => ['Materiales e Insumos', 'Materiales'],
         ]);

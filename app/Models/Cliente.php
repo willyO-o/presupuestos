@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
+    'user_id',
     'tipo',
     'razon_social',
     'nit',
@@ -32,6 +35,22 @@ class Cliente extends Model
      * @var string
      */
     protected $table = 'cliente';
+
+    /**
+     * Cuenta de acceso al portal (opcional, `cliente.user_id`).
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Cotizaciones de este cliente (usado por el portal para scopear).
+     */
+    public function cotizaciones(): HasMany
+    {
+        return $this->hasMany(Cotizacion::class);
+    }
 
     /**
      * Filtra por coincidencia parcial en razón social, NIT o contacto. Sin

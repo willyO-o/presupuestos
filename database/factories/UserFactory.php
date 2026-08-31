@@ -42,4 +42,14 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Cuenta desactivada: no puede iniciar sesión.
+     */
+    public function inactivo(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'estado' => 'INACTIVO',
+        ]);
+    }
 }

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'codigo_verificacion',
@@ -83,6 +84,24 @@ class Cotizacion extends Model
     public function detalles(): HasMany
     {
         return $this->hasMany(CotizacionDetalle::class);
+    }
+
+    /**
+     * Pedido generado al convertir la cotización (1:1). Null hasta que un
+     * VENDEDOR/ADMIN la convierte (ver PedidoController::store), momento en
+     * que el estado pasa a CONVERTIDA.
+     */
+    public function pedido(): HasOne
+    {
+        return $this->hasOne(Pedido::class);
+    }
+
+    /**
+     * true si ya se puede convertir en pedido: aprobada y sin pedido previo.
+     */
+    public function esConvertible(): bool
+    {
+        return $this->estado === 'APROBADA' && $this->pedido()->doesntExist();
     }
 
     /**

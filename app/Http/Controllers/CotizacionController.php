@@ -95,6 +95,7 @@ class CotizacionController extends Controller
             'empleado',
             'sucursal',
             'detalles.producto:id,nombre,unidad_medida',
+            'pedido:id,cotizacion_id,numero_pedido',
         ]);
 
         return inertia('Cotizaciones/Show', [

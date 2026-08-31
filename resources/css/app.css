@@ -1942,3 +1942,230 @@
         box-shadow: none !important;
     }
 }
+
+/* ==========================================================================
+   23. COMPRAS (Pages/Compras)
+   --------------------------------------------------------------------------
+   Formulario de registro (líneas de material repetibles) y documento de
+   compra imprimible (Show.vue). Misma forma que Cotizaciones §22.
+   ========================================================================== */
+
+.compra-linea {
+    border-color: var(--border-subtle);
+    @apply mb-4 rounded-lg border p-4;
+}
+
+.compra-linea:last-child {
+    @apply mb-0;
+}
+
+.compra-linea-head {
+    @apply mb-3 flex items-center justify-between;
+}
+
+.compra-total-row {
+    color: var(--text-heading);
+    border-top: 2px solid var(--border-subtle);
+    @apply mt-1 flex items-center justify-between gap-3 pt-3 text-base font-bold;
+}
+
+.compra-doc-head {
+    border-color: var(--border-subtle);
+    @apply mb-5 flex flex-wrap items-start justify-between gap-3 border-b pb-4;
+}
+
+.compra-doc-meta {
+    @apply mb-5 grid gap-4 sm:grid-cols-2;
+}
+
+.compra-doc-totals {
+    @apply mt-4 ml-auto w-full max-w-sm;
+}
+
+.compra-doc-notes {
+    border-color: var(--border-subtle);
+    @apply mt-5 border-t pt-4;
+}
+
+@media print {
+
+    .app-shell .sidebar,
+    .app-shell .topbar,
+    .app-footer,
+    .page-title-box,
+    .compra-actions {
+        display: none !important;
+    }
+
+    .compra-doc {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* ==========================================================================
+   24. PEDIDOS / ÓRDENES DE TRABAJO (Pages/Pedidos)
+   --------------------------------------------------------------------------
+   Tablero de avance por etapa (Diseño → Elaboración → Acabado → Entrega),
+   bitácora de seguimiento y comparativa costo presupuestado vs. real.
+   ========================================================================== */
+
+.form-narrow {
+    max-width: 40rem;
+}
+
+.pedido-tracker {
+    @apply flex flex-wrap items-center gap-2;
+}
+
+.pedido-tracker-step {
+    color: var(--text-muted);
+    @apply flex items-center gap-2 text-xs;
+}
+
+.pedido-tracker-step:not(:last-child)::after {
+    content: '';
+    background: var(--border-subtle);
+    @apply h-px w-6;
+}
+
+.pedido-tracker-dot {
+    background: var(--border-subtle);
+    color: var(--text-muted);
+    @apply flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold;
+}
+
+.pedido-tracker-step.done {
+    color: var(--c-primary);
+}
+
+.pedido-tracker-step.done .pedido-tracker-dot {
+    background: var(--c-primary);
+    color: #fff;
+}
+
+.pedido-timeline {
+    border-left: 2px solid var(--border-subtle);
+    @apply flex flex-col gap-3 pl-4;
+}
+
+.pedido-timeline-item {
+    @apply flex flex-wrap items-center gap-2;
+}
+
+.pedido-consumo-lista {
+    color: var(--text-muted);
+    @apply m-0 list-disc pl-5 text-xs;
+}
+
+/* ==========================================================================
+   25. SEGURIDAD (Pages/Usuarios, Pages/Roles)
+   --------------------------------------------------------------------------
+   Matriz de permisos rol↔módulo (checkbox groups) de Roles/Edit.vue.
+   ========================================================================== */
+
+.rol-modulo {
+    border-color: var(--border-subtle);
+    @apply mb-3 rounded-lg border p-3;
+}
+
+.rol-modulo:last-child {
+    @apply mb-0;
+}
+
+.rol-permisos {
+    @apply grid gap-2 pl-6 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+/* ==========================================================================
+   26. REPORTES / BI (Pages/Reportes, Pages/Dashboard)
+   --------------------------------------------------------------------------
+   Barras de progreso, KPIs y leyenda para los gráficos inline-SVG
+   (Components/Chart/LineChart.vue). Sin librería de charting.
+   ========================================================================== */
+
+.reporte-progress {
+    background: var(--border-subtle);
+    @apply mt-1 h-2 w-full overflow-hidden rounded-full;
+}
+
+.reporte-progress-bar {
+    background: var(--c-primary);
+    @apply h-full rounded-full;
+}
+
+.reporte-progress-bar-info {
+    background: var(--c-info);
+}
+
+.reporte-kpi {
+    border-color: var(--border-subtle);
+    @apply flex flex-col items-center rounded-lg border p-3 text-center;
+}
+
+.reporte-kpi-value {
+    color: var(--text-heading);
+    @apply text-2xl font-bold;
+}
+
+.reporte-kpi-label {
+    color: var(--text-muted);
+    @apply text-xs uppercase;
+}
+
+.reporte-legend-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+}
+
+/* ==========================================================================
+   27. PORTAL DEL CLIENTE (Layouts/ClientePortalLayout, Pages/Portal, Pages/Verificar)
+   ========================================================================== */
+
+.portal-shell {
+    background: var(--page-bg);
+    color: var(--text-body);
+    @apply min-h-screen;
+}
+
+.portal-topbar {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.portal-topbar-inner {
+    @apply mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3;
+}
+
+.portal-logo {
+    @apply h-8 w-auto;
+}
+
+.portal-nav-link {
+    color: var(--text-body);
+    @apply text-sm font-medium;
+}
+
+.portal-nav-link:hover {
+    color: var(--c-primary);
+}
+
+.portal-content {
+    @apply mx-auto max-w-5xl px-4 py-8;
+}
+
+.verificar-shell {
+    background: var(--page-bg);
+    @apply flex min-h-screen items-center justify-center p-4;
+}
+
+.verificar-card {
+    @apply w-full max-w-lg;
+}
+
+.verificar-logo {
+    @apply mx-auto mb-3 h-10 w-auto;
+}
+
+.verificar-icon {
+    @apply text-5xl;
+}

@@ -18,6 +18,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    stockBajoTotal: {
+        type: Number,
+        default: 0,
+    },
     filters: {
         type: Object,
         default: () => ({}),
@@ -36,9 +40,10 @@ const table = useServerTable({
         search: props.filters.search ?? '',
         categoria: props.filters.categoria ?? '',
         estado: props.filters.estado ?? '',
+        stock_bajo: props.filters.stock_bajo ? '1' : '',
     },
     mode: 'manual',
-    only: ['materiales', 'filters'],
+    only: ['materiales', 'stockBajoTotal', 'filters'],
 });
 
 const headers = [
@@ -148,6 +153,18 @@ async function confirmDelete(material) {
 
     <Head title="Materiales" />
 
+    <div v-if="stockBajoTotal > 0 && !table.filters.stock_bajo"
+        class="bg-soft-warning rounded p-3 mb-4 d-flex align-items-center gap-2 flex-wrap">
+        <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+        <span class="fs-sm">
+            Hay <strong>{{ stockBajoTotal }}</strong> material(es) activo(s) con stock en o por debajo del mínimo.
+        </span>
+        <button type="button" class="btn btn-sm btn-soft-warning"
+            @click="table.filters.stock_bajo = '1'; table.search()">
+            Ver solo esos
+        </button>
+    </div>
+
     <!-- Filtros: búsqueda + categoría + estado, se aplican al enviar el formulario -->
     <div class="card mb-4">
         <div class="card-body">
@@ -185,6 +202,14 @@ async function confirmDelete(material) {
                     <button type="button" class="btn btn-soft-secondary" :disabled="table.loading" @click="table.reset">
                         Limpiar
                     </button>
+                </div>
+
+                <div class="col-12 mt-2">
+                    <label class="d-flex align-items-center gap-2 fs-sm">
+                        <input v-model="table.filters.stock_bajo" type="checkbox" true-value="1" false-value=""
+                            @change="table.search()" />
+                        Solo materiales con stock bajo
+                    </label>
                 </div>
             </form>
         </div>

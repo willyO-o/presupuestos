@@ -50,6 +50,17 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Una cuenta INACTIVA no puede operar el sistema (la desactiva un
+        // administrador desde el módulo Usuarios).
+        if (! Auth::user()->estaActivo()) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Esta cuenta está desactivada. Contacta a un administrador.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 
