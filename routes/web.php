@@ -7,6 +7,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\ClientePortalController;
 use App\Http\Controllers\CompraController;
 use App\Http\Controllers\CotizacionController;
+use App\Http\Controllers\CotizadorPublicoController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FormulaController;
 use App\Http\Controllers\MaterialController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\SeguimientoPostventaController;
 use App\Http\Controllers\SitioPublicoController;
+use App\Http\Controllers\SolicitudWebController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\TipoProyectoController;
 use App\Http\Controllers\UsuarioController;
@@ -35,6 +37,28 @@ Route::get('/', [SitioPublicoController::class, 'inicio'])->name('inicio');
 Route::get('/proyectos', [SitioPublicoController::class, 'proyectos'])->name('proyectos');
 Route::get('/sitemap.xml', [SitioPublicoController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SitioPublicoController::class, 'robots'])->name('robots');
+
+// Cotizador en linea (estimacion aproximada, sin login). Son los unicos
+// endpoints que aceptan trabajo de un visitante anonimo: cada uno lleva su
+// rate limiter, definidos en AppServiceProvider a partir de config/cotizador.
+Route::get('/cotizador', [CotizadorPublicoController::class, 'index'])->name('cotizador');
+Route::post('/cotizador/calcular', [CotizadorPublicoController::class, 'calcular'])
+    ->middleware('throttle:cotizador-calcular')
+    ->name('cotizador.calcular');
+Route::post('/cotizador', [CotizadorPublicoController::class, 'store'])
+    ->middleware('throttle:cotizador-guardar')
+    ->name('cotizador.store');
+// El codigo es la clave publica de la estimacion: se acota su forma para que
+// no entre cualquier cosa por la URL. El documento imprimible va ANTES de
+// `/cotizador/{codigo}` para que "documento" no se tome como parte del codigo.
+Route::get('/cotizador/{codigo}/documento', [CotizadorPublicoController::class, 'documento'])
+    ->where('codigo', 'WEB-[0-9]{8}-[A-Za-z0-9]{5}')
+    ->middleware('throttle:cotizador-descargar')
+    ->name('cotizador.documento');
+Route::get('/cotizador/{codigo}', [CotizadorPublicoController::class, 'show'])
+    ->where('codigo', 'WEB-[0-9]{8}-[A-Za-z0-9]{5}')
+    ->middleware('throttle:cotizador-consultar')
+    ->name('cotizador.show');
 
 Route::get('/dashboard', [ReporteController::class, 'dashboard'])
     ->middleware(['auth', 'verified'])
@@ -289,6 +313,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/cotizaciones/{cotizacion}/rechazar', [CotizacionController::class, 'rechazar'])
         ->middleware('can:cotizaciones.aprobar')
         ->name('cotizaciones.rechazar');
+
+    // --- Solicitudes que llegan por el cotizador publico ---
+    Route::get('/solicitudes-web', [SolicitudWebController::class, 'index'])
+        ->middleware('can:solicitudes-web.ver')
+        ->name('solicitudes-web.index');
+    Route::put('/solicitudes-web/{solicitudWeb}/estado', [SolicitudWebController::class, 'actualizarEstado'])
+        ->middleware('can:solicitudes-web.gestionar')
+        ->name('solicitudes-web.estado');
 
     // --- Pedidos / órdenes de trabajo ---
     Route::get('/pedidos', [PedidoController::class, 'index'])

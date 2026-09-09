@@ -36,6 +36,12 @@ class UpdateProductoRequest extends FormRequest
             'unidad_medida' => ['required', Rule::in(Producto::UNIDADES_MEDIDA)],
             'precio_base' => ['nullable', 'numeric', 'min:0'],
             'requiere_medidas' => ['required', Rule::in(['SI', 'NO'])],
+            // Lista blanca del cotizador publico (ver la migracion
+            // add_cotizable_web_to_producto_table). `sometimes` y no
+            // `required`: publicar un producto es una decision explicita, y
+            // omitir el campo tiene que significar "no publicado", no un error
+            // de validacion.
+            'cotizable_web' => ['sometimes', Rule::in(['SI', 'NO'])],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],
         ];
     }

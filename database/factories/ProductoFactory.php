@@ -25,6 +25,10 @@ class ProductoFactory extends Factory
             'unidad_medida' => fake()->randomElement(Producto::UNIDADES_MEDIDA),
             'precio_base' => fake()->randomFloat(2, 20, 500),
             'requiere_medidas' => 'SI',
+            // Fuera del cotizador público por defecto: publicar un producto es
+            // una decisión explícita, no algo que pase por descuido en un
+            // seeder de volumen (ver la migración add_cotizable_web_to_producto_table).
+            'cotizable_web' => 'NO',
             'estado' => 'ACTIVO',
         ];
     }
@@ -36,6 +40,19 @@ class ProductoFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'requiere_medidas' => 'NO',
+        ]);
+    }
+
+    /**
+     * Producto ofrecido en el cotizador público. Para que realmente aparezca
+     * necesita además al menos una línea de receta: encadená
+     * `->has(ProductoMaterial::factory())` o usá ProductoMaterialSeeder.
+     */
+    public function cotizableWeb(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'cotizable_web' => 'SI',
+            'estado' => 'ACTIVO',
         ]);
     }
 

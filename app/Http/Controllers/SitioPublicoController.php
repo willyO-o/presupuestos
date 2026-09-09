@@ -96,6 +96,10 @@ class SitioPublicoController extends Controller
                 'urls' => [
                     ['loc' => route('inicio'), 'prioridad' => '1.0', 'frecuencia' => 'weekly'],
                     ['loc' => route('proyectos'), 'prioridad' => '0.9', 'frecuencia' => 'monthly'],
+                    // El formulario del cotizador, no las estimaciones que
+                    // genera: esas son de una sola persona y van bloqueadas
+                    // en robots.txt.
+                    ['loc' => route('cotizador'), 'prioridad' => '0.9', 'frecuencia' => 'monthly'],
                 ],
                 'actualizado' => $actualizado,
             ])
@@ -122,6 +126,10 @@ class SitioPublicoController extends Controller
                 'Disallow: /portal/',
                 'Disallow: /login',
                 'Disallow: /verificar/',
+                // `/cotizador` sí se indexa; lo que se bloquea son las
+                // estimaciones ya emitidas, que llevan el contacto y el
+                // presupuesto de una persona concreta.
+                'Disallow: /cotizador/',
                 '',
                 'Sitemap: '.route('sitemap'),
             ]

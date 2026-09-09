@@ -20,6 +20,12 @@ export default {
     content: [
         './resources/views/publico/**/*.blade.php',
         './resources/views/components/publico/**/*.blade.php',
+        // Las paginas de error usan el mismo layout publico.
+        './resources/views/errors/**/*.blade.php',
+        // El cotizador agrega clases desde JavaScript (las lineas clonadas y
+        // las filas del panel de resultado): sin este glob, Tailwind no las ve
+        // al escanear y las purga del bundle.
+        './resources/js/publico.js',
     ],
 
     theme: {

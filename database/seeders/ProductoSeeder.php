@@ -19,28 +19,35 @@ class ProductoSeeder extends Seeder
      * son el caso que motivó la conversación sobre un motor de fórmulas
      * (ver .ai/rules/migrations.md) — su cálculo real se resuelve cuando
      * se construya el módulo de Cotización, no en este seeder.
+     *
+     * `web` marca la lista blanca del cotizador público (`/cotizador`). Solo
+     * están los que ProductoMaterialSeeder deja con receta Y cuyas fórmulas
+     * se resuelven con ancho y alto, que es lo único que pide el formulario
+     * público. "Letras corpóreas 3D iluminadas" queda fuera aunque tenga
+     * receta: una de sus líneas usa `profundo` y el cotizador no pregunta la
+     * profundidad — se cotiza hablando con un vendedor.
      */
     public function run(): void
     {
         $porCategoria = [
             'Bastidores' => [
-                ['nombre' => 'Bastidor lona PVC 1440dpi', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
+                ['nombre' => 'Bastidor lona PVC 1440dpi', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
                 ['nombre' => 'Bastidor backlight retroiluminado', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
             ],
             'Banners' => [
-                ['nombre' => 'Banner lona frontlight', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
+                ['nombre' => 'Banner lona frontlight', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
                 ['nombre' => 'Banner roll-up 85x200cm', 'unidad_medida' => 'UNIDAD', 'precio_base' => 450.00, 'requiere_medidas' => 'NO'],
             ],
             'Gigantografías' => [
-                ['nombre' => 'Gigantografía frontlight', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
-                ['nombre' => 'Gigantografía backlight', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
+                ['nombre' => 'Gigantografía frontlight', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
+                ['nombre' => 'Gigantografía backlight', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
             ],
             'Vinyl Rotulado' => [
-                ['nombre' => 'Rotulado vinil adhesivo', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
+                ['nombre' => 'Rotulado vinil adhesivo', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
                 ['nombre' => 'Vinil microperforado (vision control)', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
             ],
             'Exhibidores' => [
-                ['nombre' => 'Exhibidor de piso MDF a medida', 'unidad_medida' => 'UNIDAD', 'precio_base' => null, 'requiere_medidas' => 'SI'],
+                ['nombre' => 'Exhibidor de piso MDF a medida', 'unidad_medida' => 'UNIDAD', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
                 ['nombre' => 'Isla promocional', 'unidad_medida' => 'UNIDAD', 'precio_base' => null, 'requiere_medidas' => 'SI'],
             ],
             'Material POP' => [
@@ -48,10 +55,10 @@ class ProductoSeeder extends Seeder
                 ['nombre' => 'Habladores/Stoppers', 'unidad_medida' => 'UNIDAD', 'precio_base' => 25.00, 'requiere_medidas' => 'NO'],
             ],
             'Toldos' => [
-                ['nombre' => 'Toldo publicitario lona', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
+                ['nombre' => 'Toldo publicitario lona', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
             ],
             'Letreros Luminosos' => [
-                ['nombre' => 'Letrero luminoso caja de luz', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI'],
+                ['nombre' => 'Letrero luminoso caja de luz', 'unidad_medida' => 'M2', 'precio_base' => null, 'requiere_medidas' => 'SI', 'web' => true],
                 ['nombre' => 'Letras corpóreas 3D iluminadas', 'unidad_medida' => 'UNIDAD', 'precio_base' => null, 'requiere_medidas' => 'SI'],
             ],
             'Rotulado Vehicular' => [
@@ -71,6 +78,7 @@ class ProductoSeeder extends Seeder
                         'unidad_medida' => $producto['unidad_medida'],
                         'precio_base' => $producto['precio_base'],
                         'requiere_medidas' => $producto['requiere_medidas'],
+                        'cotizable_web' => ($producto['web'] ?? false) ? 'SI' : 'NO',
                         'estado' => 'ACTIVO',
                     ],
                 );

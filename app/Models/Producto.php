@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'unidad_medida',
     'precio_base',
     'requiere_medidas',
+    'cotizable_web',
     'estado',
 ])]
 
@@ -53,6 +54,22 @@ class Producto extends Model
     public function productoMateriales(): HasMany
     {
         return $this->hasMany(ProductoMaterial::class);
+    }
+
+    /**
+     * Productos ofrecidos en el cotizador público (`/cotizador`): lista
+     * blanca explícita (`cotizable_web`), activos y —lo importante— CON
+     * receta cargada. Sin BOM el costo daría 0 y el motor devolvería un
+     * precio de cero: publicar eso sería peor que no publicar nada.
+     *
+     * Ver App\Services\Cotizador\CotizadorPublicoService.
+     */
+    #[Scope]
+    protected function cotizableWeb(Builder $query): void
+    {
+        $query->where('cotizable_web', 'SI')
+            ->where('estado', 'ACTIVO')
+            ->whereHas('productoMateriales');
     }
 
     /**

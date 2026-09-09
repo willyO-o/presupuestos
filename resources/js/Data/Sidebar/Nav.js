@@ -51,6 +51,7 @@ export const NAV_MENU = [
         menutitle: 'Ventas',
         permission: [
             'cotizaciones.ver',
+            'solicitudes-web.ver',
             'pedidos.ver',
             'ordenes-compra-cliente.ver',
             'notas-entrega.ver',
@@ -64,6 +65,15 @@ export const NAV_MENU = [
         type: 'link',
         path: '/cotizaciones',
         permission: 'cotizaciones.ver',
+    },
+    {
+        // Bandeja del cotizador publico (/cotizador). Va justo despues de
+        // Cotizaciones porque es donde entra el trabajo que llega por el sitio.
+        title: 'Solicitudes Web',
+        icon: 'fa-solid fa-globe',
+        type: 'link',
+        path: '/solicitudes-web',
+        permission: 'solicitudes-web.ver',
     },
     {
         title: 'Pedidos',

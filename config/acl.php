@@ -171,6 +171,19 @@ return [
             ],
         ],
 
+        // Bandeja de las estimaciones que llegan por el cotizador público
+        // (`/cotizador`, tabla `cotizacion_publica`). Es un permiso aparte de
+        // `cotizaciones.*` porque son cosas distintas: esto son interesados
+        // sin verificar que llegaron por el sitio, no presupuestos que la
+        // empresa emitió.
+        'solicitudes-web' => [
+            'label' => 'Solicitudes del sitio web',
+            'permissions' => [
+                'solicitudes-web.ver' => 'Ver solicitudes del cotizador público',
+                'solicitudes-web.gestionar' => 'Marcar solicitudes como contactadas o descartadas',
+            ],
+        ],
+
         // --- Pedidos / órdenes de trabajo ---
         'pedidos' => [
             'label' => 'Pedidos',
@@ -295,6 +308,7 @@ return [
                 'formulas.ver', 'formulas.crear', 'formulas.editar', 'formulas.eliminar',
                 'tipos-proyecto.ver', 'tipos-proyecto.crear', 'tipos-proyecto.editar', 'tipos-proyecto.eliminar',
                 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.aprobar', 'cotizaciones.eliminar',
+                'solicitudes-web.ver', 'solicitudes-web.gestionar',
                 'pedidos.ver', 'pedidos.crear', 'pedidos.asignar_area', 'pedidos.actualizar_estado', 'pedidos.ver_todas_sucursales',
                 'ordenes-compra-cliente.ver', 'ordenes-compra-cliente.crear', 'ordenes-compra-cliente.validar',
                 'notas-entrega.ver', 'notas-entrega.crear',
@@ -316,6 +330,8 @@ return [
                 'productos.ver',
                 'tipos-proyecto.ver',
                 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar',
+                // El vendedor es quien atiende lo que llega por el sitio.
+                'solicitudes-web.ver', 'solicitudes-web.gestionar',
                 'pedidos.ver', 'pedidos.crear',
                 'ordenes-compra-cliente.ver', 'ordenes-compra-cliente.crear',
                 'seguimientos-postventa.ver', 'seguimientos-postventa.registrar',
@@ -373,6 +389,7 @@ return [
                 'sucursales.ver',
                 'clientes.ver', 'clientes.crear',
                 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar',
+                'solicitudes-web.ver', 'solicitudes-web.gestionar',
                 'pedidos.ver', 'pedidos.crear',
                 'ordenes-compra-cliente.ver', 'ordenes-compra-cliente.crear',
             ],

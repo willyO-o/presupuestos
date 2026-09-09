@@ -15,6 +15,7 @@
         ['url' => route('inicio').'#que-hacemos', 'texto' => '¿Qué hacemos?', 'activo' => false],
         ['url' => route('inicio').'#como-lo-hacemos', 'texto' => '¿Cómo lo hacemos?', 'activo' => false],
         ['url' => route('proyectos'), 'texto' => 'Proyectos', 'activo' => request()->routeIs('proyectos')],
+        ['url' => route('cotizador'), 'texto' => 'Cotizador', 'activo' => request()->routeIs('cotizador*')],
         ['url' => route('inicio').'#contacto', 'texto' => 'Contáctanos', 'activo' => false],
     ];
 @endphp
@@ -32,7 +33,7 @@
             >
         </a>
 
-        <nav class="hidden items-center gap-6 text-xs font-semibold uppercase tracking-wide text-slate-600 md:flex lg:text-sm" aria-label="Navegación principal">
+        <nav class="hidden items-center gap-6 text-xs font-semibold uppercase tracking-wide text-slate-600 lg:flex lg:text-sm" aria-label="Navegación principal">
             @foreach ($enlaces as $enlace)
                 <a
                     href="{{ $enlace['url'] }}"
@@ -50,7 +51,7 @@
             >Acceder</a>
         </nav>
 
-        <details class="group relative md:hidden">
+        <details class="group relative lg:hidden">
             <summary
                 class="flex cursor-pointer list-none items-center rounded-lg p-2 text-slate-700 marker:content-none hover:text-marca-azul"
                 aria-label="Abrir menú de navegación"

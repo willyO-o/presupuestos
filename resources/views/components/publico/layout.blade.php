@@ -14,6 +14,12 @@
                   que /proyectos?categoria=x no compita con /proyectos.
     - imagen      Ruta pública de la imagen de Open Graph (1200x630 idealmente).
     - datos       Array asociativo que se serializa como JSON-LD schema.org.
+    - indexable   false en páginas que no son contenido público (una
+                  estimación con el contacto de una persona, un error): sale
+                  `noindex` aunque el sitio esté en producción.
+    - conJs       true solo en el cotizador. El resto del sitio público no
+                  carga ni un byte de JavaScript, y así debe seguir: es la
+                  mitad de la razón por la que estas páginas son Blade.
 --}}
 @props([
     'titulo',
@@ -21,6 +27,8 @@
     'canonical' => null,
     'imagen' => 'img/publico/banner-ejecucion.jpg',
     'datos' => null,
+    'indexable' => true,
+    'conJs' => false,
 ])
 
 @php
@@ -31,7 +39,7 @@
     // Fuera de produccion se pide explicitamente no indexar: un staging
     // indexado compite con el sitio real por las mismas busquedas y cuesta
     // mucho sacarlo despues (ver SitioPublicoController::robots).
-    $robots = app()->isProduction()
+    $robots = ($indexable && app()->isProduction())
         ? 'index, follow, max-image-preview:large'
         : 'noindex, nofollow';
 @endphp
@@ -74,7 +82,9 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=montserrat:600,700,800|roboto:300,400,500,700&display=swap">
 
-    @vite('resources/css/publico.css')
+    {{-- Una sola llamada a @vite con las entradas que la página necesita: dos
+         llamadas separadas inyectan el cliente de HMR dos veces en desarrollo. --}}
+    @vite($conJs ? ['resources/css/publico.css', 'resources/js/publico.js'] : 'resources/css/publico.css')
 
     @if ($datos)
         <script type="application/ld+json">

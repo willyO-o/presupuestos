@@ -85,5 +85,34 @@
         @case('play')
             <path d="M8 5v14l11-7z" />
             @break
+
+        @case('calculadora')
+            <path d="M9 7h6m-6 4h.01M12 11h.01M15 11h.01M9 15h.01M12 15h.01M15 15h.01M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+            @break
+
+        @case('mas')
+            <path d="M12 5v14M5 12h14" />
+            @break
+
+        @case('quitar')
+            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16M10 7V4a1 1 0 011-1h2a1 1 0 011 1v3" />
+            @break
+
+        @case('check')
+            <path d="M5 13l4 4L19 7" />
+            @break
+
+        @case('alerta')
+            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            @break
+
+        @case('documento')
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            @break
+
+        @case('regla')
+            <path d="M3 9l6-6 12 12-6 6L3 9z" />
+            <path d="M7 9l1.5 1.5M10 6l1.5 1.5M12 14l1.5 1.5M15 11l1.5 1.5" />
+            @break
     @endswitch
 </svg>

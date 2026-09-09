@@ -47,6 +47,7 @@ const headers = [
     { label: 'Unidad', key: 'unidad_medida', class: 'text-center', cellClass: 'text-center' },
     { label: 'Precio base', key: 'precio_base', class: 'text-end', cellClass: 'text-end' },
     { label: '¿Pide medidas?', key: 'requiere_medidas', class: 'text-center', cellClass: 'text-center' },
+    { label: 'Web', key: 'cotizable_web', class: 'text-center', cellClass: 'text-center' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
@@ -73,6 +74,7 @@ const form = useForm(() => ({
     unidad_medida: 'M2',
     precio_base: '',
     requiere_medidas: 'SI',
+    cotizable_web: 'NO',
     estado: 'ACTIVO',
 }));
 
@@ -92,6 +94,7 @@ function openEdit(producto) {
     form.unidad_medida = producto.unidad_medida;
     form.precio_base = producto.precio_base;
     form.requiere_medidas = producto.requiere_medidas;
+    form.cotizable_web = producto.cotizable_web;
     form.estado = producto.estado;
     showFormModal.value = true;
 }
@@ -213,6 +216,15 @@ async function confirmDelete(producto) {
                     </span>
                 </template>
 
+                <!-- Lista blanca del cotizador publico (/cotizador). Solo
+                     cuenta si el producto ademas tiene receta cargada: sin BOM
+                     no hay costo que calcular y el sitio no lo ofrece. -->
+                <template #cell-cotizable_web="{ item }">
+                    <span class="badge" :class="item.cotizable_web === 'SI' ? 'badge-soft-primary' : 'badge-soft-secondary'">
+                        {{ item.cotizable_web === 'SI' ? 'Publicado' : 'No' }}
+                    </span>
+                </template>
+
                 <template #cell-estado="{ item }">
                     <span class="badge" :class="item.estado === 'ACTIVO'
                             ? 'badge-soft-success'
@@ -326,12 +338,33 @@ async function confirmDelete(producto) {
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="estado">Estado</label>
-                    <select id="estado" v-model="form.estado" class="form-control">
-                        <option value="ACTIVO">Activo</option>
-                        <option value="INACTIVO">Inactivo</option>
-                    </select>
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="cotizable_web">¿Se ofrece en el cotizador web?</label>
+                            <select id="cotizable_web" v-model="form.cotizable_web" class="form-control">
+                                <option value="NO">No</option>
+                                <option value="SI">Sí, publicarlo</option>
+                            </select>
+                            <p v-if="form.errors.cotizable_web" class="form-error">
+                                {{ form.errors.cotizable_web }}
+                            </p>
+                            <p class="fs-sm text-muted mt-1">
+                                Aparece en /cotizador solo si además tiene receta (BOM) cargada:
+                                sin receta no hay costo que calcular.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="form-group">
+                            <label class="form-label" for="estado">Estado</label>
+                            <select id="estado" v-model="form.estado" class="form-control">
+                                <option value="ACTIVO">Activo</option>
+                                <option value="INACTIVO">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -218,3 +218,60 @@ test('super-admin bypasses individual permissions', function () {
         ->get(route('productos.index'))
         ->assertOk();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Lista blanca del cotizador público
+|--------------------------------------------------------------------------
+*/
+
+test('un producto nace fuera del cotizador publico si no se dice lo contrario', function () {
+    // Publicar un producto en el sitio le da precio a la vista de cualquiera,
+    // competencia incluida: tiene que ser una decisión explícita y no algo que
+    // pase por omitir un campo (ver add_cotizable_web_to_producto_table).
+    $categoria = CategoriaProducto::factory()->create();
+    $user = userWithProductoPermissions('productos.ver', 'productos.crear');
+
+    $this->actingAs($user)->post(route('productos.store'), [
+        'categoria_producto_id' => $categoria->id,
+        'nombre' => 'Producto recien creado',
+        'unidad_medida' => 'M2',
+        'requiere_medidas' => 'SI',
+        'estado' => 'ACTIVO',
+    ])->assertRedirect(route('productos.index'));
+
+    $this->assertDatabaseHas('producto', [
+        'nombre' => 'Producto recien creado',
+        'cotizable_web' => 'NO',
+    ]);
+});
+
+test('se puede publicar un producto en el cotizador desde el CRUD', function () {
+    $producto = Producto::factory()->create(['cotizable_web' => 'NO']);
+    $user = userWithProductoPermissions('productos.ver', 'productos.editar');
+
+    $this->actingAs($user)->put(route('productos.update', $producto), [
+        'categoria_producto_id' => $producto->categoria_producto_id,
+        'nombre' => $producto->nombre,
+        'unidad_medida' => $producto->unidad_medida,
+        'requiere_medidas' => $producto->requiere_medidas,
+        'cotizable_web' => 'SI',
+        'estado' => 'ACTIVO',
+    ])->assertRedirect(route('productos.index'));
+
+    expect($producto->fresh()->cotizable_web)->toBe('SI');
+});
+
+test('no se acepta cualquier valor en la bandera del cotizador', function () {
+    $producto = Producto::factory()->create();
+    $user = userWithProductoPermissions('productos.ver', 'productos.editar');
+
+    $this->actingAs($user)->put(route('productos.update', $producto), [
+        'categoria_producto_id' => $producto->categoria_producto_id,
+        'nombre' => $producto->nombre,
+        'unidad_medida' => $producto->unidad_medida,
+        'requiere_medidas' => $producto->requiere_medidas,
+        'cotizable_web' => 'TALVEZ',
+        'estado' => 'ACTIVO',
+    ])->assertSessionHasErrors('cotizable_web');
+});
