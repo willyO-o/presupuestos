@@ -337,8 +337,8 @@ async function eliminar() {
                 <div v-if="Number(cotizacion.descuento) > 0" class="cotizacion-total-row">
                     <span>Descuento</span><span>− {{ money(cotizacion.descuento) }}</span>
                 </div>
-                <div v-if="Number(cotizacion.impuesto) > 0" class="cotizacion-total-row">
-                    <span>IVA</span><span>{{ money(cotizacion.impuesto) }}</span>
+                <div v-if="Number(cotizacion.iva) > 0" class="cotizacion-total-row">
+                    <span>IVA</span><span>{{ money(cotizacion.iva) }}</span>
                 </div>
                 <div v-if="Number(cotizacion.instalacion) > 0" class="cotizacion-total-row">
                     <span>Instalación</span><span>{{ money(cotizacion.instalacion) }}</span>

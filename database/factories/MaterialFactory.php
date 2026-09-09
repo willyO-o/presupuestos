@@ -24,7 +24,7 @@ class MaterialFactory extends Factory
             'categoria_material_id' => CategoriaMaterial::factory(),
             'nombre' => fake()->unique()->words(3, true),
             'presentacion' => fake()->randomElement(['Rollo 3,20x50m', 'Plancha 2x1m', 'Litro', 'Barra 6m']),
-            'unidad_medida' => fake()->randomElement(['M2', 'METRO', 'UNIDAD', 'LITRO']),
+            'unidad_medida' => fake()->randomElement(Material::UNIDADES_MEDIDA),
             'precio_presentacion' => $precioPresentacion,
             'precio_unitario' => round($precioPresentacion / fake()->randomFloat(2, 1, 50), 2),
             'stock_actual' => fake()->randomFloat(2, 0, 200),

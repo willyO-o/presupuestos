@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Material;
 
+use App\Models\Material;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,7 +33,7 @@ class StoreMaterialRequest extends FormRequest
             'categoria_material_id' => ['required', 'integer', Rule::exists('categoria_material', 'id')],
             'nombre' => ['required', 'string', 'max:255'],
             'presentacion' => ['required', 'string', 'max:255'],
-            'unidad_medida' => ['required', Rule::in(['M2', 'METRO', 'UNIDAD', 'LITRO'])],
+            'unidad_medida' => ['required', Rule::in(Material::UNIDADES_MEDIDA)],
             'precio_presentacion' => ['required', 'numeric', 'min:0'],
             'precio_unitario' => ['required', 'numeric', 'min:0'],
             'stock_actual' => ['required', 'numeric', 'min:0'],

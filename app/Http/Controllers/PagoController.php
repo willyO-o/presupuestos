@@ -14,8 +14,12 @@ class PagoController extends Controller
     public function index(Request $request): Response
     {
         $pagos = Pago::query()
-            ->with('pedido:id,numero_pedido,total')
-            ->estado($request->query('estado'))
+            // `withSum` deja el cobrado acumulado del pedido en la fila, para
+            // que la tabla muestre su estado de cobranza sin N+1.
+            ->with(['pedido' => fn ($pedido) => $pedido
+                ->select('id', 'numero_pedido', 'total')
+                ->withSum('pagos as total_cobrado', 'monto')])
+            ->estadoCobranza($request->query('estado'))
             ->metodo($request->query('metodo'))
             ->orderByDesc('fecha_pago')
             ->orderByDesc('id')
@@ -32,7 +36,7 @@ class PagoController extends Controller
                 'por_cobrar' => round(max($totalPedidos - $totalCobrado, 0), 2),
             ],
             'metodos' => Pago::METODOS,
-            'estados' => Pago::ESTADOS,
+            'estados' => Pago::ESTADOS_COBRANZA,
             'filters' => $request->only(['estado', 'metodo']),
             'pageTitle' => 'Pagos',
             'breadcrumbs' => ['Ventas', 'Pagos'],
@@ -46,15 +50,10 @@ class PagoController extends Controller
 
         $monto = round((float) $datos['monto'], 2);
 
-        // Estado del pago = saldo del pedido DESPUÉS de este pago.
-        $totalTrasPago = $pedido->totalPagado() + $monto;
-        $estado = $totalTrasPago >= (float) $pedido->total ? 'PAGADO' : 'PARCIAL';
-
         $pedido->pagos()->create([
             'monto' => $monto,
             'fecha_pago' => $datos['fecha_pago'],
             'metodo_pago' => $datos['metodo_pago'],
-            'estado' => $estado,
             'comprobante_url' => $request->hasFile('comprobante')
                 ? $request->file('comprobante')->store('comprobantes-pago', 'public')
                 : null,

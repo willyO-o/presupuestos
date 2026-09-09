@@ -33,6 +33,13 @@ class Producto extends Model
      */
     protected $table = 'producto';
 
+    /**
+     * Subconjunto del vocabulario canónico (Material::UNIDADES_MEDIDA) que
+     * tiene sentido para vender: un producto no se cotiza por litro.
+     * `CosteoProductoService::driver()` depende de estos valores.
+     */
+    public const UNIDADES_MEDIDA = ['M2', 'METRO_LINEAL', 'UNIDAD'];
+
     public function categoriaProducto(): BelongsTo
     {
         return $this->belongsTo(CategoriaProducto::class);

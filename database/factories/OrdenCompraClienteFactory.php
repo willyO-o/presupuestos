@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\Cliente;
 use App\Models\OrdenCompraCliente;
 use App\Models\Pedido;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -19,7 +18,6 @@ class OrdenCompraClienteFactory extends Factory
     {
         return [
             'pedido_id' => Pedido::factory(),
-            'cliente_id' => Cliente::factory(),
             'numero_oc' => fake()->unique()->numerify('OC-########'),
             'fecha' => fake()->dateTimeBetween('-2 months', 'now')->format('Y-m-d'),
             'monto_total' => fake()->randomFloat(2, 300, 15000),

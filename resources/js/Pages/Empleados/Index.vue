@@ -26,6 +26,12 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    // Cargos válidos: los roles del negocio de config/acl.php (ver
+    // Empleado::cargos()), no una lista escrita a mano en el frontend.
+    cargos: {
+        type: Array,
+        default: () => [],
+    },
     filters: {
         type: Object,
         default: () => ({}),
@@ -364,8 +370,11 @@ async function confirmDelete(empleado) {
                     <div class="col-lg-4">
                         <div class="form-group">
                             <label class="form-label" for="cargo">Cargo</label>
-                            <input id="cargo" v-model="form.cargo" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.cargo }" placeholder="Diseñador Gráfico..." required />
+                            <select id="cargo" v-model="form.cargo" class="form-control"
+                                :class="{ 'is-invalid': form.errors.cargo }" required>
+                                <option value="" disabled>Selecciona un cargo</option>
+                                <option v-for="c in cargos" :key="c" :value="c">{{ c }}</option>
+                            </select>
                             <p v-if="form.errors.cargo" class="form-error">
                                 {{ form.errors.cargo }}
                             </p>

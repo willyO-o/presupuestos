@@ -21,7 +21,7 @@ class StoreCotizacionRequest extends FormRequest
     }
 
     /**
-     * `codigo_verificacion`, `subtotal`, `impuesto` (IVA), `it`/`iue`/
+     * `codigo_verificacion`, `subtotal`, `iva`, `it`/`iue`/
      * `utilidad_real`, `estado_margen` y `total` NO se aceptan del cliente:
      * el controlador los deriva de los insumos de cada línea con el motor de
      * margen, para que ni el precio ni la rentabilidad dependan de lo que

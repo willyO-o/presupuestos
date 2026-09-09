@@ -262,13 +262,12 @@ class CotizacionSeeder extends Seeder
             'costo_ajustado' => $costoAjustado,
             'subtotal' => $subtotal,
             'descuento' => $descuento,
-            'impuesto' => $iva,
+            'iva' => $iva,
             'it' => round($resultado->it, 2),
             'iue' => round($resultado->iue, 2),
             'utilidad_real' => round($resultado->utilidadReal, 2),
             'instalacion' => $instalacion,
             'estado_margen' => $resultado->estado,
-            'recomendacion' => $resultado->recomendacion,
             'total' => round(max($subtotal - $descuento + $iva + $instalacion, 0), 2),
         ];
     }

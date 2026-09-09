@@ -56,3 +56,12 @@ Flujo en `normalizarDetalles()`: costo_base unitario = Σ items → `MotorMargen
 `calcularMontos()` agrega y vuelve a pasar por el motor: `impuesto` ES el IVA calculado (bandera `aplicar_iva`, default true) — ya NO es un monto libre del cliente; `descuento` baja la base imponible y por eso empuja el semáforo; `total` = subtotal − descuento + IVA + instalación. `estado_margen`/`recomendacion`/`it`/`iue`/`utilidad_real` son cache, se sobreescriben en cada guardado.
 
 Endpoints JSON: `costear` (BOM → `insumos` listos para precargar la hoja + `motor`) y `simular` (motor sobre un costo escrito a mano). Registrar ambos ANTES de `cotizaciones/{cotizacion}`.
+
+## pedido_detalle guarda medidas REALES de producción (no es una copia muerta)
+`pedido_detalle` copia descripción/ancho/alto/cantidad de `cotizacion_detalle` además de guardar la FK. Eso NO es redundancia: desde 2026-09-09 esos campos son editables desde `PedidoController::actualizarMedidas` (ruta `PUT /pedidos/{pedido}/detalle/{detalle}/medidas`, permiso `pedidos.actualizar_estado`, botón "Ajustar medidas reales" en Pedidos/Show) — el taller mide la pieza terminada y la cotización queda intacta como documento histórico.
+
+Reglas: el precio NO se recalcula (lo acordado con el cliente no cambia porque la pieza salga distinta), por eso `pedido.total` sigue congelado desde la cotización. El ajuste se anota en la última etapa de `pedido_seguimiento` del ítem con su motivo. Bloqueado si el pedido está ENTREGADO o CANCELADO (`esCancelable()`).
+
+Antes de "simplificar" quitando esas columnas: leerlas de la cotización rompería el caso de uso. Tests en `PedidoControllerTest` ("production measurements can diverge…").
+
+Aparte: `Pedido::visiblePara()` falla cerrado (`whereRaw('1=0')`) si el usuario no tiene ficha de empleado — un usuario sin vincular ve CERO pedidos. `PedidoController::index` manda `sinFichaEmpleado` para explicarlo en pantalla, y `EmpleadoSeeder` vincula las cuentas sembradas. No cambiar el fallo cerrado por uno abierto.

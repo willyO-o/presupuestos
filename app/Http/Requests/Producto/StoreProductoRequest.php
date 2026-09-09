@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Producto;
 
+use App\Models\Producto;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,7 +33,7 @@ class StoreProductoRequest extends FormRequest
             'categoria_producto_id' => ['required', 'integer', Rule::exists('categoria_producto', 'id')],
             'nombre' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'unidad_medida' => ['required', Rule::in(['M2', 'UNIDAD', 'METRO_LINEAL'])],
+            'unidad_medida' => ['required', Rule::in(Producto::UNIDADES_MEDIDA)],
             'precio_base' => ['nullable', 'numeric', 'min:0'],
             'requiere_medidas' => ['required', Rule::in(['SI', 'NO'])],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],

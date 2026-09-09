@@ -26,10 +26,27 @@ const headers = [
     { label: 'Fecha', key: 'fecha_pago', class: 'text-center', cellClass: 'text-center' },
     { label: 'Método', key: 'metodo_pago', class: 'text-center', cellClass: 'text-center' },
     { label: 'Monto', key: 'monto', class: 'text-end', cellClass: 'text-end' },
-    { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
+    { label: 'Cobranza del pedido', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
 const estadoBadge = { PENDIENTE: 'badge-soft-warning', PARCIAL: 'badge-soft-info', PAGADO: 'badge-soft-success' };
+
+/**
+ * El estado de cobranza pertenece al PEDIDO, no al pago (por eso la columna
+ * `pago.estado` se eliminó del esquema). Se deriva de lo cobrado acumulado
+ * que trae el backend en `pedido.total_cobrado`.
+ */
+function estadoCobranza(pago) {
+    const total = Number(pago.pedido?.total ?? 0);
+    const cobrado = Number(pago.pedido?.total_cobrado ?? 0);
+
+    if (cobrado <= 0) return 'PENDIENTE';
+    return cobrado >= total ? 'PAGADO' : 'PARCIAL';
+}
+
+function saldo(pago) {
+    return Math.max(Number(pago.pedido?.total ?? 0) - Number(pago.pedido?.total_cobrado ?? 0), 0);
+}
 
 function money(value) {
     return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -107,7 +124,12 @@ function fecha(value) {
                 </template>
                 <template #cell-monto="{ item }">{{ money(item.monto) }}</template>
                 <template #cell-estado="{ item }">
-                    <span class="badge" :class="estadoBadge[item.estado] ?? 'badge-soft-secondary'">{{ item.estado }}</span>
+                    <span class="badge" :class="estadoBadge[estadoCobranza(item)] ?? 'badge-soft-secondary'">
+                        {{ estadoCobranza(item) }}
+                    </span>
+                    <span v-if="saldo(item) > 0" class="d-block fs-xs text-muted">
+                        Saldo {{ money(saldo(item)) }}
+                    </span>
                 </template>
             </DataTable>
         </div>

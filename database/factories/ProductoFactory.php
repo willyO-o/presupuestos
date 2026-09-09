@@ -22,7 +22,7 @@ class ProductoFactory extends Factory
             'categoria_producto_id' => CategoriaProducto::factory(),
             'nombre' => fake()->unique()->words(3, true),
             'descripcion' => fake()->sentence(),
-            'unidad_medida' => fake()->randomElement(['M2', 'UNIDAD', 'METRO_LINEAL']),
+            'unidad_medida' => fake()->randomElement(Producto::UNIDADES_MEDIDA),
             'precio_base' => fake()->randomFloat(2, 20, 500),
             'requiere_medidas' => 'SI',
             'estado' => 'ACTIVO',

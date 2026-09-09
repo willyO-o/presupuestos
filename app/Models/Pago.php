@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Storage;
     'monto',
     'fecha_pago',
     'metodo_pago',
-    'estado',
     'comprobante_url',
 ])]
 
@@ -36,10 +35,13 @@ class Pago extends Model
     public const METODOS = ['EFECTIVO', 'TRANSFERENCIA', 'QR', 'TARJETA', 'CHEQUE'];
 
     /**
-     * Estado del saldo del pedido AL momento de registrar este pago
-     * (PARCIAL mientras se debe, PAGADO cuando queda cubierto).
+     * Estados de COBRANZA por los que se puede filtrar el listado. No son
+     * un campo del pago: describen el saldo del pedido al que pertenece
+     * (ver `Pedido::estadoPago()`). La columna `pago.estado` se eliminó
+     * porque duplicaba ese derivado y quedaba desactualizada al corregir o
+     * anular un pago — ver la migración `drop_estado_from_pago_table`.
      */
-    public const ESTADOS = ['PENDIENTE', 'PAGADO', 'PARCIAL'];
+    public const ESTADOS_COBRANZA = ['PARCIAL', 'PAGADO'];
 
     /**
      * @var list<string>
@@ -70,12 +72,21 @@ class Pago extends Model
     }
 
     /**
-     * Filtra por estado exacto. Sin valor, no aplica filtro.
+     * Filtra los pagos según el estado de cobranza del PEDIDO al que
+     * pertenecen: PAGADO si lo cobrado cubre el total, PARCIAL si todavía
+     * hay saldo. Se resuelve con una subconsulta sobre la suma de pagos del
+     * pedido, que es el dato real, en vez de leer una columna cacheada.
      */
     #[Scope]
-    protected function estado(Builder $query, ?string $estado): void
+    protected function estadoCobranza(Builder $query, ?string $estado): void
     {
-        $query->when($estado, fn (Builder $query) => $query->where('estado', $estado));
+        $query->when($estado, function (Builder $query) use ($estado) {
+            $cobrado = '(select coalesce(sum(pago_saldo.monto), 0) from pago as pago_saldo where pago_saldo.pedido_id = pedido.id)';
+
+            $query->whereHas('pedido', fn (Builder $pedido) => $estado === 'PAGADO'
+                ? $pedido->whereRaw("{$cobrado} >= pedido.total")
+                : $pedido->whereRaw("{$cobrado} < pedido.total"));
+        });
     }
 
     /**

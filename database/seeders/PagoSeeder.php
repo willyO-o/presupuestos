@@ -34,14 +34,12 @@ class PagoSeeder extends Seeder
                     'monto' => $anticipo,
                     'fecha_pago' => $pedido->fecha_pedido->copy()->addDays(2)->toDateString(),
                     'metodo_pago' => $metodo,
-                    'estado' => 'PARCIAL',
                     'comprobante_url' => null,
                 ]);
                 $pedido->pagos()->create([
                     'monto' => round($total - $anticipo, 2),
                     'fecha_pago' => ($pedido->fecha_entrega_real ?? now())->toDateString(),
                     'metodo_pago' => $metodo,
-                    'estado' => 'PAGADO',
                     'comprobante_url' => null,
                 ]);
             } else {
@@ -49,7 +47,6 @@ class PagoSeeder extends Seeder
                     'monto' => round($total * fake()->randomFloat(2, 0.3, 0.6), 2),
                     'fecha_pago' => $pedido->fecha_pedido->copy()->addDays(3)->toDateString(),
                     'metodo_pago' => $metodo,
-                    'estado' => 'PARCIAL',
                     'comprobante_url' => null,
                 ]);
             }

@@ -11,6 +11,9 @@ const props = defineProps({
     sucursales: { type: Array, default: () => [] },
     estados: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
+    // true cuando el usuario no tiene ficha de empleado: el scoping por
+    // sucursal falla cerrado y el listado sale vacio aunque haya pedidos.
+    sinFichaEmpleado: { type: Boolean, default: false },
 });
 
 const table = useServerTable({
@@ -100,6 +103,15 @@ function fecha(value) {
         </div>
 
         <div class="card-body">
+            <!-- Sin ficha de empleado no hay sucursal que scopear y el listado
+                 sale vacío: se explica en vez de parecer que no hay pedidos. -->
+            <div v-if="sinFichaEmpleado" class="bg-soft-warning rounded-lg p-3 mb-3 fs-sm">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Tu usuario no está vinculado a una ficha de empleado, así que el sistema no sabe de qué
+                sucursal sos y no puede mostrarte pedidos. Pedí a un administrador que te vincule desde
+                <strong>Organización → Empleados</strong>.
+            </div>
+
             <DataTable :headers="headers" :items="pedidos.data" :paginator="pedidos" :loading="table.loading"
                 empty-text="No hay pedidos registrados." @page-change="table.changePage">
                 <template #cell-numero_pedido="{ item }">

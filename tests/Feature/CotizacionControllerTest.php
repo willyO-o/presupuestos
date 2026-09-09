@@ -107,7 +107,7 @@ test('storing a cotizacion computes totals on the server and ignores client amou
         // Estos campos NO deben influir en el total guardado:
         'subtotal' => 999999,
         'total' => 999999,
-        'impuesto' => 999999,
+        'iva' => 999999,
         'codigo_verificacion' => 'HACKEADO',
         'estado' => 'APROBADA',
         'detalles' => [
@@ -124,7 +124,7 @@ test('storing a cotizacion computes totals on the server and ignores client amou
     expect($cotizacion->estado)->toBe('PENDIENTE')
         ->and((float) $cotizacion->subtotal)->toBe(350.0)
         ->and((float) $cotizacion->descuento)->toBe(50.0)
-        ->and((float) $cotizacion->impuesto)->toBe(0.0)
+        ->and((float) $cotizacion->iva)->toBe(0.0)
         ->and((float) $cotizacion->total)->toBe(300.0)
         ->and($cotizacion->codigo_verificacion)->not->toBe('HACKEADO')
         ->and($cotizacion->detalles)->toHaveCount(2)
@@ -175,7 +175,7 @@ test('updating a pending cotizacion replaces its detalle', function () {
     // ya no es un monto que mande el navegador.
     expect($cotizacion->fresh()->detalles)->toHaveCount(1)
         ->and((float) $cotizacion->fresh()->subtotal)->toBe(200.0)
-        ->and((float) $cotizacion->fresh()->impuesto)->toBe(26.0)
+        ->and((float) $cotizacion->fresh()->iva)->toBe(26.0)
         ->and((float) $cotizacion->fresh()->total)->toBe(226.0);
 });
 
@@ -314,7 +314,7 @@ test('storing a cotizacion prices each line with the margin engine', function ()
         ->and((float) $detalle->margen_aplicado)->toBe(0.5)
         ->and($detalle->precio_manual)->toBe('NO')
         ->and($detalle->items)->toHaveCount(6)
-        ->and((float) $cotizacion->impuesto)->toBe(44.41)
+        ->and((float) $cotizacion->iva)->toBe(44.41)
         ->and((float) $cotizacion->total)->toBe(386.05)
         ->and((float) $cotizacion->utilidad_real)->toBe(77.72)
         ->and($cotizacion->estado_margen)->toBe('VERDE')
@@ -342,7 +342,7 @@ test('the installation amount is added after IVA and is not taxed', function () 
 
     expect((float) $cotizacion->instalacion)->toBe(100.0)
         // IVA sobre 341,64 (el precio), no sobre 441,64.
-        ->and((float) $cotizacion->impuesto)->toBe(44.41)
+        ->and((float) $cotizacion->iva)->toBe(44.41)
         ->and((float) $cotizacion->total)->toBe(486.05);
 });
 

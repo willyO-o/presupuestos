@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\CotizacionDetalle;
 use App\Models\CotizacionDetalleItem;
+use App\Models\Material;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -26,7 +27,7 @@ class CotizacionDetalleItemFactory extends Factory
             'material_id' => null,
             'tipo' => 'MATERIAL',
             'descripcion' => fake()->words(2, true),
-            'unidad' => fake()->randomElement(['M2', 'METRO', 'UNIDAD', 'KG']),
+            'unidad' => fake()->randomElement([...Material::UNIDADES_MEDIDA, 'HORA']),
             'cantidad' => $cantidad,
             'costo_unitario' => $costoUnitario,
             'subtotal' => round($cantidad * $costoUnitario, 4),

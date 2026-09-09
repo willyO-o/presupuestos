@@ -133,7 +133,7 @@ class ClientePortalController extends Controller
                 'estado' => 'PENDIENTE',
                 'subtotal' => 0,
                 'descuento' => 0,
-                'impuesto' => 0,
+                'iva' => 0,
                 'total' => 0,
                 'observaciones' => $datos['observaciones'] ?? null,
             ]);

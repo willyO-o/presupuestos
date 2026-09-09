@@ -54,12 +54,15 @@ function pasoIndex(estado) {
 const costoItem = (id) => props.costos.items.find((i) => i.pedido_detalle_id === id) ?? { estimado: null, real: 0 };
 
 /* ── Modales de acción por ítem ─────────────────────────────────────────── */
-const modal = ref(null); // 'area' | 'estado' | 'consumo'
+const modal = ref(null); // 'area' | 'estado' | 'consumo' | 'pago' | 'medidas'
 const detalleActivo = ref(null);
 
 const areaForm = useForm(() => ({ area_id: props.areas[0]?.id ?? '', empleado_id: props.empleados[0]?.id ?? '', etapa: 'DISENO', observaciones: '' }));
 const estadoForm = useForm(() => ({ estado_item: 'ELABORACION', observaciones: '' }));
 const consumoForm = useForm(() => ({ material_id: props.materiales[0]?.id ?? '', cantidad_usada: '', costo_real: '' }));
+// Medidas REALES de produccion: lo unico del pedido que puede diferir de la
+// cotizacion de origen (el precio acordado no cambia).
+const medidasForm = useForm(() => ({ descripcion: '', ancho: '', alto: '', cantidad: 1, motivo: '' }));
 const pagoForm = useForm(() => ({
     pedido_id: props.pedido.id,
     monto: props.cobranza.saldo || '',
@@ -75,11 +78,31 @@ function abrir(tipo, detalle) {
     if (tipo === 'estado') { estadoForm.clearErrors(); estadoForm.reset(); estadoForm.estado_item = detalle.estado_item; }
     if (tipo === 'consumo') { consumoForm.clearErrors(); consumoForm.reset(); }
     if (tipo === 'pago') { pagoForm.clearErrors(); pagoForm.reset(); }
+    if (tipo === 'medidas') {
+        medidasForm.clearErrors();
+        medidasForm.reset();
+        medidasForm.descripcion = detalle.descripcion;
+        medidasForm.ancho = detalle.ancho ?? '';
+        medidasForm.alto = detalle.alto ?? '';
+        medidasForm.cantidad = Number(detalle.cantidad);
+    }
 }
 
 function cerrar() {
     modal.value = null;
     detalleActivo.value = null;
+}
+
+function enviarMedidas() {
+    medidasForm.transform((data) => ({
+        ...data,
+        ancho: data.ancho === '' ? null : Number(data.ancho),
+        alto: data.alto === '' ? null : Number(data.alto),
+        cantidad: Number(data.cantidad),
+    })).put(route('pedidos.detalle.medidas', [props.pedido.id, detalleActivo.value.id]), {
+        preserveScroll: true,
+        onSuccess: cerrar,
+    });
 }
 
 function enviarArea() {
@@ -375,6 +398,11 @@ async function cancelarPedido() {
                     @click="abrir('consumo', detalle)">
                     <i class="fa-solid fa-boxes-packing"></i> Registrar consumo
                 </button>
+                <button v-can="'pedidos.actualizar_estado'" type="button" class="btn btn-sm btn-soft-warning"
+                    :disabled="!cancelable" title="Corregir lo que se esta fabricando realmente"
+                    @click="abrir('medidas', detalle)">
+                    <i class="fa-solid fa-ruler-combined"></i> Ajustar medidas reales
+                </button>
             </div>
 
             <!-- Bitácora de seguimiento -->
@@ -408,6 +436,7 @@ async function cancelarPedido() {
                 {{ modal === 'area' ? 'Asignar área'
                     : modal === 'estado' ? 'Avanzar estado del ítem'
                     : modal === 'pago' ? 'Registrar pago'
+                    : modal === 'medidas' ? 'Medidas reales de producción'
                     : 'Registrar consumo de material' }}
             </span>
             <button type="button" class="modal-close" aria-label="Cerrar" @click="cerrar">
@@ -415,7 +444,64 @@ async function cancelarPedido() {
             </button>
         </div>
 
-        <form v-if="modal === 'area'" @submit.prevent="enviarArea">
+        <form v-if="modal === 'medidas'" @submit.prevent="enviarMedidas">
+            <div class="card-body">
+                <p class="fs-sm text-muted mb-3">
+                    Lo que el taller está fabricando de verdad. La cotización no se toca: queda como
+                    documento histórico de lo que se le prometió al cliente, y el precio acordado no cambia.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Descripción</label>
+                    <input v-model="medidasForm.descripcion" type="text" class="form-control"
+                        :class="{ 'is-invalid': medidasForm.errors.descripcion }" required />
+                    <p v-if="medidasForm.errors.descripcion" class="form-error">
+                        {{ medidasForm.errors.descripcion }}
+                    </p>
+                </div>
+                <div class="row">
+                    <div class="col-4">
+                        <div class="form-group">
+                            <label class="form-label">Ancho (m)</label>
+                            <input v-model="medidasForm.ancho" v-decimal="2" type="text" inputmode="decimal"
+                                class="form-control" placeholder="0.00" />
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="form-group">
+                            <label class="form-label">Alto (m)</label>
+                            <input v-model="medidasForm.alto" v-decimal="2" type="text" inputmode="decimal"
+                                class="form-control" placeholder="0.00" />
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="form-group">
+                            <label class="form-label">Cantidad</label>
+                            <input v-model="medidasForm.cantidad" v-decimal="2" type="text" inputmode="decimal"
+                                class="form-control" :class="{ 'is-invalid': medidasForm.errors.cantidad }" required />
+                            <p v-if="medidasForm.errors.cantidad" class="form-error">
+                                {{ medidasForm.errors.cantidad }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Motivo del ajuste</label>
+                    <textarea v-model="medidasForm.motivo" class="form-control" rows="2"
+                        placeholder="El cliente amplió el frente, la pared medía distinto..."></textarea>
+                    <p class="fs-xs text-muted mt-1 mb-0">Queda anotado en la bitácora del ítem.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-soft-secondary" @click="cerrar">Cancelar</button>
+                <button type="submit" class="btn btn-primary" :disabled="medidasForm.processing">
+                    <i v-if="medidasForm.processing" class="fa-solid fa-spinner fa-spin"></i>
+                    <i v-else class="fa-solid fa-floppy-disk"></i>
+                    Guardar medidas
+                </button>
+            </div>
+        </form>
+
+        <form v-else-if="modal === 'area'" @submit.prevent="enviarArea">
             <div class="card-body">
                 <div class="form-group">
                     <label class="form-label">Área</label>

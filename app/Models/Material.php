@@ -38,6 +38,16 @@ class Material extends Model
     protected $table = 'material';
 
     /**
+     * Vocabulario CANÓNICO de unidades de medida del sistema. `Producto`
+     * usa un subconjunto de esta lista (ver Producto::UNIDADES_MEDIDA): antes
+     * cada tabla tenía su propia lista y METRO/METRO_LINEAL eran el mismo
+     * metro lineal con dos nombres, lo que rompía cualquier reporte que
+     * cruzara ambos catálogos. Ver la migración
+     * `unify_unidad_medida_on_material_table`.
+     */
+    public const UNIDADES_MEDIDA = ['M2', 'METRO_LINEAL', 'UNIDAD', 'LITRO'];
+
+    /**
      * Se agrega al array/JSON para que el listado pueda resaltar el material
      * sin repetir la comparación stock_actual/stock_minimo en cada pantalla.
      *

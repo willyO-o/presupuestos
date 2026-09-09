@@ -59,7 +59,7 @@ const headers = [
 
 const unidadesMedida = [
     { value: 'M2', label: 'm²' },
-    { value: 'METRO', label: 'Metro' },
+    { value: 'METRO_LINEAL', label: 'Metro lineal' },
     { value: 'UNIDAD', label: 'Unidad' },
     { value: 'LITRO', label: 'Litro' },
 ];

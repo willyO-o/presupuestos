@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\FormulaInvalidaException;
 use App\Http\Requests\Pedido\ActualizarEstadoRequest;
+use App\Http\Requests\Pedido\ActualizarMedidasRequest;
 use App\Http\Requests\Pedido\AsignarAreaRequest;
 use App\Http\Requests\Pedido\RegistrarConsumoRequest;
 use App\Http\Requests\Pedido\StorePedidoRequest;
@@ -51,6 +52,12 @@ class PedidoController extends Controller
 
         return inertia('Pedidos/Index', [
             'pedidos' => $pedidos,
+            // `visiblePara` falla cerrado: sin ficha de empleado no hay
+            // sucursal que scopear y el listado sale vacío. Se avisa en
+            // pantalla en vez de dejar creer que no hay pedidos.
+            'sinFichaEmpleado' => $request->user()->empleado === null
+                && ! $request->user()->hasRole('super-admin')
+                && ! $request->user()->can('pedidos.ver_todas_sucursales'),
             'sucursales' => Sucursal::query()->orderBy('nombre')->get(['id', 'nombre']),
             'estados' => Pedido::ESTADOS,
             'filters' => $request->only(['search', 'estado', 'sucursal', 'cliente']),
@@ -109,7 +116,7 @@ class PedidoController extends Controller
             'detalles.cotizacionDetalle.producto',
             'ordenCompra',
             'notasEntrega:id,pedido_id,numero_nota,fecha_entrega',
-            'pagos:id,pedido_id,monto,fecha_pago,metodo_pago,estado',
+            'pagos:id,pedido_id,monto,fecha_pago,metodo_pago',
             'seguimientoPostventa.empleado:id,nombres,paterno,materno',
         ]);
 
@@ -159,6 +166,78 @@ class PedidoController extends Controller
      * Avanza el `estado_item` de un ítem, cierra la etapa de seguimiento
      * abierta y recalcula el estado global del pedido.
      */
+    /**
+     * Corrige las medidas y la cantidad REALES con que se está fabricando el
+     * ítem.
+     *
+     * Es lo que justifica que `pedido_detalle` guarde copia de
+     * descripción/ancho/alto/cantidad en vez de leerlas de la cotización: el
+     * taller mide la pieza terminada y ese dato es el que necesita
+     * producción, mientras la cotización queda intacta como documento
+     * histórico de lo que se le prometió al cliente.
+     *
+     * El precio NO se recalcula: lo acordado con el cliente no cambia porque
+     * la pieza haya salido dos centímetros más grande. La diferencia queda
+     * anotada en la bitácora de seguimiento del ítem.
+     */
+    public function actualizarMedidas(ActualizarMedidasRequest $request, Pedido $pedido, PedidoDetalle $detalle): RedirectResponse
+    {
+        $this->assertPerteneceAlPedido($pedido, $detalle);
+
+        if (! $pedido->esCancelable()) {
+            return redirect()->route('pedidos.show', $pedido)
+                ->with('error', 'No se pueden ajustar las medidas de un pedido entregado o cancelado.');
+        }
+
+        $datos = $request->validated();
+        $anterior = $detalle->only(['descripcion', 'ancho', 'alto', 'cantidad']);
+
+        $detalle->update([
+            'descripcion' => $datos['descripcion'],
+            'ancho' => $datos['ancho'] ?? null,
+            'alto' => $datos['alto'] ?? null,
+            'cantidad' => $datos['cantidad'],
+        ]);
+
+        $this->registrarAjusteDeMedidas($detalle, $anterior, $datos['motivo'] ?? null);
+
+        return redirect()->route('pedidos.show', $pedido)
+            ->with('success', 'Medidas de producción actualizadas.');
+    }
+
+    /**
+     * Deja constancia del ajuste en la etapa de seguimiento abierta del ítem
+     * (o en la última cerrada), para que quede quién lo pidió y por qué.
+     *
+     * @param  array<string, mixed>  $anterior
+     */
+    private function registrarAjusteDeMedidas(PedidoDetalle $detalle, array $anterior, ?string $motivo): void
+    {
+        $seguimiento = $detalle->seguimientos()->latest('id')->first();
+
+        if ($seguimiento === null) {
+            return;
+        }
+
+        $nota = sprintf(
+            'Ajuste de medidas: %s (%s x %s, cant. %s) → %s (%s x %s, cant. %s).%s',
+            $anterior['descripcion'],
+            $anterior['ancho'] ?? '—',
+            $anterior['alto'] ?? '—',
+            $anterior['cantidad'],
+            $detalle->descripcion,
+            $detalle->ancho ?? '—',
+            $detalle->alto ?? '—',
+            $detalle->cantidad,
+            $motivo !== null ? " Motivo: {$motivo}" : '',
+        );
+
+        $seguimiento->update([
+            'observaciones' => trim(($seguimiento->observaciones ?? '').'
+'.$nota),
+        ]);
+    }
+
     public function actualizarEstado(ActualizarEstadoRequest $request, Pedido $pedido, PedidoDetalle $detalle): RedirectResponse
     {
         $this->assertPerteneceAlPedido($pedido, $detalle);

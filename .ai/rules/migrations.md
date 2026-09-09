@@ -76,3 +76,17 @@ Sigue sin existir un CRUD/UI para `formula`/`producto_material` (no se pidió) �
 
 ## `material.redondeo_compra` (2026-08-28): redondeo a unidad de compra
 Migración `2026_08_28_150839_add_redondeo_compra_to_material_table` — `decimal(10,4)` nullable. Es el múltiplo (en `material.unidad_medida`) al que `CosteoProductoService` redondea **hacia arriba** la cantidad total consumida por una línea de BOM: el material se compra en unidades enteras (plancha, barra de 6 m, galón) y el sobrante de un corte rara vez se reutiliza. `null` = cantidad exacta (rollo). Detalle en `.ai/rules/calculo.md` ("Redondeo a unidad de compra"). `schema.json` y `database-design.md` §6 actualizados.
+
+## Limpieza de redundancias del esquema (2026-09-09): qué se derivó y qué se conservó
+Auditoría del esquema y limpieza. NO reintroducir estas columnas:
+
+- `cotizacion.recomendacion` → eliminada. Es 1:1 con `estado_margen`; ahora es accesor del modelo (`$appends`), el mapa vive en `MotorMargenService::RECOMENDACIONES`.
+- `cotizacion.impuesto` → renombrada a `iva`. Con `it`/`iue` en la misma tabla, "impuesto" a secas era ambiguo.
+- `pago.estado` → eliminada. Describía el saldo del PEDIDO, no el pago, y su valor PENDIENTE era inalcanzable. Se filtra con el scope `Pago::estadoCobranza()` (subconsulta sobre la suma de pagos) y se lee con `Pedido::estadoPago()`.
+- `orden_compra_cliente.cliente_id` → eliminada. Se deriva de `pedido → cotizacion → cliente` (`OrdenCompraCliente::cliente()` + append `cliente_razon_social`). `monto_total` SÍ se conservó: es el importe del documento del cliente y puede diferir del pedido — `difiereDelPedido()` lo marca.
+- `material.unidad_medida` usaba METRO y `producto` METRO_LINEAL para lo mismo. Vocabulario canónico único: `Material::UNIDADES_MEDIDA`; `Producto::UNIDADES_MEDIDA` es subconjunto. No agregar unidades en un select del frontend.
+- `empleado.cargo` era texto libre que repetía los roles de Spatie. Ahora se valida contra `Empleado::cargos()`, derivado de `config('acl.roles')` (sin super-admin ni cliente).
+
+Trampa al cambiar un ENUM en MariaDB: ensanchar el ENUM para que acepte los dos valores, DESPUÉS migrar los datos y recién ahí recortarlo. Al revés falla con "Data truncated". Y usar `->change()` con `enum`, nunca SQL crudo: los tests corren en SQLite.
+
+Índices: se agregaron los de filtro/orden que faltaban (`cotizacion_estado_fecha_index`, `pedido_estado_fecha_index`, `compra_estado_fecha_index`, `pago_fecha_pago_index`, `material`/`producto` estado+nombre). Antes solo existían PK/FK/unique y todo listado hacía full scan. Tests: `tests/Feature/EsquemaCoherenteTest.php` fija todas estas decisiones.

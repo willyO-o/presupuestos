@@ -21,7 +21,6 @@ class PagoFactory extends Factory
             'monto' => fake()->randomFloat(2, 100, 5000),
             'fecha_pago' => fake()->dateTimeBetween('-2 months', 'now')->format('Y-m-d'),
             'metodo_pago' => fake()->randomElement(Pago::METODOS),
-            'estado' => fake()->randomElement(Pago::ESTADOS),
             'comprobante_url' => null,
         ];
     }

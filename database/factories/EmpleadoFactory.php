@@ -26,9 +26,9 @@ class EmpleadoFactory extends Factory
             'paterno' => fake()->lastName(),
             'materno' => fake()->lastName(),
             'ci' => fake()->unique()->numerify('#######'),
-            'cargo' => fake()->randomElement([
-                'Vendedor', 'Diseñador Gráfico', 'Jefe de Producción', 'Operario de Producción', 'Contador', 'Secretaria',
-            ]),
+            // Los cargos salen de los roles del ACL (Empleado::cargos()), no
+            // de una lista propia que se desincronice.
+            'cargo' => fake()->randomElement(Empleado::cargos()),
             'telefono' => fake()->numerify('7#######'),
             'fecha_ingreso' => fake()->dateTimeBetween('-5 years', 'now')->format('Y-m-d'),
             'estado' => 'ACTIVO',

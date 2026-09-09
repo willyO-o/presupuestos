@@ -30,10 +30,10 @@ class MaterialSeeder extends Seeder
                 ['nombre' => 'Vinil microperforado (vision control)', 'presentacion' => 'Rollo 1,52x50m', 'unidad_medida' => 'M2', 'precio_presentacion' => 3040.00, 'precio_unitario' => 40.00, 'redondeo_compra' => null],
             ],
             'Cerrajería' => [
-                ['nombre' => 'Tubo cuadrado 20x20x0,9mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 66.00, 'precio_unitario' => 11.00, 'redondeo_compra' => 6],
-                ['nombre' => 'Tubo cuadrado 40x40x1,5mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 132.00, 'precio_unitario' => 22.00, 'redondeo_compra' => 6],
-                ['nombre' => 'Platina 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 54.00, 'precio_unitario' => 9.00, 'redondeo_compra' => 6],
-                ['nombre' => 'Angular 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 60.00, 'precio_unitario' => 10.00, 'redondeo_compra' => 6],
+                ['nombre' => 'Tubo cuadrado 20x20x0,9mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO_LINEAL', 'precio_presentacion' => 66.00, 'precio_unitario' => 11.00, 'redondeo_compra' => 6],
+                ['nombre' => 'Tubo cuadrado 40x40x1,5mm', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO_LINEAL', 'precio_presentacion' => 132.00, 'precio_unitario' => 22.00, 'redondeo_compra' => 6],
+                ['nombre' => 'Platina 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO_LINEAL', 'precio_presentacion' => 54.00, 'precio_unitario' => 9.00, 'redondeo_compra' => 6],
+                ['nombre' => 'Angular 1x1/8', 'presentacion' => 'Barra 6m', 'unidad_medida' => 'METRO_LINEAL', 'precio_presentacion' => 60.00, 'precio_unitario' => 10.00, 'redondeo_compra' => 6],
             ],
             'Carpintería' => [
                 ['nombre' => 'MDF 9mm', 'presentacion' => 'Plancha 2,44x1,22m', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 180.00, 'precio_unitario' => 180.00, 'redondeo_compra' => 1],
@@ -43,7 +43,7 @@ class MaterialSeeder extends Seeder
             ],
             'Otros materiales' => [
                 ['nombre' => 'Silicona industrial', 'presentacion' => 'Tubo 280ml', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 28.00, 'precio_unitario' => 28.00, 'redondeo_compra' => 1],
-                ['nombre' => 'Cinta doble contacto', 'presentacion' => 'Rollo 50m', 'unidad_medida' => 'METRO', 'precio_presentacion' => 90.00, 'precio_unitario' => 1.80, 'redondeo_compra' => null],
+                ['nombre' => 'Cinta doble contacto', 'presentacion' => 'Rollo 50m', 'unidad_medida' => 'METRO_LINEAL', 'precio_presentacion' => 90.00, 'precio_unitario' => 1.80, 'redondeo_compra' => null],
                 ['nombre' => 'Remaches pop', 'presentacion' => 'Caja 100u', 'unidad_medida' => 'UNIDAD', 'precio_presentacion' => 40.00, 'precio_unitario' => 0.40, 'redondeo_compra' => 1],
                 // Plancha de acrílico 1,22×2,44 ≈ 2,98 m²: se compra entera.
                 ['nombre' => 'Acrílico transparente 3mm', 'presentacion' => 'Plancha 1,22x2,44m', 'unidad_medida' => 'M2', 'precio_presentacion' => 520.00, 'precio_unitario' => 175.00, 'redondeo_compra' => 2.98],

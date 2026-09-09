@@ -313,6 +313,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/pedidos/{pedido}/detalle/{detalle}/estado', [PedidoController::class, 'actualizarEstado'])
         ->middleware('can:pedidos.actualizar_estado')
         ->name('pedidos.detalle.estado');
+    // Medidas REALES de producción: lo único que puede diferir de la
+    // cotización de origen (el precio acordado no cambia).
+    Route::put('/pedidos/{pedido}/detalle/{detalle}/medidas', [PedidoController::class, 'actualizarMedidas'])
+        ->middleware('can:pedidos.actualizar_estado')
+        ->name('pedidos.detalle.medidas');
     Route::post('/pedidos/{pedido}/detalle/{detalle}/consumo', [PedidoController::class, 'registrarConsumo'])
         ->middleware('can:pedidos.actualizar_estado')
         ->name('pedidos.detalle.consumo');

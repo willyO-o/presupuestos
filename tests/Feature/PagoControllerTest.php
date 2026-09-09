@@ -41,7 +41,7 @@ test('a user with permission sees the list and the summary', function () {
             ->has('resumen.total_cobrado'));
 });
 
-test('a partial payment leaves the pago PARCIAL and a full one PAGADO', function () {
+test('the pedido cobranza state follows the payments, without a pago.estado column', function () {
     $pedido = Pedido::factory()->create(['total' => 1000]);
     $user = userWithPago('pagos.registrar');
 
@@ -49,17 +49,17 @@ test('a partial payment leaves the pago PARCIAL and a full one PAGADO', function
         'pedido_id' => $pedido->id, 'monto' => 400, 'fecha_pago' => now()->toDateString(), 'metodo_pago' => 'EFECTIVO',
     ]);
 
-    expect(Pago::latest('id')->first()->estado)->toBe('PARCIAL')
-        ->and($pedido->fresh()->saldo())->toBe(600.0)
-        ->and($pedido->estadoPago())->toBe('PARCIAL');
+    // El estado de cobranza pertenece al PEDIDO, no a la fila de pago: la
+    // columna `pago.estado` se eliminó porque duplicaba este derivado.
+    expect($pedido->fresh()->estadoPago())->toBe('PARCIAL')
+        ->and($pedido->fresh()->saldo())->toBe(600.0);
 
     $this->actingAs($user)->post(route('pagos.store'), [
         'pedido_id' => $pedido->id, 'monto' => 600, 'fecha_pago' => now()->toDateString(), 'metodo_pago' => 'QR',
     ]);
 
-    expect(Pago::latest('id')->first()->estado)->toBe('PAGADO')
-        ->and($pedido->fresh()->saldo())->toBe(0.0)
-        ->and($pedido->estadoPago())->toBe('PAGADO');
+    expect($pedido->fresh()->estadoPago())->toBe('PAGADO')
+        ->and($pedido->fresh()->saldo())->toBe(0.0);
 });
 
 test('registrar pago requires the pagos.registrar permission', function () {

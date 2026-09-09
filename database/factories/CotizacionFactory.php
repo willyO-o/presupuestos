@@ -40,7 +40,7 @@ class CotizacionFactory extends Factory
             'estado' => 'PENDIENTE',
             'subtotal' => $subtotal,
             'descuento' => $descuento,
-            'impuesto' => $impuesto,
+            'iva' => $impuesto,
             'total' => round($subtotal - $descuento + $impuesto, 2),
             'observaciones' => fake()->boolean(40) ? fake()->sentence() : null,
         ];

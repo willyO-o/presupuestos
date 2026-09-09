@@ -23,6 +23,17 @@ const table = useServerTable({
     only: ['ordenes', 'pedidosSinOc', 'filters'],
 });
 
+/**
+ * true si el importe de la OC del cliente no coincide con el total del
+ * pedido. Es justamente para lo que sirve `monto_total`: sin esa columna no
+ * habría con qué comparar al validar el documento.
+ */
+function difiereDelPedido(orden) {
+    if (!orden.pedido) return false;
+
+    return Math.abs(Number(orden.monto_total) - Number(orden.pedido.total)) >= 0.01;
+}
+
 const headers = [
     { label: 'N.º OC', key: 'numero_oc' },
     { label: 'Cliente', key: 'cliente' },
@@ -147,10 +158,19 @@ async function anular(orden) {
                     </a>
                     <span v-else class="fw-semibold">{{ item.numero_oc }}</span>
                 </template>
-                <template #cell-cliente="{ item }">{{ item.cliente?.razon_social ?? '—' }}</template>
+                <template #cell-cliente="{ item }">{{ item.cliente_razon_social ?? '—' }}</template>
                 <template #cell-pedido="{ item }">{{ item.pedido?.numero_pedido ?? '—' }}</template>
                 <template #cell-fecha="{ item }">{{ fecha(item.fecha) }}</template>
-                <template #cell-monto_total="{ item }">{{ money(item.monto_total) }}</template>
+                <!-- `monto_total` es el importe que declara el documento del
+                     cliente: si no coincide con el total del pedido hay que
+                     resolverlo ANTES de validar la OC. -->
+                <template #cell-monto_total="{ item }">
+                    {{ money(item.monto_total) }}
+                    <span v-if="difiereDelPedido(item)" class="d-block fs-xs text-danger">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        Pedido: {{ money(item.pedido?.total) }}
+                    </span>
+                </template>
                 <template #cell-condicion_pago="{ item }">{{ item.condicion_pago ?? '—' }}</template>
                 <template #cell-estado="{ item }">
                     <span class="badge" :class="estadoBadge[item.estado] ?? 'badge-soft-secondary'">{{ item.estado }}</span>

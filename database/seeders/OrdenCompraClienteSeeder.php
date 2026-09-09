@@ -21,7 +21,6 @@ class OrdenCompraClienteSeeder extends Seeder
 
         $pedidos = Pedido::query()
             ->where('estado', '!=', 'CANCELADO')
-            ->with('cotizacion:id,cliente_id')
             ->get();
 
         foreach ($pedidos as $i => $pedido) {
@@ -32,7 +31,6 @@ class OrdenCompraClienteSeeder extends Seeder
 
             OrdenCompraCliente::create([
                 'pedido_id' => $pedido->id,
-                'cliente_id' => $pedido->cotizacion->cliente_id,
                 'numero_oc' => fake()->unique()->numerify('OC-110#####'),
                 'fecha' => $pedido->fecha_pedido->copy()->addDays(fake()->numberBetween(0, 3))->toDateString(),
                 'monto_total' => $pedido->total,

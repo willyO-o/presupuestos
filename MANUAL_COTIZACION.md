@@ -166,7 +166,17 @@ Después de cambiar `.env` en un servidor con caché de configuración:
 | `dias_seguimiento` (7) | Días entre la entrega y el contacto de postventa. |
 | `satisfaccion_maxima` (5) | Tope de la escala de satisfacción. |
 
-### 2.4 Catálogos que alimentan la hoja de costos
+### 2.4 Vocabulario y catálogos que no se editan a mano
+
+- **Unidades de medida**: la lista canónica es `Material::UNIDADES_MEDIDA`
+  (`M2`, `METRO_LINEAL`, `UNIDAD`, `LITRO`) y `Producto::UNIDADES_MEDIDA` es un subconjunto
+  suyo. No agregues una unidad nueva en un `<select>` del frontend: se agrega en esas
+  constantes y en el ENUM de la tabla, para que sigan hablando el mismo idioma.
+- **Cargos de empleado**: salen de los roles del negocio definidos en `config/acl.php`
+  (`Empleado::cargos()`). Para un cargo nuevo, agregá el rol allí — el selector del formulario
+  se actualiza solo.
+
+### 2.5 Catálogos que alimentan la hoja de costos
 
 Para que el sistema pueda **traer los insumos solo** en vez de tipearlos:
 
@@ -251,7 +261,8 @@ En el panel derecho:
 - **Subtotal**: suma de los ítems.
 - **Descuento (Bs)**: monto, no porcentaje. Baja la base imponible, así que **empuja el
   semáforo** — es la señal para saber hasta dónde podés ceder.
-- **IVA 13 %**: casilla para aplicarlo o no. El monto lo calcula el sistema.
+- **IVA 13 %**: casilla para aplicarlo o no. El monto lo calcula el sistema y se guarda en la
+  columna `cotizacion.iva`.
 - **Instalación**: suma de las instalaciones de cada ítem.
 - **Total**: subtotal − descuento + IVA + instalación.
 
@@ -286,6 +297,15 @@ Etapas por ítem: `DISEÑO → ELABORACIÓN → ACABADO → CONTROL DE CALIDAD �
 Desde **Pedidos → ver pedido** se asigna área y responsable, se avanza la etapa y se registra
 el consumo real de materiales (queda la comparativa costo presupuestado vs. real).
 El estado global del pedido es siempre el de la etapa **menos avanzada** entre sus ítems.
+
+El botón **"Ajustar medidas reales"** corrige lo que el taller está fabricando de verdad
+(descripción, ancho, alto y cantidad) cuando difiere de lo cotizado. La cotización NO se toca
+—queda como documento histórico de lo prometido— y **el precio acordado no cambia**: el
+ajuste se anota en la bitácora del ítem con su motivo.
+
+> Para ver pedidos, tu usuario tiene que estar **vinculado a una ficha de empleado**
+> (Organización → Empleados): de ahí sale la sucursal que el sistema usa para filtrar. Sin esa
+> ficha el listado sale vacío y la pantalla te lo avisa.
 
 **Proceso 3 — Entrega y postventa**
 Nota de entrega con foto y conformidad → registro de pagos (Cobranza) → **Seguimiento
@@ -342,3 +362,25 @@ php artisan test                 # suite completa
 **Regla para quien mantenga el código:** las tasas (3 %, 25 %, 13 %) y los umbrales (30 %,
 15 %) viven **únicamente** en `config/margen.php`; el factor y el margen mínimo **únicamente**
 en la tabla `tipo_proyecto`. No los repitas en controladores ni en componentes.
+
+---
+
+## 7. Qué NO se guarda (y por qué)
+
+Varias cosas que parecerían columnas son derivados: guardarlas solo abriría la puerta a que
+se desincronicen. Si buscás alguna de estas columnas y no la encontrás, es a propósito.
+
+| Dato | De dónde sale |
+|---|---|
+| Recomendación comercial de una cotización | Del semáforo (`estado_margen`), vía `MotorMargenService::RECOMENDACIONES`. |
+| Estado de cobranza | Del pedido (`Pedido::estadoPago()`), no de cada fila de `pago`. |
+| Cliente de una orden de compra | De la cadena `pedido → cotizacion → cliente`. |
+| Cargos de empleado | De los roles de `config/acl.php`. |
+
+Y tres que **sí** se guardan aunque parezcan duplicados, porque tienen que poder diferir:
+
+| Dato | Por qué se guarda |
+|---|---|
+| `cotizacion_detalle.factor_complejidad` / `margen_aplicado` | Foto histórica: el presupuesto sigue explicando su precio aunque cambie el CRUD. |
+| `pedido_detalle` (descripción, medidas, cantidad) | Medidas **reales** de producción, que pueden diferir de lo cotizado. |
+| `orden_compra_cliente.monto_total` | Es el importe que declara el documento del cliente; si no coincide con el pedido, el sistema lo marca. |

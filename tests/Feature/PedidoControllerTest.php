@@ -7,6 +7,7 @@ use App\Models\Empleado;
 use App\Models\Material;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
+use App\Models\PedidoSeguimiento;
 use App\Models\Sucursal;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
@@ -224,4 +225,105 @@ test('super-admin bypasses individual permissions', function () {
     $user->assignRole('super-admin');
 
     $this->actingAs($user)->get(route('pedidos.index'))->assertOk();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Medidas reales de producción
+|--------------------------------------------------------------------------
+|
+| Es lo que justifica que `pedido_detalle` copie descripción/medidas/cantidad
+| de la cotización en vez de leerlas por la FK: el taller mide la pieza
+| terminada y la cotización queda intacta como documento histórico.
+*/
+
+test('production measurements can diverge from the cotizacion that originated them', function () {
+    $pedido = Pedido::factory()->create();
+    $detalle = PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'descripcion' => 'Letrero fachada',
+        'ancho' => 2.00,
+        'alto' => 1.00,
+        'cantidad' => 1,
+    ]);
+    $cotizacionDetalle = $detalle->cotizacionDetalle;
+
+    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+        ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
+            'descripcion' => 'Letrero fachada (ampliado)',
+            'ancho' => 2.35,
+            'alto' => 1.10,
+            'cantidad' => 1,
+            'motivo' => 'La pared medía 35 cm más.',
+        ])
+        ->assertRedirect(route('pedidos.show', $pedido))
+        ->assertSessionHas('success');
+
+    $detalle->refresh();
+
+    expect((float) $detalle->ancho)->toBe(2.35)
+        ->and($detalle->descripcion)->toBe('Letrero fachada (ampliado)')
+        // La cotización de origen NO se toca.
+        ->and((float) $cotizacionDetalle->fresh()->ancho)->toBe((float) $cotizacionDetalle->ancho)
+        ->and($cotizacionDetalle->fresh()->descripcion)->toBe($cotizacionDetalle->descripcion);
+});
+
+test('adjusting measurements does not change the agreed price', function () {
+    $pedido = Pedido::factory()->create(['total' => 1500]);
+    $detalle = PedidoDetalle::factory()->create(['pedido_id' => $pedido->id, 'cantidad' => 2]);
+
+    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+        ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
+            'descripcion' => $detalle->descripcion,
+            'ancho' => 5,
+            'alto' => 5,
+            'cantidad' => 8,
+        ])->assertSessionHasNoErrors();
+
+    expect((float) $pedido->fresh()->total)->toBe(1500.0);
+});
+
+test('the measurement adjustment is written to the item log', function () {
+    $pedido = Pedido::factory()->create();
+    $detalle = PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'descripcion' => 'Original',
+        'cantidad' => 1,
+    ]);
+    $seguimiento = PedidoSeguimiento::factory()->create(['pedido_detalle_id' => $detalle->id]);
+
+    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+        ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
+            'descripcion' => 'Corregido',
+            'cantidad' => 3,
+            'motivo' => 'Se rompió una pieza.',
+        ])->assertSessionHasNoErrors();
+
+    expect($seguimiento->fresh()->observaciones)
+        ->toContain('Ajuste de medidas')
+        ->toContain('Se rompió una pieza.');
+});
+
+test('measurements cannot be adjusted on a delivered pedido', function () {
+    $pedido = Pedido::factory()->entregado()->create();
+    $detalle = PedidoDetalle::factory()->create(['pedido_id' => $pedido->id]);
+
+    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+        ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
+            'descripcion' => 'No debería guardarse',
+            'cantidad' => 1,
+        ])->assertSessionHas('error');
+
+    expect($detalle->fresh()->descripcion)->not->toBe('No debería guardarse');
+});
+
+test('measurements of a detalle from another pedido are rejected', function () {
+    $pedido = Pedido::factory()->create();
+    $ajeno = PedidoDetalle::factory()->create();
+
+    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+        ->put(route('pedidos.detalle.medidas', [$pedido, $ajeno]), [
+            'descripcion' => 'Intruso',
+            'cantidad' => 1,
+        ])->assertNotFound();
 });

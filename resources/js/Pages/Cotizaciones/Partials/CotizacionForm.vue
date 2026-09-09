@@ -103,7 +103,7 @@ const form = useForm(() => ({
     fecha_vencimiento: toDateInput(props.cotizacion?.fecha_vencimiento) || hoyMas(props.config.dias_vencimiento),
     descuento: props.cotizacion?.descuento ?? 0,
     // El IVA lo calcula el motor; acá solo se decide si la factura lo lleva.
-    aplicar_iva: props.cotizacion ? Number(props.cotizacion.impuesto) > 0 : true,
+    aplicar_iva: props.cotizacion ? Number(props.cotizacion.iva) > 0 : true,
     observaciones: props.cotizacion?.observaciones ?? '',
     detalles: detallesIniciales,
 }));

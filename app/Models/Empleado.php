@@ -38,6 +38,25 @@ class Empleado extends Model
     protected $table = 'empleado';
 
     /**
+     * Cargos válidos: se derivan de los roles del negocio definidos en
+     * `config/acl.php` (ver .ai/rules/config.md), no son una lista aparte.
+     * Antes `cargo` era texto libre y en la práctica repetía exactamente los
+     * nombres de los roles — dos fuentes de verdad para lo mismo, una de
+     * ellas sin validar. Se excluyen `super-admin` (rol técnico) y `cliente`
+     * (rol de portal, no es personal de la empresa).
+     *
+     * @return list<string>
+     */
+    public static function cargos(): array
+    {
+        return collect(config('acl.roles', []))
+            ->except(['super-admin', 'cliente'])
+            ->pluck('label')
+            ->values()
+            ->all();
+    }
+
+    /**
      * Se agrega al array/JSON para no repetir la concatenación de
      * nombres/paterno/materno en cada pantalla (listado, perfil).
      *

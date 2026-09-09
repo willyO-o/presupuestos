@@ -16,7 +16,7 @@ class OrdenCompraClienteController extends Controller
     public function index(Request $request): Response
     {
         $ordenes = OrdenCompraCliente::query()
-            ->with(['cliente:id,razon_social', 'pedido:id,numero_pedido'])
+            ->with(['pedido:id,numero_pedido,cotizacion_id,total', 'pedido.cotizacion:id,cliente_id', 'pedido.cotizacion.cliente:id,razon_social'])
             ->search($request->query('search'))
             ->estado($request->query('estado'))
             ->orderByDesc('fecha')
@@ -42,11 +42,10 @@ class OrdenCompraClienteController extends Controller
     public function store(StoreOrdenCompraClienteRequest $request): RedirectResponse
     {
         $datos = $request->validated();
-        $pedido = Pedido::with('cotizacion:id,cliente_id')->findOrFail($datos['pedido_id']);
+        $pedido = Pedido::findOrFail($datos['pedido_id']);
 
         OrdenCompraCliente::create([
             'pedido_id' => $pedido->id,
-            'cliente_id' => $pedido->cotizacion->cliente_id,
             'numero_oc' => $datos['numero_oc'],
             'fecha' => $datos['fecha'],
             'monto_total' => $datos['monto_total'],

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Services\Calculo\MotorMargenService;
 use Database\Factories\CotizacionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,13 +26,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'costo_ajustado',
     'subtotal',
     'descuento',
-    'impuesto',
+    'iva',
     'it',
     'iue',
     'utilidad_real',
     'instalacion',
     'estado_margen',
-    'recomendacion',
     'total',
     'observaciones',
 ])]
@@ -63,6 +64,15 @@ class Cotizacion extends Model
     public const ESTADOS_MARGEN = ['VERDE', 'AMARILLO', 'ROJO'];
 
     /**
+     * `recomendacion` se deriva del semáforo, no se guarda (ver la migración
+     * `rename_impuesto_to_iva_on_cotizacion_table`). Se agrega a la
+     * serialización para que las vistas la reciban como un campo más.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['recomendacion'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -74,7 +84,7 @@ class Cotizacion extends Model
             'costo_ajustado' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'descuento' => 'decimal:2',
-            'impuesto' => 'decimal:2',
+            'iva' => 'decimal:2',
             'it' => 'decimal:2',
             'iue' => 'decimal:2',
             'utilidad_real' => 'decimal:2',
@@ -115,6 +125,18 @@ class Cotizacion extends Model
     public function pedido(): HasOne
     {
         return $this->hasOne(Pedido::class);
+    }
+
+    /**
+     * Recomendación comercial que corresponde al semáforo
+     * (VERDE → ACEPTAR, AMARILLO → REVISAR PRECIO, ROJO → NO ACEPTAR).
+     * Derivada, nunca almacenada: el mapa vive en el motor de margen.
+     */
+    protected function recomendacion(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => MotorMargenService::RECOMENDACIONES[$this->estado_margen] ?? null,
+        );
     }
 
     /**

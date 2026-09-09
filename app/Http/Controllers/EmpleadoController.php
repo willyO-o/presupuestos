@@ -41,6 +41,9 @@ class EmpleadoController extends Controller
             // usuario ya vinculado a otro empleado se rechaza al guardar
             // (Rule::unique en el Form Request), no se filtra aquí.
             'usuarios' => User::query()->orderBy('name')->get(['id', 'name', 'email']),
+            // Los cargos salen de los roles del negocio en config/acl.php:
+            // antes era texto libre que repetía esos mismos nombres.
+            'cargos' => Empleado::cargos(),
             'filters' => $request->only(['search', 'sucursal', 'area', 'estado']),
             'pageTitle' => 'Empleados',
             'breadcrumbs' => ['Organización', 'Empleados'],
@@ -59,8 +62,26 @@ class EmpleadoController extends Controller
     {
         $empleado->update($request->validated());
 
+        $this->sincronizarAccesoDelUsuario($empleado);
+
         return redirect()->route('empleados.index')
             ->with('success', 'Empleado actualizado correctamente.');
+    }
+
+    /**
+     * Dar de baja a un empleado también le quita el acceso al sistema: sin
+     * esto, `empleado.estado` y `users.estado` eran dos banderas separadas
+     * para la misma persona y un empleado dado de baja seguía pudiendo
+     * entrar (`LoginRequest` solo mira `users.estado`).
+     *
+     * La reactivación NO es automática: volver a habilitar una cuenta es una
+     * decisión de seguridad y se hace desde el módulo de Usuarios.
+     */
+    private function sincronizarAccesoDelUsuario(Empleado $empleado): void
+    {
+        if ($empleado->estado === 'INACTIVO') {
+            $empleado->user?->update(['estado' => 'INACTIVO']);
+        }
     }
 
     public function destroy(Empleado $empleado): RedirectResponse

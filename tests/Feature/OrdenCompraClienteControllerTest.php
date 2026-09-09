@@ -50,7 +50,7 @@ test('a user with permission sees the list and the pedidos without OC', function
             ->has('pedidosSinOc'));
 });
 
-test('storing an OC derives cliente_id from the pedido', function () {
+test('an OC reads its cliente from the pedido chain, without storing a FK', function () {
     $pedido = pedidoParaOc();
 
     $this->actingAs(userWithOc('ordenes-compra-cliente.crear'))
@@ -65,10 +65,30 @@ test('storing an OC derives cliente_id from the pedido', function () {
 
     $this->assertDatabaseHas('orden_compra_cliente', [
         'pedido_id' => $pedido->id,
-        'cliente_id' => $pedido->cotizacion->cliente_id,
         'numero_oc' => 'OC-11021545',
         'estado' => 'PENDIENTE',
     ]);
+
+    // El cliente no se guarda: se deriva de pedido → cotizacion → cliente.
+    $orden = OrdenCompraCliente::query()->where('numero_oc', 'OC-11021545')->firstOrFail();
+
+    expect($orden->cliente()->id)->toBe($pedido->cotizacion->cliente_id)
+        ->and($orden->cliente_razon_social)->toBe($pedido->cotizacion->cliente->razon_social);
+});
+
+test('an OC flags when its amount differs from the pedido total', function () {
+    $pedido = pedidoParaOc();
+
+    $coincide = OrdenCompraCliente::factory()->create([
+        'pedido_id' => $pedido->id,
+        'monto_total' => $pedido->total,
+    ]);
+
+    expect($coincide->difiereDelPedido())->toBeFalse();
+
+    $coincide->update(['monto_total' => (float) $pedido->total + 50]);
+
+    expect($coincide->fresh()->difiereDelPedido())->toBeTrue();
 });
 
 test('a pedido cannot have two OCs', function () {

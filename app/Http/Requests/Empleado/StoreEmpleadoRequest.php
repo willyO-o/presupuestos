@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Empleado;
 
+use App\Models\Empleado;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -36,7 +37,7 @@ class StoreEmpleadoRequest extends FormRequest
             'paterno' => ['nullable', 'string', 'max:255'],
             'materno' => ['nullable', 'string', 'max:255'],
             'ci' => ['required', 'string', 'max:255', Rule::unique('empleado', 'ci')],
-            'cargo' => ['required', 'string', 'max:255'],
+            'cargo' => ['required', 'string', Rule::in(Empleado::cargos())],
             'telefono' => ['nullable', 'string', 'max:25'],
             'fecha_ingreso' => ['required', 'date'],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],

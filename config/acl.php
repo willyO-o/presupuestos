@@ -323,7 +323,7 @@ return [
         ],
 
         'disenador' => [
-            'label' => 'Diseñador',
+            'label' => 'Diseñador Gráfico',
             'permissions' => [
                 'dashboard.ver',
                 'productos.ver',

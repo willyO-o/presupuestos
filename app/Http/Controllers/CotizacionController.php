@@ -455,13 +455,12 @@ class CotizacionController extends Controller
             'costo_ajustado' => $costoAjustado,
             'subtotal' => $subtotal,
             'descuento' => $descuento,
-            'impuesto' => $iva,
+            'iva' => $iva,
             'it' => round($motor->it, 2),
             'iue' => round($motor->iue, 2),
             'utilidad_real' => round($motor->utilidadReal, 2),
             'instalacion' => $instalacion,
             'estado_margen' => $motor->estado,
-            'recomendacion' => $motor->recomendacion,
             'total' => round(max($subtotal - $descuento + $iva + $instalacion, 0), 2),
         ];
     }

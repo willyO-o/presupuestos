@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'pedido_id',
-    'cliente_id',
     'numero_oc',
     'fecha',
     'monto_total',
@@ -45,7 +44,7 @@ class OrdenCompraCliente extends Model
     /**
      * @var list<string>
      */
-    protected $appends = ['archivo_url'];
+    protected $appends = ['archivo_url', 'cliente_razon_social'];
 
     /**
      * @return array<string, string>
@@ -63,9 +62,37 @@ class OrdenCompraCliente extends Model
         return $this->belongsTo(Pedido::class);
     }
 
-    public function cliente(): BelongsTo
+    /**
+     * Cliente de la OC: SIEMPRE el de la cotización que originó el pedido.
+     * No hay `cliente_id` en la tabla (ver la migración
+     * `drop_cliente_id_from_orden_compra_cliente_table`): esa FK permitía
+     * que la OC apuntara a un cliente distinto del que firmó la cotización.
+     * Se recorre la cadena real `pedido → cotizacion → cliente`, que no
+     * puede desincronizarse. Requiere `with('pedido.cotizacion.cliente')`.
+     */
+    public function cliente(): ?Cliente
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->pedido?->cotizacion?->cliente;
+    }
+
+    /**
+     * Razón social del cliente, para que las vistas no tengan que recorrer
+     * tres niveles de relación.
+     */
+    protected function clienteRazonSocial(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => $this->cliente()?->razon_social);
+    }
+
+    /**
+     * true si el importe declarado en el documento del cliente NO coincide
+     * con el total del pedido. `monto_total` se conserva justamente para
+     * poder detectar esto al validar la OC — no es una copia del total.
+     */
+    public function difiereDelPedido(): bool
+    {
+        return $this->pedido !== null
+            && abs((float) $this->monto_total - (float) $this->pedido->total) >= 0.01;
     }
 
     /**
@@ -88,7 +115,7 @@ class OrdenCompraCliente extends Model
         $query->when($term, function (Builder $query) use ($term) {
             $query->where(function (Builder $query) use ($term) {
                 $query->where('numero_oc', 'like', "%{$term}%")
-                    ->orWhereHas('cliente', fn (Builder $q) => $q->where('razon_social', 'like', "%{$term}%"));
+                    ->orWhereHas('pedido.cotizacion.cliente', fn (Builder $q) => $q->where('razon_social', 'like', "%{$term}%"));
             });
         });
     }
