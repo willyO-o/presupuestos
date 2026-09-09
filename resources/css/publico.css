@@ -1,0 +1,99 @@
+/* ==========================================================================
+   SITIO PÚBLICO — hoja de estilos independiente del panel
+   --------------------------------------------------------------------------
+   `@config` la ata a tailwind.publico.config.js, que solo escanea las vistas
+   de resources/views/publico y components/publico. Así la landing no arrastra
+   el design system del dashboard ni las tres fuentes de iconos: son ~40 KB en
+   vez de ~1 MB, y el LCP es lo que Google mide para posicionar.
+
+   Regla del proyecto: nada de <style> sueltos en las vistas. Lo que no se
+   pueda expresar con utilidades de Tailwind se define acá abajo.
+   ========================================================================== */
+
+@config "../../tailwind.publico.config.js";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        /* El header es sticky (h-16): sin esto los anclajes #que-hacemos
+           dejan el título escondido detrás de la barra. */
+        scroll-padding-top: 4.5rem;
+    }
+
+    /* Respeta a quien pidió menos animación en su sistema operativo. */
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+
+    body {
+        @apply bg-white font-texto text-slate-700 antialiased;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        @apply font-titulo;
+    }
+
+    /* Foco visible y consistente para navegación con teclado. */
+    :where(a, button, [tabindex]):focus-visible {
+        @apply outline-none ring-2 ring-marca-azul ring-offset-2;
+    }
+}
+
+@layer components {
+    /* Trama de puntos del hero, no expresable con utilidades. */
+    .trama-puntos {
+        background-image: radial-gradient(
+            rgba(255, 255, 255, 0.14) 1px,
+            transparent 1px
+        );
+        background-size: 16px 16px;
+    }
+
+    /* Retícula tipo plano de taller para el bloque de contacto. */
+    .trama-plano {
+        background-image: repeating-linear-gradient(
+                0deg,
+                rgba(111, 203, 236, 0.25),
+                rgba(111, 203, 236, 0.25) 1px,
+                transparent 1px,
+                transparent 24px
+            ),
+            repeating-linear-gradient(
+                90deg,
+                rgba(111, 203, 236, 0.25),
+                rgba(111, 203, 236, 0.25) 1px,
+                transparent 1px,
+                transparent 24px
+            );
+    }
+
+    /* El menú móvil es un <details>: Safari y iOS pintan su propio triangulito
+       con un pseudo-elemento que `list-none` no alcanza. */
+    summary::-webkit-details-marker {
+        display: none;
+    }
+
+    /* Enlace que solo aparece al tabular: primer stop para lectores de pantalla. */
+    .salto-contenido {
+        @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60]
+            focus:rounded-lg focus:bg-marca-azul focus:px-4 focus:py-2 focus:text-sm
+            focus:font-semibold focus:text-white;
+    }
+}

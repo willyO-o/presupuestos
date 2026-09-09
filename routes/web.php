@@ -21,21 +21,20 @@ use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\SeguimientoPostventaController;
+use App\Http\Controllers\SitioPublicoController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\TipoProyectoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VerificacionController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return inertia('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+// --- Sitio publico (Blade, sin login) ---
+// Son las unicas paginas que tienen que posicionar en buscadores, por eso van
+// en Blade y no en Inertia: llegan renderizadas en la primera respuesta.
+Route::get('/', [SitioPublicoController::class, 'inicio'])->name('inicio');
+Route::get('/proyectos', [SitioPublicoController::class, 'proyectos'])->name('proyectos');
+Route::get('/sitemap.xml', [SitioPublicoController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SitioPublicoController::class, 'robots'])->name('robots');
 
 Route::get('/dashboard', [ReporteController::class, 'dashboard'])
     ->middleware(['auth', 'verified'])

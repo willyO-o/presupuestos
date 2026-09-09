@@ -5,7 +5,9 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig({
     plugins: [
         laravel({
-            input: 'resources/js/app.js',
+            // `publico.css` es una entrada aparte: el sitio publico es Blade
+            // puro y no debe cargar app.js ni el CSS del dashboard.
+            input: ['resources/js/app.js', 'resources/css/publico.css'],
             refresh: true,
         }),
         vue({
