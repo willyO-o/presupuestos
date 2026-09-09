@@ -5,9 +5,11 @@ paths:
 
 # Http Controllers
 
-## Los PDFs del panel salen inline (vista previa); previsualizar() debe conservar el nombre
+## Los PDFs del panel salen inline (vista previa); el cotizador público sigue descargando
 Las rutas `*.pdf` del panel responden como VISTA PREVIA (`Content-Disposition: inline`) y el botón las abre con `target="_blank"`: el flujo real es revisar el documento antes de mandarlo al cliente. `?descargar=1` fuerza la descarga (mismo permiso y mismo scoping: por eso es un parámetro y no otra ruta). Ver `DocumentoPdfController::entregar()`.
 
-TRAMPA de la librería: `PdfBuilder::inline()` SIN argumento llama a `name('')` y el archivo pasa a llamarse ".pdf", perdiendo el nombre que armó `GeneradorPdf::documento()` — que es justo el que ve el usuario si guarda desde el visor. Por eso existe `GeneradorPdf::previsualizar($pdf)`, que hace `inline($pdf->downloadName)`. Nunca llamar `->inline()` pelado.
+`GeneradorPdf` devuelve una `RespuestaPdf` (implementa `Responsable`, se puede devolver tal cual desde un controlador) ya en modo `descargar()`, que es el comportamiento seguro si la respuesta termina en otro lado. `GeneradorPdf::previsualizar($pdf)` la pasa a inline. El cotizador público SIGUE descargando a propósito —el código es el único hilo del visitante para volver a contactarnos, y un PDF abierto en una pestaña se pierde al cerrarla—; hay tests que fijan los dos lados.
 
-Los métodos de `GeneradorPdf` siguen devolviendo `->download()` por defecto (comportamiento seguro si el builder termina en otro lado): el cotizador público SIGUE descargando, y hay tests que fijan ambos lados.
+Otras dos cosas de `RespuestaPdf`:
+- El PDF se dibuja UNA sola vez y queda memorizado: FPDF acumula páginas en su búfer y dibujar dos veces daría un documento con las páginas repetidas.
+- `sinComprimir()` (para inspeccionar el contenido, lo usan los tests) hay que pedirlo ANTES de leer `contenido()`; si el documento ya se generó comprimido revienta con `LogicException` en vez de devolver un binario opaco.

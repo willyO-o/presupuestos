@@ -8,8 +8,8 @@ use App\Models\NotaEntrega;
 use App\Models\OrdenCompraCliente;
 use App\Models\Pedido;
 use App\Services\Pdf\GeneradorPdf;
+use App\Services\Pdf\RespuestaPdf;
 use Illuminate\Http\Request;
-use Spatie\LaravelPdf\PdfBuilder;
 
 /**
  * Descarga de los documentos PDF del panel.
@@ -38,7 +38,7 @@ class DocumentoPdfController extends Controller
         private readonly GeneradorPdf $generador,
     ) {}
 
-    public function cotizacion(Request $request, Cotizacion $cotizacion): PdfBuilder
+    public function cotizacion(Request $request, Cotizacion $cotizacion): RespuestaPdf
     {
         return $this->entregar($request, $this->generador->cotizacion($cotizacion));
     }
@@ -49,7 +49,7 @@ class DocumentoPdfController extends Controller
      * `pedidos.ver_todas_sucursales` no vería el pedido en pantalla pero
      * podría descargarlo poniendo su id en la URL.
      */
-    public function pedido(Request $request, Pedido $pedido): PdfBuilder
+    public function pedido(Request $request, Pedido $pedido): RespuestaPdf
     {
         $pedido->loadMissing('cotizacion');
 
@@ -65,17 +65,17 @@ class DocumentoPdfController extends Controller
         return $this->entregar($request, $this->generador->pedido($pedido));
     }
 
-    public function notaEntrega(Request $request, NotaEntrega $notaEntrega): PdfBuilder
+    public function notaEntrega(Request $request, NotaEntrega $notaEntrega): RespuestaPdf
     {
         return $this->entregar($request, $this->generador->notaEntrega($notaEntrega));
     }
 
-    public function compra(Request $request, Compra $compra): PdfBuilder
+    public function compra(Request $request, Compra $compra): RespuestaPdf
     {
         return $this->entregar($request, $this->generador->compra($compra));
     }
 
-    public function ordenCompraCliente(Request $request, OrdenCompraCliente $ordenCompra): PdfBuilder
+    public function ordenCompraCliente(Request $request, OrdenCompraCliente $ordenCompra): RespuestaPdf
     {
         return $this->entregar($request, $this->generador->ordenCompraCliente($ordenCompra));
     }
@@ -92,7 +92,7 @@ class DocumentoPdfController extends Controller
      * porque es la MISMA respuesta con otra cabecera: duplicar la ruta
      * duplicaría también el permiso y el scoping por sucursal del pedido.
      */
-    private function entregar(Request $request, PdfBuilder $pdf): PdfBuilder
+    private function entregar(Request $request, RespuestaPdf $pdf): RespuestaPdf
     {
         return $request->boolean('descargar')
             ? $pdf

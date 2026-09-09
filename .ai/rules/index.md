@@ -8,10 +8,10 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Services/Calculo/** | .ai/rules/calculo.md |
 | app/Console/Commands/** | .ai/rules/commands.md |
 | config/acl.php | .ai/rules/config.md |
-| app/Http/Controllers/CotizadorPublicoController.php, resources/views/publico/cotizacion-documento.blade.php, config/cotizador.php | .ai/rules/controllers-views-publico.md |
+| app/Http/Controllers/CotizadorPublicoController.php, config/cotizador.php | .ai/rules/controllers-views-publico.md |
 | app/Http/Controllers/**, app/Http/Controllers/FormulaController.php, app/Http/Controllers/CompraController.php, app/Http/Controllers/PedidoController.php, app/Http/Controllers/NotaEntregaController.php, app/Http/Controllers/PagoController.php, app/Http/Controllers/UsuarioController.php, app/Http/Controllers/ClientePortalController.php, app/Http/Controllers/CotizacionController.php | .ai/rules/controllers.md |
 | app/Http/Controllers/CotizacionController.php, app/Http/Requests/Cotizacion/**, app/Models/Cotizacion.php, app/Models/CotizacionDetalle.php, app/Services/Calculo/PrecioSugeridoService.php, resources/js/Pages/Cotizaciones/**, database/seeders/CotizacionSeeder.php, config/cotizacion.php, app/Models/Pedido.php | .ai/rules/cotizaciones.md |
-| app/Services/Pdf/**, resources/views/pdf/**, app/Http/Controllers/DocumentoPdfController.php, resources/css/pdf.css | .ai/rules/css.md |
+| app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/css.md |
 | resources/js/Data/** | .ai/rules/data.md |
 | app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/http-controllers.md |
 | resources/js/**/*.vue, resources/js/** | .ai/rules/js.md |

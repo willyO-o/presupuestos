@@ -68,18 +68,18 @@ class NotaEntregaDetalle extends Model
     }
 
     /**
-     * La foto de evidencia como data URI, para incrustarla en el PDF de la
-     * nota de entrega (App\Services\Pdf\GeneradorPdf).
+     * Ruta ABSOLUTA en disco de la foto de evidencia, para dibujarla en el PDF
+     * de la nota de entrega (App\Services\Pdf\GeneradorPdf).
      *
-     * Chromium genera el PDF sin salir a la red, así que un
-     * `<img src="http://...">` apuntando a `foto_publica_url` saldría en
-     * blanco. Va como accesor y no en la vista para que el Blade no tenga que
-     * saber en qué disco vive el archivo.
+     * FPDF lee la imagen del sistema de archivos, no por HTTP: pasarle
+     * `foto_publica_url` no dibujaría nada. Va como método del modelo y no en
+     * el documento para que la maqueta no tenga que saber en qué disco vive el
+     * archivo.
      *
      * Devuelve null si la foto no está (registro viejo, archivo borrado a
      * mano): el documento se emite igual, con un guion en esa celda.
      */
-    public function fotoIncrustada(): ?string
+    public function fotoRuta(): ?string
     {
         if (! $this->foto_url) {
             return null;
@@ -91,6 +91,6 @@ class NotaEntregaDetalle extends Model
             return null;
         }
 
-        return 'data:'.$disco->mimeType($this->foto_url).';base64,'.base64_encode($disco->get($this->foto_url));
+        return $disco->path($this->foto_url);
     }
 }

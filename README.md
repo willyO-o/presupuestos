@@ -6,34 +6,36 @@ Aplicación Laravel + Inertia (Vue 3) para la gestión de cotizaciones, pedidos,
 
 | Componente | Versión |
 |---|---|
-| PHP | 8.3+ (con extensiones habituales de Laravel: `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `bcmath`) |
+| PHP | 8.3+ (con extensiones habituales de Laravel: `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `bcmath`, y además `gd` y `zlib` para los PDFs) |
 | Composer | 2.x |
-| Node.js | 20+ |
+| Node.js | 20+ (**solo para compilar el frontend**, no hace falta en el servidor) |
 | npm | 10+ |
 | Base de datos | MariaDB 10.6+ / MySQL 8+ |
-| Chromium (Puppeteer) | Requerido **en el servidor** para generar PDFs — ver abajo |
 
-### Generación de PDFs (requisito de servidor)
+### Generación de PDFs
 
 Todos los documentos (cotización, orden de trabajo, nota de entrega, compra,
 orden de compra del cliente y la estimación del cotizador web) se generan con
-`spatie/laravel-pdf` sobre Browsershot, que imprime con **Chromium headless**.
-Eso significa que **el servidor de producción necesita Node y el navegador de
-Puppeteer**, no solo PHP. En un hosting compartido sin Node esto no funciona.
+**`setasign/fpdf` 1.9**, que es PHP puro.
 
-```bash
-npm install                                   # instala puppeteer (devDependency)
-npx puppeteer browsers install chrome-headless-shell
-```
+**No hace falta nada en el servidor más que PHP** con `gd` y `zlib`, ambas
+habituales en cualquier hosting. Se eligió así a propósito: el sistema se
+despliega en hosting compartido, donde no se puede ejecutar un navegador
+headless ni instalar binarios. Un documento típico pesa unos 4 KB y se genera
+en milisegundos.
 
-Si al generar un PDF aparece `Could not find chrome-headless-shell (ver. X)`,
-es que Browsershot pide una revisión distinta de la descargada: instala esa
-versión exacta con `npx puppeteer browsers install chrome-headless-shell@X`.
+El precio de esa portabilidad es que **no hay CSS**: FPDF dibuja por
+coordenadas. Toda la maqueta —membrete, pie numerado, tablas que paginan
+solas, recuadros, firmas— vive en `App\Services\Pdf\Documentos\Documento`, y
+cada documento la usa como ladrillos. Ver `.ai/rules/css.md` antes de tocarla.
 
-**Alternativa sin Node**: `config/laravel-pdf.php` acepta el driver `dompdf`
-(`LARAVEL_PDF_DRIVER=dompdf` + `composer require dompdf/dompdf`). La maqueta se
-degrada —dompdf no soporta flexbox— pero no hay que tocar
-`App\Services\Pdf\GeneradorPdf` ni las vistas.
+Dos trampas que ya están resueltas y conviene conocer:
+
+- **Encoding**: las fuentes del núcleo de FPDF son cp1252, no UTF-8. Todo texto
+  que se dibuje tiene que pasar por `Documento::t()` o la `ñ` sale como `Ã±`.
+  (FPDF 1.9 sí acepta UTF-8, pero solo en las propiedades del documento.)
+- **Imágenes**: se leen del disco por ruta, no por URL — ver
+  `NotaEntregaDetalle::fotoRuta()`.
 
 ## Instalación
 

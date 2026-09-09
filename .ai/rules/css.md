@@ -1,19 +1,20 @@
 ---
 paths:
-  - 'app/Services/Pdf/**, resources/views/pdf/**, app/Http/Controllers/DocumentoPdfController.php, resources/css/pdf.css'
+  - 'app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php'
 ---
 
 # Css
 
-## Todos los PDFs salen de GeneradorPdf: no llamar a Pdf:: desde otro lado
-`App\Services\Pdf\GeneradorPdf` es el ÚNICO lugar donde se genera un PDF (2026-09-09, `spatie/laravel-pdf` + Browsershot). Seis documentos: `cotizacion()`, `pedido()` (orden de trabajo), `notaEntrega()`, `compra()`, `ordenCompraCliente()` y `cotizacionPublica()`.
+## Todos los PDFs salen de GeneradorPdf con FPDF: no instanciar FPDF en otro lado
+`App\Services\Pdf\GeneradorPdf` es el ÚNICO lugar donde se genera un PDF (migrado el 2026-09-09 de `spatie/laravel-pdf`+Browsershot a **`setasign/fpdf` 1.9**, PHP puro, porque el despliegue es en hosting compartido: no hay Node ni se puede correr un navegador headless). Seis documentos: `cotizacion()`, `pedido()` (orden de trabajo), `notaEntrega()`, `compra()`, `ordenCompraCliente()` y `cotizacionPublica()`.
 
-- Todos pasan por el privado `documento()`, que fija A4, márgenes, pie numerado, metadatos y nombre de archivo. **Agregar un documento = un método público + una vista en `resources/views/pdf/`**; nunca `Pdf::view(...)` desde un controlador, o el membrete deja de estar en un solo sitio. Hay un test que lo fija ("todos los documentos comparten formato, pie numerado y membrete").
-- Cada método devuelve un `PdfBuilder` (ya con `->download()`), no un archivo: el que llama puede `->inline()`, `->save()` o adjuntarlo a un correo sin duplicar la construcción.
-- Las vistas usan `@extends('pdf.layout')` (herencia, NO componente con slots) para que $empresa/$titulo/$estilos/$generadoEn lleguen solos.
-- **El CSS (`resources/css/pdf.css`) es plano y se incrusta con file_get_contents, sin Vite**: Browsershot le pasa a Chromium el HTML como cadena, así que un `<link>` obligaría al servidor a hacerse una petición HTTP a sí mismo. Por lo mismo, las imágenes van como data URI (ver `NotaEntregaDetalle::fotoIncrustada()`), nunca por URL: saldrían en blanco.
-- El pie (`pdf/pie.blade.php`) lleva estilos INLINE: Chromium no le aplica el `<style>` de la página y su font-size por defecto es 0.
+- Cada documento es una clase en `app/Services/Pdf/Documentos/` que extiende `Documento` y solo declara `identificacion()` (bloque derecho del membrete) y `cuerpo()`. **Agregar un documento = un método en `GeneradorPdf` + una clase allá**; nunca `new FPDF` desde un controlador, o el membrete deja de estar en un solo sitio. Hay un test que lo fija ("todos los documentos comparten formato, pie numerado y membrete").
+- **Toda la maqueta vive en `Documentos\Documento`**: membrete (`Header()`), pie numerado (`Footer()` + `AliasNbPages`), `bloqueDatos()`, `tabla()`, `totales()`, `recuadro()`, `seccion()`, `firmas()`, `notaLegal()`. NO hay CSS ni vistas Blade — FPDF dibuja por coordenadas. Los colores son los tokens de marca de `app.css` pasados a RGB.
+- **TRAMPA — encoding**: las fuentes del núcleo de FPDF son cp1252, no UTF-8. Todo string que se dibuje pasa por `Documento::t()`; sin eso la `ñ` sale como `Ã±`. FPDF 1.9 acepta UTF-8 SOLO en las propiedades del documento (`SetTitle`/`SetAuthor` con el 2º argumento en `true`) — pasarles texto ya convertido da un aviso de iconv. Test: "los acentos y simbolos del castellano se imprimen, no salen como basura". Ojo también con concatenar fuera de `t()`: un `'·'` escrito en el fuente PHP es UTF-8 y saldría `Â·`.
+- **TRAMPA — tablas**: FPDF no sabe nada de tablas. `tabla()` mide cada fila ANTES de dibujarla, decide si entra en lo que queda de página y, si no, salta y repite la cabecera. No reemplazarlo por `MultiCell` suelto: una fila se partiría entre dos páginas. Test: "una cotizacion larga pagina sola y repite el membrete en cada hoja".
+- **TRAMPA — recuadros**: el fondo se dibuja ANTES que el texto, así que hay que medir el contenido primero. Por eso `flujo()` tiene modo `dibujar: false` y los bloques del recuadro son declarativos (`titulo`, `nota`, `lista`, `rotulo`, `rango`).
+- Las imágenes se leen del disco POR RUTA (ver `NotaEntregaDetalle::fotoRuta()`), nunca por URL ni data URI. Si el archivo falta, la celda cae a un guion y el documento se emite igual.
 - **La cotización NO imprime costo, margen, factor, IT, IUE, utilidad ni semáforo** aunque estén en el modelo: sale por correo al cliente. Test: "el PDF de la cotizacion NO filtra costos ni rentabilidad".
 - Permisos: los mismos `.ver` del documento en pantalla (`DocumentoPdfController`). El PDF del pedido repite el scoping por sucursal de `PedidoController::puedeVer`.
-- **Requiere Node + Chromium de Puppeteer EN EL SERVIDOR** (ver README). Los tests usan `Pdf::fake()` o `->getHtml()` (solo renderiza Blade) para no depender de eso.
-- `cotizacionPublica()` la dispara un anónimo y levanta un Chromium: es la operación más cara del sitio. Sus topes (rate limiter + `descargas_maximas`) no son opcionales.
+- Los tests leen el PDF DE VERDAD (`sinComprimir()` + los operadores `Td`/`Tj`, ver `textoDelPdf()` en `GeneradorPdfTest`). No hace falta fake ni mock: generar los seis documentos cuesta ~1 s.
+- `cotizacionPublica()` la dispara un anónimo. Es barata comparada con levantar un navegador, pero sus topes (rate limiter + `descargas_maximas`) siguen sin ser opcionales.

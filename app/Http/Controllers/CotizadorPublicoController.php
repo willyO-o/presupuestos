@@ -8,13 +8,13 @@ use App\Http\Requests\Cotizador\GuardarEstimacionRequest;
 use App\Models\CotizacionPublica;
 use App\Services\Cotizador\CotizadorPublicoService;
 use App\Services\Pdf\GeneradorPdf;
+use App\Services\Pdf\RespuestaPdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use InvalidArgumentException;
-use Spatie\LaravelPdf\PdfBuilder;
 use Throwable;
 
 /**
@@ -156,14 +156,14 @@ class CotizadorPublicoController extends Controller
      * (App\Services\Pdf\GeneradorPdf, igual que todos los documentos del
      * sistema) pero rotulado como ESTIMACIÓN.
      *
-     * Es, de lejos, la operación más cara que expone el sitio: cada llamada
-     * levanta un Chromium headless para imprimir el documento, y la dispara un
-     * visitante anónimo. Por eso hay DOS frenos y hacen falta los dos: el rate
-     * limiter por IP (`cotizador-descargar`) y el tope por estimación
-     * (`puedeDescargar()`). El limiter se renueva solo, así que sin el tope
-     * por fila un código válido alcanza para pedir el PDF indefinidamente.
+     * Es de las operaciones más caras que expone el sitio: arma un documento
+     * entero por petición y la dispara un visitante anónimo. Por eso hay DOS
+     * frenos y hacen falta los dos: el rate limiter por IP
+     * (`cotizador-descargar`) y el tope por estimación (`puedeDescargar()`).
+     * El limiter se renueva solo, así que sin el tope por fila un código
+     * válido alcanza para pedir el PDF indefinidamente.
      */
-    public function documento(string $codigo): PdfBuilder|RedirectResponse
+    public function documento(string $codigo): RespuestaPdf|RedirectResponse
     {
         $cotizacion = $this->buscarPorCodigo($codigo);
 

@@ -8,12 +8,11 @@ use App\Models\Producto;
 use App\Models\ProductoMaterial;
 use App\Models\TipoProyecto;
 use App\Services\Calculo\MotorMargenService;
+use App\Services\Pdf\GeneradorPdf;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Spatie\LaravelPdf\Facades\Pdf;
-use Spatie\LaravelPdf\PdfBuilder;
 
 /**
  * Cotizador público (`/cotizador`).
@@ -33,11 +32,6 @@ beforeEach(function () {
     RateLimiter::clear('cotizador-guardar');
     RateLimiter::clear('cotizador-calcular');
     RateLimiter::clear('cotizador-descargar');
-
-    // Los documentos se descargan como PDF (App\Services\Pdf\GeneradorPdf).
-    // Sin el fake, cada test levantaría un Chromium: segundos por caso y una
-    // suite que solo corre en máquinas con Node y Puppeteer.
-    Pdf::fake();
 });
 
 /**
@@ -485,33 +479,39 @@ test('el documento se entrega como PDF con la fecha de emision y los datos', fun
         'mensaje' => 'Lo necesito para el lunes.',
     ]);
 
-    $this->get(route('cotizador.documento', $estimacion->codigo))->assertOk();
+    $respuesta = $this->get(route('cotizador.documento', $estimacion->codigo))->assertOk();
 
-    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($estimacion): bool {
-        $html = $pdf->getHtml();
+    expect($respuesta->headers->get('content-type'))->toBe('application/pdf');
 
-        return $pdf->viewName === 'pdf.cotizacion-publica'
-            && str_contains($html, $estimacion->codigo)
-            // Fecha de emisión y vigencia: lo que hace de esto un documento.
-            && str_contains($html, 'Fecha de emisión')
-            && str_contains($html, $estimacion->created_at->translatedFormat('d \d\e F \d\e Y'))
-            && str_contains($html, $estimacion->fecha_vencimiento->translatedFormat('d \d\e F \d\e Y'))
-            // Datos de quien lo pidió y lo que pidió.
-            && str_contains($html, 'Ana Quispe')
-            && str_contains($html, 'Marca S.A.')
-            && str_contains($html, 'Lo necesito para el lunes.')
-            // Y los datos de la empresa que emite.
-            && str_contains($html, config('sitio.empresa.direccion'));
-    });
+    // El texto se lee del PDF de verdad (ver GeneradorPdfTest::textoDelPdf).
+    $texto = textoDelPdf(app(GeneradorPdf::class)->cotizacionPublica($estimacion->fresh()));
+
+    expect($texto)
+        ->toContain($estimacion->codigo)
+        ->toContain('ESTIMACIÓN REFERENCIAL')
+        // Fecha de emisión y vigencia: lo que hace de esto un documento.
+        ->toContain('Fecha de emisión')
+        ->toContain($estimacion->created_at->translatedFormat('d \d\e F \d\e Y'))
+        ->toContain($estimacion->fecha_vencimiento->translatedFormat('d \d\e F \d\e Y'))
+        // Datos de quien lo pidió y lo que pidió.
+        ->toContain('Ana Quispe')
+        ->toContain('Marca S.A.')
+        ->toContain('Lo necesito para el lunes.')
+        // Y los datos de la empresa que emite.
+        ->toContain(config('sitio.empresa.direccion'));
 });
 
 test('el documento se descarga con un nombre de archivo reconocible', function () {
     $estimacion = CotizacionPublica::factory()->create();
 
-    $this->get(route('cotizador.documento', $estimacion->codigo))->assertOk();
+    $respuesta = $this->get(route('cotizador.documento', $estimacion->codigo))->assertOk();
 
-    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf): bool => $pdf->isDownload()
-        && $pdf->downloadName === 'xtrapubli-estimacion-'.strtolower($estimacion->codigo).'.pdf');
+    // Al visitante se le BAJA el archivo (no vista previa como en el panel):
+    // el código es su único hilo para volver a contactarnos, y un PDF abierto
+    // en una pestaña se pierde al cerrarla.
+    expect($respuesta->headers->get('content-disposition'))->toBe(
+        'attachment; filename="xtrapubli-estimacion-'.strtolower($estimacion->codigo).'.pdf"',
+    );
 });
 
 test('descargar el documento se anota en la estimacion', function () {
