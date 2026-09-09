@@ -25,34 +25,6 @@ if (formulario) {
     iniciarCotizador(formulario);
 }
 
-if (document.querySelector('[data-documento-imprimible]')) {
-    iniciarDocumento();
-}
-
-/**
- * Documento imprimible de una estimación (`/cotizador/{codigo}/documento`).
- *
- * Abre el diálogo de impresión solo al entrar, porque a esta página se llega
- * apretando "Descargar PDF": pedirle a la persona que además busque el menú
- * del navegador sería hacerle dar dos pasos por el mismo botón.
- *
- * Reimprimir desde el botón de la barra NO gasta otra emisión — el tope
- * cuenta cuántas veces se PIDIÓ la página al servidor, y ya estás en ella. Es
- * lo que salva a quien canceló el diálogo sin querer.
- */
-function iniciarDocumento() {
-    const boton = document.querySelector('[data-imprimir]');
-
-    boton?.addEventListener('click', () => window.print());
-
-    // Tras `load` y no en `DOMContentLoaded`: el diálogo congela el render, y
-    // abrirlo antes de que bajen el logo y la hoja de estilos imprime a medio
-    // pintar. `requestAnimationFrame` espera además al primer pintado.
-    window.addEventListener('load', () => {
-        requestAnimationFrame(() => window.print());
-    });
-}
-
 function iniciarCotizador(formulario) {
     const contenedorLineas = formulario.querySelector('[data-lineas]');
     const plantilla = document.querySelector('[data-plantilla-linea]');

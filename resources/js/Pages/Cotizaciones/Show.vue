@@ -105,6 +105,22 @@ async function eliminar() {
                     <i class="fa-solid fa-print"></i>
                     Imprimir
                 </button>
+                <!-- PDF con membrete, generado por App\Services\Pdf\GeneradorPdf.
+                     Es un enlace normal y no un Link de Inertia: la respuesta es
+                     un archivo, no una visita. Se abre en pestaña nueva porque
+                     el servidor lo manda como vista previa (inline): asi se
+                     revisa la cotizacion antes de enviarla sin perder esta
+                     pantalla ni llenar el disco de PDFs. -->
+                <a :href="route('cotizaciones.pdf', cotizacion.id)" target="_blank" rel="noopener"
+                    class="btn btn-soft-primary btn-sm">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    Ver PDF
+                </a>
+                <a :href="route('cotizaciones.pdf', { cotizacion: cotizacion.id, descargar: 1 })"
+                    class="btn btn-soft-secondary btn-sm btn-icon" aria-label="Descargar la cotizacion en PDF"
+                    title="Descargar PDF">
+                    <i class="fa-solid fa-download"></i>
+                </a>
                 <Link v-if="esPendiente" v-can="'cotizaciones.editar'" :href="route('cotizaciones.edit', cotizacion.id)"
                     class="btn btn-soft-primary btn-sm">
                     <i class="fa-solid fa-pen"></i>

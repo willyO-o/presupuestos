@@ -8,6 +8,7 @@ use App\Http\Controllers\ClientePortalController;
 use App\Http\Controllers\CompraController;
 use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizadorPublicoController;
+use App\Http\Controllers\DocumentoPdfController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FormulaController;
 use App\Http\Controllers\MaterialController;
@@ -313,6 +314,26 @@ Route::middleware('auth')->group(function () {
     Route::post('/cotizaciones/{cotizacion}/rechazar', [CotizacionController::class, 'rechazar'])
         ->middleware('can:cotizaciones.aprobar')
         ->name('cotizaciones.rechazar');
+
+    // --- Descarga de documentos en PDF ---
+    // Todos los genera App\Services\Pdf\GeneradorPdf (una sola clase). El
+    // permiso es el mismo que para ver el documento en pantalla: quien puede
+    // leerlo puede llevarselo.
+    Route::get('/cotizaciones/{cotizacion}/pdf', [DocumentoPdfController::class, 'cotizacion'])
+        ->middleware('can:cotizaciones.ver')
+        ->name('cotizaciones.pdf');
+    Route::get('/pedidos/{pedido}/pdf', [DocumentoPdfController::class, 'pedido'])
+        ->middleware('can:pedidos.ver')
+        ->name('pedidos.pdf');
+    Route::get('/notas-entrega/{notaEntrega}/pdf', [DocumentoPdfController::class, 'notaEntrega'])
+        ->middleware('can:notas-entrega.ver')
+        ->name('notas-entrega.pdf');
+    Route::get('/compras/{compra}/pdf', [DocumentoPdfController::class, 'compra'])
+        ->middleware('can:compras.ver')
+        ->name('compras.pdf');
+    Route::get('/ordenes-compra-cliente/{ordenCompra}/pdf', [DocumentoPdfController::class, 'ordenCompraCliente'])
+        ->middleware('can:ordenes-compra-cliente.ver')
+        ->name('ordenes-compra-cliente.pdf');
 
     // --- Solicitudes que llegan por el cotizador publico ---
     Route::get('/solicitudes-web', [SolicitudWebController::class, 'index'])

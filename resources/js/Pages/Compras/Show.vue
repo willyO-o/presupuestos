@@ -78,6 +78,18 @@ async function eliminar() {
                     <i class="fa-solid fa-print"></i>
                     Imprimir
                 </button>
+                <!-- Vista previa en pestaña nueva (el servidor responde inline);
+                     el boton de al lado baja el archivo. -->
+                <a :href="route('compras.pdf', compra.id)" target="_blank" rel="noopener"
+                    class="btn btn-soft-primary btn-sm">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    Ver PDF
+                </a>
+                <a :href="route('compras.pdf', { compra: compra.id, descargar: 1 })"
+                    class="btn btn-soft-secondary btn-sm btn-icon" aria-label="Descargar la orden de compra en PDF"
+                    title="Descargar PDF">
+                    <i class="fa-solid fa-download"></i>
+                </a>
                 <Link v-if="esPendiente" v-can="'compras.editar'" :href="route('compras.edit', compra.id)"
                     class="btn btn-soft-primary btn-sm">
                     <i class="fa-solid fa-pen"></i>

@@ -13,6 +13,8 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "nxp/math-executor": "^2.3",
+        "spatie/browsershot": "^5.4",
+        "spatie/laravel-pdf": "^2.13",
         "spatie/laravel-permission": "^8.3",
         "tightenco/ziggy": "^2.0"
     },

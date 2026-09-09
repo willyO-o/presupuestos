@@ -7,12 +7,14 @@ use App\Http\Requests\Cotizador\CalcularEstimacionRequest;
 use App\Http\Requests\Cotizador\GuardarEstimacionRequest;
 use App\Models\CotizacionPublica;
 use App\Services\Cotizador\CotizadorPublicoService;
+use App\Services\Pdf\GeneradorPdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use InvalidArgumentException;
+use Spatie\LaravelPdf\PdfBuilder;
 use Throwable;
 
 /**
@@ -32,6 +34,7 @@ class CotizadorPublicoController extends Controller
 {
     public function __construct(
         private readonly CotizadorPublicoService $cotizador,
+        private readonly GeneradorPdf $generadorPdf,
     ) {}
 
     /**
@@ -149,22 +152,18 @@ class CotizadorPublicoController extends Controller
     }
 
     /**
-     * Documento imprimible de una estimación: la misma forma que el
-     * presupuesto del panel (Pages/Cotizaciones/Show.vue), para que lo que el
-     * visitante guarda como PDF se vea como un documento de la empresa y no
-     * como una página web impresa.
+     * PDF de una estimación, con la misma forma que el presupuesto formal
+     * (App\Services\Pdf\GeneradorPdf, igual que todos los documentos del
+     * sistema) pero rotulado como ESTIMACIÓN.
      *
-     * No se genera un PDF en el servidor: se sirve una página preparada para
-     * imprimir y el navegador la guarda con "Imprimir → Guardar como PDF". Es
-     * lo mismo que hace el panel (`window.print()` en Cotizaciones/Show), así
-     * que el sistema no gana una dependencia de PDF por una sola pantalla.
-     *
-     * Dos frenos, y hacen falta los dos: el rate limiter por IP
-     * (`cotizador-descargar`) y el tope por estimación (`puedeDescargar()`).
-     * El limiter se renueva solo, así que sin el tope por fila un código
-     * válido alcanza para pedir el documento indefinidamente.
+     * Es, de lejos, la operación más cara que expone el sitio: cada llamada
+     * levanta un Chromium headless para imprimir el documento, y la dispara un
+     * visitante anónimo. Por eso hay DOS frenos y hacen falta los dos: el rate
+     * limiter por IP (`cotizador-descargar`) y el tope por estimación
+     * (`puedeDescargar()`). El limiter se renueva solo, así que sin el tope
+     * por fila un código válido alcanza para pedir el PDF indefinidamente.
      */
-    public function documento(string $codigo): View|RedirectResponse
+    public function documento(string $codigo): PdfBuilder|RedirectResponse
     {
         $cotizacion = $this->buscarPorCodigo($codigo);
 
@@ -175,10 +174,7 @@ class CotizadorPublicoController extends Controller
 
         $cotizacion->registrarDescarga();
 
-        return view('publico.cotizacion-documento', [
-            'cotizacion' => $cotizacion,
-            'vigente' => $cotizacion->estaVigente(),
-        ]);
+        return $this->generadorPdf->cotizacionPublica($cotizacion);
     }
 
     /**

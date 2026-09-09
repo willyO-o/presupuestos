@@ -163,6 +163,20 @@ async function cancelarPedido() {
                     <i class="fa-solid fa-file-invoice-dollar"></i>
                     Ver cotización de origen
                 </Link>
+                <!-- Orden de trabajo para el taller: medidas y etapas, sin
+                     precios de venta por linea (App\Services\Pdf\GeneradorPdf).
+                     Se abre en pestaña nueva como vista previa; el boton de al
+                     lado baja el archivo para imprimirlo en el galpon. -->
+                <a :href="route('pedidos.pdf', pedido.id)" target="_blank" rel="noopener"
+                    class="btn btn-soft-secondary btn-sm">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    Ver orden de trabajo
+                </a>
+                <a :href="route('pedidos.pdf', { pedido: pedido.id, descargar: 1 })"
+                    class="btn btn-soft-secondary btn-sm btn-icon" aria-label="Descargar la orden de trabajo en PDF"
+                    title="Descargar PDF">
+                    <i class="fa-solid fa-download"></i>
+                </a>
                 <Link v-if="pedido.estado !== 'CANCELADO'" v-can="'notas-entrega.crear'"
                     :href="route('notas-entrega.create', { pedido: pedido.id })" class="btn btn-soft-primary btn-sm">
                     <i class="fa-solid fa-truck-ramp-box"></i>

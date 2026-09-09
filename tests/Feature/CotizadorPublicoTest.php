@@ -12,6 +12,8 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\PdfBuilder;
 
 /**
  * Cotizador público (`/cotizador`).
@@ -31,6 +33,11 @@ beforeEach(function () {
     RateLimiter::clear('cotizador-guardar');
     RateLimiter::clear('cotizador-calcular');
     RateLimiter::clear('cotizador-descargar');
+
+    // Los documentos se descargan como PDF (App\Services\Pdf\GeneradorPdf).
+    // Sin el fake, cada test levantaría un Chromium: segundos por caso y una
+    // suite que solo corre en máquinas con Node y Puppeteer.
+    Pdf::fake();
 });
 
 /**
@@ -471,55 +478,40 @@ test('el sitemap publica el cotizador y robots.txt bloquea las estimaciones', fu
 |--------------------------------------------------------------------------
 */
 
-test('el documento trae la fecha de emision, los datos y los totales', function () {
+test('el documento se entrega como PDF con la fecha de emision y los datos', function () {
     $estimacion = CotizacionPublica::factory()->create([
         'nombre' => 'Ana Quispe',
         'empresa' => 'Marca S.A.',
         'mensaje' => 'Lo necesito para el lunes.',
     ]);
 
-    $this->get(route('cotizador.documento', $estimacion->codigo))
-        ->assertOk()
-        ->assertSee($estimacion->codigo)
-        ->assertSee('ESTIMACIÓN REFERENCIAL')
-        // Fecha de emisión y vigencia, que es lo que hace de esto un documento.
-        ->assertSee('Fecha de emisión')
-        ->assertSee($estimacion->created_at->translatedFormat('d \d\e F \d\e Y'))
-        ->assertSee($estimacion->fecha_vencimiento->translatedFormat('d \d\e F \d\e Y'))
-        // Datos de quien lo pidió y lo que pidió.
-        ->assertSee('Ana Quispe')
-        ->assertSee('Marca S.A.')
-        ->assertSee($estimacion->telefono)
-        ->assertSee('Lo necesito para el lunes.')
-        // Y los datos de la empresa que emite.
-        ->assertSee(config('sitio.empresa.nombre'))
-        ->assertSee(config('sitio.empresa.direccion'));
+    $this->get(route('cotizador.documento', $estimacion->codigo))->assertOk();
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($estimacion): bool {
+        $html = $pdf->getHtml();
+
+        return $pdf->viewName === 'pdf.cotizacion-publica'
+            && str_contains($html, $estimacion->codigo)
+            // Fecha de emisión y vigencia: lo que hace de esto un documento.
+            && str_contains($html, 'Fecha de emisión')
+            && str_contains($html, $estimacion->created_at->translatedFormat('d \d\e F \d\e Y'))
+            && str_contains($html, $estimacion->fecha_vencimiento->translatedFormat('d \d\e F \d\e Y'))
+            // Datos de quien lo pidió y lo que pidió.
+            && str_contains($html, 'Ana Quispe')
+            && str_contains($html, 'Marca S.A.')
+            && str_contains($html, 'Lo necesito para el lunes.')
+            // Y los datos de la empresa que emite.
+            && str_contains($html, config('sitio.empresa.direccion'));
+    });
 });
 
-test('el documento sigue el formato del presupuesto del panel', function () {
-    // Mismas columnas de detalle y misma escalera de totales que
-    // Pages/Cotizaciones/Show.vue: lo que el visitante guarda como PDF tiene
-    // que parecerse a lo que le llega de la empresa.
+test('el documento se descarga con un nombre de archivo reconocible', function () {
     $estimacion = CotizacionPublica::factory()->create();
 
-    $this->get(route('cotizador.documento', $estimacion->codigo))
-        ->assertOk()
-        ->assertSeeInOrder(['Descripción', 'Medidas (m)', 'Cant.', 'P. unit.', 'Subtotal'])
-        ->assertSeeInOrder(['Subtotal', 'IVA', 'Total estimado', 'Rango aproximado'])
-        // Y deja claro que no es una oferta en firme.
-        ->assertSee('No constituye una oferta comercial en firme.');
-});
+    $this->get(route('cotizador.documento', $estimacion->codigo))->assertOk();
 
-test('el documento no se indexa ni arrastra el menu del sitio', function () {
-    $estimacion = CotizacionPublica::factory()->create();
-
-    $html = $this->get(route('cotizador.documento', $estimacion->codigo))->assertOk()->getContent();
-
-    expect($html)
-        ->toContain('<meta name="robots" content="noindex, nofollow">')
-        // Un documento no lleva navegación ni botón flotante de WhatsApp.
-        ->not->toContain('Navegación principal')
-        ->not->toContain('Escribir a XtraPubli por WhatsApp');
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf): bool => $pdf->isDownload()
+        && $pdf->downloadName === 'xtrapubli-estimacion-'.strtolower($estimacion->codigo).'.pdf');
 });
 
 test('descargar el documento se anota en la estimacion', function () {

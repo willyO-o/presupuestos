@@ -11,6 +11,29 @@ Aplicación Laravel + Inertia (Vue 3) para la gestión de cotizaciones, pedidos,
 | Node.js | 20+ |
 | npm | 10+ |
 | Base de datos | MariaDB 10.6+ / MySQL 8+ |
+| Chromium (Puppeteer) | Requerido **en el servidor** para generar PDFs — ver abajo |
+
+### Generación de PDFs (requisito de servidor)
+
+Todos los documentos (cotización, orden de trabajo, nota de entrega, compra,
+orden de compra del cliente y la estimación del cotizador web) se generan con
+`spatie/laravel-pdf` sobre Browsershot, que imprime con **Chromium headless**.
+Eso significa que **el servidor de producción necesita Node y el navegador de
+Puppeteer**, no solo PHP. En un hosting compartido sin Node esto no funciona.
+
+```bash
+npm install                                   # instala puppeteer (devDependency)
+npx puppeteer browsers install chrome-headless-shell
+```
+
+Si al generar un PDF aparece `Could not find chrome-headless-shell (ver. X)`,
+es que Browsershot pide una revisión distinta de la descargada: instala esa
+versión exacta con `npx puppeteer browsers install chrome-headless-shell@X`.
+
+**Alternativa sin Node**: `config/laravel-pdf.php` acepta el driver `dompdf`
+(`LARAVEL_PDF_DRIVER=dompdf` + `composer require dompdf/dompdf`). La maqueta se
+degrada —dompdf no soporta flexbox— pero no hay que tocar
+`App\Services\Pdf\GeneradorPdf` ni las vistas.
 
 ## Instalación
 

@@ -177,6 +177,17 @@ async function anular(orden) {
                 </template>
                 <template #actions="{ item }">
                     <div class="d-flex gap-1 justify-content-end">
+                        <!-- Acuse de como quedo registrada la OC, con el cotejo
+                             contra el total del pedido. No reemplaza al PDF que
+                             mando el cliente (columna "Archivo"). Solo vista
+                             previa en pestaña nueva: en una fila de tabla no
+                             caben dos iconos, y desde el visor del navegador se
+                             guarda igual. -->
+                        <a :href="route('ordenes-compra-cliente.pdf', item.id)" target="_blank" rel="noopener"
+                            class="btn btn-sm btn-icon btn-soft-secondary" aria-label="Ver acuse en PDF"
+                            title="Ver acuse en PDF">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </a>
                         <button v-if="item.estado === 'PENDIENTE'" v-can="'ordenes-compra-cliente.crear'" type="button"
                             class="btn btn-sm btn-icon btn-soft-primary" aria-label="Editar" @click="openEdit(item)">
                             <i class="fa-solid fa-pen"></i>
