@@ -110,6 +110,7 @@ class PedidoController extends Controller
             'ordenCompra',
             'notasEntrega:id,pedido_id,numero_nota,fecha_entrega',
             'pagos:id,pedido_id,monto,fecha_pago,metodo_pago,estado',
+            'seguimientoPostventa.empleado:id,nombres,paterno,materno',
         ]);
 
         return inertia('Pedidos/Show', [

@@ -20,7 +20,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\RolController;
+use App\Http\Controllers\SeguimientoPostventaController;
 use App\Http\Controllers\SucursalController;
+use App\Http\Controllers\TipoProyectoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VerificacionController;
 use Illuminate\Foundation\Application;
@@ -237,6 +239,20 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:formulas.ver')
         ->name('formulas.probar');
 
+    // --- Tipos de proyecto (niveles de complejidad del motor de margen) ---
+    Route::get('/tipos-proyecto', [TipoProyectoController::class, 'index'])
+        ->middleware('can:tipos-proyecto.ver')
+        ->name('tipos-proyecto.index');
+    Route::post('/tipos-proyecto', [TipoProyectoController::class, 'store'])
+        ->middleware('can:tipos-proyecto.crear')
+        ->name('tipos-proyecto.store');
+    Route::put('/tipos-proyecto/{tipoProyecto}', [TipoProyectoController::class, 'update'])
+        ->middleware('can:tipos-proyecto.editar')
+        ->name('tipos-proyecto.update');
+    Route::delete('/tipos-proyecto/{tipoProyecto}', [TipoProyectoController::class, 'destroy'])
+        ->middleware('can:tipos-proyecto.eliminar')
+        ->name('tipos-proyecto.destroy');
+
     // --- Cotizaciones (presupuestos) ---
     Route::get('/cotizaciones', [CotizacionController::class, 'index'])
         ->middleware('can:cotizaciones.ver')
@@ -252,6 +268,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/cotizaciones/costear', [CotizacionController::class, 'costear'])
         ->middleware('can:cotizaciones.crear')
         ->name('cotizaciones.costear');
+    // Motor de margen sobre una hoja de costos escrita a mano (JSON, sin guardar).
+    Route::post('/cotizaciones/simular', [CotizacionController::class, 'simular'])
+        ->middleware('can:cotizaciones.crear')
+        ->name('cotizaciones.simular');
     Route::get('/cotizaciones/{cotizacion}', [CotizacionController::class, 'show'])
         ->middleware('can:cotizaciones.ver')
         ->name('cotizaciones.show');
@@ -296,6 +316,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/pedidos/{pedido}/detalle/{detalle}/consumo', [PedidoController::class, 'registrarConsumo'])
         ->middleware('can:pedidos.actualizar_estado')
         ->name('pedidos.detalle.consumo');
+
+    // --- Seguimiento postventa (cierre del flujo: contacto a los N días) ---
+    Route::get('/seguimientos-postventa', [SeguimientoPostventaController::class, 'index'])
+        ->middleware('can:seguimientos-postventa.ver')
+        ->name('seguimientos-postventa.index');
+    Route::post('/seguimientos-postventa/{seguimientoPostventa}/registrar', [SeguimientoPostventaController::class, 'registrar'])
+        ->middleware('can:seguimientos-postventa.registrar')
+        ->name('seguimientos-postventa.registrar');
 
     // --- Órdenes de compra de cliente ---
     Route::get('/ordenes-compra-cliente', [OrdenCompraClienteController::class, 'index'])

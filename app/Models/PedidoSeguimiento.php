@@ -31,10 +31,11 @@ class PedidoSeguimiento extends Model
     protected $table = 'pedido_seguimiento';
 
     /**
-     * Etapas del flujo (database-design.md §9). Ojo: la última es ENTREGA
-     * (no ENTREGADO, que es el `estado_item` de pedido_detalle).
+     * Etapas del flujo (database-design.md §9) más CONTROL_CALIDAD, que
+     * agrega el Proceso 2 de la empresa. Ojo: la última es ENTREGA (no
+     * ENTREGADO, que es el `estado_item` de pedido_detalle).
      */
-    public const ETAPAS = ['DISENO', 'ELABORACION', 'ACABADO', 'ENTREGA'];
+    public const ETAPAS = ['DISENO', 'ELABORACION', 'ACABADO', 'CONTROL_CALIDAD', 'ENTREGA'];
 
     /**
      * @return array<string, string>

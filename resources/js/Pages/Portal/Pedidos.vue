@@ -21,6 +21,7 @@ const estadoBadge = {
     DISENO: 'badge-soft-secondary',
     ELABORACION: 'badge-soft-info',
     ACABADO: 'badge-soft-warning',
+    CONTROL_CALIDAD: 'badge-soft-primary',
     ENTREGADO: 'badge-soft-success',
     CANCELADO: 'badge-soft-danger',
 };

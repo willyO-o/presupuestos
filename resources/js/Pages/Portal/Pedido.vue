@@ -9,7 +9,7 @@ const props = defineProps({
     cobranza: { type: Object, required: true },
 });
 
-const flujo = ['DISENO', 'ELABORACION', 'ACABADO', 'ENTREGADO'];
+const flujo = ['DISENO', 'ELABORACION', 'ACABADO', 'CONTROL_CALIDAD', 'ENTREGADO'];
 
 function money(v) {
     return `Bs ${Number(v ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

@@ -1,13 +1,14 @@
 ---
 paths:
-  - 'app/Http/Controllers/CotizacionController.php'
+  - app/Http/Controllers/CotizacionController.php
   - 'app/Http/Requests/Cotizacion/**'
-  - 'app/Models/Cotizacion.php'
-  - 'app/Models/CotizacionDetalle.php'
-  - 'app/Services/Calculo/PrecioSugeridoService.php'
+  - app/Models/Cotizacion.php
+  - app/Models/CotizacionDetalle.php
+  - app/Services/Calculo/PrecioSugeridoService.php
   - 'resources/js/Pages/Cotizaciones/**'
-  - 'database/seeders/CotizacionSeeder.php'
-  - 'config/cotizacion.php'
+  - database/seeders/CotizacionSeeder.php
+  - config/cotizacion.php
+  - app/Models/Pedido.php
 ---
 
 # Cotizaciones
@@ -48,3 +49,10 @@ patrones del proyecto. No reimplementar desde cero.
 - Datos de prueba: `CotizacionSeeder` (8 cotizaciones curadas con detalle real, precio vía
   `PrecioSugeridoService` cuando el producto tiene BOM; se salta si ya hay filas — no
   idempotente, como los demás seeders de volumen). Tests: `CotizacionControllerTest`.
+
+## Flujo de producción: etapa CONTROL_CALIDAD y postventa automática
+2026-09-08, para alinear el sistema con los 3 procesos documentados de la empresa:
+
+1. Se agregó `CONTROL_CALIDAD` entre ACABADO y ENTREGADO en `pedido.estado`, `pedido_detalle.estado_item` y `pedido_seguimiento.etapa` (Proceso 2, paso 4). La migración usa `->change()` con `enum`, no SQL crudo: los tests corren en SQLite y ahí Laravel traduce el enum a un CHECK. Las constantes `Pedido::ESTADOS`/`FLUJO`, `PedidoDetalle::ESTADOS` y `PedidoSeguimiento::ETAPAS` son la fuente para el frontend (Pedidos/Show las recibe como props) — al agregar una etapa hay que tocar también los mapas de badges de Pedidos/Index, Pedidos/Show, Portal/Pedidos y el array `flujo` de Portal/Pedido.
+
+2. `Pedido::recalcularEstado()` llama a `App\Services\Pedido\ProgramarPostventaService` cuando el pedido queda ENTREGADO: crea el `seguimiento_postventa` PENDIENTE a `config('postventa.dias_seguimiento')` días (Proceso 3, "Seguimiento 7 días"). Ese servicio es el ÚNICO lugar que crea seguimientos, y es idempotente (`pedido_id` único) — no crear filas a mano desde un controlador ni un seeder.

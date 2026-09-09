@@ -54,6 +54,7 @@ export const NAV_MENU = [
             'pedidos.ver',
             'ordenes-compra-cliente.ver',
             'notas-entrega.ver',
+            'seguimientos-postventa.ver',
             'pagos.ver',
         ],
     },
@@ -91,6 +92,13 @@ export const NAV_MENU = [
         type: 'link',
         path: '/pagos',
         permission: 'pagos.ver',
+    },
+    {
+        title: 'Seguimiento Postventa',
+        icon: 'fa-solid fa-headset',
+        type: 'link',
+        path: '/seguimientos-postventa',
+        permission: 'seguimientos-postventa.ver',
     },
 
     {
@@ -134,7 +142,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Catálogo de Productos',
-        permission: ['categorias-producto.ver', 'productos.ver', 'formulas.ver'],
+        permission: ['categorias-producto.ver', 'productos.ver', 'formulas.ver', 'tipos-proyecto.ver'],
     },
     {
         title: 'Categorías de Producto',
@@ -156,6 +164,13 @@ export const NAV_MENU = [
         type: 'link',
         path: '/formulas',
         permission: 'formulas.ver',
+    },
+    {
+        title: 'Tipos de Proyecto',
+        icon: 'fa-solid fa-sliders',
+        type: 'link',
+        path: '/tipos-proyecto',
+        permission: 'tipos-proyecto.ver',
     },
 
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Pedido\ProgramarPostventaService;
 use Database\Factories\PedidoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -35,16 +36,18 @@ class Pedido extends Model
     protected $table = 'pedido';
 
     /**
-     * Etapas del diagrama de flujo del proyecto (database-design.md §9/§12):
-     * DISENO → ELABORACION → ACABADO → ENTREGADO. CANCELADO es terminal.
+     * Etapas del diagrama de flujo del proyecto (database-design.md §9/§12)
+     * más CONTROL_CALIDAD, que exige el Proceso 2 de la empresa antes de dar
+     * un trabajo por terminado: DISENO → ELABORACION → ACABADO →
+     * CONTROL_CALIDAD → ENTREGADO. CANCELADO es terminal.
      */
-    public const ESTADOS = ['DISENO', 'ELABORACION', 'ACABADO', 'ENTREGADO', 'CANCELADO'];
+    public const ESTADOS = ['DISENO', 'ELABORACION', 'ACABADO', 'CONTROL_CALIDAD', 'ENTREGADO', 'CANCELADO'];
 
     /**
      * Orden de avance de las etapas productivas (sin CANCELADO): el estado
      * global del pedido es el de la etapa MENOS avanzada entre sus ítems.
      */
-    public const FLUJO = ['DISENO', 'ELABORACION', 'ACABADO', 'ENTREGADO'];
+    public const FLUJO = ['DISENO', 'ELABORACION', 'ACABADO', 'CONTROL_CALIDAD', 'ENTREGADO'];
 
     /**
      * @return array<string, string>
@@ -130,6 +133,15 @@ class Pedido extends Model
         };
     }
 
+    /**
+     * Contacto de postventa programado al entregar (1:1). Null mientras el
+     * pedido no esté ENTREGADO — lo crea ProgramarPostventaService.
+     */
+    public function seguimientoPostventa(): HasOne
+    {
+        return $this->hasOne(SeguimientoPostventa::class);
+    }
+
     public function esCancelable(): bool
     {
         return ! in_array($this->estado, ['ENTREGADO', 'CANCELADO'], true);
@@ -160,6 +172,12 @@ class Pedido extends Model
             ? ($this->fecha_entrega_real ?? now()->toDateString())
             : null;
         $this->save();
+
+        // Cierre del Proceso 3: todo pedido entregado nace con su contacto de
+        // postventa programado, sin importar desde qué pantalla se entregó.
+        if ($this->estado === 'ENTREGADO') {
+            app(ProgramarPostventaService::class)->programar($this);
+        }
     }
 
     /**

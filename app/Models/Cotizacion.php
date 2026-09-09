@@ -20,9 +20,17 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'fecha',
     'fecha_vencimiento',
     'estado',
+    'costo_base',
+    'costo_ajustado',
     'subtotal',
     'descuento',
     'impuesto',
+    'it',
+    'iue',
+    'utilidad_real',
+    'instalacion',
+    'estado_margen',
+    'recomendacion',
     'total',
     'observaciones',
 ])]
@@ -48,6 +56,13 @@ class Cotizacion extends Model
     public const ESTADOS = ['PENDIENTE', 'APROBADA', 'RECHAZADA', 'CONVERTIDA', 'VENCIDA'];
 
     /**
+     * Semáforo del motor de margen (App\Services\Calculo\MotorMargenService):
+     * es información INTERNA de rentabilidad, no se imprime en el documento
+     * que ve el cliente.
+     */
+    public const ESTADOS_MARGEN = ['VERDE', 'AMARILLO', 'ROJO'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -55,9 +70,15 @@ class Cotizacion extends Model
         return [
             'fecha' => 'date',
             'fecha_vencimiento' => 'date',
+            'costo_base' => 'decimal:2',
+            'costo_ajustado' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'descuento' => 'decimal:2',
             'impuesto' => 'decimal:2',
+            'it' => 'decimal:2',
+            'iue' => 'decimal:2',
+            'utilidad_real' => 'decimal:2',
+            'instalacion' => 'decimal:2',
             'total' => 'decimal:2',
         ];
     }
@@ -94,6 +115,18 @@ class Cotizacion extends Model
     public function pedido(): HasOne
     {
         return $this->hasOne(Pedido::class);
+    }
+
+    /**
+     * Utilidad real sobre el costo ajustado, como fracción — el número que
+     * decide el color del semáforo. 0 si la cotización no tiene costo
+     * cargado (presupuesto viejo, anterior al motor de margen).
+     */
+    public function rentabilidad(): float
+    {
+        $costoAjustado = (float) $this->costo_ajustado;
+
+        return $costoAjustado > 0 ? (float) $this->utilidad_real / $costoAjustado : 0.0;
     }
 
     /**

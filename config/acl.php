@@ -148,6 +148,18 @@ return [
         ],
 
         // --- Cotizaciones ---
+        // Niveles de complejidad del motor de margen (factor + margen
+        // mínimo). Los administra el mismo perfil que define precios.
+        'tipos-proyecto' => [
+            'label' => 'Tipos de proyecto',
+            'permissions' => [
+                'tipos-proyecto.ver' => 'Ver tipos de proyecto',
+                'tipos-proyecto.crear' => 'Crear tipos de proyecto',
+                'tipos-proyecto.editar' => 'Editar tipos de proyecto',
+                'tipos-proyecto.eliminar' => 'Eliminar tipos de proyecto',
+            ],
+        ],
+
         'cotizaciones' => [
             'label' => 'Cotizaciones',
             'permissions' => [
@@ -180,6 +192,16 @@ return [
                 'ordenes-compra-cliente.validar' => 'Validar órdenes de compra de cliente',
             ],
         ],
+        // Cierre del Proceso 3 del flujo: contacto con el cliente a los N
+        // días de la entrega (ver config/postventa.php).
+        'seguimientos-postventa' => [
+            'label' => 'Seguimiento postventa',
+            'permissions' => [
+                'seguimientos-postventa.ver' => 'Ver seguimientos postventa',
+                'seguimientos-postventa.registrar' => 'Registrar contacto de postventa',
+            ],
+        ],
+
         'notas-entrega' => [
             'label' => 'Notas de entrega',
             'permissions' => [
@@ -271,10 +293,12 @@ return [
                 'categorias-producto.ver', 'categorias-producto.crear', 'categorias-producto.editar', 'categorias-producto.eliminar',
                 'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar',
                 'formulas.ver', 'formulas.crear', 'formulas.editar', 'formulas.eliminar',
+                'tipos-proyecto.ver', 'tipos-proyecto.crear', 'tipos-proyecto.editar', 'tipos-proyecto.eliminar',
                 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.aprobar', 'cotizaciones.eliminar',
                 'pedidos.ver', 'pedidos.crear', 'pedidos.asignar_area', 'pedidos.actualizar_estado', 'pedidos.ver_todas_sucursales',
                 'ordenes-compra-cliente.ver', 'ordenes-compra-cliente.crear', 'ordenes-compra-cliente.validar',
                 'notas-entrega.ver', 'notas-entrega.crear',
+                'seguimientos-postventa.ver', 'seguimientos-postventa.registrar',
                 'pagos.ver', 'pagos.registrar',
                 'reportes.financiero', 'reportes.produccion', 'reportes.bi',
                 'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
@@ -290,9 +314,11 @@ return [
                 'clientes.ver', 'clientes.crear', 'clientes.editar',
                 'categorias-producto.ver',
                 'productos.ver',
+                'tipos-proyecto.ver',
                 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar',
                 'pedidos.ver', 'pedidos.crear',
                 'ordenes-compra-cliente.ver', 'ordenes-compra-cliente.crear',
+                'seguimientos-postventa.ver', 'seguimientos-postventa.registrar',
             ],
         ],
 

@@ -8,6 +8,7 @@ paths:
   - app/Http/Controllers/PagoController.php
   - app/Http/Controllers/UsuarioController.php
   - app/Http/Controllers/ClientePortalController.php
+  - app/Http/Controllers/CotizacionController.php
 ---
 
 # Controllers
@@ -46,3 +47,12 @@ Modelo `Pago` (tabla `pago`) + factory. `PagoController` (index con resumen tota
 
 ## Portal del cliente + verificación pública: ya construido (2026-08-31)
 **Verificación pública**: `GET /verificar/{codigo}` (fuera de `auth`, `where('codigo','[A-Za-z0-9\-]+')`) → `VerificacionController` → `Pages/Verificar/Show.vue` (sin layout de dashboard, usa `.verificar-shell`). Enlazar el código para que el cliente verifique autenticidad. **Portal**: grupo `Route::middleware(['auth','role:cliente'])->prefix('portal')->name('portal.')` — el alias `role`/`permission`/`role_or_permission` de Spatie se registró en `bootstrap/app.php`. `ClientePortalController` scopea TODO por `$request->user()->cliente->id` **inline** (`abort_unless(... === $this->clienteId($request))`), NO con Policy — consistente con el resto del proyecto que no usa Policies (ver PedidoController::puedeVer). Sin ficha de cliente → 403. `responder` aprueba/rechaza solo cotización PENDIENTE propia con total > 0. `solicitarStore` crea `cotizacion` PENDIENTE con `empleado_id = null` (por eso la migración `make_empleado_id_nullable_on_cotizacion_table` — dropForeign + change + re-add nullOnDelete), `sucursal_id` = primera activa, montos en 0 (ventas les pone precio). `Layouts/ClientePortalLayout.vue` (topbar propio, no el sidebar de staff). Post-login: `AuthenticatedSessionController::store` + `ReporteController::dashboard` redirigen el rol `cliente` a `portal.cotizaciones`. `ClienteSeeder` crea 2 usuarios portal (`cliente0@gmail.com`/`cliente1@gmail.com`, `cliente123`) fuera de producción. CSS §27. Tests: PortalClienteTest (9), VerificacionPublicaTest (2).
+
+## Cotización: hoja de costos por línea, precio del motor, IVA server-side
+Refactor 2026-09-08: cada `cotizacion_detalle` es una hoja del Excel de margen. Sus insumos viven en `cotizacion_detalle_item` (tipo/descripcion/unidad/cantidad/costo_unitario/subtotal, columnas A-E), y describen UNA unidad — `cantidad` los multiplica.
+
+Flujo en `normalizarDetalles()`: costo_base unitario = Σ items → `MotorMargenService::calcularCon(tipo)` → precio_unitario. El precio que manda el navegador SE IGNORA salvo que la línea traiga `precio_manual = 'SI'` (o no tenga items: sin hoja de costos el precio solo puede ser manual, eso mantiene vivas las líneas de reventa y el portal del cliente). `factor_complejidad`/`margen_aplicado` se copian a la línea como foto histórica: editar el CRUD de tipos NO recalcula presupuestos ya emitidos.
+
+`calcularMontos()` agrega y vuelve a pasar por el motor: `impuesto` ES el IVA calculado (bandera `aplicar_iva`, default true) — ya NO es un monto libre del cliente; `descuento` baja la base imponible y por eso empuja el semáforo; `total` = subtotal − descuento + IVA + instalación. `estado_margen`/`recomendacion`/`it`/`iue`/`utilidad_real` son cache, se sobreescriben en cada guardado.
+
+Endpoints JSON: `costear` (BOM → `insumos` listos para precargar la hoja + `motor`) y `simular` (motor sobre un costo escrito a mano). Registrar ambos ANTES de `cotizaciones/{cotizacion}`.

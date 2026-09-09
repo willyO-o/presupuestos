@@ -35,7 +35,7 @@ class PedidoDetalle extends Model
      * Etapa productiva del ítem (database-design.md §9). El estado global
      * del `pedido` se deriva del menos avanzado (ver Pedido::recalcularEstado).
      */
-    public const ESTADOS = ['DISENO', 'ELABORACION', 'ACABADO', 'ENTREGADO'];
+    public const ESTADOS = ['DISENO', 'ELABORACION', 'ACABADO', 'CONTROL_CALIDAD', 'ENTREGADO'];
 
     /**
      * @return array<string, string>

@@ -2169,3 +2169,132 @@
 .verificar-icon {
     @apply text-5xl;
 }
+
+/* ==========================================================================
+   28. MOTOR DE MARGEN (hoja de costos + semáforo de rentabilidad)
+   ------------------------------------------------------------------------
+   Portado del Excel 11_Sistema_Margen_Automatico_Xtrapubli. Lo usan el
+   formulario de cotización (hoja de costos por línea y panel en vivo), la
+   vista de detalle (Pages/Cotizaciones/Show.vue) y el CRUD de niveles de
+   complejidad (Pages/TiposProyecto/Index.vue).
+   Ver App\Services\Calculo\MotorMargenService y config/margen.php.
+   ========================================================================== */
+
+/* --- Hoja de costos: filas de insumos de una línea --- */
+.hoja-costos {
+    background: var(--page-bg);
+    border-color: var(--border-subtle);
+    @apply mt-3 rounded-lg border p-3;
+}
+
+.hoja-costos-head {
+    @apply mb-2 flex flex-wrap items-center justify-between gap-2;
+}
+
+.hoja-costos-fila {
+    @apply grid grid-cols-12 items-start gap-2;
+}
+
+.hoja-costos-fila + .hoja-costos-fila {
+    @apply mt-2;
+}
+
+.hoja-costos-labels {
+    color: var(--text-muted);
+    @apply mb-1 hidden grid-cols-12 gap-2 text-xs font-semibold uppercase lg:grid;
+}
+
+.hoja-costos-total {
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-heading);
+    @apply mt-3 flex items-center justify-between pt-2 text-sm font-semibold;
+}
+
+.hoja-costos-vacia {
+    color: var(--text-muted);
+    @apply py-3 text-center text-sm;
+}
+
+/* --- Semáforo de decisión --- */
+.semaforo {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide;
+}
+
+.semaforo-punto {
+    @apply inline-block h-2.5 w-2.5 rounded-full;
+}
+
+.semaforo-verde {
+    background: var(--c-success-soft);
+    color: var(--c-success-dark);
+}
+
+.semaforo-verde .semaforo-punto {
+    background: var(--c-success);
+}
+
+.semaforo-amarillo {
+    background: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+}
+
+.semaforo-amarillo .semaforo-punto {
+    background: var(--c-warning);
+}
+
+.semaforo-rojo {
+    background: var(--c-danger-soft);
+    color: var(--c-danger-dark);
+}
+
+.semaforo-rojo .semaforo-punto {
+    background: var(--c-danger);
+}
+
+/* --- Panel de rentabilidad (form en vivo y Show) --- */
+.margen-panel {
+    border-color: var(--border-subtle);
+    @apply rounded-lg border p-3;
+}
+
+.margen-row {
+    color: var(--text-body);
+    @apply flex items-center justify-between gap-3 py-1.5 text-sm;
+}
+
+.margen-row + .margen-row {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.margen-row-destacada {
+    color: var(--text-heading);
+    @apply font-semibold;
+}
+
+.margen-barra {
+    background: var(--border-subtle);
+    @apply mt-2 h-2 w-full overflow-hidden rounded-full;
+}
+
+.margen-barra-fill {
+    @apply h-full rounded-full transition-all;
+}
+
+.margen-barra-fill.is-verde {
+    background: var(--c-success);
+}
+
+.margen-barra-fill.is-amarillo {
+    background: var(--c-warning);
+}
+
+.margen-barra-fill.is-rojo {
+    background: var(--c-danger);
+}
+
+/* El desglose de rentabilidad es información interna: nunca se imprime. */
+@media print {
+    .margen-interno {
+        display: none !important;
+    }
+}

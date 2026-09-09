@@ -3,12 +3,27 @@ import { computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import { confirmation } from '@/Utils/AlertUtil';
+import { CLASES_SEMAFORO } from '@/Utils/MotorMargen';
 
 defineOptions({ layout: MainDashboardLayout });
 
 const props = defineProps({
     cotizacion: { type: Object, required: true },
+    // Desglose de rentabilidad por línea (interno, no se imprime).
+    margen: { type: Array, default: () => [] },
+    config: { type: Object, default: () => ({ impuestos: {} }) },
 });
+
+/** Rentabilidad de una línea, por id de detalle. */
+function margenDe(detalleId) {
+    return props.margen.find((m) => m.detalle_id === detalleId) ?? null;
+}
+
+const puedeVerMargen = computed(() => props.cotizacion.costo_ajustado > 0 || props.margen.length > 0);
+
+function pct(fraccion) {
+    return `${(Number(fraccion || 0) * 100).toFixed(1)} %`;
+}
 
 const estadoBadge = {
     PENDIENTE: 'badge-soft-warning',
@@ -124,6 +139,122 @@ async function eliminar() {
         </div>
     </div>
 
+    <!-- Análisis de rentabilidad: INTERNO, la clase .margen-interno lo saca de la impresión -->
+    <div v-if="puedeVerMargen" class="card mb-4 margen-interno">
+        <div class="card-header">
+            <span class="card-title">
+                <i class="fa-solid fa-chart-pie text-primary"></i>
+                Análisis de rentabilidad (uso interno)
+            </span>
+            <span v-if="cotizacion.estado_margen" :class="CLASES_SEMAFORO[cotizacion.estado_margen]">
+                <span class="semaforo-punto"></span>
+                {{ cotizacion.recomendacion }}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-5">
+                    <div class="margen-row">
+                        <span>Costo de insumos</span>
+                        <span>{{ money(cotizacion.costo_base) }}</span>
+                    </div>
+                    <div class="margen-row">
+                        <span>Costo ajustado por complejidad</span>
+                        <span>{{ money(cotizacion.costo_ajustado) }}</span>
+                    </div>
+                    <div class="margen-row">
+                        <span>IT ({{ pct(config.impuestos.it) }})</span>
+                        <span>− {{ money(cotizacion.it) }}</span>
+                    </div>
+                    <div class="margen-row">
+                        <span>IUE ({{ pct(config.impuestos.iue) }})</span>
+                        <span>− {{ money(cotizacion.iue) }}</span>
+                    </div>
+                    <div class="margen-row margen-row-destacada">
+                        <span>Utilidad real</span>
+                        <span>{{ money(cotizacion.utilidad_real) }}</span>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="table-responsive">
+                        <table class="table-dashboard table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Ítem</th>
+                                    <th>Nivel</th>
+                                    <th class="text-end">Costo ajustado</th>
+                                    <th class="text-end">Precio</th>
+                                    <th class="text-end">Utilidad</th>
+                                    <th class="text-center">Semáforo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="d in cotizacion.detalles" :key="`m-${d.id}`">
+                                    <td>{{ d.descripcion }}</td>
+                                    <td>
+                                        <span v-if="d.tipo_proyecto">
+                                            {{ d.tipo_proyecto.nombre }}
+                                            <span class="d-block fs-xs text-muted">
+                                                ×{{ Number(d.factor_complejidad).toFixed(2) }} ·
+                                                {{ pct(d.margen_aplicado) }}
+                                            </span>
+                                        </span>
+                                        <span v-else class="text-muted">Precio a mano</span>
+                                    </td>
+                                    <td class="text-end">{{ money(d.costo_ajustado) }}</td>
+                                    <td class="text-end">{{ money(d.subtotal) }}</td>
+                                    <td class="text-end">
+                                        {{ money(margenDe(d.id)?.utilidad_real) }}
+                                        <span class="d-block fs-xs text-muted">
+                                            {{ pct(margenDe(d.id)?.rentabilidad) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span v-if="margenDe(d.id)"
+                                            :class="CLASES_SEMAFORO[margenDe(d.id).estado]">
+                                            <span class="semaforo-punto"></span>
+                                            {{ margenDe(d.id).estado }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hoja de costos de cada ítem: de dónde salió el costo base -->
+            <details v-for="d in cotizacion.detalles.filter((x) => x.items?.length)" :key="`h-${d.id}`" class="mt-3">
+                <summary class="fs-sm fw-semibold cursor-pointer">
+                    Hoja de costos — {{ d.descripcion }} ({{ d.items.length }} insumos)
+                </summary>
+                <div class="table-responsive mt-2">
+                    <table class="table-dashboard table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Costo unit.</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in d.items" :key="item.id">
+                                <td>{{ item.tipo }}</td>
+                                <td>{{ item.descripcion }}</td>
+                                <td class="text-end">{{ Number(item.cantidad) }} {{ item.unidad ?? '' }}</td>
+                                <td class="text-end">{{ money(item.costo_unitario) }}</td>
+                                <td class="text-end fw-semibold">{{ money(item.subtotal) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </div>
+    </div>
+
     <!-- Documento -->
     <div class="card cotizacion-doc">
         <div class="card-body">
@@ -207,7 +338,10 @@ async function eliminar() {
                     <span>Descuento</span><span>− {{ money(cotizacion.descuento) }}</span>
                 </div>
                 <div v-if="Number(cotizacion.impuesto) > 0" class="cotizacion-total-row">
-                    <span>Impuesto</span><span>{{ money(cotizacion.impuesto) }}</span>
+                    <span>IVA</span><span>{{ money(cotizacion.impuesto) }}</span>
+                </div>
+                <div v-if="Number(cotizacion.instalacion) > 0" class="cotizacion-total-row">
+                    <span>Instalación</span><span>{{ money(cotizacion.instalacion) }}</span>
                 </div>
                 <div class="cotizacion-total-row cotizacion-total-grand">
                     <span>Total</span><span>{{ money(cotizacion.total) }}</span>

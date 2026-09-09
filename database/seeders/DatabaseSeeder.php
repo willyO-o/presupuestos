@@ -29,11 +29,17 @@ class DatabaseSeeder extends Seeder
             FormulaSeeder::class,
             ProductoMaterialSeeder::class,
             CompraSeeder::class,
+            // Antes de CotizacionSeeder: cada línea cotizada elige un nivel
+            // de complejidad para el motor de margen.
+            TipoProyectoSeeder::class,
             CotizacionSeeder::class,
             PedidoSeeder::class,
             OrdenCompraClienteSeeder::class,
             NotaEntregaSeeder::class,
             PagoSeeder::class,
+            // Cierra el flujo: programa/completa el contacto postventa de los
+            // pedidos ya entregados.
+            SeguimientoPostventaSeeder::class,
         ]);
 
         // User::factory(10)->create();

@@ -23,6 +23,7 @@ const estadoBadge = {
     DISENO: 'badge-soft-secondary',
     ELABORACION: 'badge-soft-info',
     ACABADO: 'badge-soft-warning',
+    CONTROL_CALIDAD: 'badge-soft-primary',
     ENTREGADO: 'badge-soft-success',
     CANCELADO: 'badge-soft-danger',
 };
@@ -207,6 +208,43 @@ async function cancelarPedido() {
                 </template>
                 <span v-else class="text-muted">ninguna</span>
             </p>
+        </div>
+    </div>
+
+    <!-- Postventa: cierre del flujo, aparece recién cuando el pedido está entregado -->
+    <div v-if="pedido.seguimiento_postventa" class="card mb-4">
+        <div class="card-header">
+            <span class="card-title">
+                <i class="fa-solid fa-headset text-primary"></i>
+                Seguimiento postventa
+            </span>
+            <span class="badge"
+                :class="pedido.seguimiento_postventa.estado === 'REALIZADO' ? 'badge-soft-success' : 'badge-soft-warning'">
+                {{ pedido.seguimiento_postventa.estado }}
+            </span>
+        </div>
+        <div class="card-body">
+            <p class="fs-sm mb-2">
+                <span class="text-muted">Contactar al cliente el:</span>
+                <strong>{{ fecha(pedido.seguimiento_postventa.fecha_programada) }}</strong>
+            </p>
+            <template v-if="pedido.seguimiento_postventa.estado === 'REALIZADO'">
+                <p class="fs-sm mb-1">
+                    <span class="text-muted">Contactado el</span>
+                    {{ fecha(pedido.seguimiento_postventa.fecha_contacto) }}
+                    <span v-if="pedido.seguimiento_postventa.satisfaccion">
+                        · satisfacción <strong>{{ pedido.seguimiento_postventa.satisfaccion }}</strong>
+                    </span>
+                </p>
+                <p v-if="pedido.seguimiento_postventa.observaciones" class="fs-sm text-prewrap mb-0">
+                    {{ pedido.seguimiento_postventa.observaciones }}
+                </p>
+            </template>
+            <Link v-else v-can="'seguimientos-postventa.ver'" :href="route('seguimientos-postventa.index')"
+                class="btn btn-sm btn-soft-primary">
+                <i class="fa-solid fa-phone-volume"></i>
+                Ir a registrar el contacto
+            </Link>
         </div>
     </div>
 
