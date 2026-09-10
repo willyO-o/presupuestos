@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use App\Services\Calculo\MotorMargenService;
 use Database\Factories\CotizacionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -39,7 +40,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Cotizacion extends Model
 {
     /** @use HasFactory<CotizacionFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -211,5 +212,17 @@ class Cotizacion extends Model
     protected function sucursalId(Builder $query, ?string $sucursalId): void
     {
         $query->when($sucursalId, fn (Builder $query) => $query->where('sucursal_id', $sucursalId));
+    }
+
+    /**
+     * La cotizacion es la UNICA tabla transaccional con `sucursal_id` propia:
+     * todo lo demas (pedido, pagos, notas de entrega, OC del cliente, postventa)
+     * llega a la sucursal a traves de ella.
+     *
+     * Ver App\Models\Concerns\AcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return null;
     }
 }

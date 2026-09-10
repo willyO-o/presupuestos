@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
@@ -13,8 +13,27 @@ const props = defineProps({
     usuarios: { type: Object, required: true },
     roles: { type: Array, default: () => [] },
     estados: { type: Array, default: () => [] },
+    alcances: { type: Array, default: () => [] },
+    sucursales: { type: Array, default: () => [] },
+    rolesGlobales: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
 });
+
+/**
+ * Qué sucursales ve la cuenta. El filtrado real pasa en el servidor
+ * (App\Models\Concerns\AcotaPorSucursal); esto solo lo configura.
+ */
+const ETIQUETA_ALCANCE = {
+    PROPIA: 'Solo su sucursal',
+    ASIGNADAS: 'Sucursales seleccionadas',
+    TODAS: 'Todas las sucursales',
+};
+
+const AYUDA_ALCANCE = {
+    PROPIA: 'La sucursal de su ficha de empleado. Sin ficha vinculada no verá ningún dato acotado por sucursal.',
+    ASIGNADAS: 'Marca cada sucursal que administra. La lista es literal: si también debe ver la suya, márcala.',
+    TODAS: 'Sin límite de sucursal. Una sucursal nueva queda incluida automáticamente.',
+};
 
 const table = useServerTable({
     url: route('usuarios.index'),
@@ -27,6 +46,7 @@ const headers = [
     { label: 'Nombre', key: 'name' },
     { label: 'Email', key: 'email' },
     { label: 'Rol', key: 'roles', class: 'text-center', cellClass: 'text-center' },
+    { label: 'Sucursales', key: 'alcance_sucursal' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
@@ -41,8 +61,25 @@ const form = useForm(() => ({
     password_confirmation: '',
     estado: 'ACTIVO',
     rol: props.roles[0] ?? '',
+    alcance_sucursal: 'PROPIA',
+    sucursales: [],
     foto: null,
 }));
+
+/** El rol elegido ya ve todas las sucursales por sí mismo (super-admin, administrador). */
+const rolEsGlobal = computed(() => props.rolesGlobales.includes(form.rol));
+
+/** Sucursal de la ficha de empleado del usuario que se está editando. */
+const sucursalPropia = computed(() => editing.value?.empleado?.sucursal ?? null);
+
+// Al pasar a ASIGNADAS se pre-marca la sucursal propia: es lo que casi siempre
+// se quiere ("la suya + otra"), y deja claro desde el principio que la lista es
+// literal y no la agrega sola al guardar.
+watch(() => form.alcance_sucursal, (alcance) => {
+    if (alcance === 'ASIGNADAS' && form.sucursales.length === 0 && sucursalPropia.value) {
+        form.sucursales = [sucursalPropia.value.id];
+    }
+});
 
 function openCreate() {
     editing.value = null;
@@ -61,7 +98,46 @@ function openEdit(u) {
     form.email = u.email;
     form.estado = u.estado ?? 'ACTIVO';
     form.rol = u.roles?.[0]?.name ?? (props.roles[0] ?? '');
+    form.alcance_sucursal = u.alcance_sucursal ?? 'PROPIA';
+    form.sucursales = (u.sucursales ?? []).map((s) => s.id);
     showModal.value = true;
+}
+
+/**
+ * Resumen del alcance para la columna de la tabla.
+ *
+ * `tono: null` = texto llano, sin badge. Es a propósito: el alcance PROPIA es
+ * el caso normal (la gran mayoría de las cuentas) y no tiene por qué competir
+ * por la atención con los dos estados que sí piden acción — una cuenta que no
+ * ve NADA ("Sin ficha de empleado", "Ninguna asignada") o una que lo ve todo.
+ */
+function resumenAlcance(u) {
+    if (props.rolesGlobales.some((rol) => u.roles?.some((r) => r.name === rol))) {
+        return { texto: 'Todas (por rol)', tono: 'badge-soft-primary' };
+    }
+
+    if (u.alcance_sucursal === 'TODAS') {
+        return { texto: 'Todas', tono: 'badge-soft-primary' };
+    }
+
+    if (u.alcance_sucursal === 'ASIGNADAS') {
+        const nombres = (u.sucursales ?? []).map((s) => s.nombre);
+
+        return nombres.length
+            ? { texto: nombres.join(', '), tono: 'badge-soft-info' }
+            : { texto: 'Ninguna asignada', tono: 'badge-soft-danger' };
+    }
+
+    return sucursalDeFicha(u);
+}
+
+/** Alcance PROPIA: depende de que la cuenta tenga ficha de empleado. */
+function sucursalDeFicha(u) {
+    const nombre = u.empleado?.sucursal?.nombre;
+
+    return nombre
+        ? { texto: nombre, tono: null }
+        : { texto: 'Sin ficha de empleado', tono: 'badge-soft-danger' };
 }
 
 function submit() {
@@ -129,6 +205,12 @@ async function eliminar(u) {
                 <template #cell-roles="{ item }">
                     <span v-for="r in item.roles" :key="r.id" class="badge badge-soft-primary">{{ r.name }}</span>
                     <span v-if="!item.roles?.length" class="text-muted">—</span>
+                </template>
+                <template #cell-alcance_sucursal="{ item }">
+                    <span v-if="resumenAlcance(item).tono" class="badge" :class="resumenAlcance(item).tono">
+                        {{ resumenAlcance(item).texto }}
+                    </span>
+                    <span v-else class="fs-sm">{{ resumenAlcance(item).texto }}</span>
                 </template>
                 <template #cell-estado="{ item }">
                     <span class="badge" :class="item.estado === 'INACTIVO' ? 'badge-soft-danger' : 'badge-soft-success'">
@@ -219,6 +301,50 @@ async function eliminar(u) {
                     <input type="file" accept="image/*" class="form-control"
                         @input="form.foto = $event.target.files[0]" />
                     <p v-if="form.errors.foto" class="form-error">{{ form.errors.foto }}</p>
+                </div>
+
+                <!-- Alcance por sucursal: qué datos de qué sucursal verá esta
+                     cuenta en cotizaciones, pedidos, cobranza y reportes. -->
+                <div class="alcance-bloque">
+                    <div class="form-group mb-0">
+                        <label class="form-label">Sucursales que administra</label>
+                        <select v-model="form.alcance_sucursal" class="form-control">
+                            <option v-for="a in alcances" :key="a" :value="a">{{ ETIQUETA_ALCANCE[a] ?? a }}</option>
+                        </select>
+                        <p class="alcance-ayuda">{{ AYUDA_ALCANCE[form.alcance_sucursal] }}</p>
+                        <p v-if="form.errors.alcance_sucursal" class="form-error">
+                            {{ form.errors.alcance_sucursal }}
+                        </p>
+                    </div>
+
+                    <p v-if="rolEsGlobal" class="alcance-aviso">
+                        <i class="fa-solid fa-circle-info"></i>
+                        El rol <strong>{{ form.rol }}</strong> ve todas las sucursales por sí mismo: esta opción
+                        quedará guardada, pero solo tendrá efecto si más adelante se le cambia el rol.
+                    </p>
+
+                    <p v-else-if="form.alcance_sucursal === 'PROPIA' && editing" class="alcance-aviso">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <template v-if="sucursalPropia">
+                            Verá los datos de <strong>{{ sucursalPropia.nombre }}</strong>.
+                        </template>
+                        <template v-else>
+                            Esta cuenta <strong>no tiene ficha de empleado</strong>, así que no verá ningún dato
+                            acotado por sucursal. Vincúlala desde Empleados o elige otro alcance.
+                        </template>
+                    </p>
+
+                    <div v-if="form.alcance_sucursal === 'ASIGNADAS'" class="form-group mb-0">
+                        <span class="form-label">Sucursales asignadas</span>
+                        <div class="alcance-sucursales">
+                            <label v-for="s in sucursales" :key="s.id" class="d-flex align-items-center gap-2 fs-sm">
+                                <input v-model="form.sucursales" type="checkbox" :value="s.id" />
+                                {{ s.nombre }}
+                            </label>
+                        </div>
+                        <p v-if="!sucursales.length" class="alcance-ayuda">No hay sucursales activas.</p>
+                        <p v-if="form.errors.sucursales" class="form-error">{{ form.errors.sucursales }}</p>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">

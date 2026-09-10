@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\CotizacionDetalleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -31,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CotizacionDetalle extends Model
 {
     /** @use HasFactory<CotizacionDetalleFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -93,5 +94,16 @@ class CotizacionDetalle extends Model
     public function producto(): BelongsTo
     {
         return $this->belongsTo(Producto::class);
+    }
+
+    /**
+     * Linea de una cotizacion: llega a la sucursal por su encabezado. La usa
+     * InteligenciaNegociosService para "productos mas vendidos".
+     *
+     * Ver AppModelsConcernsAcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return 'cotizacion';
     }
 }

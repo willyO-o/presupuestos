@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\PedidoSeguimientoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PedidoSeguimiento extends Model
 {
     /** @use HasFactory<PedidoSeguimientoFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -61,5 +62,16 @@ class PedidoSeguimiento extends Model
     public function empleado(): BelongsTo
     {
         return $this->belongsTo(Empleado::class);
+    }
+
+    /**
+     * Etapa de un item de pedido — la cadena mas larga del esquema. La usa
+     * ReporteProduccionService (duracion por etapa, carga por area).
+     *
+     * Ver AppModelsConcernsAcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return 'pedidoDetalle.pedido.cotizacion';
     }
 }

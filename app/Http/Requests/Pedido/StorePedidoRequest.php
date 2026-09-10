@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests\Pedido;
 
+use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
+use App\Models\Cotizacion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StorePedidoRequest extends FormRequest
 {
+    use ValidaAlcanceSucursal;
+
     public function authorize(): bool
     {
         return $this->user()->can('pedidos.crear');
@@ -23,7 +27,12 @@ class StorePedidoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cotizacion_id' => ['required', 'integer', Rule::exists('cotizacion', 'id')],
+            // Convertir en pedido la cotización de otra sucursal es escribir
+            // sobre su cartera (ver PedidoController::create).
+            'cotizacion_id' => [
+                'required', 'integer', Rule::exists('cotizacion', 'id'),
+                $this->registroVisible(Cotizacion::class, 'Esa cotización no es de una sucursal que administres.'),
+            ],
             'fecha_entrega_estimada' => ['nullable', 'date', 'after_or_equal:today'],
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\NotaEntregaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -27,7 +28,7 @@ use Illuminate\Support\Facades\Storage;
 class NotaEntrega extends Model
 {
     /** @use HasFactory<NotaEntregaFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -87,5 +88,15 @@ class NotaEntrega extends Model
                     ->orWhereHas('pedido', fn (Builder $q) => $q->where('numero_pedido', 'like', "%{$term}%"));
             });
         });
+    }
+
+    /**
+     * Cuelga del pedido, que llega a la sucursal por su cotizacion de origen.
+     *
+     * Ver App\Models\Concerns\AcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return 'pedido.cotizacion';
     }
 }

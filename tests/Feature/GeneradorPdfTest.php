@@ -115,7 +115,10 @@ function usuarioParaDocumentos(string ...$permisos): User
         Permission::findOrCreate($permiso, 'web');
     }
 
-    $usuario = User::factory()->create();
+    // Alcance TODAS: la mayoría de estas pruebas comprueban el DOCUMENTO, no
+    // el acotado por sucursal. La excepción es "el PDF del pedido respeta el
+    // scoping por sucursal", que arma sus cuentas aparte a propósito.
+    $usuario = User::factory()->todasLasSucursales()->create();
     $usuario->givePermissionTo($permisos);
 
     return $usuario;
@@ -514,15 +517,25 @@ test('con descargar=1 el mismo documento baja como archivo', function () {
 test('el PDF del pedido respeta el scoping por sucursal', function () {
     // Sin esto, un usuario que no ve el pedido en pantalla podría bajárselo
     // poniendo su id en la URL.
+    //
+    // Las cuentas se arman a mano y NO con `usuarioParaDocumentos()`: ese
+    // helper da alcance TODAS, con el que este test pasaría por el motivo
+    // equivocado (vería el pedido siempre, incluso sin el scoping puesto).
     $pedido = Pedido::factory()->create();
 
-    $ajeno = usuarioParaDocumentos('pedidos.ver');
+    Permission::findOrCreate('pedidos.ver', 'web');
+    Permission::findOrCreate('pedidos.ver_todas_sucursales', 'web');
+
     // Empleado de otra sucursal: ve el módulo, no este pedido.
+    $ajeno = User::factory()->create();
+    $ajeno->givePermissionTo('pedidos.ver');
     Empleado::factory()->create(['user_id' => $ajeno->id]);
 
-    $this->actingAs($ajeno)->get(route('pedidos.pdf', $pedido))->assertForbidden();
+    $this->actingAs($ajeno->fresh())->get(route('pedidos.pdf', $pedido))->assertForbidden();
 
-    $global = usuarioParaDocumentos('pedidos.ver', 'pedidos.ver_todas_sucursales');
+    // El override por módulo sigue funcionando igual que antes del alcance.
+    $global = User::factory()->create();
+    $global->givePermissionTo(['pedidos.ver', 'pedidos.ver_todas_sucursales']);
 
-    $this->actingAs($global)->get(route('pedidos.pdf', $pedido))->assertOk();
+    $this->actingAs($global->fresh())->get(route('pedidos.pdf', $pedido))->assertOk();
 });

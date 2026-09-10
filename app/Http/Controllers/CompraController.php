@@ -196,7 +196,7 @@ class CompraController extends Controller
         return [
             'proveedores' => Proveedor::query()->estado('ACTIVO')->orderBy('nombre')
                 ->get(['id', 'nombre', 'nit']),
-            'empleados' => Empleado::query()->estado('ACTIVO')->orderBy('nombres')
+            'empleados' => Empleado::query()->visiblePara($request->user())->estado('ACTIVO')->orderBy('nombres')
                 ->get(['id', 'nombres', 'paterno', 'materno', 'cargo']),
             'materiales' => Material::query()->estado('ACTIVO')->orderBy('nombre')
                 ->get(['id', 'nombre', 'presentacion', 'unidad_medida', 'precio_unitario']),

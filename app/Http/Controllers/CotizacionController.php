@@ -10,7 +10,6 @@ use App\Models\Cotizacion;
 use App\Models\CotizacionDetalleItem;
 use App\Models\Empleado;
 use App\Models\Producto;
-use App\Models\Sucursal;
 use App\Models\TipoProyecto;
 use App\Services\Calculo\MotorMargenService;
 use App\Services\Calculo\PrecioSugeridoService;
@@ -38,6 +37,7 @@ class CotizacionController extends Controller
     {
         $cotizaciones = Cotizacion::query()
             ->with(['cliente:id,razon_social', 'sucursal:id,nombre'])
+            ->visiblePara($request->user())
             ->search($request->query('search'))
             ->estado($request->query('estado'))
             ->clienteId($request->query('cliente'))
@@ -50,7 +50,10 @@ class CotizacionController extends Controller
         return inertia('Cotizaciones/Index', [
             'cotizaciones' => $cotizaciones,
             'clientes' => Cliente::query()->orderBy('razon_social')->get(['id', 'razon_social']),
-            'sucursales' => Sucursal::query()->orderBy('nombre')->get(['id', 'nombre']),
+            // El desplegable de sucursales lista solo las que el usuario
+            // administra: ofrecer un filtro que siempre devuelve vacío parece
+            // un error del sistema, no una restricción de permisos.
+            'sucursales' => $request->user()->sucursalesDisponibles(),
             'estados' => Cotizacion::ESTADOS,
             'estadosMargen' => Cotizacion::ESTADOS_MARGEN,
             'filters' => $request->only(['search', 'estado', 'cliente', 'sucursal']),
@@ -101,8 +104,10 @@ class CotizacionController extends Controller
             ->with('success', "Cotización {$cotizacion->codigo_verificacion} creada correctamente.");
     }
 
-    public function show(Cotizacion $cotizacion): Response
+    public function show(Request $request, Cotizacion $cotizacion): Response
     {
+        $this->assertVisible($request, $cotizacion);
+
         $cotizacion->load([
             'cliente',
             'empleado',
@@ -127,6 +132,8 @@ class CotizacionController extends Controller
 
     public function edit(Request $request, Cotizacion $cotizacion): RedirectResponse|Response
     {
+        $this->assertVisible($request, $cotizacion);
+
         if (! $cotizacion->esEditable()) {
             return redirect()->route('cotizaciones.show', $cotizacion)
                 ->with('error', 'Solo se pueden editar cotizaciones pendientes.');
@@ -147,6 +154,8 @@ class CotizacionController extends Controller
 
     public function update(UpdateCotizacionRequest $request, Cotizacion $cotizacion): RedirectResponse
     {
+        $this->assertVisible($request, $cotizacion);
+
         if (! $cotizacion->esEditable()) {
             return redirect()->route('cotizaciones.show', $cotizacion)
                 ->with('error', 'Solo se pueden editar cotizaciones pendientes.');
@@ -184,8 +193,10 @@ class CotizacionController extends Controller
             ->with('success', "Cotización {$cotizacion->codigo_verificacion} actualizada correctamente.");
     }
 
-    public function destroy(Cotizacion $cotizacion): RedirectResponse
+    public function destroy(Request $request, Cotizacion $cotizacion): RedirectResponse
     {
+        $this->assertVisible($request, $cotizacion);
+
         if ($cotizacion->estado === 'CONVERTIDA') {
             return redirect()->route('cotizaciones.index')
                 ->with('error', 'No se puede eliminar una cotización ya convertida en pedido.');
@@ -202,13 +213,17 @@ class CotizacionController extends Controller
      * Responde el rombo "Propuesta Sí/No" del flujo: PENDIENTE → APROBADA /
      * RECHAZADA. Requiere `cotizaciones.aprobar`.
      */
-    public function aprobar(Cotizacion $cotizacion): RedirectResponse
+    public function aprobar(Request $request, Cotizacion $cotizacion): RedirectResponse
     {
+        $this->assertVisible($request, $cotizacion);
+
         return $this->cambiarEstado($cotizacion, 'APROBADA', 'aprobada');
     }
 
-    public function rechazar(Cotizacion $cotizacion): RedirectResponse
+    public function rechazar(Request $request, Cotizacion $cotizacion): RedirectResponse
     {
+        $this->assertVisible($request, $cotizacion);
+
         return $this->cambiarEstado($cotizacion, 'RECHAZADA', 'rechazada');
     }
 
@@ -279,15 +294,33 @@ class CotizacionController extends Controller
      *
      * @return array<string, mixed>
      */
+    /**
+     * Corta las rutas de detalle sobre una cotización de otra sucursal.
+     *
+     * Pregunta con el MISMO scope que usa el listado (`esVisiblePara`) en vez
+     * de comparar `sucursal_id` a mano: así no puede haber una cotización que
+     * aparezca en la lista y dé 403 al abrirla, ni al revés.
+     */
+    private function assertVisible(Request $request, Cotizacion $cotizacion): void
+    {
+        abort_unless($cotizacion->esVisiblePara($request->user()), 403);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function datosFormulario(Request $request): array
     {
         return [
             'clientes' => Cliente::query()->estado('ACTIVO')->orderBy('razon_social')
                 ->get(['id', 'razon_social', 'nit']),
-            'empleados' => Empleado::query()->estado('ACTIVO')->orderBy('nombres')
+            'empleados' => Empleado::query()->visiblePara($request->user())->estado('ACTIVO')->orderBy('nombres')
                 ->get(['id', 'nombres', 'paterno', 'materno', 'cargo']),
-            'sucursales' => Sucursal::query()->estado('ACTIVO')->orderBy('nombre')
-                ->get(['id', 'nombre', 'ciudad']),
+            // Solo las sucursales que administra: es el desplegable con el que
+            // se ELIGE la sucursal de la cotización, así que ofrecer una ajena
+            // sería ofrecerle crear algo que después no podría ni abrir. El
+            // Form Request lo valida igual (ver StoreCotizacionRequest).
+            'sucursales' => $request->user()->sucursalesDisponibles(soloActivas: true),
             'productos' => Producto::query()->estado('ACTIVO')->orderBy('nombre')
                 ->get(['id', 'nombre', 'unidad_medida', 'requiere_medidas', 'precio_base']),
             'tiposProyecto' => TipoProyecto::query()->estado('ACTIVO')->ordenado()

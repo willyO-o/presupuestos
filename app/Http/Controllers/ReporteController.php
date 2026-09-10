@@ -20,33 +20,37 @@ class ReporteController extends Controller
         }
 
         return inertia('Dashboard', [
-            'resumen' => $resumen->resumen(),
+            'resumen' => $resumen->resumen($request->user()),
         ]);
     }
 
     public function financiero(Request $request, ReporteFinancieroService $financiero): Response
     {
         return inertia('Reportes/Financiero', [
-            'datos' => $financiero->datos($request->query('desde'), $request->query('hasta')),
+            'datos' => $financiero->datos(
+                $request->user(),
+                $request->query('desde'),
+                $request->query('hasta'),
+            ),
             'filters' => $request->only(['desde', 'hasta']),
             'pageTitle' => 'Reporte financiero',
             'breadcrumbs' => ['Reportes', 'Financiero'],
         ]);
     }
 
-    public function produccion(ReporteProduccionService $produccion): Response
+    public function produccion(Request $request, ReporteProduccionService $produccion): Response
     {
         return inertia('Reportes/Produccion', [
-            'datos' => $produccion->datos(),
+            'datos' => $produccion->datos($request->user()),
             'pageTitle' => 'Reporte de producción',
             'breadcrumbs' => ['Reportes', 'Producción'],
         ]);
     }
 
-    public function bi(InteligenciaNegociosService $bi): Response
+    public function bi(Request $request, InteligenciaNegociosService $bi): Response
     {
         return inertia('Reportes/Bi', [
-            'datos' => $bi->datos(),
+            'datos' => $bi->datos($request->user()),
             'pageTitle' => 'Inteligencia de negocios',
             'breadcrumbs' => ['Reportes', 'Inteligencia de negocios'],
         ]);

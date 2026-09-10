@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -40,6 +41,10 @@ const carga = computed(() => ({
 
 <template>
     <Head title="Reporte de producción" />
+
+    <div class="d-flex justify-content-end mb-3">
+        <EtiquetaAlcance />
+    </div>
 
     <div class="page-stack">
         <div class="row">

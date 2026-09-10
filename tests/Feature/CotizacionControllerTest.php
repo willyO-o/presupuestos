@@ -26,7 +26,10 @@ beforeEach(function () {
 
 function userWith(string ...$permissions): User
 {
-    $user = User::factory()->create();
+    // Alcance TODAS: estas pruebas comprueban el MODULO, no el acotado por
+    // sucursal (eso vive en AlcanceSucursalTest y AlcanceModulosTest). Sin
+    // alcance la cuenta no veria ninguna fila y todo daria falso negativo.
+    $user = User::factory()->todasLasSucursales()->create();
     $user->givePermissionTo($permissions);
 
     return $user;

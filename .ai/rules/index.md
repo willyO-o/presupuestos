@@ -8,6 +8,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Services/Calculo/** | .ai/rules/calculo.md |
 | app/Console/Commands/** | .ai/rules/commands.md |
 | resources/js/Components/DateRangeFilter.vue | .ai/rules/components.md |
+| app/Models/Concerns/** | .ai/rules/concerns.md |
 | config/acl.php | .ai/rules/config.md |
 | app/Http/Controllers/CotizadorPublicoController.php, config/cotizador.php | .ai/rules/controllers-views-publico.md |
 | app/Http/Controllers/**, app/Http/Controllers/FormulaController.php, app/Http/Controllers/CompraController.php, app/Http/Controllers/PedidoController.php, app/Http/Controllers/NotaEntregaController.php, app/Http/Controllers/PagoController.php, app/Http/Controllers/UsuarioController.php, app/Http/Controllers/ClientePortalController.php, app/Http/Controllers/CotizacionController.php | .ai/rules/controllers.md |
@@ -17,7 +18,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/http-controllers.md |
 | resources/js/Components/Chart/**, resources/js/Composables/UseChartTheme.js, resources/js/Pages/Reportes/**, resources/js/Pages/Dashboard.vue | .ai/rules/js-pages.md |
 | resources/js/**/*.vue, resources/js/** | .ai/rules/js.md |
-| resources/js/Layouts/**/*.vue | .ai/rules/layouts.md |
+| resources/js/Layouts/**/*.vue, resources/js/Components/Layout/** | .ai/rules/layouts.md |
 | database/migrations/2026_08_23_04*.php, database/migrations/** | .ai/rules/migrations.md |
 | app/Models/Sucursal.php, app/Models/Formula.php | .ai/rules/models.md |
 | resources/js/Pages/**/*.vue | .ai/rules/pages.md |
@@ -25,7 +26,9 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Services/Cotizador/**, app/Http/Controllers/CotizadorPublicoController.php, app/Http/Requests/Cotizador/**, resources/views/publico/cotizador.blade.php, config/cotizador.php | .ai/rules/publico.md |
 | .claude/skills/xtrapubli-design-system/references/** | .ai/rules/references.md |
 | app/Services/Reporte/** | .ai/rules/reporte.md |
+| app/Http/Requests/** | .ai/rules/requests.md |
 | routes/auth.php | .ai/rules/routes.md |
 | database/seeders/** | .ai/rules/seeders.md |
 | resources/js/Components/Table/** | .ai/rules/table.md |
+| app/Http/Requests/Usuario/** | .ai/rules/usuario.md |
 | resources/views/errors/**, resources/views/components/publico/**, resources/views/publico/** | .ai/rules/views-publico.md |

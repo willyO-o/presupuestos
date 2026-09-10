@@ -5,6 +5,7 @@ namespace App\Services\Reporte;
 use App\Models\CotizacionDetalle;
 use App\Models\HistorialPrecioMaterial;
 use App\Models\Pedido;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -19,9 +20,10 @@ class InteligenciaNegociosService
     /**
      * @return array<string, mixed>
      */
-    public function datos(): array
+    public function datos(User $usuario): array
     {
         $lineasVendidas = CotizacionDetalle::query()
+            ->visiblePara($usuario)
             ->whereHas('cotizacion', fn ($q) => $q->whereIn('estado', ['APROBADA', 'CONVERTIDA']))
             ->with('producto:id,nombre,categoria_producto_id', 'producto.categoriaProducto:id,nombre')
             ->get(['id', 'cotizacion_id', 'producto_id', 'cantidad', 'subtotal']);
@@ -35,8 +37,11 @@ class InteligenciaNegociosService
                 $lineasVendidas->filter(fn ($l) => $l->producto?->categoriaProducto),
                 fn ($l) => $l->producto->categoriaProducto->nombre,
             ),
+            // `evolucion_costos` NO se acota: el historial de precios cuelga de
+            // `material`, que no tiene sucursal (el inventario es de toda la
+            // empresa). La pantalla lo rotula como dato global.
             'evolucion_costos' => $this->evolucionCostos(),
-            'demanda' => $this->demanda(),
+            'demanda' => $this->demanda($usuario),
         ];
     }
 
@@ -90,11 +95,12 @@ class InteligenciaNegociosService
      *
      * @return array<string, mixed>
      */
-    private function demanda(): array
+    private function demanda(User $usuario): array
     {
         $desde = Carbon::now()->startOfMonth()->subMonths(11);
 
         $porMes = Pedido::query()
+            ->visiblePara($usuario)
             ->where('fecha_pedido', '>=', $desde)
             ->get(['fecha_pedido'])
             ->groupBy(fn ($p) => $p->fecha_pedido->format('Y-m'))
@@ -123,7 +129,7 @@ class InteligenciaNegociosService
             'serie' => $serie->map(fn ($p) => ['mes' => $p['mes'], 'pedidos' => $p['pedidos']])->all(),
             'media_movil' => $mediaMovil,
             'proyeccion' => $this->proyectar($valores),
-            'estacionalidad' => $this->estacionalidad(),
+            'estacionalidad' => $this->estacionalidad($usuario),
         ];
     }
 
@@ -169,9 +175,10 @@ class InteligenciaNegociosService
      *
      * @return list<array{mes: string, pedidos: int}>
      */
-    private function estacionalidad(): array
+    private function estacionalidad(User $usuario): array
     {
         $porMesDelAnio = Pedido::query()
+            ->visiblePara($usuario)
             ->get(['fecha_pedido'])
             ->groupBy(fn ($p) => $p->fecha_pedido->month)
             ->map->count();

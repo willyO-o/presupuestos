@@ -6,10 +6,14 @@ use App\Models\HistorialPrecioMaterial;
 use App\Models\Material;
 use App\Models\Pedido;
 use App\Models\Producto;
+use App\Models\User;
 use App\Services\Reporte\InteligenciaNegociosService;
 
 beforeEach(function () {
     $this->service = app(InteligenciaNegociosService::class);
+    // Alcance TODAS: estas pruebas comprueban la MATEMATICA del reporte, no el
+    // acotado por sucursal (eso vive en AlcanceReportesTest).
+    $this->usuario = User::factory()->todasLasSucursales()->create();
 });
 
 test('productos mas vendidos only counts approved/converted cotizaciones', function () {
@@ -25,7 +29,7 @@ test('productos mas vendidos only counts approved/converted cotizaciones', funct
         'producto_id' => $producto->id, 'cantidad' => 10, 'subtotal' => 9999,
     ]);
 
-    $datos = $this->service->datos();
+    $datos = $this->service->datos($this->usuario);
 
     expect($datos['productos_mas_vendidos'])->toHaveCount(1)
         ->and($datos['productos_mas_vendidos'][0]['nombre'])->toBe('Bastidor lona')
@@ -40,7 +44,7 @@ test('evolucion de costos only includes materials with at least two price points
     HistorialPrecioMaterial::factory()->count(3)->create(['material_id' => $conHistorial->id]);
     HistorialPrecioMaterial::factory()->create(['material_id' => $sinHistorial->id]);
 
-    $evolucion = $this->service->datos()['evolucion_costos'];
+    $evolucion = $this->service->datos($this->usuario)['evolucion_costos'];
 
     expect($evolucion)->toHaveCount(1)
         ->and($evolucion[0]['material'])->toBe('Lona FrontLight')
@@ -52,7 +56,7 @@ test('the demand projection returns three non-negative months', function () {
         'fecha_pedido' => now()->subMonths(2)->toDateString(),
     ]);
 
-    $demanda = $this->service->datos()['demanda'];
+    $demanda = $this->service->datos($this->usuario)['demanda'];
 
     expect($demanda['serie'])->toHaveCount(12)
         ->and($demanda['proyeccion'])->toHaveCount(3)

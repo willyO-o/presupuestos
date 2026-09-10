@@ -13,12 +13,15 @@ class PagoController extends Controller
 {
     public function index(Request $request): Response
     {
+        $usuario = $request->user();
+
         $pagos = Pago::query()
             // `withSum` deja el cobrado acumulado del pedido en la fila, para
             // que la tabla muestre su estado de cobranza sin N+1.
             ->with(['pedido' => fn ($pedido) => $pedido
                 ->select('id', 'numero_pedido', 'total')
                 ->withSum('pagos as total_cobrado', 'monto')])
+            ->visiblePara($usuario)
             ->estadoCobranza($request->query('estado'))
             ->metodo($request->query('metodo'))
             ->orderByDesc('fecha_pago')
@@ -26,8 +29,15 @@ class PagoController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $totalCobrado = round((float) Pago::query()->sum('monto'), 2);
-        $totalPedidos = round((float) Pedido::query()->where('estado', '!=', 'CANCELADO')->sum('total'), 2);
+        // Los totales van acotados igual que el listado: si solo se filtrara la
+        // tabla, las tarjetas de resumen seguirían mostrando la caja de TODA la
+        // empresa a quien solo administra una sucursal — y un total es
+        // justamente lo que se lee de un vistazo, sin comprobar de dónde sale.
+        $totalCobrado = round((float) Pago::query()->visiblePara($usuario)->sum('monto'), 2);
+        $totalPedidos = round((float) Pedido::query()
+            ->visiblePara($usuario)
+            ->where('estado', '!=', 'CANCELADO')
+            ->sum('total'), 2);
 
         return inertia('Pagos/Index', [
             'pagos' => $pagos,

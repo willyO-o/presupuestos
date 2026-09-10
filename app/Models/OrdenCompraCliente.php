@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\OrdenCompraClienteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -25,7 +26,7 @@ use Illuminate\Support\Facades\Storage;
 class OrdenCompraCliente extends Model
 {
     /** @use HasFactory<OrdenCompraClienteFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -127,5 +128,15 @@ class OrdenCompraCliente extends Model
     protected function estado(Builder $query, ?string $estado): void
     {
         $query->when($estado, fn (Builder $query) => $query->where('estado', $estado));
+    }
+
+    /**
+     * Cuelga del pedido, que llega a la sucursal por su cotizacion de origen.
+     *
+     * Ver App\Models\Concerns\AcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return 'pedido.cotizacion';
     }
 }

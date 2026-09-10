@@ -6,7 +6,6 @@ use App\Http\Requests\Empleado\StoreEmpleadoRequest;
 use App\Http\Requests\Empleado\UpdateEmpleadoRequest;
 use App\Models\Area;
 use App\Models\Empleado;
-use App\Models\Sucursal;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +23,7 @@ class EmpleadoController extends Controller
     {
         $empleados = Empleado::query()
             ->with(['sucursal', 'area'])
+            ->visiblePara($request->user())
             ->search($request->query('search'))
             ->sucursalId($request->query('sucursal'))
             ->areaId($request->query('area'))
@@ -34,7 +34,9 @@ class EmpleadoController extends Controller
 
         return inertia('Empleados/Index', [
             'empleados' => $empleados,
-            'sucursales' => Sucursal::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
+            // Ver PedidoController::index: el desplegable no ofrece sucursales
+            // ajenas, que ademas el Form Request rechazaria al guardar.
+            'sucursales' => $request->user()->sucursalesDisponibles(soloActivas: true),
             'areas' => Area::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
             // Cuentas de acceso disponibles para vincular a la ficha del
             // empleado (opcional: no todo empleado necesita login). Un
@@ -60,6 +62,10 @@ class EmpleadoController extends Controller
 
     public function update(UpdateEmpleadoRequest $request, Empleado $empleado): RedirectResponse
     {
+        // La ficha destino tambien tiene que ser de una sucursal administrada:
+        // el Form Request valida la sucursal NUEVA, esto valida la actual.
+        abort_unless($empleado->esVisiblePara($request->user()), 403);
+
         $empleado->update($request->validated());
 
         $this->sincronizarAccesoDelUsuario($empleado);
@@ -84,8 +90,10 @@ class EmpleadoController extends Controller
         }
     }
 
-    public function destroy(Empleado $empleado): RedirectResponse
+    public function destroy(Request $request, Empleado $empleado): RedirectResponse
     {
+        abort_unless($empleado->esVisiblePara($request->user()), 403);
+
         $empleado->delete();
 
         return redirect()->route('empleados.index')

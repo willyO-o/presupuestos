@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Empleado;
 
+use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
 use App\Models\Empleado;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreEmpleadoRequest extends FormRequest
 {
+    use ValidaAlcanceSucursal;
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -31,7 +34,9 @@ class StoreEmpleadoRequest extends FormRequest
     {
         return [
             'user_id' => ['nullable', 'integer', Rule::exists('users', 'id'), Rule::unique('empleado', 'user_id')],
-            'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id')],
+            // La sucursal de la ficha es la que define el alcance PROPIA de su
+            // cuenta: darla de alta en una ajena sería repartir alcance.
+            'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id'), $this->sucursalAdministrada()],
             'area_id' => ['required', 'integer', Rule::exists('area', 'id')],
             'nombres' => ['required', 'string', 'max:255'],
             'paterno' => ['nullable', 'string', 'max:255'],

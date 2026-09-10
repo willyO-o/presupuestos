@@ -24,6 +24,34 @@
  */
 return [
 
+    /*
+    |--------------------------------------------------------------------------
+    | Alcance por sucursal
+    |--------------------------------------------------------------------------
+    |
+    | Qué sucursales ve cada usuario se decide en UN solo lugar:
+    | `App\Models\Concerns\TieneAlcanceSucursal::sucursalesVisibles()`. Este
+    | bloque es lo único configurable de esa decisión.
+    |
+    | `roles_globales` ven TODAS las sucursales por su rol, ignorando
+    | `users.alcance_sucursal` (en su ficha el selector sale bloqueado). No se
+    | resuelve con `Gate::before` como el bypass de super-admin: eso le daría
+    | al administrador TODOS los permisos, y hay varios que a propósito no
+    | tiene.
+    |
+    | `sufijo_override` arma el permiso por módulo que amplía el alcance sin
+    | tocar la ficha del usuario: `pedidos.ver_todas_sucursales` ya existe y se
+    | conserva. Para habilitarlo en otro módulo alcanza con declarar
+    | `<modulo>.ver_todas_sucursales` en `modules` de abajo y que el modelo
+    | correspondiente declare su `moduloSucursal()`. Solo AMPLÍA: nunca
+    | recorta lo que el alcance ya permite.
+    |
+    */
+    'sucursales' => [
+        'roles_globales' => ['super-admin', 'administrador'],
+        'sufijo_override' => 'ver_todas_sucursales',
+    ],
+
     'modules' => [
         'dashboard' => [
             'label' => 'Dashboard',

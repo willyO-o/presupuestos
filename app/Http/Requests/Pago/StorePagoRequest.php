@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests\Pago;
 
+use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
+use App\Models\Pedido;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StorePagoRequest extends FormRequest
 {
+    use ValidaAlcanceSucursal;
+
     public function authorize(): bool
     {
         return $this->user()->can('pagos.registrar');
@@ -22,7 +26,11 @@ class StorePagoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pedido_id' => ['required', 'integer', Rule::exists('pedido', 'id')],
+            // Sin esto se cobra contra el pedido de otra sucursal mandando su id.
+            'pedido_id' => [
+                'required', 'integer', Rule::exists('pedido', 'id'),
+                $this->registroVisible(Pedido::class, 'Ese pedido no es de una sucursal que administres.'),
+            ],
             'monto' => ['required', 'numeric', 'min:0.01'],
             'fecha_pago' => ['required', 'date'],
             'metodo_pago' => ['required', Rule::in(['EFECTIVO', 'TRANSFERENCIA', 'QR', 'TARJETA', 'CHEQUE'])],

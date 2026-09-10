@@ -20,9 +20,30 @@ beforeEach(function () {
     ])->each(fn (string $permission) => Permission::findOrCreate($permission, 'web'));
 });
 
+/**
+ * Cuenta SIN alcance de sucursal. Varias pruebas de acá le suman
+ * `pedidos.ver_todas_sucursales`, que es el override que amplía el alcance
+ * solo para este módulo (ver TieneAlcanceSucursal).
+ */
 function userWithPedido(string ...$permissions): User
 {
     $user = User::factory()->create();
+    $user->givePermissionTo($permissions);
+
+    return $user;
+}
+
+/**
+ * Cuenta con alcance TODAS.
+ *
+ * Hace falta donde el override de pedidos NO alcanza: al convertir una
+ * cotización (se acota con las reglas de COTIZACIÓN, ver
+ * `PedidoController::create`) y al operar sobre los ítems de un pedido, que
+ * desde la fase 4 exige alcance real y no solo el permiso de acción.
+ */
+function userWithPedidoGlobal(string ...$permissions): User
+{
+    $user = User::factory()->todasLasSucursales()->create();
     $user->givePermissionTo($permissions);
 
     return $user;
@@ -62,7 +83,14 @@ test('the create page lists approved cotizaciones pending conversion', function 
         ->get(route('pedidos.create'))
         ->assertForbidden();
 
-    $this->actingAs(userWithPedido('pedidos.crear'))
+    // La lista de convertibles se acota con las reglas de COTIZACIÓN, no con
+    // `pedidos.ver_todas_sucursales`: convertir la cotización de otra sucursal
+    // es escribir sobre su cartera, no solo mirarla. Por eso la cuenta necesita
+    // alcance de verdad y no le alcanza el override de pedidos.
+    $conAlcance = userWithPedido('pedidos.crear');
+    $conAlcance->update(['alcance_sucursal' => 'TODAS']);
+
+    $this->actingAs($conAlcance->fresh())
         ->get(route('pedidos.create'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('Pedidos/Create')->has('cotizaciones', 1));
@@ -71,7 +99,7 @@ test('the create page lists approved cotizaciones pending conversion', function 
 test('storing converts an approved cotizacion into a pedido', function () {
     $cotizacion = cotizacionConvertible(2);
 
-    $response = $this->actingAs(userWithPedido('pedidos.crear'))
+    $response = $this->actingAs(userWithPedidoGlobal('pedidos.crear'))
         ->post(route('pedidos.store'), ['cotizacion_id' => $cotizacion->id]);
 
     $pedido = Pedido::latest('id')->first();
@@ -87,7 +115,7 @@ test('storing converts an approved cotizacion into a pedido', function () {
 test('a cotizacion that is not approved cannot be converted', function () {
     $cotizacion = Cotizacion::factory()->has(CotizacionDetalle::factory(), 'detalles')->create();
 
-    $this->actingAs(userWithPedido('pedidos.crear'))
+    $this->actingAs(userWithPedidoGlobal('pedidos.crear'))
         ->post(route('pedidos.store'), ['cotizacion_id' => $cotizacion->id])
         ->assertSessionHas('error');
 
@@ -96,7 +124,7 @@ test('a cotizacion that is not approved cannot be converted', function () {
 
 test('a cotizacion cannot be converted twice', function () {
     $cotizacion = cotizacionConvertible();
-    $user = userWithPedido('pedidos.crear');
+    $user = userWithPedidoGlobal('pedidos.crear');
 
     $this->actingAs($user)->post(route('pedidos.store'), ['cotizacion_id' => $cotizacion->id]);
     $this->actingAs($user)->post(route('pedidos.store'), ['cotizacion_id' => $cotizacion->id])
@@ -248,7 +276,7 @@ test('production measurements can diverge from the cotizacion that originated th
     ]);
     $cotizacionDetalle = $detalle->cotizacionDetalle;
 
-    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+    $this->actingAs(userWithPedidoGlobal('pedidos.actualizar_estado'))
         ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
             'descripcion' => 'Letrero fachada (ampliado)',
             'ancho' => 2.35,
@@ -272,7 +300,7 @@ test('adjusting measurements does not change the agreed price', function () {
     $pedido = Pedido::factory()->create(['total' => 1500]);
     $detalle = PedidoDetalle::factory()->create(['pedido_id' => $pedido->id, 'cantidad' => 2]);
 
-    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+    $this->actingAs(userWithPedidoGlobal('pedidos.actualizar_estado'))
         ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
             'descripcion' => $detalle->descripcion,
             'ancho' => 5,
@@ -292,7 +320,7 @@ test('the measurement adjustment is written to the item log', function () {
     ]);
     $seguimiento = PedidoSeguimiento::factory()->create(['pedido_detalle_id' => $detalle->id]);
 
-    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+    $this->actingAs(userWithPedidoGlobal('pedidos.actualizar_estado'))
         ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
             'descripcion' => 'Corregido',
             'cantidad' => 3,
@@ -308,7 +336,7 @@ test('measurements cannot be adjusted on a delivered pedido', function () {
     $pedido = Pedido::factory()->entregado()->create();
     $detalle = PedidoDetalle::factory()->create(['pedido_id' => $pedido->id]);
 
-    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+    $this->actingAs(userWithPedidoGlobal('pedidos.actualizar_estado'))
         ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
             'descripcion' => 'No debería guardarse',
             'cantidad' => 1,
@@ -321,7 +349,7 @@ test('measurements of a detalle from another pedido are rejected', function () {
     $pedido = Pedido::factory()->create();
     $ajeno = PedidoDetalle::factory()->create();
 
-    $this->actingAs(userWithPedido('pedidos.actualizar_estado'))
+    $this->actingAs(userWithPedidoGlobal('pedidos.actualizar_estado'))
         ->put(route('pedidos.detalle.medidas', [$pedido, $ajeno]), [
             'descripcion' => 'Intruso',
             'cantidad' => 1,

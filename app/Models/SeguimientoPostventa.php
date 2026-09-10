@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\SeguimientoPostventaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SeguimientoPostventa extends Model
 {
     /** @use HasFactory<SeguimientoPostventaFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -109,5 +110,15 @@ class SeguimientoPostventa extends Model
                     ->orWhereHas('cotizacion.cliente', fn (Builder $q) => $q->where('razon_social', 'like', "%{$term}%"));
             });
         });
+    }
+
+    /**
+     * Cuelga del pedido, que llega a la sucursal por su cotizacion de origen.
+     *
+     * Ver App\Models\Concerns\AcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return 'pedido.cotizacion';
     }
 }

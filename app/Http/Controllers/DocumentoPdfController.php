@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Compra;
+use App\Models\Concerns\AcotaPorSucursal;
 use App\Models\Cotizacion;
 use App\Models\NotaEntrega;
 use App\Models\OrdenCompraCliente;
 use App\Models\Pedido;
 use App\Services\Pdf\GeneradorPdf;
 use App\Services\Pdf\RespuestaPdf;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 /**
@@ -40,36 +42,30 @@ class DocumentoPdfController extends Controller
 
     public function cotizacion(Request $request, Cotizacion $cotizacion): RespuestaPdf
     {
+        $this->assertVisible($request, $cotizacion);
+
         return $this->entregar($request, $this->generador->cotizacion($cotizacion));
     }
 
-    /**
-     * El PDF respeta el mismo scoping por sucursal que la pantalla del pedido
-     * (`PedidoController::puedeVer`): sin esto, un usuario sin
-     * `pedidos.ver_todas_sucursales` no vería el pedido en pantalla pero
-     * podría descargarlo poniendo su id en la URL.
-     */
     public function pedido(Request $request, Pedido $pedido): RespuestaPdf
     {
-        $pedido->loadMissing('cotizacion');
-
-        $usuario = $request->user();
-
-        abort_unless(
-            $usuario->hasRole('super-admin')
-                || $usuario->can('pedidos.ver_todas_sucursales')
-                || $usuario->empleado?->sucursal_id === $pedido->cotizacion->sucursal_id,
-            403,
-        );
+        $this->assertVisible($request, $pedido);
 
         return $this->entregar($request, $this->generador->pedido($pedido));
     }
 
     public function notaEntrega(Request $request, NotaEntrega $notaEntrega): RespuestaPdf
     {
+        $this->assertVisible($request, $notaEntrega);
+
         return $this->entregar($request, $this->generador->notaEntrega($notaEntrega));
     }
 
+    /**
+     * La compra NO se acota por sucursal: `compra` no tiene `sucursal_id`
+     * porque el inventario y las compras son de toda la empresa (un solo
+     * almacén). Ver .ai/rules/concerns.md.
+     */
     public function compra(Request $request, Compra $compra): RespuestaPdf
     {
         return $this->entregar($request, $this->generador->compra($compra));
@@ -77,7 +73,24 @@ class DocumentoPdfController extends Controller
 
     public function ordenCompraCliente(Request $request, OrdenCompraCliente $ordenCompra): RespuestaPdf
     {
+        $this->assertVisible($request, $ordenCompra);
+
         return $this->entregar($request, $this->generador->ordenCompraCliente($ordenCompra));
+    }
+
+    /**
+     * El PDF es la puerta trasera clásica: sin esto, un usuario que no ve el
+     * documento en pantalla se lo lleva igual poniendo su id en la URL.
+     *
+     * Pregunta con el MISMO scope que usa el listado (`esVisiblePara`), no con
+     * una comparación de `sucursal_id` a mano — que es lo que había acá y en
+     * `PedidoController`, duplicado.
+     *
+     * @param  Model&AcotaPorSucursal  $documento
+     */
+    private function assertVisible(Request $request, Model $documento): void
+    {
+        abort_unless($documento->esVisiblePara($request->user()), 403);
     }
 
     /**

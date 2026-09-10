@@ -19,6 +19,7 @@ class NotaEntregaController extends Controller
         $notas = NotaEntrega::query()
             ->with(['pedido:id,numero_pedido', 'empleado:id,nombres,paterno,materno'])
             ->withCount('detalles')
+            ->visiblePara($request->user())
             ->search($request->query('search'))
             ->orderByDesc('fecha_entrega')
             ->orderByDesc('id')
@@ -38,6 +39,10 @@ class NotaEntregaController extends Controller
         $pedido = Pedido::with(['cotizacion.cliente:id,razon_social', 'detalles'])
             ->findOrFail($request->integer('pedido'));
 
+        // Sin esto se podría emitir una nota de entrega de un pedido de otra
+        // sucursal poniendo su id en la URL.
+        abort_unless($pedido->esVisiblePara($request->user()), 403);
+
         if (in_array($pedido->estado, ['CANCELADO'], true)) {
             return redirect()->route('pedidos.show', $pedido)
                 ->with('error', 'No se puede emitir una nota de entrega de un pedido cancelado.');
@@ -45,7 +50,7 @@ class NotaEntregaController extends Controller
 
         return inertia('NotasEntrega/Create', [
             'pedido' => $pedido,
-            'empleados' => Empleado::query()->estado('ACTIVO')->orderBy('nombres')
+            'empleados' => Empleado::query()->visiblePara($request->user())->estado('ACTIVO')->orderBy('nombres')
                 ->get(['id', 'nombres', 'paterno', 'materno', 'cargo']),
             'empleadoActualId' => $request->user()->empleado?->id,
             'pageTitle' => "Nota de entrega · {$pedido->numero_pedido}",
@@ -101,8 +106,10 @@ class NotaEntregaController extends Controller
             ->with('success', "Nota de entrega {$nota->numero_nota} emitida.");
     }
 
-    public function show(NotaEntrega $notasEntrega): Response
+    public function show(Request $request, NotaEntrega $notasEntrega): Response
     {
+        abort_unless($notasEntrega->esVisiblePara($request->user()), 403);
+
         $notasEntrega->load([
             'pedido.cotizacion.cliente',
             'empleado',

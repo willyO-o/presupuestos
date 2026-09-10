@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -18,7 +19,10 @@ const stats = computed(() => [
     { label: 'Cotizaciones este mes', value: props.resumen.cotizaciones_mes, icon: 'primary' },
     { label: 'Tasa de conversión', value: `${props.resumen.tasa_conversion}%`, icon: 'success' },
     { label: 'Ingresos del mes', value: money(props.resumen.ingresos_mes), icon: 'info' },
-    { label: 'Materiales con stock bajo', value: props.resumen.materiales_bajo_stock, icon: 'warning' },
+    // `global`: el stock no es de una sucursal (`material` no tiene
+    // `sucursal_id`, el almacén es uno solo). Se marca para que no se lea como
+    // el resto de la fila, que sí va acotada.
+    { label: 'Materiales con stock bajo', value: props.resumen.materiales_bajo_stock, icon: 'warning', global: true },
 ]);
 
 const ventas = computed(() => ({
@@ -34,6 +38,12 @@ const entregasTotal = computed(() => props.resumen.entregas.a_tiempo + props.res
 <template>
     <Head title="Dashboard" />
 
+    <!-- Qué sucursales incluyen estos números: un KPI acotado y uno de toda la
+         empresa se ven idénticos, y aquí no hay filas que falten para notarlo. -->
+    <div class="d-flex justify-content-end mb-3">
+        <EtiquetaAlcance />
+    </div>
+
     <div class="row">
         <div v-for="stat in stats" :key="stat.label" class="col-lg-3">
             <div class="card">
@@ -47,6 +57,7 @@ const entregasTotal = computed(() => props.resumen.entregas.a_tiempo + props.res
                     <div>
                         <p class="stat-value">{{ stat.value }}</p>
                         <p class="stat-label">{{ stat.label }}</p>
+                        <p v-if="stat.global" class="stat-global">Toda la empresa</p>
                     </div>
                 </div>
             </div>

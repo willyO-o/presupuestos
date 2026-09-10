@@ -547,6 +547,14 @@
     @apply text-sm;
 }
 
+/* Marca un KPI que NO va acotado por sucursal (inventario, compras: esas
+   tablas no tienen `sucursal_id`). Sin esto se lee igual que los de al lado,
+   que sí están filtrados — ver Components/EtiquetaAlcance.vue. */
+.stat-global {
+    color: var(--text-muted);
+    @apply mt-0.5 text-xs uppercase tracking-wide opacity-75;
+}
+
 /* ==========================================================================
    5. LIST GROUP / SHARES / COMMENTS
    ========================================================================== */
@@ -2116,6 +2124,63 @@
     @apply grid gap-2 pl-6 sm:grid-cols-2 lg:grid-cols-3;
 }
 
+/* --- Alcance por sucursal (modal de Usuarios/Index.vue) ---
+   Va enmarcado y no suelto entre los demás campos porque no es un dato de la
+   persona: decide QUÉ datos de qué sucursal va a ver la cuenta. Ver
+   App\Models\Concerns\TieneAlcanceSucursal. */
+.alcance-bloque {
+    border-color: var(--border-subtle);
+    background-color: var(--c-light);
+    @apply flex flex-col gap-3 rounded-lg border p-3;
+}
+
+.dark .alcance-bloque {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.alcance-ayuda {
+    color: var(--text-muted);
+    @apply mt-1 text-xs;
+}
+
+/* Aviso sobre el alcance de sucursales. Se usa en dos sitios: el modal de
+   Usuarios (tono info) y el banner de MainDashboardLayout que explica por qué
+   los listados salen vacíos (tono aviso, `.alcance-aviso-warning`).
+
+   Bloque de texto, NO flex: la frase lleva <strong> intercalados y con
+   `display:flex` cada trozo se vuelve un ítem flex — "El / rol / administrador"
+   salía apilado en columnas en vez de leerse corrido. El ícono es inline. */
+.alcance-aviso {
+    background-color: var(--c-info-soft);
+    color: var(--c-info-dark);
+    @apply rounded-md px-3 py-2 text-xs leading-relaxed;
+}
+
+.alcance-aviso > i {
+    @apply mr-1.5;
+}
+
+.dark .alcance-aviso {
+    color: var(--text-body);
+}
+
+/* Banner de "no alcanzas ninguna sucursal": mismo bloque, tono de aviso y algo
+   más de aire porque va suelto en la página, no dentro de un recuadro. */
+.alcance-aviso-warning {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+    @apply px-4 py-3 text-sm;
+}
+
+.dark .alcance-aviso-warning {
+    color: var(--text-body);
+}
+
+.alcance-sucursales {
+    border-color: var(--border-subtle);
+    @apply mt-1 grid max-h-44 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2 lg:grid-cols-3;
+}
+
 /* ==========================================================================
    26. REPORTES / BI (Pages/Reportes, Pages/Dashboard)
    --------------------------------------------------------------------------
@@ -2637,4 +2702,94 @@
     border-color: var(--border-subtle);
     color: var(--text-body);
     @apply rounded-lg text-sm;
+}
+
+/* ==========================================================================
+   30. LOADER DE CAMBIO DE PÁGINA (Components/Layout/PageLoader.vue)
+   --------------------------------------------------------------------------
+   Velo de pantalla completa con tres puntos SALTANDO y "Cargando...".
+
+   No confundir con el loader de la sección 17 (`.table-loading-*`): aquel vive
+   DENTRO de una tabla y sus puntos PULSAN (escala), y es el que se usa al
+   filtrar un listado. Este tapa la pantalla entera y solo sale en un cambio de
+   página de verdad — el componente ignora las recargas parciales justamente
+   para no pisar al otro.
+
+   El velo es translúcido y desenfoca lo de detrás en vez de ser opaco: así se
+   sigue viendo dónde estabas y el cambio se lee como "un momento", no como
+   "otra pantalla".
+   ========================================================================== */
+
+.page-loader {
+    background-color: color-mix(in srgb, var(--page-bg) 72%, transparent);
+    backdrop-filter: blur(2px);
+    @apply fixed inset-0 z-[9999] flex items-center justify-center;
+}
+
+.page-loader-caja {
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+    @apply flex flex-col items-center gap-3 rounded-xl px-8 py-6;
+}
+
+.page-loader-dots {
+    @apply flex items-end gap-2;
+}
+
+.page-loader-dot {
+    background-color: var(--c-primary);
+    @apply h-2.5 w-2.5 rounded-full;
+    animation: page-loader-salto 1.2s ease-in-out infinite both;
+}
+
+/* El del medio en secundario, como los de la tabla: el salto se lee mejor
+   cuando los tres no son del mismo color. */
+.page-loader-dot:nth-child(1) {
+    animation-delay: -0.24s;
+}
+
+.page-loader-dot:nth-child(2) {
+    background-color: var(--c-secondary);
+    animation-delay: -0.12s;
+}
+
+.page-loader-dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+.page-loader-texto {
+    color: var(--text-muted);
+    @apply m-0 text-sm;
+}
+
+@keyframes page-loader-salto {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-9px);
+    }
+}
+
+/* Aparición y desaparición suaves: sin esto el velo entra de golpe y parece un
+   parpadeo aunque haya esperado los 300 ms. */
+.page-loader-enter-active,
+.page-loader-leave-active {
+    @apply transition-opacity duration-200;
+}
+
+.page-loader-enter-from,
+.page-loader-leave-to {
+    @apply opacity-0;
+}
+
+/* Respeta a quien pidió menos movimiento: se queda el velo y el texto, que es
+   lo que informa, sin el salto. */
+@media (prefers-reduced-motion: reduce) {
+    .page-loader-dot {
+        animation: none;
+        opacity: 0.7;
+    }
 }

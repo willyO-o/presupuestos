@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Empleado;
 
+use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
 use App\Models\Empleado;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateEmpleadoRequest extends FormRequest
 {
+    use ValidaAlcanceSucursal;
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -34,7 +37,9 @@ class UpdateEmpleadoRequest extends FormRequest
                 'nullable', 'integer', Rule::exists('users', 'id'),
                 Rule::unique('empleado', 'user_id')->ignore($this->route('empleado')),
             ],
-            'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id')],
+            // Ver StoreEmpleadoRequest: mover a alguien de sucursal le cambia el
+            // alcance PROPIA, así que solo puede hacerlo quien administra ambas.
+            'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id'), $this->sucursalAdministrada()],
             'area_id' => ['required', 'integer', Rule::exists('area', 'id')],
             'nombres' => ['required', 'string', 'max:255'],
             'paterno' => ['nullable', 'string', 'max:255'],

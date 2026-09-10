@@ -4,6 +4,7 @@ namespace App\Services\Reporte;
 
 use App\Models\Cotizacion;
 use App\Models\Pedido;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 
 /**
@@ -16,18 +17,20 @@ class ReporteFinancieroService
     /**
      * @return array<string, mixed>
      */
-    public function datos(?string $desde = null, ?string $hasta = null): array
+    public function datos(User $usuario, ?string $desde = null, ?string $hasta = null): array
     {
         $desde = $desde ? Carbon::parse($desde)->startOfDay() : Carbon::now()->startOfYear();
         $hasta = $hasta ? Carbon::parse($hasta)->endOfDay() : Carbon::now()->endOfDay();
 
         $cotizaciones = Cotizacion::query()
+            ->visiblePara($usuario)
             ->whereIn('estado', ['APROBADA', 'CONVERTIDA'])
             ->whereBetween('fecha', [$desde, $hasta])
             ->with('sucursal:id,nombre')
             ->get(['id', 'sucursal_id', 'fecha', 'total']);
 
         $pedidos = Pedido::query()
+            ->visiblePara($usuario)
             ->whereIn('estado', ['ACABADO', 'ENTREGADO'])
             ->with(['cotizacion:id,codigo_verificacion', 'detalles.materialesUsados', 'pagos'])
             ->get();
@@ -60,16 +63,17 @@ class ReporteFinancieroService
                     'margen_pct' => $ingreso > 0 ? round(($ingreso - $costoReal) / $ingreso * 100, 1) : null,
                 ];
             })->values()->all(),
-            'cuentas_por_cobrar' => $this->cuentasPorCobrar(),
+            'cuentas_por_cobrar' => $this->cuentasPorCobrar($usuario),
         ];
     }
 
     /**
      * @return array{total: float, pedidos: list<array<string, mixed>>}
      */
-    private function cuentasPorCobrar(): array
+    private function cuentasPorCobrar(User $usuario): array
     {
         $pedidos = Pedido::query()
+            ->visiblePara($usuario)
             ->where('estado', '!=', 'CANCELADO')
             ->with('pagos')
             ->get()

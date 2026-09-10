@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\EmpleadoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Empleado extends Model
 {
     /** @use HasFactory<EmpleadoFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -145,5 +146,17 @@ class Empleado extends Model
     protected function estado(Builder $query, ?string $estado): void
     {
         $query->when($estado, fn (Builder $query) => $query->where('estado', $estado));
+    }
+
+    /**
+     * La ficha de empleado tiene su propia `sucursal_id`. Es ademas el origen del
+     * alcance PROPIA: un jefe de produccion de El Alto no lista al personal de
+     * Santa Cruz.
+     *
+     * Ver App\Models\Concerns\AcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return null;
     }
 }

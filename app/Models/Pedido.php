@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use App\Services\Pedido\ProgramarPostventaService;
 use Database\Factories\PedidoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Pedido extends Model
 {
     /** @use HasFactory<PedidoFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -229,24 +230,21 @@ class Pedido extends Model
     }
 
     /**
-     * Restringe a los pedidos que el usuario puede ver: todos si tiene
-     * `pedidos.ver_todas_sucursales` (o es super-admin), si no, solo los de
-     * la sucursal de su ficha de empleado. Un usuario sin ficha ni ese
-     * permiso no ve ninguno.
+     * El pedido llega a la sucursal por su cotización de origen, y conserva el
+     * override `pedidos.ver_todas_sucursales` que ya existía.
+     *
+     * La regla en sí (alcance de la cuenta, roles globales, fallo cerrado sin
+     * ficha de empleado) vive en `AcotaPorSucursal`/`TieneAlcanceSucursal`:
+     * antes estaba escrita acá y copiada en `PedidoController::puedeVer()` y
+     * `DocumentoPdfController`.
      */
-    #[Scope]
-    protected function visiblePara(Builder $query, User $user): void
+    protected static function rutaSucursal(): ?string
     {
-        if ($user->hasRole('super-admin') || $user->can('pedidos.ver_todas_sucursales')) {
-            return;
-        }
+        return 'cotizacion';
+    }
 
-        $sucursalId = $user->empleado?->sucursal_id;
-
-        $query->when(
-            $sucursalId,
-            fn (Builder $query) => $query->whereHas('cotizacion', fn (Builder $q) => $q->where('sucursal_id', $sucursalId)),
-            fn (Builder $query) => $query->whereRaw('1 = 0'),
-        );
+    protected static function moduloSucursal(): ?string
+    {
+        return 'pedidos';
     }
 }

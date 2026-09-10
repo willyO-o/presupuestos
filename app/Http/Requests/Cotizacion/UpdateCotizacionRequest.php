@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Cotizacion;
 
+use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
 use App\Models\CotizacionDetalleItem;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateCotizacionRequest extends FormRequest
 {
+    use ValidaAlcanceSucursal;
+
     /**
      * La ruta ya exige el permiso via middleware `can:cotizaciones.editar`;
      * se repite aquí porque es el lugar recomendado por Laravel para esta
@@ -33,7 +36,9 @@ class UpdateCotizacionRequest extends FormRequest
         return [
             'cliente_id' => ['required', 'integer', Rule::exists('cliente', 'id')],
             'empleado_id' => ['required', 'integer', Rule::exists('empleado', 'id')],
-            'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id')],
+            // Idéntica a StoreCotizacionRequest: sin esto se podría MOVER una
+            // cotización propia a otra sucursal y perderla de vista.
+            'sucursal_id' => ['required', 'integer', Rule::exists('sucursal', 'id'), $this->sucursalAdministrada()],
             'fecha' => ['required', 'date'],
             'fecha_vencimiento' => ['nullable', 'date', 'after_or_equal:fecha'],
             'descuento' => ['nullable', 'numeric', 'min:0'],

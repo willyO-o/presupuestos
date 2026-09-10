@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\PagoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\Storage;
 class Pago extends Model
 {
     /** @use HasFactory<PagoFactory> */
-    use HasFactory;
+    use AcotaPorSucursal, HasFactory;
 
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
@@ -96,5 +97,19 @@ class Pago extends Model
     protected function metodo(Builder $query, ?string $metodo): void
     {
         $query->when($metodo, fn (Builder $query) => $query->where('metodo_pago', $metodo));
+    }
+
+    /**
+     * Cuelga del pedido, que llega a la sucursal por su cotizacion de origen.
+     *
+     * OJO: acotar el listado no alcanza — los TOTALES de cobranza de
+     * `PagoController::index` tambien pasan por `visiblePara`, o un vendedor
+     * veria la caja de toda la empresa en las tarjetas de resumen.
+     *
+     * Ver App\Models\Concerns\AcotaPorSucursal.
+     */
+    protected static function rutaSucursal(): ?string
+    {
+        return 'pedido.cotizacion';
     }
 }

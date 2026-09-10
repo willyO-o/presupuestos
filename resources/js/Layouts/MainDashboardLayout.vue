@@ -1,8 +1,30 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import Sidebar from '@/Components/Layout/Sidebar.vue';
 import Topbar from '@/Components/Layout/Topbar.vue';
 import Footer from '@/Components/Layout/Footer.vue';
+
+const page = usePage();
+
+/**
+ * La cuenta no alcanza NINGUNA sucursal, así que todo lo acotado por sucursal
+ * (cotizaciones, pedidos, cobranza, notas de entrega, postventa, empleados)
+ * le sale vacío.
+ *
+ * El aviso vive en el layout y no en cada página a propósito: son seis
+ * pantallas y la causa es siempre la misma. Sin esto, un listado vacío se lee
+ * como "no hay datos" en vez de "no tienes alcance", que es un rato perdido
+ * buscando el problema en el sitio equivocado.
+ *
+ * `auth.sucursales` lo comparte HandleInertiaRequests. `visibles: null`
+ * significa "ve todas" — no confundirlo con la lista vacía.
+ */
+const sinAlcance = computed(() => {
+    const alcance = page.props.auth?.sucursales;
+
+    return alcance ? !alcance.ve_todas && (alcance.visibles ?? []).length === 0 : false;
+});
 
 /**
  * pageTitle / breadcrumbs pueden sobrescribirse enviandolos como prop de
@@ -57,6 +79,14 @@ const isSidebarOpen = ref(window.innerWidth >= 1024);
                         </span>
                     </nav>
                 </div>
+
+                <p v-if="sinAlcance" class="alcance-aviso alcance-aviso-warning mb-4">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Tu cuenta <strong>no alcanza ninguna sucursal</strong>, así que los listados de
+                    cotizaciones, pedidos, cobranza y entregas te saldrán vacíos. Pide a un
+                    administrador que te vincule una ficha de empleado o que te asigne sucursales
+                    desde <strong>Usuarios</strong>.
+                </p>
 
                 <slot />
             </main>

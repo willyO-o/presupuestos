@@ -4,6 +4,7 @@ namespace App\Services\Reporte;
 
 use App\Models\Pedido;
 use App\Models\PedidoSeguimiento;
+use App\Models\User;
 
 /**
  * Reporte de producción: cumplimiento de tiempos de entrega, duración
@@ -14,9 +15,10 @@ class ReporteProduccionService
     /**
      * @return array<string, mixed>
      */
-    public function datos(): array
+    public function datos(User $usuario): array
     {
         $entregados = Pedido::query()
+            ->visiblePara($usuario)
             ->where('estado', 'ENTREGADO')
             ->whereNotNull('fecha_entrega_estimada')
             ->whereNotNull('fecha_entrega_real')
@@ -27,6 +29,7 @@ class ReporteProduccionService
         );
 
         $seguimientosCerrados = PedidoSeguimiento::query()
+            ->visiblePara($usuario)
             ->whereNotNull('fecha_inicio')
             ->whereNotNull('fecha_fin')
             ->get(['etapa', 'fecha_inicio', 'fecha_fin']);
@@ -53,6 +56,7 @@ class ReporteProduccionService
                 })
                 ->all(),
             'carga_por_area' => PedidoSeguimiento::query()
+                ->visiblePara($usuario)
                 ->whereNull('fecha_fin')
                 ->with('area:id,nombre')
                 ->get(['id', 'area_id'])
@@ -64,7 +68,7 @@ class ReporteProduccionService
                 ->filter(fn ($e) => $e !== 'ENTREGADO')
                 ->map(fn (string $etapa) => [
                     'etapa' => $etapa,
-                    'pedidos' => Pedido::query()->where('estado', $etapa)->count(),
+                    'pedidos' => Pedido::query()->visiblePara($usuario)->where('estado', $etapa)->count(),
                 ])
                 ->values()
                 ->all(),

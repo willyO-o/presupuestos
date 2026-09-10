@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import DateRangeFilter from '@/Components/DateRangeFilter.vue';
+import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import { useChartTheme } from '@/Composables/UseChartTheme.js';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -67,6 +68,10 @@ const margenes = computed(() => ({
 
 <template>
     <Head title="Reporte financiero" />
+
+    <div class="d-flex justify-content-end mb-3">
+        <EtiquetaAlcance />
+    </div>
 
     <div class="page-stack">
         <!-- Un solo filtro arriba de todo lo que acota: los gráficos de abajo se

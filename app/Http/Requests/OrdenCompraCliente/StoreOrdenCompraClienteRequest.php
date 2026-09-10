@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests\OrdenCompraCliente;
 
+use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
+use App\Models\Pedido;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreOrdenCompraClienteRequest extends FormRequest
 {
+    use ValidaAlcanceSucursal;
+
     public function authorize(): bool
     {
         return $this->user()->can('ordenes-compra-cliente.crear');
@@ -22,7 +26,11 @@ class StoreOrdenCompraClienteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pedido_id' => ['required', 'integer', Rule::exists('pedido', 'id'), Rule::unique('orden_compra_cliente', 'pedido_id')],
+            'pedido_id' => [
+                'required', 'integer', Rule::exists('pedido', 'id'),
+                Rule::unique('orden_compra_cliente', 'pedido_id'),
+                $this->registroVisible(Pedido::class, 'Ese pedido no es de una sucursal que administres.'),
+            ],
             'numero_oc' => ['required', 'string', 'max:255'],
             'fecha' => ['required', 'date'],
             'monto_total' => ['required', 'numeric', 'min:0'],

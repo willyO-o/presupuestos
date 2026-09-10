@@ -65,3 +65,25 @@ Reglas: el precio NO se recalcula (lo acordado con el cliente no cambia porque l
 Antes de "simplificar" quitando esas columnas: leerlas de la cotización rompería el caso de uso. Tests en `PedidoControllerTest` ("production measurements can diverge…").
 
 Aparte: `Pedido::visiblePara()` falla cerrado (`whereRaw('1=0')`) si el usuario no tiene ficha de empleado — un usuario sin vincular ve CERO pedidos. `PedidoController::index` manda `sinFichaEmpleado` para explicarlo en pantalla, y `EmpleadoSeeder` vincula las cuentas sembradas. No cambiar el fallo cerrado por uno abierto.
+
+## El alcance por sucursal se configura en Usuarios (no en Empleados)
+`users.alcance_sucursal` + el pivote `sucursal_user` se editan desde el modal de `Usuarios/Index.vue` (bloque `.alcance-bloque`, CSS §25), no desde Empleados: es un permiso de la CUENTA, no un dato de la persona. La ficha de empleado solo aporta la sucursal "propia".
+
+- `alcance_sucursal` es `required` en Store/UpdateUserRequest (sin default): un formulario nuevo tiene que decidirlo explícitamente. `sucursales` es `required_if:alcance_sucursal,ASIGNADAS` — un array vacío cuenta como ausente, que es justo lo que se quiere (guardar ASIGNADAS sin nada marcado dejaría una cuenta que no ve NADA en silencio).
+- `UsuarioController::sincronizarSucursales()` VACÍA el pivote con cualquier alcance que no sea ASIGNADAS. Deliberado: una fila huérfana no hace nada hoy pero devolvería esas sucursales de golpe si alguien vuelve a poner ASIGNADAS. Después llama `olvidarAlcanceSucursal()` (el alcance se memoriza por instancia).
+- El selector NO se deshabilita para roles globales (super-admin/administrador): un input deshabilitado no se envía y haría fallar `required`. Se muestra un aviso y el valor se guarda igual, para que tenga efecto si mañana se le cambia el rol.
+- `HandleInertiaRequests` comparte `auth.sucursales = {ve_todas, visibles}`. `visibles` es `null` cuando ve todas — así no se consulta la tabla en el caso más común. Es solo para ROTULAR pantallas ("Viendo: El Alto"); el filtrado real es del servidor.
+- `.alcance-aviso` NO puede ser flex: la frase lleva `<strong>` intercalados y cada trozo se volvía un ítem flex ("El / rol / administrador" apilado en columnas). Es bloque con el ícono inline.
+
+Tests: `UsuarioControllerTest` (16, incluye el helper `datosUsuario()` para el payload).
+
+## Módulos acotados por sucursal: qué lleva visiblePara y qué no
+Desde la fase 3 (2026-09-10) SIETE modelos usan `AcotaPorSucursal`: Cotizacion y Empleado (columna propia), Pedido (`cotizacion`), y NotaEntrega / Pago / OrdenCompraCliente / SeguimientoPostventa (`pedido.cotizacion`). Cada listado lleva `->visiblePara($request->user())`.
+
+- **Los agregados también van acotados, no solo la tabla.** `PagoController::index` (total_cobrado / por_cobrar) y `SeguimientoPostventaController::resumen()` pasan por `visiblePara`. Un total se lee de un vistazo sin comprobar de dónde sale: acotar la lista y no el resumen es peor que no acotar nada.
+- **Rutas de detalle** (`show`/`edit`/`update`/`destroy`/`aprobar`/PDF) usan `$modelo->esVisiblePara($user)`, que vuelve a la base con el MISMO scope. NO comparar `sucursal_id` a mano: eso era lo que había en `PedidoController::puedeVer()` y `DocumentoPdfController` duplicado, y es como aparece el "lo veo en la lista pero me da 403".
+- **NO se acotan** (no tienen `sucursal_id`): `compra`, `material`, `proveedor`, `cliente`, `producto`. Inventario y compras son de toda la empresa; la cartera de clientes es compartida. Decisión del usuario, ver .ai/rules/concerns.md.
+- `PedidoController::create` acota las cotizaciones convertibles con las reglas de COTIZACIÓN, no con `pedidos.ver_todas_sucursales`: ese override es de lectura de pedidos ajenos, y convertir la cotización de otra sucursal es escribir sobre su cartera.
+- Los desplegables de sucursal (filtro del índice y selector del formulario) se filtran con `CotizacionController::sucursalesVisibles()`. Un filtro que siempre devuelve vacío parece un bug.
+- **Fallar cerrado tiene coste de UX**: `MainDashboardLayout` muestra un banner (`.alcance-aviso-warning`) cuando `auth.sucursales` dice que la cuenta no alcanza ninguna. Va en el layout y no en cada página: son 6 pantallas con la misma causa, y un listado vacío sin explicación se lee como "no hay datos".
+- Los tests de cada módulo usan cuentas con alcance TODAS a propósito (comprueban el módulo). El acotado se prueba aparte en `AlcanceModulosTest` (14) — verificado con mutación: quitar los `visiblePara` tumba 9, quitar los `assertVisible` del PDF tumba la de la puerta trasera.

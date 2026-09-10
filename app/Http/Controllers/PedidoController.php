@@ -16,7 +16,6 @@ use App\Models\Pago;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
 use App\Models\PedidoSeguimiento;
-use App\Models\Sucursal;
 use App\Services\Calculo\CosteoProductoService;
 use App\Services\Calculo\MedidasCotizacion;
 use App\Services\Pedido\ConvertirCotizacionService;
@@ -52,13 +51,18 @@ class PedidoController extends Controller
 
         return inertia('Pedidos/Index', [
             'pedidos' => $pedidos,
-            // `visiblePara` falla cerrado: sin ficha de empleado no hay
-            // sucursal que scopear y el listado sale vacío. Se avisa en
-            // pantalla en vez de dejar creer que no hay pedidos.
-            'sinFichaEmpleado' => $request->user()->empleado === null
-                && ! $request->user()->hasRole('super-admin')
-                && ! $request->user()->can('pedidos.ver_todas_sucursales'),
-            'sucursales' => Sucursal::query()->orderBy('nombre')->get(['id', 'nombre']),
+            // `visiblePara` falla cerrado: sin alcance el listado sale vacío y
+            // se avisa en vez de dejar creer que no hay pedidos.
+            //
+            // La condición mira el ALCANCE, no la ficha de empleado: con
+            // alcance ASIGNADAS y nada marcado la cuenta tampoco ve nada, y
+            // antes ese caso pasaba desapercibido porque sí tenía ficha.
+            // (El layout muestra además un aviso general — este es el de la
+            // pantalla, que explica el listado vacío que se está mirando.)
+            'sinFichaEmpleado' => $request->user()->sucursalesVisibles('pedidos') === [],
+            // Solo las que administra: un filtro que siempre devuelve vacio
+            // parece un error del sistema, no una restriccion de permisos.
+            'sucursales' => $request->user()->sucursalesDisponibles(),
             'estados' => Pedido::ESTADOS,
             'filters' => $request->only(['search', 'estado', 'sucursal', 'cliente']),
             'pageTitle' => 'Pedidos',
@@ -73,7 +77,13 @@ class PedidoController extends Controller
      */
     public function create(Request $request): Response
     {
+        // Se acota con las reglas de COTIZACIÓN, no con las de pedido: el
+        // override `pedidos.ver_todas_sucursales` es un permiso de LECTURA de
+        // pedidos ajenos, y convertir la cotización de otra sucursal en pedido
+        // es escribir sobre su cartera. Quien deba hacerlo necesita alcance
+        // sobre esa sucursal, no el override.
         $convertibles = Cotizacion::query()
+            ->visiblePara($request->user())
             ->where('estado', 'APROBADA')
             ->whereDoesntHave('pedido')
             ->with(['cliente:id,razon_social', 'sucursal:id,nombre'])
@@ -131,7 +141,7 @@ class PedidoController extends Controller
             ],
             'metodosPago' => Pago::METODOS,
             'areas' => Area::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
-            'empleados' => Empleado::query()->estado('ACTIVO')->orderBy('nombres')
+            'empleados' => Empleado::query()->visiblePara($request->user())->estado('ACTIVO')->orderBy('nombres')
                 ->get(['id', 'nombres', 'paterno', 'materno', 'cargo']),
             'materiales' => Material::query()->estado('ACTIVO')->orderBy('nombre')
                 ->get(['id', 'nombre', 'unidad_medida', 'precio_unitario']),
@@ -148,7 +158,7 @@ class PedidoController extends Controller
      */
     public function asignarArea(AsignarAreaRequest $request, Pedido $pedido, PedidoDetalle $detalle): RedirectResponse
     {
-        $this->assertPerteneceAlPedido($pedido, $detalle);
+        $this->assertPuedeOperarSobre($request, $pedido, $detalle);
 
         $detalle->seguimientos()->create([
             'area_id' => $request->validated('area_id'),
@@ -182,7 +192,7 @@ class PedidoController extends Controller
      */
     public function actualizarMedidas(ActualizarMedidasRequest $request, Pedido $pedido, PedidoDetalle $detalle): RedirectResponse
     {
-        $this->assertPerteneceAlPedido($pedido, $detalle);
+        $this->assertPuedeOperarSobre($request, $pedido, $detalle);
 
         if (! $pedido->esCancelable()) {
             return redirect()->route('pedidos.show', $pedido)
@@ -240,7 +250,7 @@ class PedidoController extends Controller
 
     public function actualizarEstado(ActualizarEstadoRequest $request, Pedido $pedido, PedidoDetalle $detalle): RedirectResponse
     {
-        $this->assertPerteneceAlPedido($pedido, $detalle);
+        $this->assertPuedeOperarSobre($request, $pedido, $detalle);
 
         if ($pedido->estado === 'CANCELADO') {
             return redirect()->route('pedidos.show', $pedido)
@@ -278,7 +288,7 @@ class PedidoController extends Controller
      */
     public function registrarConsumo(RegistrarConsumoRequest $request, Pedido $pedido, PedidoDetalle $detalle): RedirectResponse
     {
-        $this->assertPerteneceAlPedido($pedido, $detalle);
+        $this->assertPuedeOperarSobre($request, $pedido, $detalle);
 
         $material = Material::findOrFail($request->validated('material_id'));
         $cantidad = (float) $request->validated('cantidad_usada');
@@ -299,6 +309,7 @@ class PedidoController extends Controller
     public function cancelar(Request $request, Pedido $pedido): RedirectResponse
     {
         abort_unless($request->user()->can('pedidos.actualizar_estado'), HttpResponse::HTTP_FORBIDDEN);
+        abort_unless($this->puedeVer($request, $pedido), HttpResponse::HTTP_FORBIDDEN);
 
         if (! $pedido->esCancelable()) {
             return redirect()->route('pedidos.show', $pedido)
@@ -310,20 +321,34 @@ class PedidoController extends Controller
         return redirect()->route('pedidos.show', $pedido)->with('success', 'Pedido cancelado.');
     }
 
+    /**
+     * Mismo scope que el listado (`Pedido::visiblePara`), no una segunda copia
+     * de la regla: antes esto comparaba `sucursal_id` a mano y el mismo `if`
+     * estaba repetido en DocumentoPdfController.
+     */
     private function puedeVer(Request $request, Pedido $pedido): bool
     {
-        $user = $request->user();
-
-        if ($user->hasRole('super-admin') || $user->can('pedidos.ver_todas_sucursales')) {
-            return true;
-        }
-
-        return $user->empleado?->sucursal_id === $pedido->cotizacion->sucursal_id;
+        return $pedido->esVisiblePara($request->user());
     }
 
-    private function assertPerteneceAlPedido(Pedido $pedido, PedidoDetalle $detalle): void
+    /**
+     * Puerta de todas las acciones sobre un ítem del pedido (asignar área,
+     * cambiar estado, ajustar medidas, registrar consumo).
+     *
+     * Dos comprobaciones, las dos obligatorias:
+     *
+     * 1. El detalle es de ESTE pedido — el binding anidado de Laravel no lo
+     *    scopea solo, así que `/pedidos/1/detalle/999` resolvería un detalle
+     *    de otro pedido (404).
+     * 2. El pedido es de una sucursal que el usuario administra. Faltaba: la
+     *    fase 3 acotó `show` pero estas cuatro rutas cambiaban el estado de un
+     *    pedido ajeno con solo poner su id en la URL, sin pasar por la
+     *    pantalla.
+     */
+    private function assertPuedeOperarSobre(Request $request, Pedido $pedido, PedidoDetalle $detalle): void
     {
         abort_unless($detalle->pedido_id === $pedido->id, HttpResponse::HTTP_NOT_FOUND);
+        abort_unless($this->puedeVer($request, $pedido), HttpResponse::HTTP_FORBIDDEN);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SeguimientoPostventa\RegistrarSeguimientoRequest;
 use App\Models\SeguimientoPostventa;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -32,6 +33,7 @@ class SeguimientoPostventaController extends Controller
                 'pedido.cotizacion.cliente:id,razon_social,telefono,email',
                 'empleado:id,nombres,paterno,materno',
             ])
+            ->visiblePara($request->user())
             ->search($request->query('search'))
             ->estado($estado)
             ->orderBy('fecha_programada')
@@ -40,7 +42,7 @@ class SeguimientoPostventaController extends Controller
 
         return inertia('SeguimientosPostventa/Index', [
             'seguimientos' => $seguimientos,
-            'resumen' => $this->resumen(),
+            'resumen' => $this->resumen($request->user()),
             'estados' => SeguimientoPostventa::ESTADOS,
             'medios' => SeguimientoPostventa::MEDIOS,
             'filters' => ['search' => $request->query('search'), 'estado' => $estado],
@@ -60,6 +62,8 @@ class SeguimientoPostventaController extends Controller
      */
     public function registrar(RegistrarSeguimientoRequest $request, SeguimientoPostventa $seguimientoPostventa): RedirectResponse
     {
+        abort_unless($seguimientoPostventa->esVisiblePara($request->user()), 403);
+
         if ($seguimientoPostventa->estado === 'REALIZADO') {
             return redirect()->back()
                 ->with('error', 'Este seguimiento ya fue registrado.');
@@ -82,16 +86,22 @@ class SeguimientoPostventaController extends Controller
      * no se llamó), cuántos vienen y cuántos clientes reportaron un problema
      * que sigue abierto.
      *
+     * Acotados a las sucursales del usuario, igual que el listado: un
+     * contador de vencidos que incluya sucursales que no puede abrir manda a
+     * buscar un trabajo que no le corresponde.
+     *
      * @return array<string, int|float|null>
      */
-    private function resumen(): array
+    private function resumen(User $usuario): array
     {
-        $realizados = SeguimientoPostventa::query()->where('estado', 'REALIZADO');
+        $visibles = fn () => SeguimientoPostventa::query()->visiblePara($usuario);
+
+        $realizados = $visibles()->where('estado', 'REALIZADO');
 
         return [
-            'vencidos' => SeguimientoPostventa::query()->pendientesDeContacto()->count(),
-            'pendientes' => SeguimientoPostventa::query()->where('estado', 'PENDIENTE')->count(),
-            'requieren_accion' => SeguimientoPostventa::query()
+            'vencidos' => $visibles()->pendientesDeContacto()->count(),
+            'pendientes' => $visibles()->where('estado', 'PENDIENTE')->count(),
+            'requieren_accion' => $visibles()
                 ->where('requiere_accion', 'SI')->where('estado', 'REALIZADO')->count(),
             'satisfaccion_promedio' => $realizados->clone()->whereNotNull('satisfaccion')->avg('satisfaccion'),
             'realizados' => $realizados->count(),

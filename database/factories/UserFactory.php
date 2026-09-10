@@ -52,4 +52,27 @@ class UserFactory extends Factory
             'estado' => 'INACTIVO',
         ]);
     }
+
+    /**
+     * Ve TODAS las sucursales por alcance propio (no por rol).
+     *
+     * Ver `App\Models\Concerns\TieneAlcanceSucursal`.
+     */
+    public function todasLasSucursales(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'alcance_sucursal' => 'TODAS',
+        ]);
+    }
+
+    /**
+     * Ve solo las sucursales del pivote `sucursal_user`. Hay que asignarlas
+     * después: `->sucursales()->sync([$sucursal->id])`.
+     */
+    public function sucursalesAsignadas(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'alcance_sucursal' => 'ASIGNADAS',
+        ]);
+    }
 }

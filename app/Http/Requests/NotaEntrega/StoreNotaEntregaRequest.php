@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests\NotaEntrega;
 
+use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
+use App\Models\Pedido;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreNotaEntregaRequest extends FormRequest
 {
+    use ValidaAlcanceSucursal;
+
     public function authorize(): bool
     {
         return $this->user()->can('notas-entrega.crear');
@@ -23,7 +27,12 @@ class StoreNotaEntregaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pedido_id' => ['required', 'integer', Rule::exists('pedido', 'id')],
+            // Emitir la entrega de un pedido ajeno además marcaría sus ítems
+            // como ENTREGADO (ver NotaEntregaController::store).
+            'pedido_id' => [
+                'required', 'integer', Rule::exists('pedido', 'id'),
+                $this->registroVisible(Pedido::class, 'Ese pedido no es de una sucursal que administres.'),
+            ],
             'empleado_id' => ['required', 'integer', Rule::exists('empleado', 'id')],
             'fecha_entrega' => ['required', 'date'],
             'recibido_por' => ['nullable', 'string', 'max:255'],

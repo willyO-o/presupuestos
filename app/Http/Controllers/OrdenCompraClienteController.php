@@ -17,6 +17,7 @@ class OrdenCompraClienteController extends Controller
     {
         $ordenes = OrdenCompraCliente::query()
             ->with(['pedido:id,numero_pedido,cotizacion_id,total', 'pedido.cotizacion:id,cliente_id', 'pedido.cotizacion.cliente:id,razon_social'])
+            ->visiblePara($request->user())
             ->search($request->query('search'))
             ->estado($request->query('estado'))
             ->orderByDesc('fecha')
@@ -27,6 +28,7 @@ class OrdenCompraClienteController extends Controller
         return inertia('OrdenesCompraCliente/Index', [
             'ordenes' => $ordenes,
             'pedidosSinOc' => Pedido::query()
+                ->visiblePara($request->user())
                 ->whereDoesntHave('ordenCompra')
                 ->where('estado', '!=', 'CANCELADO')
                 ->with('cotizacion:id,cliente_id')
@@ -62,6 +64,8 @@ class OrdenCompraClienteController extends Controller
 
     public function update(UpdateOrdenCompraClienteRequest $request, OrdenCompraCliente $ordenCompra): RedirectResponse
     {
+        abort_unless($ordenCompra->esVisiblePara($request->user()), 403);
+
         $datos = $request->validated();
 
         if ($request->hasFile('archivo_pdf')) {
@@ -79,13 +83,17 @@ class OrdenCompraClienteController extends Controller
             ->with('success', 'Orden de compra actualizada.');
     }
 
-    public function validar(OrdenCompraCliente $ordenCompra): RedirectResponse
+    public function validar(Request $request, OrdenCompraCliente $ordenCompra): RedirectResponse
     {
+        abort_unless($ordenCompra->esVisiblePara($request->user()), 403);
+
         return $this->cambiarEstado($ordenCompra, 'VALIDADA', 'validada');
     }
 
-    public function anular(OrdenCompraCliente $ordenCompra): RedirectResponse
+    public function anular(Request $request, OrdenCompraCliente $ordenCompra): RedirectResponse
     {
+        abort_unless($ordenCompra->esVisiblePara($request->user()), 403);
+
         return $this->cambiarEstado($ordenCompra, 'ANULADA', 'anulada');
     }
 
