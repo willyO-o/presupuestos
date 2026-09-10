@@ -7,6 +7,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | resources/js/Pages/Auth/** | .ai/rules/auth.md |
 | app/Services/Calculo/** | .ai/rules/calculo.md |
 | app/Console/Commands/** | .ai/rules/commands.md |
+| resources/js/Components/DateRangeFilter.vue | .ai/rules/components.md |
 | config/acl.php | .ai/rules/config.md |
 | app/Http/Controllers/CotizadorPublicoController.php, config/cotizador.php | .ai/rules/controllers-views-publico.md |
 | app/Http/Controllers/**, app/Http/Controllers/FormulaController.php, app/Http/Controllers/CompraController.php, app/Http/Controllers/PedidoController.php, app/Http/Controllers/NotaEntregaController.php, app/Http/Controllers/PagoController.php, app/Http/Controllers/UsuarioController.php, app/Http/Controllers/ClientePortalController.php, app/Http/Controllers/CotizacionController.php | .ai/rules/controllers.md |

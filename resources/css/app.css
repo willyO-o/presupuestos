@@ -3,6 +3,11 @@
 @import 'remixicon/fonts/remixicon.css';
 @import '@mdi/font/css/materialdesignicons.min.css';
 
+/* Esqueleto del calendario de rango de fechas (Components/DateRangeFilter.vue).
+   Solo layout/posicionamiento del paquete; los colores y el modo oscuro se
+   re-tematizan con tokens de marca en la seccion "29. FILTRO DE RANGO DE FECHAS". */
+@import 'daterange-picker-vue3/dist/daterange-picker-vue3.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -2409,4 +2414,227 @@
     .margen-interno {
         display: none !important;
     }
+}
+
+/* ==========================================================================
+   29. FILTRO DE RANGO DE FECHAS (Components/DateRangeFilter.vue)
+   --------------------------------------------------------------------------
+   DateRangeFilter.vue envuelve el paquete `daterange-picker-vue3`. Ese
+   paquete trae su propio CSS (importado arriba, junto a las fuentes de
+   iconos) pero cablea colores claros a mano (#fff, #08c, #357ebd, ...) y no
+   sabe nada del modo oscuro. Acá se re-tematiza TODO con los tokens de marca
+   (`--card-bg`, `--border-subtle`, `--text-*`, `--c-primary*`), igual que se
+   hizo con SweetAlert2 en la sección 20 — el CSS del componente vive acá, no
+   en el `.vue` (ver skill xtrapubli-design-system, Rule 3).
+
+   El popup se teletransporta a <body> sólo si se pasa `append-to-body`; como
+   `.dark` está en <html>, los tokens se heredan igual cuelgue donde cuelgue.
+   ========================================================================== */
+
+/* --- Disparador: es un <div> con la clase .form-control (ya temada en la
+   sección 18), sólo hace falta acomodar el texto y el ícono en fila. --- */
+.date-range-filter {
+    @apply relative;
+}
+
+.date-range-filter .vue-daterange-picker {
+    @apply block w-full;
+}
+
+.date-range-filter-input {
+    @apply flex cursor-pointer items-center justify-between gap-2;
+    min-height: 2.375rem;
+}
+
+.date-range-filter-input > span {
+    @apply truncate;
+}
+
+.date-range-filter-input > i {
+    color: var(--text-muted);
+    @apply shrink-0;
+}
+
+/* Placeholder mientras el chunk del calendario está en vuelo. */
+.date-range-filter-skeleton {
+    @apply pointer-events-none animate-pulse;
+}
+
+/* Botón de limpiar (prop `clearable`): una "x" tenue al final del disparador. */
+.date-range-filter-clear {
+    color: var(--text-muted);
+    @apply -my-1 shrink-0 rounded p-1 text-xs leading-none transition-colors;
+}
+
+.date-range-filter-clear:hover {
+    color: var(--c-danger);
+    background-color: var(--c-danger-soft);
+}
+
+/* --- Panel desplegable --- */
+.daterangepicker {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    color: var(--text-body);
+    box-shadow: var(--card-shadow);
+    @apply rounded-lg;
+}
+
+/* Flechita que apunta al disparador (dos triángulos superpuestos). */
+.daterangepicker::before {
+    border-bottom-color: var(--border-subtle);
+}
+
+.daterangepicker::after {
+    border-bottom-color: var(--card-bg);
+}
+
+.daterangepicker.drop-up::before {
+    border-top-color: var(--border-subtle);
+}
+
+.daterangepicker.drop-up::after {
+    border-top-color: var(--card-bg);
+}
+
+/* --- Columna de rangos predefinidos (Hoy, Este mes, ...) --- */
+.daterangepicker .ranges {
+    border-color: var(--border-subtle);
+}
+
+.daterangepicker .ranges li {
+    color: var(--text-body);
+    @apply rounded-md transition-colors;
+}
+
+.daterangepicker .ranges li:hover {
+    background-color: var(--c-primary-soft);
+    color: var(--text-heading);
+}
+
+.daterangepicker .ranges li.active {
+    background-color: var(--c-primary);
+    color: #fff;
+}
+
+.daterangepicker.show-ranges .drp-calendar.left {
+    border-color: var(--border-subtle);
+}
+
+/* --- Cuadrícula del calendario --- */
+.daterangepicker .calendar-table {
+    background-color: var(--card-bg);
+    border-color: var(--card-bg);
+}
+
+.daterangepicker .calendar-table th,
+.daterangepicker .calendar-table td {
+    background-color: var(--card-bg);
+    color: var(--text-body);
+    border-color: transparent;
+}
+
+/* Cabecera: nombres de día y "Septiembre 2026". */
+.daterangepicker .calendar-table thead th,
+.daterangepicker .calendar-table th.month {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Flechas de mes anterior / siguiente (triángulo hecho con bordes). */
+.daterangepicker .calendar-table .prev span,
+.daterangepicker .calendar-table .next span {
+    border-color: var(--text-muted);
+}
+
+.daterangepicker .calendar-table th.available:hover span {
+    border-color: var(--text-heading);
+}
+
+.daterangepicker td.available:hover,
+.daterangepicker th.available:hover {
+    background-color: var(--c-primary-soft);
+    color: var(--text-heading);
+}
+
+.daterangepicker td.week,
+.daterangepicker th.week {
+    color: var(--text-muted);
+}
+
+/* Días de meses vecinos y días fuera del rango permitido. */
+.daterangepicker td.off,
+.daterangepicker td.off.in-range,
+.daterangepicker td.off.start-date,
+.daterangepicker td.off.end-date {
+    background-color: var(--card-bg);
+    color: var(--text-muted);
+    opacity: 0.55;
+}
+
+.daterangepicker td.disabled,
+.daterangepicker option.disabled {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.daterangepicker td.today {
+    color: var(--c-primary);
+    font-weight: 700;
+}
+
+/* Relleno entre los dos extremos del rango. color-mix (no --c-primary-soft)
+   para que la banda se vea igual de nítida en claro y en oscuro. */
+.daterangepicker td.in-range {
+    background-color: color-mix(in srgb, var(--c-primary) 20%, var(--card-bg));
+    color: var(--text-heading);
+}
+
+/* Los dos extremos seleccionados. */
+.daterangepicker td.active,
+.daterangepicker td.active:hover,
+.daterangepicker td.start-date,
+.daterangepicker td.end-date {
+    background-color: var(--c-primary);
+    color: #fff;
+}
+
+/* --- Selects de mes/año y hora (sólo si show-dropdowns / timePicker) --- */
+.daterangepicker select.monthselect,
+.daterangepicker select.yearselect,
+.daterangepicker .calendar-time select {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    color: var(--text-body);
+    @apply rounded;
+}
+
+/* --- Pie con botones (oculto con auto-apply, temado por si se usa sin él) --- */
+.daterangepicker .drp-buttons {
+    border-color: var(--border-subtle);
+}
+
+.daterangepicker .drp-selected {
+    color: var(--text-muted);
+}
+
+.daterangepicker .drp-buttons .btn-primary,
+.daterangepicker .drp-buttons .btn-success {
+    background-color: var(--c-primary);
+    color: #fff;
+}
+
+.daterangepicker .drp-buttons .btn-secondary {
+    background-color: var(--c-secondary);
+    color: #fff;
+}
+
+/* --- Fallback: si algún consumidor usa el disparador por defecto del
+   paquete (.reportrange-text) en vez de pasar control-container-class,
+   que al menos herede la superficie de marca. --- */
+.reportrange-text {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    color: var(--text-body);
+    @apply rounded-lg text-sm;
 }

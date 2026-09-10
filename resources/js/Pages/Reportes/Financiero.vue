@@ -3,6 +3,7 @@ import { computed, reactive } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import DateRangeFilter from '@/Components/DateRangeFilter.vue';
 import { useChartTheme } from '@/Composables/UseChartTheme.js';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -73,13 +74,13 @@ const margenes = computed(() => ({
         <div class="card">
             <div class="card-body">
                 <form class="row" @submit.prevent="aplicar">
-                    <div class="col-lg-3">
-                        <label class="form-label">Desde</label>
-                        <input v-model="rango.desde" type="date" class="form-control" />
-                    </div>
-                    <div class="col-lg-3">
-                        <label class="form-label">Hasta</label>
-                        <input v-model="rango.hasta" type="date" class="form-control" />
+                    <div class="col-lg-5">
+                        <DateRangeFilter
+                            v-model:fecha-desde="rango.desde"
+                            v-model:fecha-hasta="rango.hasta"
+                            label="Periodo"
+                            default-range="Este año"
+                        />
                     </div>
                     <div class="col-lg-3 flex items-end">
                         <button type="submit" class="btn btn-primary">Aplicar</button>

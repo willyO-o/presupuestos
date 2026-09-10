@@ -27,6 +27,7 @@
     },
     "dependencies": {
         "chart.js": "^4.5.1",
+        "daterange-picker-vue3": "^1.0.3",
         "sweetalert2": "^11.26.25"
     }
 }
