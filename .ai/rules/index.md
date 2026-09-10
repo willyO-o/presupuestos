@@ -14,6 +14,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/css.md |
 | resources/js/Data/** | .ai/rules/data.md |
 | app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/http-controllers.md |
+| resources/js/Components/Chart/**, resources/js/Composables/UseChartTheme.js, resources/js/Pages/Reportes/**, resources/js/Pages/Dashboard.vue | .ai/rules/js-pages.md |
 | resources/js/**/*.vue, resources/js/** | .ai/rules/js.md |
 | resources/js/Layouts/**/*.vue | .ai/rules/layouts.md |
 | database/migrations/2026_08_23_04*.php, database/migrations/** | .ai/rules/migrations.md |

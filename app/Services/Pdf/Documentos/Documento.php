@@ -26,7 +26,8 @@ use Illuminate\Support\Carbon;
  * `Cell(0, 5, 'Cotización')` directamente imprime basura; no hay atajo.
  *
  * **Medidas**: milímetros para posiciones y puntos para tipografía, que es
- * como FPDF trabaja. La hoja es A4 vertical (210 × 297 mm).
+ * como FPDF trabaja. La hoja es tamaño carta vertical (216 × 279 mm): es el
+ * formato de oficina que se usa e imprime en el país.
  */
 abstract class Documento extends FPDF
 {
@@ -96,6 +97,15 @@ abstract class Documento extends FPDF
     /** Fuente monoespaciada para números de documento. */
     protected const FUENTE_MONO = 'Courier';
 
+    /** Ancho del logo de la empresa en el membrete, en mm. */
+    protected const ANCHO_LOGO = 46.0;
+
+    /**
+     * Proporción ancho/alto del logo, para reservar su espacio si
+     * `getimagesize()` no pudiera medir el archivo.
+     */
+    protected const PROPORCION_LOGO = 4.1;
+
     /**
      * @param  array<string, mixed>  $empresa  Datos de `config('sitio.empresa')`.
      */
@@ -104,7 +114,7 @@ abstract class Documento extends FPDF
         protected readonly array $empresa,
         protected readonly Carbon $generadoEn,
     ) {
-        parent::__construct('P', 'mm', 'A4');
+        parent::__construct('P', 'mm', 'Letter');
 
         $this->SetMargins(self::MARGEN_LATERAL, self::MARGEN_SUPERIOR, self::MARGEN_LATERAL);
         $this->SetAutoPageBreak(true, self::MARGEN_INFERIOR);
@@ -165,13 +175,17 @@ abstract class Documento extends FPDF
         $ancho = $this->anchoUtil();
         $anchoMarca = $ancho * 0.55;
 
-        // --- Izquierda: la marca.
-        $this->SetXY(self::MARGEN_LATERAL, $y);
-        $this->fuente(15, 'B', self::OSCURO);
-        $this->Cell($anchoMarca, $this->altoLinea(15), $this->t($this->empresa['nombre']), 0, 2);
+        // --- Izquierda: la marca. El logo va primero; el nombre queda debajo
+        // como texto (dato buscable del documento y respaldo si el PNG falta).
+        $altoLogo = $this->logo(self::MARGEN_LATERAL, $y, self::ANCHO_LOGO);
 
+        $this->SetXY(self::MARGEN_LATERAL, $y + $altoLogo + 2);
         $this->fuente(8, '', self::SUAVE);
-        $this->Cell($anchoMarca, $this->altoLinea(8), $this->t($this->empresa['lema']), 0, 2);
+        $this->Cell($anchoMarca, $this->altoLinea(8), $this->t(sprintf(
+            '%s · %s',
+            $this->empresa['nombre'],
+            $this->empresa['lema'],
+        )), 0, 2);
 
         $this->fuente(7.5, '', self::TENUE);
         $this->Ln(1);
@@ -275,6 +289,42 @@ abstract class Documento extends FPDF
         $this->SetXY($x, $y);
         $this->Cell($ancho, $alto, $etiqueta, 0, 2, 'C');
         $this->SetY($y + $alto);
+    }
+
+    /**
+     * Dibuja el logo de la empresa arriba a la izquierda del membrete y
+     * devuelve el alto que ocupó, en mm.
+     *
+     * La imagen se lee del disco POR RUTA (`public_path()`), nunca por URL:
+     * FPDF no resuelve HTTP. Si el archivo falta o no es una imagen que FPDF
+     * sepa leer, cae al nombre de la empresa en texto grande y el documento se
+     * emite igual — el membrete no puede depender de que exista un PNG.
+     */
+    protected function logo(float $x, float $y, float $ancho): float
+    {
+        $relativa = $this->empresa['logo'] ?? null;
+        $ruta = $relativa ? public_path($relativa) : null;
+
+        if ($ruta !== null && is_file($ruta)) {
+            try {
+                $medida = @getimagesize($ruta);
+                $alto = ($medida && $medida[0] > 0)
+                    ? $ancho * $medida[1] / $medida[0]
+                    : $ancho / self::PROPORCION_LOGO;
+
+                $this->Image($ruta, $x, $y, $ancho);
+
+                return $alto;
+            } catch (\Throwable) {
+                // Cae al nombre en texto, abajo.
+            }
+        }
+
+        $this->SetXY($x, $y);
+        $this->fuente(15, 'B', self::OSCURO);
+        $this->Cell($ancho, $this->altoLinea(15), $this->t($this->empresa['nombre']), 0, 2);
+
+        return $this->altoLinea(15);
     }
 
     /*

@@ -36,6 +36,10 @@ return [
     'empresa' => [
         'nombre' => 'XtraPubli',
         'lema' => 'Hacemos que tu Marca Venda!',
+
+        // Ruta del logo relativa a `public/`, tal como la lee FPDF en el
+        // membrete de los PDF (por sistema de archivos, nunca por URL).
+        'logo' => 'img/logo/logo.png',
         'descripcion' => 'Diseñamos, fabricamos e implementamos exhibidores, material POP y '
             .'soluciones visuales para marcas que necesitan presencia real en el punto de venta.',
         'fundacion' => '2015',

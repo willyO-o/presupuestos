@@ -89,6 +89,37 @@
     --c-pink: #ee6a9f;
     --c-pink-dark: #d94f87;
     --c-pink-soft: #fce9f1;
+
+    /* ------------------------------------------------------------------
+       PALETA DE SERIES (gráficos) — NO son los tokens semánticos.
+
+       Los --c-* de arriba tienen significado (éxito, peligro, aviso): un
+       verde ahí quiere decir "bien". En un gráfico, el color solo dice QUÉ
+       serie es, y reusar el verde de éxito para "serie 6" haría que un dato
+       neutro pareciera bueno. Por eso los gráficos tienen su propia escala,
+       en pasos distintos a los semánticos.
+
+       El ORDEN es la garantía de que se distingan: se asignan del 1 al 6 en
+       secuencia y nunca se ciclan. Se derivó de los tonos de marca y se
+       validó (banda de luminosidad, piso de croma, separación bajo
+       protanopía/deuteranopía, piso de visión normal y 3:1 contra el fondo
+       de la tarjeta) — los seis checks pasan en claro y en oscuro. Cambiar
+       un valor a ojo rompe eso; hay que volver a validarlo.
+
+       Para más de 6 series: agrupar la cola en "Otros" o partir en varios
+       gráficos. Nunca inventar un séptimo color.
+       ------------------------------------------------------------------ */
+    --chart-1: #068cdd;
+    --chart-2: #b07b06;
+    --chart-3: #0698a2;
+    --chart-4: #e2484d;
+    --chart-5: #8b69ed;
+    --chart-6: #099e6d;
+
+    /* La superficie de dibujo es --card-bg (contra la que se validó el 3:1);
+       Composables/UseChartTheme.js la lee de ahí, no se duplica acá. */
+    --chart-grid: #eef0f5;
+    --chart-axis: #878a99;
 }
 
 .dark {
@@ -107,6 +138,18 @@
     --text-heading: #e9ecef;
     --text-muted: #8f97b8;
     --border-subtle: rgba(255, 255, 255, 0.08);
+
+    /* La paleta de series NO se invierte automáticamente: es su propio juego
+       de pasos, validado contra el fondo oscuro de la tarjeta (#262a3d). */
+    --chart-1: #0899f0;
+    --chart-2: #c08600;
+    --chart-3: #0da6b0;
+    --chart-4: #f05658;
+    --chart-5: #9776fb;
+    --chart-6: #03ad76;
+
+    --chart-grid: rgba(255, 255, 255, 0.10);
+    --chart-axis: #8f97b8;
 
     --c-primary-soft: rgba(28, 127, 196, 0.16);
     --c-secondary-soft: rgba(100, 116, 139, 0.18);
@@ -497,33 +540,6 @@
 .stat-label {
     color: var(--text-muted);
     @apply text-sm;
-}
-
-/* ==========================================================================
-   4. BAR CHART (CSS puro, sin librerias)
-   ========================================================================== */
-
-.bar-chart {
-    @apply flex h-56 items-end justify-between gap-2 sm:gap-3;
-}
-
-.bar-chart-col {
-    @apply flex h-full flex-1 flex-col items-center justify-end gap-2;
-}
-
-.bar-chart-value {
-    color: var(--text-muted);
-    @apply text-[11px] font-medium;
-}
-
-.bar-chart-bar {
-    background-color: var(--c-primary);
-    @apply w-full max-w-[26px] rounded-t-md opacity-90 transition-all duration-300;
-}
-
-.bar-chart-label {
-    color: var(--text-muted);
-    @apply mt-1 text-xs;
 }
 
 /* ==========================================================================
@@ -1316,6 +1332,24 @@
     @apply grid grid-cols-12 gap-4 sm:gap-6;
 }
 
+/**
+ * Ritmo vertical de una pantalla: separa los bloques de primer nivel (tarjetas
+ * y filas) con la MISMA medida que `.row` separa columnas.
+ *
+ * Es lo que evita el defecto clásico de estas páginas: `.row` no lleva margen
+ * inferior, así que una fila de dos gráficos quedaba pegada a la tarjeta de
+ * abajo, mientras que las tarjetas sueltas se separaban con `mb-4` (16 px)
+ * contra los 24 px del hueco entre columnas. Dos ritmos distintos en la misma
+ * pantalla se ven como un error de maqueta, y es lo que se notaba.
+ *
+ * Se pone en el envoltorio de la página; adentro no hace falta ningún `mb-*`.
+ * No se le puso el margen al propio `.row` porque `.row` también se usa dentro
+ * de una tarjeta (el filtro de fechas del reporte financiero), y ahí sobraría.
+ */
+.page-stack {
+    @apply flex flex-col gap-4 sm:gap-6;
+}
+
 .col-12 {
     @apply col-span-12;
 }
@@ -2080,9 +2114,91 @@
 /* ==========================================================================
    26. REPORTES / BI (Pages/Reportes, Pages/Dashboard)
    --------------------------------------------------------------------------
-   Barras de progreso, KPIs y leyenda para los gráficos inline-SVG
-   (Components/Chart/LineChart.vue). Sin librería de charting.
+   Dos cosas distintas:
+
+   1. `.chart-*` — el marco de Components/Chart/BaseChart.vue (Chart.js 4). El
+      gráfico se dibuja en un <canvas>; lo de acá es lo que lo rodea: leyenda,
+      botones de tabla/PNG, estado vacío. La leyenda va en HTML y no dibujada
+      en el canvas para que se pueda seleccionar y la lea un lector de
+      pantalla, y su texto usa tokens de texto: el color de la serie lo lleva
+      el cuadrito de al lado, nunca la palabra.
+
+   2. `.reporte-*` — medidores y KPIs, que NO son gráficos. Una sola razón
+      contra un tope (entregas a tiempo) se lee mejor como barra de progreso
+      que como un gráfico de una barra.
    ========================================================================== */
+
+.chart {
+    @apply flex flex-col gap-3;
+}
+
+.chart-toolbar {
+    @apply flex flex-wrap items-center justify-between gap-2;
+}
+
+.chart-legend {
+    @apply m-0 flex list-none flex-wrap items-center gap-x-4 gap-y-1 p-0;
+}
+
+.chart-legend-item {
+    color: var(--text-muted);
+    @apply flex items-center gap-1.5 text-xs;
+}
+
+.chart-legend-key {
+    @apply inline-block h-2.5 w-2.5 shrink-0 rounded-sm;
+}
+
+.chart-actions {
+    @apply flex items-center gap-1;
+}
+
+.chart-action {
+    color: var(--text-muted);
+    border-color: transparent;
+    @apply inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition;
+}
+
+.chart-action:hover {
+    background-color: var(--c-light);
+    color: var(--text-heading);
+}
+
+.dark .chart-action:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.chart-action.is-active {
+    background-color: var(--c-primary-soft);
+    border-color: color-mix(in srgb, var(--c-primary) 25%, transparent);
+    color: var(--c-primary);
+}
+
+/* En pantallas chicas el icono alcanza: la barra no puede comerse el gráfico. */
+.chart-action-text {
+    @apply hidden sm:inline;
+}
+
+/* El alto lo fija el componente e incluye la banda del eje X: si se recortara
+   ahí, la tarjeta se llenaría de un scroll vertical diminuto. */
+.chart-canvas {
+    @apply relative w-full;
+}
+
+.chart-empty {
+    color: var(--text-muted);
+    @apply m-0 py-8 text-center text-sm;
+}
+
+.chart-table-caption {
+    color: var(--text-muted);
+    @apply pb-2 text-left text-xs;
+}
+
+/* Solo en columnas de números, donde tienen que alinearse verticalmente. */
+.chart-table-num {
+    font-variant-numeric: tabular-nums;
+}
 
 .reporte-progress {
     background: var(--border-subtle);
@@ -2111,10 +2227,6 @@
 .reporte-kpi-label {
     color: var(--text-muted);
     @apply text-xs uppercase;
-}
-
-.reporte-legend-dot {
-    @apply inline-block h-2 w-2 rounded-full;
 }
 
 /* ==========================================================================

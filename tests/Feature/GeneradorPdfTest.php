@@ -328,8 +328,9 @@ test('la nota de entrega incrusta la foto de evidencia y aguanta que falte', fun
 
     $pdf = generador()->notaEntrega($nota->fresh())->sinComprimir();
 
-    // Una sola imagen incrustada: la que existe.
-    expect(preg_match_all('~/Subtype /Image~', $pdf->contenido()))->toBe(1);
+    // Una sola foto de evidencia incrustada (JPEG → DCTDecode): la que existe.
+    // El membrete lleva además el logo de la empresa, que es un PNG.
+    expect(preg_match_all('~/DCTDecode~', $pdf->contenido()))->toBe(1);
     expect(textoDelPdf($pdf))
         ->toContain('Exhibidor con foto')
         ->toContain('Exhibidor sin foto');
@@ -355,6 +356,7 @@ test('todos los documentos comparten formato, pie numerado y membrete', function
     ];
 
     foreach ($documentos as $pdf) {
+        $contenido = $pdf->sinComprimir()->contenido();
         $texto = textoDelPdf($pdf);
 
         expect($texto)
@@ -362,6 +364,11 @@ test('todos los documentos comparten formato, pie numerado y membrete', function
             ->toContain(config('sitio.empresa.telefono_visible'))
             // Pie con numeración de páginas en todos.
             ->toContain('Página 1 de 1');
+
+        // Membrete con el logo de la empresa y hoja tamaño carta (612 × 792 pt).
+        expect($contenido)
+            ->toContain('/Subtype /Image')
+            ->toContain('/MediaBox [0 0 612.00 792.00]');
 
         expect($pdf->nombreArchivo())->toStartWith('xtrapubli-')->toEndWith('.pdf');
         expect($pdf->contenido())->toStartWith('%PDF-');
@@ -418,9 +425,11 @@ test('una cotizacion larga pagina sola y repite el membrete en cada hoja', funct
 
     expect($paginas)->toBeGreaterThan(1);
 
-    // El membrete y la cabecera de la tabla se repiten en todas las hojas.
+    // El membrete se repite en todas las hojas y la cabecera de la tabla en
+    // cada hoja que ocupe el detalle (la última puede llevar solo totales,
+    // observaciones y nota legal).
     expect(substr_count($texto, $cotizacion->codigo_verificacion))->toBeGreaterThanOrEqual($paginas);
-    expect(substr_count($texto, 'DESCRIPCIÓN'))->toBe($paginas);
+    expect(substr_count($texto, 'DESCRIPCIÓN'))->toBeGreaterThanOrEqual($paginas - 1);
     // Y el pie numera correctamente.
     expect($texto)->toContain('Página '.$paginas.' de '.$paginas);
 });

@@ -104,12 +104,56 @@ proyecto en una galería).
 - **Stat cards**: `.stat-card` `.stat-icon` + `.stat-icon-{color}`.
 - **List group**: `.list-group` `.list-group-item` `.comment-list` `.comment-item`.
 - **Tabla**: `.table-responsive` `.table-dashboard`.
-- **Donut/bar chart CSS puro**: `.donut-chart` `.bar-chart`.
+- **Donut CSS puro**: `.donut-chart` (sin uso hoy; el `.bar-chart` que había se retiró al pasar a Chart.js).
 - **Grid 12 columnas**: `.row` `.col-12` `.col-lg-3` ... `.col-lg-9`.
+- **Ritmo vertical de pantalla**: `.page-stack` — envuelve los bloques de primer
+  nivel de una página (tarjetas y `.row`) y los separa con la MISMA medida que
+  `.row` separa columnas. Úsalo en vez de repartir `mb-4` por las tarjetas:
+  `.row` no lleva margen inferior, así que una fila de dos tarjetas quedaba
+  pegada a la de abajo, y el `mb-4` (16 px) no coincidía con el hueco entre
+  columnas (24 px). Si la página es un único `.row`, no hace falta.
 - **Utilidades**: `.d-flex` `.d-grid` `.flex-column` `.align-items-center`
   `.justify-content-between` `.gap-1..4` `.w-100` `.h-100` `.rounded` `.rounded-circle`
   `.rounded-pill` `.text-truncate` `.text-uppercase` `.fw-normal..bold` `.fs-xs..xl`
   `.position-relative` `.position-absolute` `.mb-0..5` `.mt-0..5` `.mx-auto`.
+
+## Gráficos (`Components/Chart/BaseChart.vue`)
+
+Todo gráfico del panel sale de `BaseChart.vue` (Chart.js 4, cargado bajo demanda).
+Una página declara `titulo`, `labels`, `series` y un `formato`; el resto —marcas,
+tooltip, leyenda, vista de tabla y exportación a PNG— lo pone el componente. No
+instanciar `Chart` en otro sitio ni pasarle colores a mano.
+
+**Colores de serie**: tokens `--chart-1` … `--chart-6`, definidos en `app.css`
+para claro y oscuro. Se asignan en orden y **no se ciclan**: pasadas seis series
+hay que agrupar la cola en "Otros" o partir el gráfico, nunca inventar un séptimo
+color. La paleta se derivó de los tonos de marca y está validada (banda de
+luminosidad, croma, separación bajo daltonismo, piso de visión normal y 3:1
+contra `--card-bg`); cambiar un valor a ojo la rompe.
+
+**No son la misma cosa que los `--c-*`**: un verde semántico significa "bien". En
+un gráfico el color solo dice qué serie es. Los de estado (`--c-success` /
+`--c-danger`, expuestos como `positivo` / `negativo` en `UseChartTheme.js`) solo
+se usan cuando la serie de verdad significa bien/mal — por ejemplo el margen por
+pedido, donde además el signo se ve por el lado de la barra.
+
+Clases del marco (no del canvas):
+
+- `.chart` — contenedor; apila barra de herramientas, gráfico y tabla.
+- `.chart-toolbar` `.chart-legend` `.chart-legend-item` `.chart-legend-key` —
+  la leyenda va en HTML y no dibujada en el canvas: se puede seleccionar y la lee
+  un lector de pantalla. Su texto usa tokens de texto; el color lo lleva el
+  cuadrito, nunca la palabra.
+- `.chart-actions` `.chart-action` (+ `.is-active`) `.chart-action-text` —
+  botones de vista de tabla y descarga PNG.
+- `.chart-canvas` — fija el alto incluyendo la banda del eje X.
+- `.chart-empty` — estado sin datos.
+- `.chart-table-caption` `.chart-table-num` — la tabla gemela, que es cómo se
+  leen los valores sin depender del color ni del hover.
+
+Lo que **no** es un gráfico: una sola razón contra un tope (entregas a tiempo) es
+un medidor, `.reporte-progress` + `.reporte-progress-bar`; un puñado de números
+sueltos es una fila de KPIs, `.reporte-kpi`.
 
 ## Tabla: paginación y estados (`DataTable.vue` / `TablePagination.vue`)
 

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
+import BaseChart from '@/Components/Chart/BaseChart.vue';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -20,10 +21,12 @@ const stats = computed(() => [
     { label: 'Materiales con stock bajo', value: props.resumen.materiales_bajo_stock, icon: 'warning' },
 ]);
 
-const ventasMax = computed(() => Math.max(1, ...props.resumen.ventas_por_mes.map((m) => m.total)));
+const ventas = computed(() => ({
+    labels: props.resumen.ventas_por_mes.map((m) => m.mes),
+    series: [{ nombre: 'Ventas', datos: props.resumen.ventas_por_mes.map((m) => m.total) }],
+}));
 
 const etapas = computed(() => Object.entries(props.resumen.pedidos_por_etapa).map(([etapa, n]) => ({ etapa, n })));
-const etapasMax = computed(() => Math.max(1, ...etapas.value.map((e) => e.n)));
 
 const entregasTotal = computed(() => props.resumen.entregas.a_tiempo + props.resumen.entregas.tarde);
 </script>
@@ -48,7 +51,6 @@ const entregasTotal = computed(() => props.resumen.entregas.a_tiempo + props.res
                 </div>
             </div>
         </div>
-
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
@@ -58,17 +60,11 @@ const entregasTotal = computed(() => props.resumen.entregas.a_tiempo + props.res
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="bar-chart">
-                        <div v-for="col in resumen.ventas_por_mes" :key="col.mes" class="bar-chart-col">
-                            <span class="bar-chart-value">{{ money(col.total) }}</span>
-                            <div class="bar-chart-bar" :style="{ height: (col.total / ventasMax) * 100 + '%' }"></div>
-                            <span class="bar-chart-label">{{ col.mes }}</span>
-                        </div>
-                    </div>
+                    <BaseChart titulo="Ventas por mes" tipo="bar" :labels="ventas.labels" :series="ventas.series"
+                        :formato="money" :alto="260" vacio="Todavía no hay cotizaciones aprobadas." />
                 </div>
             </div>
         </div>
-
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-header"><span class="card-title">Pedidos en producción</span></div>
@@ -95,7 +91,6 @@ const entregasTotal = computed(() => props.resumen.entregas.a_tiempo + props.res
                 </div>
             </div>
         </div>
-
         <div class="col-12">
             <div class="card">
                 <div class="card-body d-flex flex-wrap gap-2">

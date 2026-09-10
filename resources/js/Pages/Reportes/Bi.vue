@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
-import LineChart from '@/Components/Chart/LineChart.vue';
+import BaseChart from '@/Components/Chart/BaseChart.vue';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -11,120 +11,167 @@ const props = defineProps({
 });
 
 function money(value) {
-    return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { maximumFractionDigits: 0 })}`;
 }
 
-const productoMax = computed(() => Math.max(1, ...props.datos.productos_mas_vendidos.map((p) => p.monto)));
-const categoriaMax = computed(() => Math.max(1, ...props.datos.categorias_mas_vendidas.map((c) => c.monto)));
+function pedidos(value) {
+    return Number(value ?? 0).toLocaleString('es-BO', { maximumFractionDigits: 1 });
+}
 
-/* Demanda: histórico + media móvil + proyección en una sola línea temporal. */
-const demandaSeries = computed(() => {
-    const histLabels = props.datos.demanda.serie.map((s) => s.mes);
-    const projLabels = props.datos.demanda.proyeccion.map((p) => p.mes);
-    const labels = [...histLabels, ...projLabels];
+/**
+ * Demanda: histórico, media móvil y proyección sobre una sola línea de tiempo.
+ *
+ * La proyección arranca repitiendo el último dato real para que se vea de dónde
+ * sale, y va punteada: es lo único del gráfico que todavía no ocurrió, y esa
+ * distinción no puede depender solo del color.
+ */
+const demanda = computed(() => {
+    const historico = props.datos.demanda.serie;
+    const futuro = props.datos.demanda.proyeccion;
 
-    const real = props.datos.demanda.serie.map((s) => s.pedidos);
-    const media = props.datos.demanda.media_movil.map((m) => m.valor);
-    const proj = [
-        ...Array(histLabels.length - 1).fill(null),
-        real[real.length - 1] ?? null,
-        ...props.datos.demanda.proyeccion.map((p) => p.pedidos_estimados),
-    ];
+    const relleno = Array(Math.max(historico.length - 1, 0)).fill(null);
+    const ultimoReal = historico.at(-1)?.pedidos ?? null;
 
     return {
-        labels,
+        labels: [...historico.map((s) => s.mes), ...futuro.map((p) => p.mes)],
         series: [
-            { nombre: 'Pedidos reales', color: 'var(--c-primary)', valores: real },
-            { nombre: 'Media móvil 3m', color: 'var(--c-info)', valores: media },
-            { nombre: 'Proyección', color: 'var(--c-warning)', valores: proj },
+            { nombre: 'Pedidos reales', datos: historico.map((s) => s.pedidos), area: true },
+            { nombre: 'Media móvil 3m', datos: props.datos.demanda.media_movil.map((m) => m.valor) },
+            {
+                nombre: 'Proyección',
+                punteada: true,
+                datos: [...relleno, ultimoReal, ...futuro.map((p) => p.pedidos_estimados)],
+            },
         ],
     };
 });
 
-const estacionalidadMax = computed(() => Math.max(1, ...props.datos.demanda.estacionalidad.map((m) => m.pedidos)));
+/** Los diez primeros ya vienen ordenados por monto desde el servicio. */
+const productos = computed(() => ({
+    labels: props.datos.productos_mas_vendidos.map((p) => p.nombre),
+    series: [{ nombre: 'Vendido', datos: props.datos.productos_mas_vendidos.map((p) => p.monto) }],
+}));
 
-const costosSeries = computed(() => props.datos.evolucion_costos.slice(0, 4).map((m, i) => ({
-    nombre: m.material,
-    color: ['var(--c-primary)', 'var(--c-info)', 'var(--c-warning)', 'var(--c-pink)'][i],
-    valores: m.puntos.map((p) => p.precio),
-})));
-const costosLabels = computed(() => {
-    const primero = props.datos.evolucion_costos[0];
-    return primero ? primero.puntos.map((p) => p.fecha.slice(0, 7)) : [];
+const categorias = computed(() => ({
+    labels: props.datos.categorias_mas_vendidas.map((c) => c.nombre),
+    series: [{ nombre: 'Vendido', datos: props.datos.categorias_mas_vendidas.map((c) => c.monto) }],
+}));
+
+/**
+ * Evolución de costos: cada material tiene sus propias fechas de compra, así
+ * que el eje es la UNIÓN de todas y cada serie deja huecos donde no hubo
+ * registro. Tomar las fechas del primer material —como se hacía antes— alinea
+ * mal a los demás y dibuja precios en fechas que no les corresponden.
+ *
+ * Tope de cuatro materiales: más series de las que el ojo puede seguir en un
+ * gráfico de líneas, y la paleta no se cicla.
+ */
+const costos = computed(() => {
+    const materiales = props.datos.evolucion_costos.slice(0, 4);
+
+    const fechas = [...new Set(materiales.flatMap((m) => m.puntos.map((p) => p.fecha)))].sort();
+
+    return {
+        labels: fechas.map((f) => f.slice(0, 7)),
+        series: materiales.map((m) => {
+            const porFecha = Object.fromEntries(m.puntos.map((p) => [p.fecha, p.precio]));
+
+            return { nombre: m.material, datos: fechas.map((f) => porFecha[f] ?? null) };
+        }),
+    };
 });
+
+const estacionalidad = computed(() => ({
+    labels: props.datos.demanda.estacionalidad.map((m) => m.mes),
+    series: [{ nombre: 'Pedidos', datos: props.datos.demanda.estacionalidad.map((m) => m.pedidos) }],
+}));
+
+const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.length - 4, 0));
 </script>
 
 <template>
     <Head title="Inteligencia de negocios" />
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <div>
-                <span class="card-title">Proyección de demanda</span>
-                <p class="card-subtitle">Pedidos por mes, media móvil de 3 meses y tendencia lineal a 3 meses</p>
+    <div class="page-stack">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <span class="card-title">Proyección de demanda</span>
+                    <p class="card-subtitle">
+                        Pedidos por mes, media móvil de 3 meses y tendencia lineal a 3 meses
+                    </p>
+                </div>
+            </div>
+            <div class="card-body">
+                <BaseChart titulo="Proyección de demanda" :labels="demanda.labels" :series="demanda.series"
+                    :formato="pedidos" :alto="300" vacio="Todavía no hay pedidos registrados para proyectar." />
             </div>
         </div>
-        <div class="card-body">
-            <LineChart :series="demandaSeries.series" :labels="demandaSeries.labels" />
-        </div>
-    </div>
 
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header"><span class="card-title">Productos más vendidos</span></div>
-                <div class="card-body">
-                    <p v-if="!datos.productos_mas_vendidos.length" class="text-muted mb-0">Sin datos aún.</p>
-                    <div v-for="p in datos.productos_mas_vendidos" :key="p.nombre" class="mb-3">
-                        <div class="d-flex justify-content-between fs-sm">
-                            <span class="text-truncate">{{ p.nombre }}</span>
-                            <span class="fw-semibold">{{ money(p.monto) }}</span>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-title">Productos más vendidos</span>
+                            <p class="card-subtitle">Top 10 por monto cotizado y aprobado</p>
                         </div>
-                        <div class="reporte-progress">
-                            <div class="reporte-progress-bar" :style="{ width: (p.monto / productoMax) * 100 + '%' }"></div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Barras horizontales: los nombres de producto son largos
+                             y en vertical se leerían inclinados o cortados. -->
+                        <BaseChart titulo="Productos más vendidos" tipo="bar" horizontal :labels="productos.labels"
+                            :series="productos.series" :formato="money" :alto="300"
+                            vacio="Sin cotizaciones aprobadas todavía." />
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-title">Categorías más vendidas</span>
+                            <p class="card-subtitle">Top 10 por monto cotizado y aprobado</p>
                         </div>
+                    </div>
+                    <div class="card-body">
+                        <BaseChart titulo="Categorías más vendidas" tipo="bar" horizontal :labels="categorias.labels"
+                            :series="categorias.series" :formato="money" :alto="300"
+                            vacio="Sin cotizaciones aprobadas todavía." />
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header"><span class="card-title">Categorías más vendidas</span></div>
-                <div class="card-body">
-                    <p v-if="!datos.categorias_mas_vendidas.length" class="text-muted mb-0">Sin datos aún.</p>
-                    <div v-for="c in datos.categorias_mas_vendidas" :key="c.nombre" class="mb-3">
-                        <div class="d-flex justify-content-between fs-sm">
-                            <span>{{ c.nombre }}</span><span class="fw-semibold">{{ money(c.monto) }}</span>
-                        </div>
-                        <div class="reporte-progress">
-                            <div class="reporte-progress-bar reporte-progress-bar-info"
-                                :style="{ width: (c.monto / categoriaMax) * 100 + '%' }"></div>
-                        </div>
-                    </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <span class="card-title">Evolución del costo de materiales</span>
+                    <p class="card-subtitle">
+                        Precio unitario según el historial que deja cada compra aprobada
+                        <span v-if="materialesOcultos">· se grafican los 4 primeros de
+                            {{ datos.evolucion_costos.length }}</span>
+                    </p>
                 </div>
             </div>
+            <div class="card-body">
+                <BaseChart titulo="Evolución del costo de materiales" :labels="costos.labels" :series="costos.series"
+                    :formato="money" :alto="300" unir-huecos
+                    vacio="Se necesita más de un registro de precio por material (se genera al aprobar compras)." />
+            </div>
         </div>
-    </div>
 
-    <div class="card mb-4">
-        <div class="card-header"><span class="card-title">Evolución del costo de materiales</span></div>
-        <div class="card-body">
-            <p v-if="!costosSeries.length" class="text-muted mb-0">
-                Se necesita más de un registro de precio por material (se genera al aprobar compras).
-            </p>
-            <LineChart v-else :series="costosSeries" :labels="costosLabels" :format-y="money" />
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header"><span class="card-title">Estacionalidad (pedidos por mes calendario)</span></div>
-        <div class="card-body">
-            <div class="bar-chart">
-                <div v-for="m in datos.demanda.estacionalidad" :key="m.mes" class="bar-chart-col">
-                    <span class="bar-chart-value">{{ m.pedidos }}</span>
-                    <div class="bar-chart-bar" :style="{ height: (m.pedidos / estacionalidadMax) * 100 + '%' }"></div>
-                    <span class="bar-chart-label">{{ m.mes }}</span>
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <span class="card-title">Estacionalidad</span>
+                    <p class="card-subtitle">Pedidos acumulados por mes calendario, todos los años juntos</p>
                 </div>
+            </div>
+            <div class="card-body">
+                <BaseChart titulo="Estacionalidad de pedidos" tipo="bar" :labels="estacionalidad.labels"
+                    :series="estacionalidad.series" :formato="pedidos" :alto="240"
+                    vacio="Todavía no hay pedidos registrados." />
             </div>
         </div>
     </div>
