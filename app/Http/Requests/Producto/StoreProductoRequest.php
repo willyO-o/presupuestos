@@ -43,6 +43,10 @@ class StoreProductoRequest extends FormRequest
             // de validacion.
             'cotizable_web' => ['sometimes', Rule::in(['SI', 'NO'])],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],
+            // Se convierte a JPG antes de guardarse (ver
+            // App\Services\Imagen\ConvierteImagenAJpgService), así que la
+            // lista de formatos aceptados es la que esa clase sabe leer.
+            'imagen' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp,bmp', 'max:4096'],
         ];
     }
 }

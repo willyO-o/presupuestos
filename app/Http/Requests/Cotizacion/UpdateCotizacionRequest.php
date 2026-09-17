@@ -51,6 +51,15 @@ class UpdateCotizacionRequest extends FormRequest
             'detalles.*.descripcion' => ['required', 'string', 'max:255'],
             'detalles.*.ancho' => ['nullable', 'numeric', 'min:0'],
             'detalles.*.alto' => ['nullable', 'numeric', 'min:0'],
+            // Imagen referencial de la línea: un archivo nuevo (se convierte
+            // a JPG, ver App\Services\Imagen\ConvierteImagenAJpgService),
+            // "usar imagen del producto" (la copia del catálogo), la que la
+            // línea ya tenía (`imagen_actual`, para no perderla al reemplazar
+            // el detalle entero), o ninguna. El controlador decide cuál gana
+            // — ver CotizacionController::resolverImagenLinea.
+            'detalles.*.imagen' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp,bmp', 'max:4096'],
+            'detalles.*.usar_imagen_producto' => ['nullable', 'boolean'],
+            'detalles.*.imagen_actual' => ['nullable', 'string'],
             'detalles.*.cantidad' => ['required', 'numeric', 'min:0.01'],
             'detalles.*.instalacion' => ['nullable', 'numeric', 'min:0'],
             'detalles.*.precio_manual' => ['nullable', Rule::in(['SI', 'NO'])],

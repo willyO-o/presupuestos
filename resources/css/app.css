@@ -1929,6 +1929,16 @@
     @apply m-0 list-disc pl-5 text-xs;
 }
 
+/* --- Imagen referencial de la línea (form y documento imprimible) --- */
+.cotizacion-linea-imagen-preview {
+    border-color: var(--border-subtle);
+    @apply h-24 w-24 shrink-0 rounded-lg border object-cover;
+}
+
+.cotizacion-doc-table .article-thumb {
+    @apply h-9 w-9;
+}
+
 /* --- Panel de totales (form y documento) --- */
 .cotizacion-total-row {
     color: var(--text-body);

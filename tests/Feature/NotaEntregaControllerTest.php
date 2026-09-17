@@ -7,6 +7,8 @@ use App\Models\NotaEntregaDetalle;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -87,6 +89,30 @@ test('storing a nota marks the delivered items ENTREGADO and advances the pedido
         ->and($pedido->fresh()->estado)->toBe('ENTREGADO')
         ->and($pedido->fresh()->fecha_entrega_real)->not->toBeNull()
         ->and($pedido->detalles()->pluck('estado_item')->unique()->all())->toBe(['ENTREGADO']);
+});
+
+test('the evidence photo uploaded for a delivered item is converted to jpg', function () {
+    Storage::fake('public');
+    $pedido = pedidoConItems(1);
+    $empleado = Empleado::factory()->create();
+
+    $this->actingAs(userWithNota('notas-entrega.crear'))->post(route('notas-entrega.store'), [
+        'pedido_id' => $pedido->id,
+        'empleado_id' => $empleado->id,
+        'fecha_entrega' => now()->toDateString(),
+        'detalles' => [[
+            'pedido_detalle_id' => $pedido->detalles->first()->id,
+            'descripcion' => $pedido->detalles->first()->descripcion,
+            'cantidad_entregada' => 1,
+            'foto' => UploadedFile::fake()->image('evidencia.png', 200, 200),
+        ]],
+    ])->assertSessionHasNoErrors();
+
+    $foto = NotaEntrega::latest('id')->first()->detalles->first()->foto_url;
+
+    expect($foto)->not->toBeNull()
+        ->and($foto)->toEndWith('.jpg');
+    Storage::disk('public')->assertExists($foto);
 });
 
 test('a nota needs at least one item', function () {

@@ -6,12 +6,17 @@ use App\Http\Requests\Producto\StoreProductoRequest;
 use App\Http\Requests\Producto\UpdateProductoRequest;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
+use App\Services\Imagen\ConvierteImagenAJpgService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
 
 class ProductoController extends Controller
 {
+    public function __construct(
+        private readonly ConvierteImagenAJpgService $convierteImagen,
+    ) {}
+
     /**
      * Listado paginado, con búsqueda por nombre, filtro por categoría y por
      * estado. `withQueryString()` mantiene search/categoria/estado/page al
@@ -39,7 +44,12 @@ class ProductoController extends Controller
 
     public function store(StoreProductoRequest $request): RedirectResponse
     {
-        Producto::create($request->validated());
+        $producto = Producto::create($request->safe()->except('imagen'));
+
+        if ($request->hasFile('imagen')) {
+            $producto->imagen = $this->convierteImagen->guardar($request->file('imagen'), 'productos');
+            $producto->save();
+        }
 
         return redirect()->route('productos.index')
             ->with('success', 'Producto creado correctamente.');
@@ -47,7 +57,14 @@ class ProductoController extends Controller
 
     public function update(UpdateProductoRequest $request, Producto $producto): RedirectResponse
     {
-        $producto->update($request->validated());
+        $producto->fill($request->safe()->except('imagen'));
+
+        if ($request->hasFile('imagen')) {
+            $this->convierteImagen->borrar($producto->imagen);
+            $producto->imagen = $this->convierteImagen->guardar($request->file('imagen'), 'productos');
+        }
+
+        $producto->save();
 
         return redirect()->route('productos.index')
             ->with('success', 'Producto actualizado correctamente.');
@@ -55,6 +72,7 @@ class ProductoController extends Controller
 
     public function destroy(Producto $producto): RedirectResponse
     {
+        $this->convierteImagen->borrar($producto->imagen);
         $producto->delete();
 
         return redirect()->route('productos.index')

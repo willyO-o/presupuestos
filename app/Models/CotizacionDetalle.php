@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Models\Concerns\AcotaPorSucursal;
 use Database\Factories\CotizacionDetalleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'cotizacion_id',
@@ -18,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'ancho',
     'alto',
     'area_m2',
+    'imagen',
     'cantidad',
     'costo_base',
     'factor_complejidad',
@@ -40,6 +43,11 @@ class CotizacionDetalle extends Model
      * @var string
      */
     protected $table = 'cotizacion_detalle';
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = ['imagen_url'];
 
     /**
      * @return array<string, string>
@@ -105,5 +113,17 @@ class CotizacionDetalle extends Model
     protected static function rutaSucursal(): ?string
     {
         return 'cotizacion';
+    }
+
+    /**
+     * URL pública de la imagen referencial de la línea (disco `public`), ya
+     * convertida a JPG. Ver App\Services\Imagen\ConvierteImagenAJpgService y
+     * CotizacionController::resolverImagenLinea.
+     */
+    protected function imagenUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->imagen ? Storage::disk('public')->url($this->imagen) : null,
+        );
     }
 }

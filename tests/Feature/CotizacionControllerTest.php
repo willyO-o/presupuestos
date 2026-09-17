@@ -14,6 +14,8 @@ use App\Models\ProductoMaterial;
 use App\Models\Sucursal;
 use App\Models\TipoProyecto;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -463,4 +465,102 @@ test('simular runs the engine over a hand written cost sheet', function () {
         ->assertJsonPath('precio', 341.64)
         ->assertJsonPath('utilidad_real', 77.72)
         ->assertJsonPath('estado', 'VERDE');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Imagen referencial de la línea: subida propia, copiada del producto, o
+| conservada al editar (se convierte/re-codifica a JPG en el servidor).
+|--------------------------------------------------------------------------
+*/
+
+test('a line accepts an uploaded imagen and converts it to jpg', function () {
+    Storage::fake('public');
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->post(route('cotizaciones.store'), [
+            ...cabeceraValida(),
+            'detalles' => [[
+                'descripcion' => 'Banner con foto',
+                'cantidad' => 1,
+                'precio_unitario' => 100,
+                'imagen' => UploadedFile::fake()->image('referencia.png', 400, 300),
+            ]],
+        ])->assertSessionHasNoErrors();
+
+    $detalle = Cotizacion::latest('id')->first()->detalles->first();
+
+    expect($detalle->imagen)->not->toBeNull()
+        ->and($detalle->imagen)->toEndWith('.jpg');
+    Storage::disk('public')->assertExists($detalle->imagen);
+});
+
+test('a line can reuse the producto imagen instead of uploading its own', function () {
+    Storage::fake('public');
+    // Contenido REAL de imagen (no un string cualquiera): el servicio la lee
+    // con getimagesize/GD para re-codificarla a JPG al copiarla.
+    Storage::disk('public')->putFileAs('productos', UploadedFile::fake()->image('catalogo.jpg', 100, 100), 'catalogo.jpg');
+    $producto = Producto::factory()->create(['imagen' => 'productos/catalogo.jpg']);
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->post(route('cotizaciones.store'), [
+            ...cabeceraValida(),
+            'detalles' => [[
+                'producto_id' => $producto->id,
+                'descripcion' => $producto->nombre,
+                'cantidad' => 1,
+                'precio_unitario' => 100,
+                'usar_imagen_producto' => true,
+            ]],
+        ])->assertSessionHasNoErrors();
+
+    $detalle = Cotizacion::latest('id')->first()->detalles->first();
+
+    // Es una copia (foto histórica), no la misma ruta del producto: cambiar
+    // o borrar la imagen del producto después no debe afectar el presupuesto.
+    expect($detalle->imagen)->not->toBeNull()
+        ->and($detalle->imagen)->not->toBe('productos/catalogo.jpg');
+    Storage::disk('public')->assertExists($detalle->imagen);
+});
+
+test('updating a cotizacion keeps an untouched line imagen and removes orphaned ones', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('cotizaciones/original.jpg', 'contenido');
+    $cotizacion = Cotizacion::factory()
+        ->has(CotizacionDetalle::factory()->count(1)->state(['imagen' => 'cotizaciones/original.jpg']), 'detalles')
+        ->create();
+
+    $this->actingAs(userWith('cotizaciones.editar'))
+        ->put(route('cotizaciones.update', $cotizacion), [
+            ...cabeceraValida(),
+            'detalles' => [[
+                'descripcion' => 'Línea sin tocar la imagen',
+                'cantidad' => 1,
+                'precio_unitario' => 50,
+                'imagen_actual' => 'cotizaciones/original.jpg',
+            ]],
+        ])->assertSessionHasNoErrors();
+
+    Storage::disk('public')->assertExists('cotizaciones/original.jpg');
+    expect($cotizacion->fresh()->detalles->first()->imagen)->toBe('cotizaciones/original.jpg');
+});
+
+test('updating a cotizacion without keeping the previous imagen deletes it from disk', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('cotizaciones/vieja.jpg', 'contenido');
+    $cotizacion = Cotizacion::factory()
+        ->has(CotizacionDetalle::factory()->count(1)->state(['imagen' => 'cotizaciones/vieja.jpg']), 'detalles')
+        ->create();
+
+    $this->actingAs(userWith('cotizaciones.editar'))
+        ->put(route('cotizaciones.update', $cotizacion), [
+            ...cabeceraValida(),
+            'detalles' => [[
+                'descripcion' => 'Línea nueva sin imagen',
+                'cantidad' => 1,
+                'precio_unitario' => 50,
+            ]],
+        ])->assertSessionHasNoErrors();
+
+    Storage::disk('public')->assertMissing('cotizaciones/vieja.jpg');
 });

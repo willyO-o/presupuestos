@@ -3,6 +3,8 @@
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -274,4 +276,62 @@ test('no se acepta cualquier valor en la bandera del cotizador', function () {
         'cotizable_web' => 'TALVEZ',
         'estado' => 'ACTIVO',
     ])->assertSessionHasErrors('cotizable_web');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Imagen referencial: se convierte a JPG para pesar menos en el servidor
+|--------------------------------------------------------------------------
+*/
+
+test('uploading an imagen converts it to jpg', function () {
+    Storage::fake('public');
+    $categoria = CategoriaProducto::factory()->create();
+    $user = userWithProductoPermissions('productos.ver', 'productos.crear');
+
+    $this->actingAs($user)->post(route('productos.store'), [
+        'categoria_producto_id' => $categoria->id,
+        'nombre' => 'Con imagen',
+        'unidad_medida' => 'M2',
+        'requiere_medidas' => 'SI',
+        'estado' => 'ACTIVO',
+        'imagen' => UploadedFile::fake()->image('foto.png', 300, 300),
+    ])->assertRedirect(route('productos.index'));
+
+    $producto = Producto::where('nombre', 'Con imagen')->firstOrFail();
+
+    expect($producto->imagen)->not->toBeNull()
+        ->and($producto->imagen)->toEndWith('.jpg');
+    Storage::disk('public')->assertExists($producto->imagen);
+});
+
+test('uploading a new imagen removes the previous one', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('productos/viejo.jpg', 'contenido');
+    $producto = Producto::factory()->create(['imagen' => 'productos/viejo.jpg']);
+    $user = userWithProductoPermissions('productos.ver', 'productos.editar');
+
+    $this->actingAs($user)->put(route('productos.update', $producto), [
+        'categoria_producto_id' => $producto->categoria_producto_id,
+        'nombre' => $producto->nombre,
+        'unidad_medida' => $producto->unidad_medida,
+        'requiere_medidas' => $producto->requiere_medidas,
+        'estado' => 'ACTIVO',
+        'imagen' => UploadedFile::fake()->image('nueva.png'),
+    ])->assertRedirect(route('productos.index'));
+
+    Storage::disk('public')->assertMissing('productos/viejo.jpg');
+    expect($producto->fresh()->imagen)->not->toBe('productos/viejo.jpg');
+});
+
+test('deleting a producto removes its imagen from disk', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('productos/foto.jpg', 'contenido');
+    $producto = Producto::factory()->create(['imagen' => 'productos/foto.jpg']);
+    $user = userWithProductoPermissions('productos.ver', 'productos.eliminar');
+
+    $this->actingAs($user)->delete(route('productos.destroy', $producto))
+        ->assertRedirect(route('productos.index'));
+
+    Storage::disk('public')->assertMissing('productos/foto.jpg');
 });

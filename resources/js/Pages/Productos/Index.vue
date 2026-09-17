@@ -42,6 +42,7 @@ const table = useServerTable({
 });
 
 const headers = [
+    { label: 'Imagen', key: 'imagen', class: 'text-center', cellClass: 'text-center' },
     { label: 'Nombre', key: 'nombre' },
     { label: 'Categoría', key: 'categoria' },
     { label: 'Unidad', key: 'unidad_medida', class: 'text-center', cellClass: 'text-center' },
@@ -68,6 +69,7 @@ const editingProducto = ref(null);
 // despues de crear/editar (volvia a los ultimos datos enviados). Con una
 // funcion, reset() siempre re-evalua estos valores desde cero.
 const form = useForm(() => ({
+    _method: 'post',
     categoria_producto_id: props.categoriasProducto[0]?.id ?? '',
     nombre: '',
     descripcion: '',
@@ -76,18 +78,21 @@ const form = useForm(() => ({
     requiere_medidas: 'SI',
     cotizable_web: 'NO',
     estado: 'ACTIVO',
+    imagen: null,
 }));
 
 function openCreate() {
     editingProducto.value = null;
     form.clearErrors();
     form.reset();
+    form._method = 'post';
     showFormModal.value = true;
 }
 
 function openEdit(producto) {
     editingProducto.value = producto;
     form.clearErrors();
+    form._method = 'put';
     form.categoria_producto_id = producto.categoria_producto_id;
     form.nombre = producto.nombre;
     form.descripcion = producto.descripcion;
@@ -96,6 +101,7 @@ function openEdit(producto) {
     form.requiere_medidas = producto.requiere_medidas;
     form.cotizable_web = producto.cotizable_web;
     form.estado = producto.estado;
+    form.imagen = null;
     showFormModal.value = true;
 }
 
@@ -109,8 +115,10 @@ function submitForm() {
         onSuccess: () => closeFormModal(),
     };
 
+    // PUT + archivo no combina bien en PHP: se manda siempre por POST con
+    // `_method` (mismo patrón que Usuarios/Index.vue y OrdenesCompraCliente).
     if (editingProducto.value) {
-        form.put(route('productos.update', editingProducto.value.id), options);
+        form.post(route('productos.update', editingProducto.value.id), options);
     } else {
         form.post(route('productos.store'), options);
     }
@@ -196,6 +204,11 @@ async function confirmDelete(producto) {
         <div class="card-body">
             <DataTable :headers="headers" :items="productos.data" :paginator="productos" :loading="table.loading"
                 empty-text="No hay productos registrados." @page-change="table.changePage">
+                <template #cell-imagen="{ item }">
+                    <img v-if="item.imagen_url" :src="item.imagen_url" alt="" class="article-thumb mx-auto" />
+                    <span v-else class="text-muted">—</span>
+                </template>
+
                 <template #cell-categoria="{ item }">
                     {{ item.categoria_producto?.nombre ?? '—' }}
                 </template>
@@ -365,6 +378,21 @@ async function confirmDelete(producto) {
                             </select>
                         </div>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Imagen referencial (opcional)</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <img v-if="editingProducto?.imagen_url" :src="editingProducto.imagen_url" alt=""
+                            class="article-thumb" />
+                        <input type="file" accept="image/*" class="form-control"
+                            @input="form.imagen = $event.target.files[0]" />
+                    </div>
+                    <p class="fs-xs text-muted mt-1 mb-0">
+                        Se convierte a JPG automáticamente para pesar menos en el servidor. Se puede reutilizar como
+                        imagen de referencia al armar una línea de cotización.
+                    </p>
+                    <p v-if="form.errors.imagen" class="form-error">{{ form.errors.imagen }}</p>
                 </div>
             </div>
 

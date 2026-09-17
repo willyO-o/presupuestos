@@ -319,6 +319,7 @@ async function eliminar() {
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th></th>
                             <th>Descripción</th>
                             <th class="text-center">Medidas (m)</th>
                             <th class="text-end">Cant.</th>
@@ -329,6 +330,11 @@ async function eliminar() {
                     <tbody>
                         <tr v-for="(d, i) in cotizacion.detalles" :key="d.id">
                             <td>{{ i + 1 }}</td>
+                            <td>
+                                <a v-if="d.imagen_url" :href="d.imagen_url" target="_blank" rel="noopener">
+                                    <img :src="d.imagen_url" alt="" class="article-thumb" />
+                                </a>
+                            </td>
                             <td>
                                 {{ d.descripcion }}
                                 <span v-if="d.producto" class="d-block fs-xs text-muted">{{ d.producto.nombre }}</span>

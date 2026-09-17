@@ -13,6 +13,7 @@ use App\Models\Producto;
 use App\Models\TipoProyecto;
 use App\Services\Calculo\MotorMargenService;
 use App\Services\Calculo\PrecioSugeridoService;
+use App\Services\Imagen\ConvierteImagenAJpgService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ class CotizacionController extends Controller
 {
     public function __construct(
         private readonly MotorMargenService $motorMargen,
+        private readonly ConvierteImagenAJpgService $convierteImagen,
     ) {}
 
     /**
@@ -75,8 +77,8 @@ class CotizacionController extends Controller
     {
         $datos = $request->validated();
 
-        $cotizacion = DB::transaction(function () use ($datos): Cotizacion {
-            $detalles = $this->normalizarDetalles($datos['detalles']);
+        $cotizacion = DB::transaction(function () use ($request, $datos): Cotizacion {
+            $detalles = $this->normalizarDetalles($request, $datos['detalles']);
             $montos = $this->calcularMontos(
                 $detalles,
                 (float) ($datos['descuento'] ?? 0),
@@ -163,8 +165,8 @@ class CotizacionController extends Controller
 
         $datos = $request->validated();
 
-        DB::transaction(function () use ($cotizacion, $datos): void {
-            $detalles = $this->normalizarDetalles($datos['detalles']);
+        DB::transaction(function () use ($request, $cotizacion, $datos): void {
+            $detalles = $this->normalizarDetalles($request, $datos['detalles']);
             $montos = $this->calcularMontos(
                 $detalles,
                 (float) ($datos['descuento'] ?? 0),
@@ -181,12 +183,22 @@ class CotizacionController extends Controller
                 ...$montos,
             ]);
 
-            // El detalle se reemplaza entero: es más simple y seguro que
-            // hacer diff línea por línea, y la cotización todavía no tiene
-            // un pedido que dependa de los ids de estas líneas. Los insumos
-            // de cada línea se van con ella (cascadeOnDelete).
+            // Imágenes de las líneas ANTES de borrarlas: el detalle se
+            // reemplaza entero (más simple y seguro que un diff línea por
+            // línea), pero el archivo físico no se va solo con la fila. Sin
+            // este registro, cada guardado dejaría huérfanas en disco las
+            // imágenes que no se reutilizan — justo lo contrario de
+            // "aligerar el peso en el servidor".
+            $imagenesPrevias = $cotizacion->detalles()->pluck('imagen')->filter()->all();
+
             $cotizacion->detalles()->delete();
             $this->guardarDetalles($cotizacion, $detalles);
+
+            $imagenesConservadas = array_filter(array_column($detalles, 'imagen'));
+
+            foreach (array_diff($imagenesPrevias, $imagenesConservadas) as $huerfana) {
+                $this->convierteImagen->borrar($huerfana);
+            }
         });
 
         return redirect()->route('cotizaciones.show', $cotizacion)
@@ -200,6 +212,10 @@ class CotizacionController extends Controller
         if ($cotizacion->estado === 'CONVERTIDA') {
             return redirect()->route('cotizaciones.index')
                 ->with('error', 'No se puede eliminar una cotización ya convertida en pedido.');
+        }
+
+        foreach ($cotizacion->detalles()->pluck('imagen')->filter() as $imagen) {
+            $this->convierteImagen->borrar($imagen);
         }
 
         $codigo = $cotizacion->codigo_verificacion;
@@ -321,8 +337,11 @@ class CotizacionController extends Controller
             // sería ofrecerle crear algo que después no podría ni abrir. El
             // Form Request lo valida igual (ver StoreCotizacionRequest).
             'sucursales' => $request->user()->sucursalesDisponibles(soloActivas: true),
+            // 'imagen' viaja en el select para que el accesor 'imagen_url'
+            // se calcule (necesita el atributo base cargado); el formulario
+            // la usa para ofrecer "usar imagen del producto" por línea.
             'productos' => Producto::query()->estado('ACTIVO')->orderBy('nombre')
-                ->get(['id', 'nombre', 'unidad_medida', 'requiere_medidas', 'precio_base']),
+                ->get(['id', 'nombre', 'unidad_medida', 'requiere_medidas', 'precio_base', 'imagen']),
             'tiposProyecto' => TipoProyecto::query()->estado('ACTIVO')->ordenado()
                 ->get(['id', 'nombre', 'descripcion', 'factor_complejidad', 'margen_minimo']),
             'tiposItem' => CotizacionDetalleItem::ETIQUETAS_TIPO,
@@ -366,11 +385,12 @@ class CotizacionController extends Controller
      * @param  list<array<string, mixed>>  $detalles
      * @return list<array<string, mixed>>
      */
-    private function normalizarDetalles(array $detalles): array
+    private function normalizarDetalles(Request $request, array $detalles): array
     {
         $tipos = $this->tiposProyectoDe($detalles);
+        $productosConImagen = $this->productosConImagenDe($detalles);
 
-        return array_map(function (array $linea) use ($tipos): array {
+        return array_values(array_map(function (array $linea, int $index) use ($tipos, $request, $productosConImagen): array {
             $ancho = isset($linea['ancho']) ? (float) $linea['ancho'] : null;
             $alto = isset($linea['alto']) ? (float) $linea['alto'] : null;
             $cantidad = (float) $linea['cantidad'];
@@ -397,6 +417,7 @@ class CotizacionController extends Controller
                 'ancho' => $ancho,
                 'alto' => $alto,
                 'area_m2' => ($ancho !== null && $alto !== null) ? round($ancho * $alto, 2) : null,
+                'imagen' => $this->resolverImagenLinea($request, $index, $linea, $productosConImagen),
                 'cantidad' => $cantidad,
                 'costo_base' => round($costoBaseUnitario * $cantidad, 2),
                 'factor_complejidad' => round($motor->factorComplejidad, 2),
@@ -408,7 +429,56 @@ class CotizacionController extends Controller
                 'subtotal' => round($precioUnitario * $cantidad, 2),
                 'items' => $items,
             ];
-        }, $detalles);
+        }, $detalles, array_keys($detalles)));
+    }
+
+    /**
+     * Resuelve la imagen referencial de una línea, en orden de prioridad:
+     *
+     *   1) un archivo nuevo subido para esa línea (se convierte a JPG),
+     *   2) "usar imagen del producto" (se copia y re-codifica a JPG: es una
+     *      foto histórica, igual que factor_complejidad/margen_aplicado —
+     *      cambiar la imagen del producto después no debe alterar
+     *      presupuestos ya emitidos),
+     *   3) la imagen que la línea ya tenía (edición sin tocar la imagen),
+     *   4) ninguna.
+     *
+     * @param  Collection<int, Producto>  $productosConImagen
+     */
+    private function resolverImagenLinea(Request $request, int $index, array $linea, Collection $productosConImagen): ?string
+    {
+        $archivo = $request->file("detalles.{$index}.imagen");
+
+        if ($archivo) {
+            return $this->convierteImagen->guardar($archivo, 'cotizaciones');
+        }
+
+        if ($linea['usar_imagen_producto'] ?? false) {
+            $producto = $productosConImagen->get($linea['producto_id'] ?? null);
+
+            if ($producto) {
+                return $this->convierteImagen->copiarDesde($producto->imagen, 'cotizaciones');
+            }
+        }
+
+        return $linea['imagen_actual'] ?? null;
+    }
+
+    /**
+     * Productos referenciados por el detalle que tienen imagen, en una sola
+     * consulta (igual que tiposProyectoDe: evita una query por línea dentro
+     * del map).
+     *
+     * @param  list<array<string, mixed>>  $detalles
+     * @return Collection<int, Producto>
+     */
+    private function productosConImagenDe(array $detalles): Collection
+    {
+        $ids = array_filter(array_column($detalles, 'producto_id'));
+
+        return $ids === []
+            ? collect()
+            : Producto::query()->whereNotNull('imagen')->findMany(array_unique($ids))->keyBy('id');
     }
 
     /**

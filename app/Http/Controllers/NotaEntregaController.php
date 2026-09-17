@@ -6,6 +6,7 @@ use App\Http\Requests\NotaEntrega\StoreNotaEntregaRequest;
 use App\Models\Empleado;
 use App\Models\NotaEntrega;
 use App\Models\Pedido;
+use App\Services\Imagen\ConvierteImagenAJpgService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,10 @@ use Inertia\Response;
 
 class NotaEntregaController extends Controller
 {
+    public function __construct(
+        private readonly ConvierteImagenAJpgService $convierteImagen,
+    ) {}
+
     public function index(Request $request): Response
     {
         $notas = NotaEntrega::query()
@@ -86,7 +91,10 @@ class NotaEntregaController extends Controller
                     'descripcion' => $linea['descripcion'],
                     'cantidad_entregada' => $linea['cantidad_entregada'],
                     'ubicacion' => $linea['ubicacion'] ?? null,
-                    'foto_url' => $foto?->store('notas-entrega/fotos', 'public'),
+                    // Convertida a JPG para no llenar el disco de fotos de
+                    // celular sin comprimir (ver
+                    // App\Services\Imagen\ConvierteImagenAJpgService).
+                    'foto_url' => $foto ? $this->convierteImagen->guardar($foto, 'notas-entrega/fotos') : null,
                 ]);
 
                 $idsEntregados[] = $linea['pedido_detalle_id'];

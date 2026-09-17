@@ -68,6 +68,15 @@ function lineaVacia(extra = {}) {
         instalacion: 0,
         precio_manual: 'NO',
         precio_unitario: '',
+        // Imagen referencial de la línea: un archivo nuevo (`imagen`), la
+        // ruta que ya tenía (`imagenActualRuta`, para no perderla al
+        // reemplazar el detalle entero al guardar) y `previewUrl` solo para
+        // mostrarla en pantalla. `usarImagenProducto` pide copiar la del
+        // producto del catálogo en vez de subir una propia.
+        imagen: null,
+        imagenActualRuta: null,
+        usarImagenProducto: false,
+        previewUrl: null,
         items: [],
         ...extra,
     };
@@ -84,6 +93,10 @@ const detallesIniciales = esEdicion.value && props.cotizacion.detalles?.length
         instalacion: Number(d.instalacion ?? 0),
         precio_manual: d.precio_manual ?? 'NO',
         precio_unitario: d.precio_unitario ?? '',
+        imagen: null,
+        imagenActualRuta: d.imagen ?? null,
+        usarImagenProducto: false,
+        previewUrl: d.imagen_url ?? null,
         items: (d.items ?? []).map((i) => ({
             material_id: i.material_id ?? null,
             tipo: i.tipo ?? 'MATERIAL',
@@ -140,6 +153,41 @@ function onProductoChange(index) {
         linea.ancho = '';
         linea.alto = '';
     }
+}
+
+/* ── Imagen referencial de la línea ──────────────────────────────────── */
+
+function onImagenChange(index, event) {
+    const linea = form.detalles[index];
+    const archivo = event.target.files[0] ?? null;
+
+    linea.imagen = archivo;
+
+    if (archivo) {
+        linea.usarImagenProducto = false;
+        linea.previewUrl = URL.createObjectURL(archivo);
+    }
+}
+
+/** Copia la imagen del producto del catálogo elegido (se re-codifica a JPG al guardar). */
+function usarImagenDelProducto(index) {
+    const linea = form.detalles[index];
+    const producto = productoDe(linea.producto_id);
+
+    if (!producto?.imagen_url) return;
+
+    linea.imagen = null;
+    linea.usarImagenProducto = true;
+    linea.previewUrl = producto.imagen_url;
+}
+
+function quitarImagenLinea(index) {
+    const linea = form.detalles[index];
+
+    linea.imagen = null;
+    linea.imagenActualRuta = null;
+    linea.usarImagenProducto = false;
+    linea.previewUrl = null;
 }
 
 /* ── Motor de margen (previsualización en vivo) ──────────────────────── */
@@ -317,6 +365,10 @@ function claseBarra(estado) {
 
 function submit() {
     form.transform((data) => ({
+        // PUT + archivos no combina bien en PHP: se manda siempre por POST
+        // con `_method` (mismo patrón que Usuarios/Index.vue y
+        // OrdenesCompraCliente/Index.vue).
+        ...(esEdicion.value ? { _method: 'put' } : {}),
         ...data,
         descuento: Number(data.descuento || 0),
         aplicar_iva: !!data.aplicar_iva,
@@ -330,6 +382,9 @@ function submit() {
             instalacion: Number(l.instalacion || 0),
             precio_manual: l.items.length === 0 ? 'SI' : l.precio_manual,
             precio_unitario: Number(l.precio_unitario || 0),
+            imagen: l.imagen,
+            usar_imagen_producto: l.usarImagenProducto,
+            imagen_actual: l.imagenActualRuta,
             items: l.items.map((i) => ({
                 material_id: i.material_id || null,
                 tipo: i.tipo,
@@ -346,7 +401,7 @@ function submit() {
     };
 
     if (esEdicion.value) {
-        form.put(route('cotizaciones.update', props.cotizacion.id), opciones);
+        form.post(route('cotizaciones.update', props.cotizacion.id), opciones);
     } else {
         form.post(route('cotizaciones.store'), opciones);
     }
@@ -490,6 +545,36 @@ function submit() {
                                 </p>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Imagen referencial: subida a mano o copiada del producto del
+                         catálogo (se convierte/re-codifica a JPG al guardar). -->
+                    <div class="form-group">
+                        <label class="form-label">Imagen referencial (opcional)</label>
+                        <div class="d-flex align-items-center flex-wrap gap-3">
+                            <img v-if="linea.previewUrl" :src="linea.previewUrl" alt=""
+                                class="cotizacion-linea-imagen-preview" />
+                            <div class="d-flex flex-column gap-2">
+                                <input type="file" accept="image/*" class="form-control"
+                                    @input="onImagenChange(index, $event)" />
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button v-if="productoDe(linea.producto_id)?.imagen_url" type="button"
+                                        class="btn btn-sm btn-soft-info" :disabled="linea.usarImagenProducto"
+                                        @click="usarImagenDelProducto(index)">
+                                        <i class="fa-solid fa-copy"></i>
+                                        Usar imagen del producto
+                                    </button>
+                                    <button v-if="linea.previewUrl" type="button" class="btn btn-sm btn-soft-secondary"
+                                        @click="quitarImagenLinea(index)">
+                                        <i class="fa-solid fa-xmark"></i>
+                                        Quitar imagen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <p v-if="form.errors[`detalles.${index}.imagen`]" class="form-error">
+                            {{ form.errors[`detalles.${index}.imagen`] }}
+                        </p>
                     </div>
 
                     <div class="row">

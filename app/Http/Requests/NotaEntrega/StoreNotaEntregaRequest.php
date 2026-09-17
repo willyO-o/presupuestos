@@ -45,7 +45,10 @@ class StoreNotaEntregaRequest extends FormRequest
             'detalles.*.descripcion' => ['required', 'string', 'max:255'],
             'detalles.*.cantidad_entregada' => ['required', 'numeric', 'min:0.01'],
             'detalles.*.ubicacion' => ['nullable', 'string', 'max:255'],
-            'detalles.*.foto' => ['nullable', 'image', 'max:4096'],
+            // Se convierte a JPG antes de guardarse (ver
+            // App\Services\Imagen\ConvierteImagenAJpgService), así que la
+            // lista de formatos aceptados es la que esa clase sabe leer.
+            'detalles.*.foto' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp,bmp', 'max:4096'],
         ];
     }
 

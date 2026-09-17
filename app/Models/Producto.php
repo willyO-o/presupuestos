@@ -6,10 +6,12 @@ use Database\Factories\ProductoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'categoria_producto_id',
@@ -40,6 +42,11 @@ class Producto extends Model
      * `CosteoProductoService::driver()` depende de estos valores.
      */
     public const UNIDADES_MEDIDA = ['M2', 'METRO_LINEAL', 'UNIDAD'];
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = ['imagen_url'];
 
     public function categoriaProducto(): BelongsTo
     {
@@ -97,5 +104,18 @@ class Producto extends Model
     protected function estado(Builder $query, ?string $estado): void
     {
         $query->when($estado, fn (Builder $query) => $query->where('estado', $estado));
+    }
+
+    /**
+     * URL pública de la imagen de referencia (disco `public`), ya convertida
+     * a JPG (ver App\Services\Imagen\ConvierteImagenAJpgService). Se puede
+     * copiar como foto histórica a una línea de cotización — ver
+     * CotizacionController::resolverImagenLinea.
+     */
+    protected function imagenUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->imagen ? Storage::disk('public')->url($this->imagen) : null,
+        );
     }
 }
