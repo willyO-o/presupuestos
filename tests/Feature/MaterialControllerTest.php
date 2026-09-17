@@ -264,3 +264,50 @@ test('super-admin bypasses individual permissions', function () {
         ->get(route('materiales.index'))
         ->assertOk();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Alta rápida (modal embebido en otro formulario, ver
+| Components/Material/MaterialFormFields.vue): responde JSON en vez de
+| redirigir, para no navegar fuera de ese formulario.
+|--------------------------------------------------------------------------
+*/
+
+test('a user with permission can quick-create a material and gets it back as json', function () {
+    $categoria = CategoriaMaterial::factory()->create();
+    $user = userWithMaterialPermissions('materiales.crear');
+
+    $response = $this->actingAs($user)->postJson(route('materiales.rapido'), [
+        'categoria_material_id' => $categoria->id,
+        'nombre' => 'Vinil adhesivo brillante',
+        'presentacion' => 'Rollo 1,20x50m',
+        'unidad_medida' => 'M2',
+        'precio_presentacion' => 400,
+        'precio_unitario' => 8,
+        'stock_actual' => 10,
+        'stock_minimo' => 2,
+        'estado' => 'ACTIVO',
+    ]);
+
+    $response->assertOk()->assertJsonPath('nombre', 'Vinil adhesivo brillante');
+    $this->assertDatabaseHas('material', ['nombre' => 'Vinil adhesivo brillante', 'categoria_material_id' => $categoria->id]);
+});
+
+test('a user without permission cannot quick-create a material', function () {
+    $categoria = CategoriaMaterial::factory()->create();
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->postJson(route('materiales.rapido'), [
+        'categoria_material_id' => $categoria->id,
+        'nombre' => 'Vinil adhesivo brillante',
+        'presentacion' => 'Rollo 1,20x50m',
+        'unidad_medida' => 'M2',
+        'precio_presentacion' => 400,
+        'precio_unitario' => 8,
+        'stock_actual' => 10,
+        'stock_minimo' => 2,
+        'estado' => 'ACTIVO',
+    ])->assertForbidden();
+
+    $this->assertDatabaseCount('material', 0);
+});

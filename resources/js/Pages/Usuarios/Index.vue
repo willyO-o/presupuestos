@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import FileDropzone from '@/Components/FileDropzone.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -298,8 +299,8 @@ async function eliminar(u) {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Foto de perfil (opcional)</label>
-                    <input type="file" accept="image/*" class="form-control"
-                        @input="form.foto = $event.target.files[0]" />
+                    <FileDropzone v-model="form.foto" :preview="editing?.foto_url" accept="image/*"
+                        :invalid="!!form.errors.foto" />
                     <p v-if="form.errors.foto" class="form-error">{{ form.errors.foto }}</p>
                 </div>
 

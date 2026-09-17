@@ -8,6 +8,11 @@
    re-tematizan con tokens de marca en la seccion "29. FILTRO DE RANGO DE FECHAS". */
 @import 'daterange-picker-vue3/dist/daterange-picker-vue3.css';
 
+/* Esqueleto del select con busqueda (Components/SearchableSelect.vue). Igual
+   que el date range: solo layout/posicionamiento del paquete, colores y modo
+   oscuro re-tematizados en la seccion "30. SELECT CON BUSQUEDA". */
+@import 'vue-multiselect/dist/vue-multiselect.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -1930,9 +1935,12 @@
 }
 
 /* --- Imagen referencial de la línea (form y documento imprimible) --- */
-.cotizacion-linea-imagen-preview {
-    border-color: var(--border-subtle);
-    @apply h-24 w-24 shrink-0 rounded-lg border object-cover;
+.cotizacion-linea-imagen {
+    @apply flex flex-wrap items-start gap-3;
+}
+
+.cotizacion-linea-imagen .file-dropzone {
+    @apply w-40 shrink-0;
 }
 
 .cotizacion-doc-table .article-thumb {
@@ -2802,4 +2810,255 @@
         animation: none;
         opacity: 0.7;
     }
+}
+
+/* ==========================================================================
+   31. DROPZONE DE ARCHIVOS (Components/FileDropzone.vue)
+   --------------------------------------------------------------------------
+   Reemplaza <input type="file" class="form-control"> en los formularios que
+   suben una imagen o un PDF (Productos, Cotizaciones, Usuarios, Notas de
+   entrega, Órdenes de compra cliente, Pagos). Es un componente propio (no un
+   paquete), así que sigue el molde de .form-control (radio, borde, foco) en
+   vez de inventar uno nuevo.
+   ========================================================================== */
+
+.file-dropzone {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    min-height: 5.5rem;
+    @apply relative flex cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border-2 border-dashed p-4 text-center transition-all duration-150;
+}
+
+.file-dropzone:hover,
+.file-dropzone:focus-visible {
+    border-color: var(--c-primary);
+    background-color: var(--c-primary-soft);
+    @apply outline-none;
+}
+
+.file-dropzone.is-dragging {
+    border-color: var(--c-primary);
+    border-style: solid;
+    background-color: var(--c-primary-soft);
+}
+
+.file-dropzone.is-invalid {
+    border-color: var(--c-danger);
+}
+
+.file-dropzone.is-disabled {
+    opacity: 0.6;
+    @apply pointer-events-none cursor-not-allowed;
+}
+
+.file-dropzone-icon {
+    color: var(--text-muted);
+    @apply text-2xl;
+}
+
+.file-dropzone-text {
+    color: var(--text-muted);
+    @apply m-0 text-xs;
+}
+
+.file-dropzone-text strong {
+    color: var(--c-primary);
+    @apply font-semibold;
+}
+
+.file-dropzone-hint {
+    color: var(--text-muted);
+    @apply m-0 mt-1 w-full text-[0.6875rem] leading-snug;
+}
+
+/* --- Ya hay una imagen elegida o guardada: la miniatura ocupa la caja --- */
+.file-dropzone-thumb {
+    @apply absolute inset-0 h-full w-full object-cover;
+}
+
+.file-dropzone-overlay {
+    color: #fff;
+    background-color: rgba(15, 17, 26, 0.55);
+    @apply absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs font-medium opacity-0 transition-opacity duration-150;
+}
+
+.file-dropzone:hover .file-dropzone-overlay,
+.file-dropzone:focus-visible .file-dropzone-overlay {
+    @apply opacity-100;
+}
+
+/* --- Ya hay un PDF elegido o guardado: chip con ícono + nombre --- */
+.file-dropzone-file {
+    color: var(--text-heading);
+    @apply flex max-w-full items-center gap-2 text-sm font-medium;
+}
+
+.file-dropzone-file .fa-file-pdf {
+    color: var(--c-danger);
+}
+
+.file-dropzone-file-name {
+    @apply max-w-[16rem] truncate;
+}
+
+.file-dropzone-change {
+    color: var(--text-muted);
+    @apply text-[0.6875rem];
+}
+
+/* --- Botón "x" para deshacer un archivo recién elegido (no borra el que ya
+   estaba guardado en el servidor: solo cancela la selección pendiente) --- */
+.file-dropzone-clear {
+    color: #fff;
+    background-color: rgba(15, 17, 26, 0.55);
+    @apply absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors duration-150;
+}
+
+.file-dropzone-clear:hover {
+    background-color: var(--c-danger);
+}
+
+/* ==========================================================================
+   30. SELECT CON BUSQUEDA (Components/SearchableSelect.vue)
+   --------------------------------------------------------------------------
+   SearchableSelect.vue envuelve el paquete `vue-multiselect` para los
+   catálogos que pueden crecer mucho (cliente, producto, material,
+   proveedor, empleado, cotización...). Igual que con el date range (sección
+   29) y SweetAlert2 (sección 20): el paquete trae su propio CSS con colores
+   fijos (#41B883, #35495E...) sin modo oscuro, y acá se re-tematiza TODO con
+   los tokens de marca para que se vea como un <select> más del sistema, no
+   como un widget de terceros pegado encima.
+   ========================================================================== */
+
+/* --- Caja cerrada: mismo molde que .form-control (sección 18) --- */
+.searchable-select.multiselect {
+    min-height: 0;
+    @apply text-sm;
+}
+
+.searchable-select .multiselect__tags {
+    color: var(--text-body);
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    @apply min-h-0 rounded-lg border py-2 ps-3 pe-16 transition-all duration-150;
+}
+
+/* Botón "x" para volver a "sin selección" (slot #clear, vacío por defecto en
+   la librería) — se ubica antes del caret, dentro de la misma caja. */
+.searchable-select-clear {
+    color: var(--text-muted);
+    @apply absolute right-8 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-xs transition-colors duration-150;
+}
+
+.searchable-select-clear:hover {
+    color: var(--c-danger);
+    background-color: var(--c-danger-soft);
+}
+
+.searchable-select.multiselect--active .multiselect__tags {
+    border-color: var(--c-primary);
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--c-primary) 15%, transparent),
+        0 1px 2px color-mix(in srgb, var(--c-primary) 25%, transparent);
+}
+
+.searchable-select.is-invalid .multiselect__tags {
+    border-color: var(--c-danger);
+}
+
+.searchable-select.is-invalid.multiselect--active .multiselect__tags {
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--c-danger) 15%, transparent),
+        0 1px 2px color-mix(in srgb, var(--c-danger) 25%, transparent);
+}
+
+.searchable-select .multiselect__input,
+.searchable-select .multiselect__single {
+    color: var(--text-body);
+    background: transparent;
+    @apply m-0 p-0 text-sm;
+}
+
+.searchable-select .multiselect__input::placeholder {
+    color: rgb(148 163 184);
+}
+
+.searchable-select .multiselect__placeholder {
+    color: rgb(148 163 184);
+    @apply m-0 p-0 text-sm;
+}
+
+.searchable-select .multiselect__single {
+    margin-bottom: 0;
+}
+
+/* Caret: flechita fina en vez del triángulo grueso por defecto. */
+.searchable-select .multiselect__select {
+    height: 100%;
+    @apply flex items-center justify-center;
+}
+
+.searchable-select .multiselect__select::before {
+    border-color: var(--text-muted) transparent transparent;
+    top: 0;
+    margin-top: 0;
+}
+
+.searchable-select.multiselect--disabled {
+    opacity: 1;
+}
+
+.searchable-select.multiselect--disabled .multiselect__tags {
+    background-color: color-mix(in srgb, var(--border-subtle) 60%, transparent);
+    opacity: 0.7;
+}
+
+.searchable-select.multiselect--disabled .multiselect__select {
+    background: transparent;
+}
+
+/* --- Panel desplegable --- */
+.searchable-select .multiselect__content-wrapper {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    box-shadow: var(--card-shadow);
+    @apply rounded-lg border;
+}
+
+.searchable-select .multiselect__option {
+    color: var(--text-body);
+    @apply text-sm;
+}
+
+.searchable-select .multiselect__option--highlight {
+    background-color: var(--c-primary-soft);
+    color: var(--text-heading);
+}
+
+.searchable-select .multiselect__option--selected {
+    background-color: transparent;
+    color: var(--text-heading);
+    @apply font-semibold;
+}
+
+.searchable-select .multiselect__option--selected.multiselect__option--highlight {
+    background-color: var(--c-primary-soft);
+}
+
+.searchable-select .multiselect__option:after {
+    color: var(--text-muted);
+}
+
+.searchable-select .multiselect__option--highlight:after {
+    background: transparent;
+    color: var(--c-primary);
+}
+
+.searchable-select .multiselect__content-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+
+.searchable-select .multiselect__content-wrapper::-webkit-scrollbar-thumb {
+    background-color: var(--border-subtle);
+    @apply rounded-full;
 }

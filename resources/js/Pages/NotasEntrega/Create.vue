@@ -1,6 +1,11 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
+import FileDropzone from '@/Components/FileDropzone.vue';
+import QuickCreateModal from '@/Components/QuickCreateModal.vue';
+import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
 import { showError } from '@/Utils/AlertUtil';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -9,7 +14,39 @@ const props = defineProps({
     pedido: { type: Object, required: true },
     empleados: { type: Array, default: () => [] },
     empleadoActualId: { type: [Number, String], default: null },
+    // Solo alimentan el modal de alta rápida "Nuevo empleado" — ver
+    // Components/QuickCreateModal.vue.
+    sucursales: { type: Array, default: () => [] },
+    areas: { type: Array, default: () => [] },
+    cargosEmpleado: { type: Array, default: () => [] },
 });
+
+/* ── Alta rápida de empleado (entregado por) ─────────────────────────── */
+
+const empleadosDisponibles = ref([...props.empleados]);
+const mostrarModalEmpleado = ref(false);
+
+function empleadoVacio() {
+    return {
+        user_id: '',
+        sucursal_id: props.sucursales[0]?.id ?? '',
+        area_id: props.areas[0]?.id ?? '',
+        nombres: '',
+        paterno: '',
+        materno: '',
+        ci: '',
+        cargo: '',
+        telefono: '',
+        fecha_ingreso: new Date().toISOString().slice(0, 10),
+        estado: 'ACTIVO',
+    };
+}
+
+function onEmpleadoCreado(empleado) {
+    empleadosDisponibles.value = [empleado, ...empleadosDisponibles.value];
+    form.empleado_id = empleado.id;
+    mostrarModalEmpleado.value = false;
+}
 
 const form = useForm(() => ({
     pedido_id: props.pedido.id,
@@ -54,6 +91,10 @@ function submit() {
 <template>
     <Head :title="`Nota de entrega · ${pedido.numero_pedido}`" />
 
+    <!-- Envoltorio para que QuickCreateModal (con su propio <form>) quede
+         FUERA del <form> de la nota de entrega — ver el mismo comentario en
+         CotizacionForm.vue. -->
+    <div>
     <form @submit.prevent="submit">
         <div class="card mb-4">
             <div class="card-header">
@@ -63,10 +104,17 @@ function submit() {
                 <div class="row">
                     <div class="col-lg-4">
                         <div class="form-group">
-                            <label class="form-label">Entregado por</label>
-                            <select v-model="form.empleado_id" class="form-control" required>
-                                <option v-for="e in empleados" :key="e.id" :value="e.id">{{ nombreEmpleado(e) }}</option>
-                            </select>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label mb-0">Entregado por</label>
+                                <button v-can="'empleados.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                                    @click="mostrarModalEmpleado = true">
+                                    <i class="fa-solid fa-plus"></i>
+                                    Nuevo empleado
+                                </button>
+                            </div>
+                            <SearchableSelect v-model="form.empleado_id" :options="empleadosDisponibles"
+                                :option-label="nombreEmpleado" placeholder="Selecciona un empleado"
+                                :invalid="!!form.errors.empleado_id" />
                             <p v-if="form.errors.empleado_id" class="form-error">{{ form.errors.empleado_id }}</p>
                         </div>
                     </div>
@@ -94,8 +142,7 @@ function submit() {
                     <div class="col-lg-4">
                         <div class="form-group">
                             <label class="form-label">PDF firmado (opcional)</label>
-                            <input type="file" accept="application/pdf" class="form-control"
-                                @input="form.archivo_pdf = $event.target.files[0]" />
+                            <FileDropzone v-model="form.archivo_pdf" accept="application/pdf" kind="archivo" />
                         </div>
                     </div>
                 </div>
@@ -138,8 +185,7 @@ function submit() {
                         <div class="col-lg-4 col-12">
                             <div class="form-group">
                                 <label class="form-label">Foto de evidencia</label>
-                                <input type="file" accept="image/*" class="form-control"
-                                    @input="linea.foto = $event.target.files[0]" />
+                                <FileDropzone v-model="linea.foto" accept="image/*" />
                             </div>
                         </div>
                     </div>
@@ -156,4 +202,15 @@ function submit() {
             </button>
         </div>
     </form>
+
+    <QuickCreateModal :show="mostrarModalEmpleado" title="Nuevo empleado" route-name="empleados.rapido"
+        :initial-data="empleadoVacio" submit-label="Crear empleado"
+        hint="Se guarda de una vez en el catálogo de empleados; al terminar queda elegido como quien entrega."
+        @close="mostrarModalEmpleado = false" @created="onEmpleadoCreado">
+        <template #default="{ form: empleadoForm, errors: empleadoErrors }">
+            <EmpleadoFormFields :form="empleadoForm" :errors="empleadoErrors" :sucursales="sucursales" :areas="areas"
+                :cargos="cargosEmpleado" />
+        </template>
+    </QuickCreateModal>
+    </div>
 </template>

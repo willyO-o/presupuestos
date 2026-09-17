@@ -191,3 +191,33 @@ test('super-admin bypasses individual permissions', function () {
         ->get(route('proveedores.index'))
         ->assertOk();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Alta rápida (modal embebido en Compras/Partials/CompraForm.vue): responde
+| JSON en vez de redirigir, para no navegar fuera de ese formulario.
+|--------------------------------------------------------------------------
+*/
+
+test('a user with permission can quick-create a proveedor and gets it back as json', function () {
+    $user = userWithProveedorPermissions('proveedores.crear');
+
+    $response = $this->actingAs($user)->postJson(route('proveedores.rapido'), [
+        'nombre' => 'Distribuidora Andina SRL',
+        'estado' => 'ACTIVO',
+    ]);
+
+    $response->assertOk()->assertJsonPath('nombre', 'Distribuidora Andina SRL');
+    $this->assertDatabaseHas('proveedor', ['nombre' => 'Distribuidora Andina SRL']);
+});
+
+test('a user without permission cannot quick-create a proveedor', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->postJson(route('proveedores.rapido'), [
+        'nombre' => 'Distribuidora Andina SRL',
+        'estado' => 'ACTIVO',
+    ])->assertForbidden();
+
+    $this->assertDatabaseCount('proveedor', 0);
+});

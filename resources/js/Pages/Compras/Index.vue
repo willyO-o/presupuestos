@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -97,10 +98,8 @@ async function eliminar(compra) {
                 </div>
                 <div class="col-lg-3">
                     <label class="form-label" for="f-proveedor">Proveedor</label>
-                    <select id="f-proveedor" v-model="table.filters.proveedor" class="form-control">
-                        <option value="">Todos</option>
-                        <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                    </select>
+                    <SearchableSelect id="f-proveedor" v-model="table.filters.proveedor" :options="proveedores"
+                        option-label="nombre" placeholder="Todos" />
                 </div>
                 <div class="col-lg-2">
                     <label class="form-label" for="f-estado">Estado</label>

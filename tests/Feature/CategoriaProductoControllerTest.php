@@ -167,3 +167,33 @@ test('super-admin bypasses individual permissions', function () {
         ->get(route('categorias-producto.index'))
         ->assertOk();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Alta rápida (modal embebido en Productos/Index.vue): responde JSON en vez
+| de redirigir, para no navegar fuera de ese formulario.
+|--------------------------------------------------------------------------
+*/
+
+test('a user with permission can quick-create a categoria producto and gets it back as json', function () {
+    $user = userWithCategoriaProductoPermissions('categorias-producto.crear');
+
+    $response = $this->actingAs($user)->postJson(route('categorias-producto.rapido'), [
+        'nombre' => 'Rotulado vehicular',
+        'estado' => 'ACTIVO',
+    ]);
+
+    $response->assertOk()->assertJsonPath('nombre', 'Rotulado vehicular');
+    $this->assertDatabaseHas('categoria_producto', ['nombre' => 'Rotulado vehicular']);
+});
+
+test('a user without permission cannot quick-create a categoria producto', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->postJson(route('categorias-producto.rapido'), [
+        'nombre' => 'Rotulado vehicular',
+        'estado' => 'ACTIVO',
+    ])->assertForbidden();
+
+    $this->assertDatabaseCount('categoria_producto', 0);
+});

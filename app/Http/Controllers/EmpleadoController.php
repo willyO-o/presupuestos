@@ -7,6 +7,7 @@ use App\Http\Requests\Empleado\UpdateEmpleadoRequest;
 use App\Models\Area;
 use App\Models\Empleado;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -58,6 +59,19 @@ class EmpleadoController extends Controller
 
         return redirect()->route('empleados.index')
             ->with('success', 'Empleado creado correctamente.');
+    }
+
+    /**
+     * Alta rápida desde el modal embebido en otro formulario (el
+     * "responsable"/"vendedor"/"entregado por" de Cotizaciones, Compras y
+     * Notas de entrega): misma validación y permiso que `store`, pero
+     * responde JSON en vez de redirigir — ver ClienteController::storeRapido.
+     */
+    public function storeRapido(StoreEmpleadoRequest $request): JsonResponse
+    {
+        $empleado = Empleado::create($request->validated());
+
+        return response()->json($empleado);
     }
 
     public function update(UpdateEmpleadoRequest $request, Empleado $empleado): RedirectResponse

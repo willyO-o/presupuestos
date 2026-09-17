@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { showError } from '@/Utils/AlertUtil';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -17,6 +18,10 @@ const form = useForm(() => ({
 
 function money(value) {
     return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function etiquetaCotizacion(c) {
+    return `${c.codigo_verificacion} — ${c.cliente?.razon_social ?? '—'} — ${money(c.total)}`;
 }
 
 function submit() {
@@ -39,13 +44,9 @@ function submit() {
             <template v-else>
                 <div class="form-group">
                     <label class="form-label" for="cotizacion_id">Cotización</label>
-                    <select id="cotizacion_id" v-model="form.cotizacion_id" class="form-control"
-                        :class="{ 'is-invalid': form.errors.cotizacion_id }" required>
-                        <option value="" disabled>Selecciona una cotización</option>
-                        <option v-for="c in cotizaciones" :key="c.id" :value="c.id">
-                            {{ c.codigo_verificacion }} — {{ c.cliente?.razon_social ?? '—' }} — {{ money(c.total) }}
-                        </option>
-                    </select>
+                    <SearchableSelect id="cotizacion_id" v-model="form.cotizacion_id" :options="cotizaciones"
+                        :option-label="etiquetaCotizacion" placeholder="Selecciona una cotización"
+                        :invalid="!!form.errors.cotizacion_id" />
                     <p v-if="form.errors.cotizacion_id" class="form-error">{{ form.errors.cotizacion_id }}</p>
                 </div>
 

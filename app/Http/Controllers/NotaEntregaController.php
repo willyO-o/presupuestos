@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\NotaEntrega\StoreNotaEntregaRequest;
+use App\Models\Area;
 use App\Models\Empleado;
 use App\Models\NotaEntrega;
 use App\Models\Pedido;
@@ -58,6 +59,11 @@ class NotaEntregaController extends Controller
             'empleados' => Empleado::query()->visiblePara($request->user())->estado('ACTIVO')->orderBy('nombres')
                 ->get(['id', 'nombres', 'paterno', 'materno', 'cargo']),
             'empleadoActualId' => $request->user()->empleado?->id,
+            // Solo para el modal de alta rápida "Nuevo empleado" embebido en
+            // el formulario — ver Components/QuickCreateModal.vue.
+            'sucursales' => $request->user()->sucursalesDisponibles(soloActivas: true),
+            'areas' => Area::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
+            'cargosEmpleado' => Empleado::cargos(),
             'pageTitle' => "Nota de entrega · {$pedido->numero_pedido}",
             'breadcrumbs' => ['Ventas', 'Notas de entrega', 'Nueva'],
         ]);

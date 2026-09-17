@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import FileDropzone from '@/Components/FileDropzone.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -260,8 +261,8 @@ async function anular(orden) {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Archivo PDF (opcional)</label>
-                    <input type="file" accept="application/pdf" class="form-control"
-                        @input="form.archivo_pdf = $event.target.files[0]" />
+                    <FileDropzone v-model="form.archivo_pdf" :preview="editing?.archivo_url" accept="application/pdf"
+                        kind="archivo" :invalid="!!form.errors.archivo_pdf" />
                     <p v-if="form.errors.archivo_pdf" class="form-error">{{ form.errors.archivo_pdf }}</p>
                 </div>
             </div>

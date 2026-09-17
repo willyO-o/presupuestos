@@ -1,6 +1,12 @@
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
+import FileDropzone from '@/Components/FileDropzone.vue';
+import QuickCreateModal from '@/Components/QuickCreateModal.vue';
+import ClienteQuickCreateModal from '@/Components/Cliente/ClienteQuickCreateModal.vue';
+import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
+import ProductoFormFields from '@/Components/Producto/ProductoFormFields.vue';
 import { showError } from '@/Utils/AlertUtil';
 import { CLASES_SEMAFORO, calcularMargen, costoBaseDe, evaluarMargen } from '@/Utils/MotorMargen';
 
@@ -27,9 +33,93 @@ const props = defineProps({
     tiposItem: { type: Object, default: () => ({}) },
     empleadoActualId: { type: [Number, String], default: null },
     config: { type: Object, required: true },
+    // Solo alimentan los modales de alta rápida (Nuevo cliente/vendedor/
+    // producto) — ver Components/QuickCreateModal.vue.
+    categoriasProducto: { type: Array, default: () => [] },
+    areas: { type: Array, default: () => [] },
+    cargosEmpleado: { type: Array, default: () => [] },
 });
 
 const esEdicion = computed(() => !!props.cotizacion);
+
+/* ── Alta rápida de cliente (ver Components/Cliente/ClienteQuickCreateModal.vue) ── */
+
+// Copia local editable: `props.clientes` no se puede mutar, y el cliente
+// recién creado tiene que aparecer en el desplegable YA, sin recargar la
+// página (eso perdería el resto de la cotización a medio llenar).
+const clientesDisponibles = ref([...props.clientes]);
+const mostrarModalCliente = ref(false);
+
+function onClienteCreado(cliente) {
+    clientesDisponibles.value = [cliente, ...clientesDisponibles.value];
+    form.cliente_id = cliente.id;
+    mostrarModalCliente.value = false;
+}
+
+/* ── Alta rápida de empleado (vendedor) ──────────────────────────────── */
+
+const empleadosDisponibles = ref([...props.empleados]);
+const mostrarModalEmpleado = ref(false);
+
+function empleadoVacio() {
+    return {
+        user_id: '',
+        sucursal_id: props.sucursales[0]?.id ?? '',
+        area_id: props.areas[0]?.id ?? '',
+        nombres: '',
+        paterno: '',
+        materno: '',
+        ci: '',
+        cargo: '',
+        telefono: '',
+        fecha_ingreso: new Date().toISOString().slice(0, 10),
+        estado: 'ACTIVO',
+    };
+}
+
+function onEmpleadoCreado(empleado) {
+    empleadosDisponibles.value = [empleado, ...empleadosDisponibles.value];
+    form.empleado_id = empleado.id;
+    mostrarModalEmpleado.value = false;
+}
+
+/* ── Alta rápida de producto (por línea) ─────────────────────────────── */
+
+const categoriasProductoDisponibles = ref([...props.categoriasProducto]);
+const productosDisponibles = ref([...props.productos]);
+const mostrarModalProducto = ref(false);
+// Qué línea disparó el modal: el mismo modal sirve para cualquier ítem, no
+// hace falta una instancia por línea.
+const lineaModalProducto = ref(null);
+
+function productoVacio() {
+    return {
+        categoria_producto_id: categoriasProductoDisponibles.value[0]?.id ?? '',
+        nombre: '',
+        descripcion: '',
+        unidad_medida: 'M2',
+        precio_base: '',
+        requiere_medidas: 'SI',
+        cotizable_web: 'NO',
+        estado: 'ACTIVO',
+    };
+}
+
+function abrirModalProducto(index) {
+    lineaModalProducto.value = index;
+    mostrarModalProducto.value = true;
+}
+
+function onProductoCreado(producto) {
+    productosDisponibles.value = [producto, ...productosDisponibles.value];
+
+    if (lineaModalProducto.value !== null) {
+        form.detalles[lineaModalProducto.value].producto_id = producto.id;
+        onProductoChange(lineaModalProducto.value);
+    }
+
+    mostrarModalProducto.value = false;
+}
 
 function toDateInput(value) {
     return value ? String(value).slice(0, 10) : '';
@@ -68,15 +158,16 @@ function lineaVacia(extra = {}) {
         instalacion: 0,
         precio_manual: 'NO',
         precio_unitario: '',
-        // Imagen referencial de la línea: un archivo nuevo (`imagen`), la
-        // ruta que ya tenía (`imagenActualRuta`, para no perderla al
-        // reemplazar el detalle entero al guardar) y `previewUrl` solo para
-        // mostrarla en pantalla. `usarImagenProducto` pide copiar la del
+        // Imagen referencial de la línea: un archivo nuevo (`imagen`, lo
+        // maneja FileDropzone), la ruta que ya tenía (`imagenActualRuta`,
+        // para no perderla al reemplazar el detalle entero al guardar) y su
+        // URL pública (`imagenActualUrl`, solo para mostrarla — ver
+        // `previewExistente`). `usarImagenProducto` pide copiar la del
         // producto del catálogo en vez de subir una propia.
         imagen: null,
         imagenActualRuta: null,
+        imagenActualUrl: null,
         usarImagenProducto: false,
-        previewUrl: null,
         items: [],
         ...extra,
     };
@@ -95,8 +186,8 @@ const detallesIniciales = esEdicion.value && props.cotizacion.detalles?.length
         precio_unitario: d.precio_unitario ?? '',
         imagen: null,
         imagenActualRuta: d.imagen ?? null,
+        imagenActualUrl: d.imagen_url ?? null,
         usarImagenProducto: false,
-        previewUrl: d.imagen_url ?? null,
         items: (d.items ?? []).map((i) => ({
             material_id: i.material_id ?? null,
             tipo: i.tipo ?? 'MATERIAL',
@@ -127,7 +218,7 @@ const costeo = reactive(form.detalles.map(() => ({ cargando: false, error: null,
 /* ── Catálogo ────────────────────────────────────────────────────────── */
 
 function productoDe(lineaProductoId) {
-    return props.productos.find((p) => p.id === Number(lineaProductoId)) ?? null;
+    return productosDisponibles.value.find((p) => p.id === Number(lineaProductoId)) ?? null;
 }
 
 function tipoProyectoDe(tipoId) {
@@ -157,28 +248,34 @@ function onProductoChange(index) {
 
 /* ── Imagen referencial de la línea ──────────────────────────────────── */
 
-function onImagenChange(index, event) {
-    const linea = form.detalles[index];
-    const archivo = event.target.files[0] ?? null;
+/**
+ * Qué mostrar en el FileDropzone cuando la línea NO tiene un archivo recién
+ * elegido: la del producto (si se pidió copiarla) o la que la línea ya
+ * tenía guardada (edición sin tocar la imagen). FileDropzone le da
+ * prioridad a `linea.imagen` sobre esto apenas hay un archivo nuevo.
+ */
+function previewExistente(linea) {
+    if (linea.usarImagenProducto) {
+        return productoDe(linea.producto_id)?.imagen_url ?? null;
+    }
 
-    linea.imagen = archivo;
+    return linea.imagenActualRuta ? linea.imagenActualUrl : null;
+}
 
-    if (archivo) {
-        linea.usarImagenProducto = false;
-        linea.previewUrl = URL.createObjectURL(archivo);
+function onImagenSeleccionada(index) {
+    if (form.detalles[index].imagen) {
+        form.detalles[index].usarImagenProducto = false;
     }
 }
 
 /** Copia la imagen del producto del catálogo elegido (se re-codifica a JPG al guardar). */
 function usarImagenDelProducto(index) {
     const linea = form.detalles[index];
-    const producto = productoDe(linea.producto_id);
 
-    if (!producto?.imagen_url) return;
+    if (!productoDe(linea.producto_id)?.imagen_url) return;
 
     linea.imagen = null;
     linea.usarImagenProducto = true;
-    linea.previewUrl = producto.imagen_url;
 }
 
 function quitarImagenLinea(index) {
@@ -187,7 +284,6 @@ function quitarImagenLinea(index) {
     linea.imagen = null;
     linea.imagenActualRuta = null;
     linea.usarImagenProducto = false;
-    linea.previewUrl = null;
 }
 
 /* ── Motor de margen (previsualización en vivo) ──────────────────────── */
@@ -351,6 +447,14 @@ function nombreEmpleado(e) {
     return [e.nombres, e.paterno, e.materno].filter(Boolean).join(' ');
 }
 
+function etiquetaEmpleado(e) {
+    return e.cargo ? `${nombreEmpleado(e)} (${e.cargo})` : nombreEmpleado(e);
+}
+
+function etiquetaCliente(c) {
+    return c.nit ? `${c.razon_social} — ${c.nit}` : c.razon_social;
+}
+
 function anchoBarra(rentabilidad) {
     // El umbral verde marca el 100 % de la barra: pasar de ahí ya es óptimo.
     const tope = props.config.semaforo.umbral_verde;
@@ -409,6 +513,12 @@ function submit() {
 </script>
 
 <template>
+    <!-- Envoltorio para que ClienteQuickCreateModal (con su propio <form>)
+         quede FUERA del <form> de la cotización — un <form> anidado es HTML
+         inválido y el navegador lo reacomoda de forma impredecible. El
+         componente sigue teniendo una única raíz (ver .ai/rules, Vue
+         components must have a single root element). -->
+    <div>
     <form @submit.prevent="submit">
         <!-- Cabecera -->
         <div class="card mb-4">
@@ -419,27 +529,33 @@ function submit() {
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label class="form-label" for="cliente_id">Cliente</label>
-                            <select id="cliente_id" v-model="form.cliente_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.cliente_id }" required>
-                                <option value="" disabled>Selecciona un cliente</option>
-                                <option v-for="c in clientes" :key="c.id" :value="c.id">
-                                    {{ c.razon_social }} — {{ c.nit }}
-                                </option>
-                            </select>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label mb-0" for="cliente_id">Cliente</label>
+                                <button v-can="'clientes.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                                    @click="mostrarModalCliente = true">
+                                    <i class="fa-solid fa-plus"></i>
+                                    Nuevo cliente
+                                </button>
+                            </div>
+                            <SearchableSelect id="cliente_id" v-model="form.cliente_id" :options="clientesDisponibles"
+                                :option-label="etiquetaCliente" placeholder="Selecciona un cliente"
+                                :invalid="!!form.errors.cliente_id" />
                             <p v-if="form.errors.cliente_id" class="form-error">{{ form.errors.cliente_id }}</p>
                         </div>
                     </div>
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label class="form-label" for="empleado_id">Vendedor</label>
-                            <select id="empleado_id" v-model="form.empleado_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.empleado_id }" required>
-                                <option value="" disabled>Selecciona un vendedor</option>
-                                <option v-for="e in empleados" :key="e.id" :value="e.id">
-                                    {{ nombreEmpleado(e) }}<span v-if="e.cargo"> ({{ e.cargo }})</span>
-                                </option>
-                            </select>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label mb-0" for="empleado_id">Vendedor</label>
+                                <button v-can="'empleados.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                                    @click="mostrarModalEmpleado = true">
+                                    <i class="fa-solid fa-plus"></i>
+                                    Nuevo empleado
+                                </button>
+                            </div>
+                            <SearchableSelect id="empleado_id" v-model="form.empleado_id" :options="empleadosDisponibles"
+                                :option-label="etiquetaEmpleado" placeholder="Selecciona un vendedor"
+                                :invalid="!!form.errors.empleado_id" />
                             <p v-if="form.errors.empleado_id" class="form-error">{{ form.errors.empleado_id }}</p>
                         </div>
                     </div>
@@ -514,12 +630,17 @@ function submit() {
                     <div class="row">
                         <div class="col-lg-4">
                             <div class="form-group">
-                                <label class="form-label">Producto</label>
-                                <select v-model="linea.producto_id" class="form-control"
-                                    @change="onProductoChange(index)">
-                                    <option value="">Ítem personalizado</option>
-                                    <option v-for="p in productos" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                                </select>
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label mb-0">Producto</label>
+                                    <button v-can="'productos.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                                        @click="abrirModalProducto(index)">
+                                        <i class="fa-solid fa-plus"></i>
+                                        Nuevo
+                                    </button>
+                                </div>
+                                <SearchableSelect v-model="linea.producto_id" :options="productosDisponibles"
+                                    option-label="nombre" placeholder="Ítem personalizado"
+                                    @update:model-value="onProductoChange(index)" />
                             </div>
                         </div>
                         <div class="col-lg-4">
@@ -551,25 +672,22 @@ function submit() {
                          catálogo (se convierte/re-codifica a JPG al guardar). -->
                     <div class="form-group">
                         <label class="form-label">Imagen referencial (opcional)</label>
-                        <div class="d-flex align-items-center flex-wrap gap-3">
-                            <img v-if="linea.previewUrl" :src="linea.previewUrl" alt=""
-                                class="cotizacion-linea-imagen-preview" />
-                            <div class="d-flex flex-column gap-2">
-                                <input type="file" accept="image/*" class="form-control"
-                                    @input="onImagenChange(index, $event)" />
-                                <div class="d-flex flex-wrap gap-2">
-                                    <button v-if="productoDe(linea.producto_id)?.imagen_url" type="button"
-                                        class="btn btn-sm btn-soft-info" :disabled="linea.usarImagenProducto"
-                                        @click="usarImagenDelProducto(index)">
-                                        <i class="fa-solid fa-copy"></i>
-                                        Usar imagen del producto
-                                    </button>
-                                    <button v-if="linea.previewUrl" type="button" class="btn btn-sm btn-soft-secondary"
-                                        @click="quitarImagenLinea(index)">
-                                        <i class="fa-solid fa-xmark"></i>
-                                        Quitar imagen
-                                    </button>
-                                </div>
+                        <div class="cotizacion-linea-imagen">
+                            <FileDropzone v-model="linea.imagen" :preview="previewExistente(linea)" accept="image/*"
+                                :invalid="!!form.errors[`detalles.${index}.imagen`]"
+                                @update:model-value="onImagenSeleccionada(index)" />
+                            <div class="d-flex flex-wrap gap-2">
+                                <button v-if="productoDe(linea.producto_id)?.imagen_url" type="button"
+                                    class="btn btn-sm btn-soft-info" :disabled="linea.usarImagenProducto"
+                                    @click="usarImagenDelProducto(index)">
+                                    <i class="fa-solid fa-copy"></i>
+                                    Usar imagen del producto
+                                </button>
+                                <button v-if="linea.imagen || previewExistente(linea)" type="button"
+                                    class="btn btn-sm btn-soft-secondary" @click="quitarImagenLinea(index)">
+                                    <i class="fa-solid fa-xmark"></i>
+                                    Quitar imagen
+                                </button>
                             </div>
                         </div>
                         <p v-if="form.errors[`detalles.${index}.imagen`]" class="form-error">
@@ -892,4 +1010,28 @@ function submit() {
             </button>
         </div>
     </form>
+
+    <ClienteQuickCreateModal :show="mostrarModalCliente" @close="mostrarModalCliente = false"
+        @created="onClienteCreado" />
+
+    <QuickCreateModal :show="mostrarModalEmpleado" title="Nuevo empleado" route-name="empleados.rapido"
+        :initial-data="empleadoVacio" submit-label="Crear empleado"
+        hint="Se guarda de una vez en el catálogo de empleados; al terminar queda elegido como vendedor."
+        @close="mostrarModalEmpleado = false" @created="onEmpleadoCreado">
+        <template #default="{ form: empleadoForm, errors: empleadoErrors }">
+            <EmpleadoFormFields :form="empleadoForm" :errors="empleadoErrors" :sucursales="sucursales" :areas="areas"
+                :cargos="cargosEmpleado" />
+        </template>
+    </QuickCreateModal>
+
+    <QuickCreateModal :show="mostrarModalProducto" title="Nuevo producto" route-name="productos.rapido"
+        :initial-data="productoVacio" submit-label="Crear producto"
+        hint="Se guarda de una vez en el catálogo de productos (sin imagen — se puede agregar después desde Productos); al terminar queda elegido en esta línea."
+        @close="mostrarModalProducto = false" @created="onProductoCreado">
+        <template #default="{ form: productoForm, errors: productoErrors }">
+            <ProductoFormFields :form="productoForm" :errors="productoErrors"
+                :categorias-producto="categoriasProductoDisponibles" />
+        </template>
+    </QuickCreateModal>
+    </div>
 </template>

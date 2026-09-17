@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProductoMaterial\StoreProductoMaterialRequest;
 use App\Http\Requests\ProductoMaterial\UpdateProductoMaterialRequest;
+use App\Models\CategoriaMaterial;
 use App\Models\Formula;
 use App\Models\Material;
 use App\Models\Producto;
@@ -32,6 +33,9 @@ class ProductoMaterialController extends Controller
                 ->get(),
             'materiales' => Material::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre', 'unidad_medida', 'precio_unitario']),
             'formulas' => Formula::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre', 'expresion', 'descripcion']),
+            // Solo para el modal de alta rápida "Nuevo material" embebido en
+            // el formulario — ver Components/QuickCreateModal.vue.
+            'categoriasMaterial' => CategoriaMaterial::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
             'pageTitle' => "Receta — {$producto->nombre}",
             'breadcrumbs' => ['Catálogo de Productos', 'Productos', 'Receta'],
         ]);

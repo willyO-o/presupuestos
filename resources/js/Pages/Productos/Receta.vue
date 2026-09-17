@@ -4,6 +4,9 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
+import QuickCreateModal from '@/Components/QuickCreateModal.vue';
+import MaterialFormFields from '@/Components/Material/MaterialFormFields.vue';
 import { confirmation } from '@/Utils/AlertUtil';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -25,7 +28,39 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    // Solo alimenta el modal de alta rápida "Nuevo material" — ver
+    // Components/QuickCreateModal.vue.
+    categoriasMaterial: {
+        type: Array,
+        default: () => [],
+    },
 });
+
+/* ── Alta rápida de material ──────────────────────────────────────────── */
+
+const materialesDisponibles = ref([...props.materiales]);
+const mostrarModalMaterial = ref(false);
+
+function materialVacio() {
+    return {
+        categoria_material_id: props.categoriasMaterial[0]?.id ?? '',
+        nombre: '',
+        presentacion: '',
+        unidad_medida: 'M2',
+        precio_presentacion: '',
+        precio_unitario: '',
+        stock_actual: 0,
+        stock_minimo: 0,
+        redondeo_compra: '',
+        estado: 'ACTIVO',
+    };
+}
+
+function onMaterialCreado(material) {
+    materialesDisponibles.value = [material, ...materialesDisponibles.value];
+    form.material_id = material.id;
+    mostrarModalMaterial.value = false;
+}
 
 const headers = [
     { label: 'Material', key: 'material' },
@@ -34,7 +69,7 @@ const headers = [
 ];
 
 function nombreMaterial(materialId) {
-    return props.materiales.find((material) => material.id === materialId)?.nombre ?? '—';
+    return materialesDisponibles.value.find((material) => material.id === materialId)?.nombre ?? '—';
 }
 
 /* ── Modal agregar / editar línea ────────────────────────────────────── */
@@ -199,13 +234,16 @@ async function confirmDelete(linea) {
         <form @submit.prevent="submitForm">
             <div class="card-body">
                 <div class="form-group">
-                    <label class="form-label" for="material_id">Material</label>
-                    <select id="material_id" v-model="form.material_id" class="form-control"
-                        :class="{ 'is-invalid': form.errors.material_id }" required>
-                        <option v-for="material in materiales" :key="material.id" :value="material.id">
-                            {{ material.nombre }}
-                        </option>
-                    </select>
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label mb-0" for="material_id">Material</label>
+                        <button v-can="'materiales.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                            @click="mostrarModalMaterial = true">
+                            <i class="fa-solid fa-plus"></i>
+                            Nuevo material
+                        </button>
+                    </div>
+                    <SearchableSelect id="material_id" v-model="form.material_id" :options="materialesDisponibles"
+                        option-label="nombre" placeholder="Selecciona un material" :invalid="!!form.errors.material_id" />
                     <p v-if="form.errors.material_id" class="form-error">
                         {{ form.errors.material_id }}
                     </p>
@@ -273,4 +311,13 @@ async function confirmDelete(linea) {
             </div>
         </form>
     </Modal>
+
+    <QuickCreateModal :show="mostrarModalMaterial" title="Nuevo material" route-name="materiales.rapido"
+        :initial-data="materialVacio" submit-label="Crear material"
+        hint="Se guarda de una vez en el catálogo de materiales; al terminar queda elegido en esta línea de receta."
+        @close="mostrarModalMaterial = false" @created="onMaterialCreado">
+        <template #default="{ form: materialForm, errors: materialErrors }">
+            <MaterialFormFields :form="materialForm" :errors="materialErrors" :categorias-material="categoriasMaterial" />
+        </template>
+    </QuickCreateModal>
 </template>

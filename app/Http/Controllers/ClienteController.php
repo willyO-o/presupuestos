@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Cliente\StoreClienteRequest;
 use App\Http\Requests\Cliente\UpdateClienteRequest;
 use App\Models\Cliente;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -39,6 +40,20 @@ class ClienteController extends Controller
 
         return redirect()->route('clientes.index')
             ->with('success', 'Cliente creado correctamente.');
+    }
+
+    /**
+     * Alta rápida desde el modal embebido en otro formulario (por ahora,
+     * la línea "Cliente" de Cotizaciones/Partials/CotizacionForm.vue): misma
+     * validación y permiso que `store`, pero responde JSON con el cliente
+     * recién creado en vez de redirigir — así el formulario que lo abrió
+     * puede seguir donde estaba y preseleccionarlo.
+     */
+    public function storeRapido(StoreClienteRequest $request): JsonResponse
+    {
+        $cliente = Cliente::create($request->validated());
+
+        return response()->json($cliente);
     }
 
     public function update(UpdateClienteRequest $request, Cliente $cliente): RedirectResponse

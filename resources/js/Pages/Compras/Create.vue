@@ -10,6 +10,10 @@ defineProps({
     empleados: { type: Array, default: () => [] },
     materiales: { type: Array, default: () => [] },
     empleadoActualId: { type: [Number, String], default: null },
+    categoriasMaterial: { type: Array, default: () => [] },
+    sucursales: { type: Array, default: () => [] },
+    areas: { type: Array, default: () => [] },
+    cargosEmpleado: { type: Array, default: () => [] },
 });
 </script>
 
@@ -17,5 +21,6 @@ defineProps({
     <Head title="Nueva compra" />
 
     <CompraForm :proveedores="proveedores" :empleados="empleados" :materiales="materiales"
-        :empleado-actual-id="empleadoActualId" />
+        :empleado-actual-id="empleadoActualId" :categorias-material="categoriasMaterial" :sucursales="sucursales"
+        :areas="areas" :cargos-empleado="cargosEmpleado" />
 </template>

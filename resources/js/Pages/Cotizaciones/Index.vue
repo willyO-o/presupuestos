@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -102,10 +103,8 @@ async function eliminar(cotizacion) {
                 </div>
                 <div class="col-lg-3">
                     <label class="form-label" for="f-cliente">Cliente</label>
-                    <select id="f-cliente" v-model="table.filters.cliente" class="form-control">
-                        <option value="">Todos</option>
-                        <option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.razon_social }}</option>
-                    </select>
+                    <SearchableSelect id="f-cliente" v-model="table.filters.cliente" :options="clientes"
+                        option-label="razon_social" placeholder="Todos" />
                 </div>
                 <div class="col-lg-2">
                     <label class="form-label" for="f-sucursal">Sucursal</label>

@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import ClientePortalLayout from '@/Layouts/ClientePortalLayout.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { showError } from '@/Utils/AlertUtil';
 
 defineOptions({ layout: ClientePortalLayout });
@@ -76,10 +77,8 @@ function submit() {
                         <div class="col-lg-4">
                             <div class="form-group">
                                 <label class="form-label">Producto (opcional)</label>
-                                <select v-model="linea.producto_id" class="form-control" @change="onProducto(i)">
-                                    <option value="">Otro / no listado</option>
-                                    <option v-for="p in productos" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-                                </select>
+                                <SearchableSelect v-model="linea.producto_id" :options="productos" option-label="nombre"
+                                    placeholder="Otro / no listado" @update:model-value="onProducto(i)" />
                             </div>
                         </div>
                         <div class="col-lg-8">

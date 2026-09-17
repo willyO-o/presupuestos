@@ -15,6 +15,9 @@ defineProps({
     tiposItem: { type: Object, default: () => ({}) },
     empleadoActualId: { type: [Number, String], default: null },
     config: { type: Object, required: true },
+    categoriasProducto: { type: Array, default: () => [] },
+    areas: { type: Array, default: () => [] },
+    cargosEmpleado: { type: Array, default: () => [] },
 });
 </script>
 
@@ -22,5 +25,6 @@ defineProps({
     <Head :title="`Editar ${cotizacion.codigo_verificacion}`" />
 
     <CotizacionForm :cotizacion="cotizacion" :clientes="clientes" :empleados="empleados" :sucursales="sucursales"
-        :productos="productos" :tipos-proyecto="tiposProyecto" :tipos-item="tiposItem" :empleado-actual-id="empleadoActualId" :config="config" />
+        :productos="productos" :tipos-proyecto="tiposProyecto" :tipos-item="tiposItem" :empleado-actual-id="empleadoActualId" :config="config"
+        :categorias-producto="categoriasProducto" :areas="areas" :cargos-empleado="cargosEmpleado" />
 </template>

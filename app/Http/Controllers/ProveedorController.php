@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Proveedor\StoreProveedorRequest;
 use App\Http\Requests\Proveedor\UpdateProveedorRequest;
 use App\Models\Proveedor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -39,6 +40,19 @@ class ProveedorController extends Controller
 
         return redirect()->route('proveedores.index')
             ->with('success', 'Proveedor creado correctamente.');
+    }
+
+    /**
+     * Alta rápida desde el modal embebido en otro formulario (la cabecera
+     * de Compras/Partials/CompraForm.vue): misma validación y permiso que
+     * `store`, pero responde JSON en vez de redirigir — ver
+     * ClienteController::storeRapido.
+     */
+    public function storeRapido(StoreProveedorRequest $request): JsonResponse
+    {
+        $proveedor = Proveedor::create($request->validated());
+
+        return response()->json($proveedor);
     }
 
     public function update(UpdateProveedorRequest $request, Proveedor $proveedor): RedirectResponse

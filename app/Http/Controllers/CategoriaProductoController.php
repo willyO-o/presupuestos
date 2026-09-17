@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CategoriaProducto\StoreCategoriaProductoRequest;
 use App\Http\Requests\CategoriaProducto\UpdateCategoriaProductoRequest;
 use App\Models\CategoriaProducto;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -39,6 +40,18 @@ class CategoriaProductoController extends Controller
 
         return redirect()->route('categorias-producto.index')
             ->with('success', 'Categoría de producto creada correctamente.');
+    }
+
+    /**
+     * Alta rápida desde el modal embebido en el formulario de Productos
+     * (Productos/Index.vue): misma validación y permiso que `store`, pero
+     * responde JSON en vez de redirigir — ver ClienteController::storeRapido.
+     */
+    public function storeRapido(StoreCategoriaProductoRequest $request): JsonResponse
+    {
+        $categoria = CategoriaProducto::create($request->validated());
+
+        return response()->json($categoria);
     }
 
     public function update(UpdateCategoriaProductoRequest $request, CategoriaProducto $categoriaProducto): RedirectResponse

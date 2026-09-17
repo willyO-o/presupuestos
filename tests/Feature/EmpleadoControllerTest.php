@@ -264,3 +264,49 @@ test('super-admin bypasses individual permissions', function () {
         ->get(route('empleados.index'))
         ->assertOk();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Alta rápida (modal embebido en Cotizaciones, Compras y Notas de entrega,
+| ver Components/Empleado/EmpleadoFormFields.vue): responde JSON en vez de
+| redirigir, para no navegar fuera de ese formulario.
+|--------------------------------------------------------------------------
+*/
+
+test('a user with permission can quick-create an empleado and gets it back as json', function () {
+    $sucursal = Sucursal::factory()->create();
+    $area = Area::factory()->create();
+    $user = userWithEmpleadoPermissions('empleados.crear');
+
+    $response = $this->actingAs($user)->postJson(route('empleados.rapido'), [
+        'sucursal_id' => $sucursal->id,
+        'area_id' => $area->id,
+        'nombres' => 'Lucía',
+        'paterno' => 'Fernández',
+        'ci' => '9988776',
+        'cargo' => 'Vendedor',
+        'fecha_ingreso' => '2026-02-01',
+        'estado' => 'ACTIVO',
+    ]);
+
+    $response->assertOk()->assertJsonPath('nombres', 'Lucía');
+    $this->assertDatabaseHas('empleado', ['nombres' => 'Lucía', 'ci' => '9988776']);
+});
+
+test('a user without permission cannot quick-create an empleado', function () {
+    $sucursal = Sucursal::factory()->create();
+    $area = Area::factory()->create();
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->postJson(route('empleados.rapido'), [
+        'sucursal_id' => $sucursal->id,
+        'area_id' => $area->id,
+        'nombres' => 'Lucía',
+        'ci' => '9988776',
+        'cargo' => 'Vendedor',
+        'fecha_ingreso' => '2026-02-01',
+        'estado' => 'ACTIVO',
+    ])->assertForbidden();
+
+    $this->assertDatabaseCount('empleado', 0);
+});

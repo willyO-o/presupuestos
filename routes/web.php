@@ -117,6 +117,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/categorias-producto', [CategoriaProductoController::class, 'store'])
         ->middleware('can:categorias-producto.crear')
         ->name('categorias-producto.store');
+    // JSON, no Inertia: la usa el modal de alta rápida embebido en el
+    // formulario de Productos — ver ClienteController::storeRapido.
+    Route::post('/categorias-producto/rapido', [CategoriaProductoController::class, 'storeRapido'])
+        ->middleware('can:categorias-producto.crear')
+        ->name('categorias-producto.rapido');
     Route::put('/categorias-producto/{categoriaProducto}', [CategoriaProductoController::class, 'update'])
         ->middleware('can:categorias-producto.editar')
         ->name('categorias-producto.update');
@@ -130,6 +135,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/proveedores', [ProveedorController::class, 'store'])
         ->middleware('can:proveedores.crear')
         ->name('proveedores.store');
+    // JSON, no Inertia: la usa el modal de alta rápida embebido en la
+    // cabecera de Compras — ver ClienteController::storeRapido.
+    Route::post('/proveedores/rapido', [ProveedorController::class, 'storeRapido'])
+        ->middleware('can:proveedores.crear')
+        ->name('proveedores.rapido');
     Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])
         ->middleware('can:proveedores.editar')
         ->name('proveedores.update');
@@ -156,6 +166,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/empleados', [EmpleadoController::class, 'store'])
         ->middleware('can:empleados.crear')
         ->name('empleados.store');
+    // JSON, no Inertia: la usa el modal de alta rápida embebido en los
+    // formularios que eligen un "responsable"/"vendedor"/"entregado por" —
+    // ver ClienteController::storeRapido.
+    Route::post('/empleados/rapido', [EmpleadoController::class, 'storeRapido'])
+        ->middleware('can:empleados.crear')
+        ->name('empleados.rapido');
     Route::put('/empleados/{empleado}', [EmpleadoController::class, 'update'])
         ->middleware('can:empleados.editar')
         ->name('empleados.update');
@@ -169,6 +185,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/clientes', [ClienteController::class, 'store'])
         ->middleware('can:clientes.crear')
         ->name('clientes.store');
+    // JSON, no Inertia: la usa el modal de alta rápida embebido en otros
+    // formularios (por ahora, Cotizaciones/Partials/CotizacionForm.vue). Un
+    // POST normal navegaría a clientes.index y perdería lo que el vendedor
+    // ya cargó en el formulario que la abrió.
+    Route::post('/clientes/rapido', [ClienteController::class, 'storeRapido'])
+        ->middleware('can:clientes.crear')
+        ->name('clientes.rapido');
     Route::put('/clientes/{cliente}', [ClienteController::class, 'update'])
         ->middleware('can:clientes.editar')
         ->name('clientes.update');
@@ -182,6 +205,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/materiales', [MaterialController::class, 'store'])
         ->middleware('can:materiales.crear')
         ->name('materiales.store');
+    // JSON, no Inertia: la usa el modal de alta rápida embebido en la línea
+    // de Compras, el consumo de Pedidos y la receta de un producto — ver
+    // ClienteController::storeRapido.
+    Route::post('/materiales/rapido', [MaterialController::class, 'storeRapido'])
+        ->middleware('can:materiales.crear')
+        ->name('materiales.rapido');
     Route::put('/materiales/{material}', [MaterialController::class, 'update'])
         ->middleware('can:materiales.editar')
         ->name('materiales.update');
@@ -195,6 +224,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/productos', [ProductoController::class, 'store'])
         ->middleware('can:productos.crear')
         ->name('productos.store');
+    // JSON, no Inertia: la usa el modal de alta rápida embebido en la línea
+    // "Producto" de Cotizaciones — ver ClienteController::storeRapido.
+    Route::post('/productos/rapido', [ProductoController::class, 'storeRapido'])
+        ->middleware('can:productos.crear')
+        ->name('productos.rapido');
     Route::put('/productos/{producto}', [ProductoController::class, 'update'])
         ->middleware('can:productos.editar')
         ->name('productos.update');

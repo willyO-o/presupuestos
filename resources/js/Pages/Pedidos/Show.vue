@@ -3,6 +3,8 @@ import { computed, ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import Modal from '@/Components/Modal.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
+import FileDropzone from '@/Components/FileDropzone.vue';
 import { confirmation } from '@/Utils/AlertUtil';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -45,6 +47,11 @@ function fechaHora(value) {
 function nombreEmpleado(e) {
     if (!e) return '—';
     return [e.nombres, e.paterno, e.materno].filter(Boolean).join(' ');
+}
+
+/** Etiqueta del select de responsable: nombre + cargo entre paréntesis. */
+function etiquetaEmpleado(e) {
+    return e.cargo ? `${nombreEmpleado(e)} (${e.cargo})` : nombreEmpleado(e);
 }
 
 function pasoIndex(estado) {
@@ -526,11 +533,8 @@ async function cancelarPedido() {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Responsable</label>
-                    <select v-model="areaForm.empleado_id" class="form-control" required>
-                        <option v-for="e in empleados" :key="e.id" :value="e.id">
-                            {{ nombreEmpleado(e) }}<span v-if="e.cargo"> ({{ e.cargo }})</span>
-                        </option>
-                    </select>
+                    <SearchableSelect v-model="areaForm.empleado_id" :options="empleados" :option-label="etiquetaEmpleado"
+                        placeholder="Selecciona un responsable" :invalid="!!areaForm.errors.empleado_id" />
                     <p v-if="areaForm.errors.empleado_id" class="form-error">{{ areaForm.errors.empleado_id }}</p>
                 </div>
                 <div class="form-group">
@@ -594,8 +598,8 @@ async function cancelarPedido() {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Comprobante (opcional)</label>
-                    <input type="file" accept="image/*,application/pdf" class="form-control"
-                        @input="pagoForm.comprobante = $event.target.files[0]" />
+                    <FileDropzone v-model="pagoForm.comprobante" accept="image/*,application/pdf"
+                        :invalid="!!pagoForm.errors.comprobante" />
                     <p v-if="pagoForm.errors.comprobante" class="form-error">{{ pagoForm.errors.comprobante }}</p>
                 </div>
             </div>
@@ -609,9 +613,8 @@ async function cancelarPedido() {
             <div class="card-body">
                 <div class="form-group">
                     <label class="form-label">Material</label>
-                    <select v-model="consumoForm.material_id" class="form-control" required>
-                        <option v-for="m in materiales" :key="m.id" :value="m.id">{{ m.nombre }}</option>
-                    </select>
+                    <SearchableSelect v-model="consumoForm.material_id" :options="materiales" option-label="nombre"
+                        placeholder="Selecciona un material" :invalid="!!consumoForm.errors.material_id" />
                     <p v-if="consumoForm.errors.material_id" class="form-error">{{ consumoForm.errors.material_id }}</p>
                 </div>
                 <div class="form-group">

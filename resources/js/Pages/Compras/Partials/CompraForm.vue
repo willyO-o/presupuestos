@@ -1,6 +1,11 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
+import QuickCreateModal from '@/Components/QuickCreateModal.vue';
+import ProveedorFormFields from '@/Components/Proveedor/ProveedorFormFields.vue';
+import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
+import MaterialFormFields from '@/Components/Material/MaterialFormFields.vue';
 import { showError } from '@/Utils/AlertUtil';
 
 /**
@@ -14,9 +19,94 @@ const props = defineProps({
     empleados: { type: Array, default: () => [] },
     materiales: { type: Array, default: () => [] },
     empleadoActualId: { type: [Number, String], default: null },
+    // Solo alimentan los modales de alta rápida (Nuevo proveedor/
+    // responsable/material) — ver Components/QuickCreateModal.vue.
+    categoriasMaterial: { type: Array, default: () => [] },
+    sucursales: { type: Array, default: () => [] },
+    areas: { type: Array, default: () => [] },
+    cargosEmpleado: { type: Array, default: () => [] },
 });
 
 const esEdicion = computed(() => !!props.compra);
+
+/* ── Alta rápida de proveedor ─────────────────────────────────────────── */
+
+const proveedoresDisponibles = ref([...props.proveedores]);
+const mostrarModalProveedor = ref(false);
+
+function proveedorVacio() {
+    return { nombre: '', nit: '', contacto: '', telefono: '', direccion: '', estado: 'ACTIVO' };
+}
+
+function onProveedorCreado(proveedor) {
+    proveedoresDisponibles.value = [proveedor, ...proveedoresDisponibles.value];
+    form.proveedor_id = proveedor.id;
+    mostrarModalProveedor.value = false;
+}
+
+/* ── Alta rápida de empleado (responsable) ───────────────────────────── */
+
+const empleadosDisponibles = ref([...props.empleados]);
+const mostrarModalEmpleado = ref(false);
+
+function empleadoVacio() {
+    return {
+        user_id: '',
+        sucursal_id: props.sucursales[0]?.id ?? '',
+        area_id: props.areas[0]?.id ?? '',
+        nombres: '',
+        paterno: '',
+        materno: '',
+        ci: '',
+        cargo: '',
+        telefono: '',
+        fecha_ingreso: new Date().toISOString().slice(0, 10),
+        estado: 'ACTIVO',
+    };
+}
+
+function onEmpleadoCreado(empleado) {
+    empleadosDisponibles.value = [empleado, ...empleadosDisponibles.value];
+    form.empleado_id = empleado.id;
+    mostrarModalEmpleado.value = false;
+}
+
+/* ── Alta rápida de material (por línea) ─────────────────────────────── */
+
+const materialesDisponibles = ref([...props.materiales]);
+const mostrarModalMaterial = ref(false);
+const lineaModalMaterial = ref(null);
+
+function materialVacio() {
+    return {
+        categoria_material_id: props.categoriasMaterial[0]?.id ?? '',
+        nombre: '',
+        presentacion: '',
+        unidad_medida: 'M2',
+        precio_presentacion: '',
+        precio_unitario: '',
+        stock_actual: 0,
+        stock_minimo: 0,
+        redondeo_compra: '',
+        estado: 'ACTIVO',
+    };
+}
+
+function abrirModalMaterial(index) {
+    lineaModalMaterial.value = index;
+    mostrarModalMaterial.value = true;
+}
+
+function onMaterialCreado(material) {
+    materialesDisponibles.value = [material, ...materialesDisponibles.value];
+
+    if (lineaModalMaterial.value !== null) {
+        form.detalles[lineaModalMaterial.value].material_id = material.id;
+        onMaterialChange(lineaModalMaterial.value);
+    }
+
+    mostrarModalMaterial.value = false;
+}
 
 function toDateInput(value) {
     return value ? String(value).slice(0, 10) : '';
@@ -47,7 +137,7 @@ const form = useForm(() => ({
 }));
 
 function materialDe(id) {
-    return props.materiales.find((m) => m.id === Number(id)) ?? null;
+    return materialesDisponibles.value.find((m) => m.id === Number(id)) ?? null;
 }
 
 function onMaterialChange(index) {
@@ -81,6 +171,18 @@ function nombreEmpleado(e) {
     return [e.nombres, e.paterno, e.materno].filter(Boolean).join(' ');
 }
 
+function etiquetaEmpleado(e) {
+    return e.cargo ? `${nombreEmpleado(e)} (${e.cargo})` : nombreEmpleado(e);
+}
+
+function etiquetaProveedor(p) {
+    return p.nit ? `${p.nombre} — ${p.nit}` : p.nombre;
+}
+
+function etiquetaMaterial(m) {
+    return m.presentacion ? `${m.nombre} — ${m.presentacion}` : m.nombre;
+}
+
 function submit() {
     form.transform((data) => ({
         ...data,
@@ -102,6 +204,10 @@ function submit() {
 </script>
 
 <template>
+    <!-- Envoltorio para que los QuickCreateModal (cada uno con su propio
+         <form>) queden FUERA del <form> de la compra — ver el mismo
+         comentario en CotizacionForm.vue. -->
+    <div>
     <form @submit.prevent="submit">
         <div class="card mb-4">
             <div class="card-header">
@@ -111,27 +217,33 @@ function submit() {
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label class="form-label" for="proveedor_id">Proveedor</label>
-                            <select id="proveedor_id" v-model="form.proveedor_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.proveedor_id }" required>
-                                <option value="" disabled>Selecciona un proveedor</option>
-                                <option v-for="p in proveedores" :key="p.id" :value="p.id">
-                                    {{ p.nombre }}<span v-if="p.nit"> — {{ p.nit }}</span>
-                                </option>
-                            </select>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label mb-0" for="proveedor_id">Proveedor</label>
+                                <button v-can="'proveedores.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                                    @click="mostrarModalProveedor = true">
+                                    <i class="fa-solid fa-plus"></i>
+                                    Nuevo proveedor
+                                </button>
+                            </div>
+                            <SearchableSelect id="proveedor_id" v-model="form.proveedor_id" :options="proveedoresDisponibles"
+                                :option-label="etiquetaProveedor" placeholder="Selecciona un proveedor"
+                                :invalid="!!form.errors.proveedor_id" />
                             <p v-if="form.errors.proveedor_id" class="form-error">{{ form.errors.proveedor_id }}</p>
                         </div>
                     </div>
                     <div class="col-lg-6">
                         <div class="form-group">
-                            <label class="form-label" for="empleado_id">Responsable</label>
-                            <select id="empleado_id" v-model="form.empleado_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.empleado_id }" required>
-                                <option value="" disabled>Selecciona un responsable</option>
-                                <option v-for="e in empleados" :key="e.id" :value="e.id">
-                                    {{ nombreEmpleado(e) }}<span v-if="e.cargo"> ({{ e.cargo }})</span>
-                                </option>
-                            </select>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label mb-0" for="empleado_id">Responsable</label>
+                                <button v-can="'empleados.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                                    @click="mostrarModalEmpleado = true">
+                                    <i class="fa-solid fa-plus"></i>
+                                    Nuevo empleado
+                                </button>
+                            </div>
+                            <SearchableSelect id="empleado_id" v-model="form.empleado_id" :options="empleadosDisponibles"
+                                :option-label="etiquetaEmpleado" placeholder="Selecciona un responsable"
+                                :invalid="!!form.errors.empleado_id" />
                             <p v-if="form.errors.empleado_id" class="form-error">{{ form.errors.empleado_id }}</p>
                         </div>
                     </div>
@@ -183,15 +295,18 @@ function submit() {
                     <div class="row">
                         <div class="col-lg-5">
                             <div class="form-group">
-                                <label class="form-label">Material</label>
-                                <select v-model="linea.material_id" class="form-control"
-                                    :class="{ 'is-invalid': form.errors[`detalles.${index}.material_id`] }" required
-                                    @change="onMaterialChange(index)">
-                                    <option value="" disabled>Selecciona un material</option>
-                                    <option v-for="m in materiales" :key="m.id" :value="m.id">
-                                        {{ m.nombre }}<span v-if="m.presentacion"> — {{ m.presentacion }}</span>
-                                    </option>
-                                </select>
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label mb-0">Material</label>
+                                    <button v-can="'materiales.crear'" type="button" class="btn btn-sm btn-soft-primary"
+                                        @click="abrirModalMaterial(index)">
+                                        <i class="fa-solid fa-plus"></i>
+                                        Nuevo
+                                    </button>
+                                </div>
+                                <SearchableSelect v-model="linea.material_id" :options="materialesDisponibles"
+                                    :option-label="etiquetaMaterial" placeholder="Selecciona un material"
+                                    :invalid="!!form.errors[`detalles.${index}.material_id`]"
+                                    @update:model-value="onMaterialChange(index)" />
                                 <p v-if="form.errors[`detalles.${index}.material_id`]" class="form-error">
                                     {{ form.errors[`detalles.${index}.material_id`] }}
                                 </p>
@@ -247,4 +362,33 @@ function submit() {
             </button>
         </div>
     </form>
+
+    <QuickCreateModal :show="mostrarModalProveedor" title="Nuevo proveedor" route-name="proveedores.rapido"
+        :initial-data="proveedorVacio" submit-label="Crear proveedor" max-width="md"
+        hint="Se guarda de una vez en el catálogo de proveedores; al terminar queda elegido en esta compra."
+        @close="mostrarModalProveedor = false" @created="onProveedorCreado">
+        <template #default="{ form: proveedorForm, errors: proveedorErrors }">
+            <ProveedorFormFields :form="proveedorForm" :errors="proveedorErrors" />
+        </template>
+    </QuickCreateModal>
+
+    <QuickCreateModal :show="mostrarModalEmpleado" title="Nuevo empleado" route-name="empleados.rapido"
+        :initial-data="empleadoVacio" submit-label="Crear empleado"
+        hint="Se guarda de una vez en el catálogo de empleados; al terminar queda elegido como responsable."
+        @close="mostrarModalEmpleado = false" @created="onEmpleadoCreado">
+        <template #default="{ form: empleadoForm, errors: empleadoErrors }">
+            <EmpleadoFormFields :form="empleadoForm" :errors="empleadoErrors" :sucursales="sucursales" :areas="areas"
+                :cargos="cargosEmpleado" />
+        </template>
+    </QuickCreateModal>
+
+    <QuickCreateModal :show="mostrarModalMaterial" title="Nuevo material" route-name="materiales.rapido"
+        :initial-data="materialVacio" submit-label="Crear material"
+        hint="Se guarda de una vez en el catálogo de materiales; al terminar queda elegido en esta línea."
+        @close="mostrarModalMaterial = false" @created="onMaterialCreado">
+        <template #default="{ form: materialForm, errors: materialErrors }">
+            <MaterialFormFields :form="materialForm" :errors="materialErrors" :categorias-material="categoriasMaterial" />
+        </template>
+    </QuickCreateModal>
+    </div>
 </template>

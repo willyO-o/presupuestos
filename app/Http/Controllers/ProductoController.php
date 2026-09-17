@@ -7,6 +7,7 @@ use App\Http\Requests\Producto\UpdateProductoRequest;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
 use App\Services\Imagen\ConvierteImagenAJpgService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
@@ -53,6 +54,20 @@ class ProductoController extends Controller
 
         return redirect()->route('productos.index')
             ->with('success', 'Producto creado correctamente.');
+    }
+
+    /**
+     * Alta rápida desde el modal embebido en la línea "Producto" de
+     * Cotizaciones/Partials/CotizacionForm.vue: misma validación y permiso
+     * que `store`, pero responde JSON en vez de redirigir — ver
+     * ClienteController::storeRapido. Sin imagen: es JSON, no multipart: la
+     * imagen se agrega después desde Productos si hace falta.
+     */
+    public function storeRapido(StoreProductoRequest $request): JsonResponse
+    {
+        $producto = Producto::create($request->safe()->except('imagen'));
+
+        return response()->json($producto);
     }
 
     public function update(UpdateProductoRequest $request, Producto $producto): RedirectResponse

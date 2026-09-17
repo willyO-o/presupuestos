@@ -4,6 +4,11 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
+import FileDropzone from '@/Components/FileDropzone.vue';
+import QuickCreateModal from '@/Components/QuickCreateModal.vue';
+import ProductoFormFields from '@/Components/Producto/ProductoFormFields.vue';
+import CategoriaProductoFormFields from '@/Components/CategoriaProducto/CategoriaProductoFormFields.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -23,6 +28,22 @@ const props = defineProps({
         default: () => ({}),
     },
 });
+
+// Copia local editable: props.categoriasProducto no se puede mutar, y una
+// categoría recién creada tiene que aparecer YA en el filtro y en el
+// formulario, sin recargar la página.
+const categoriasDisponibles = ref([...props.categoriasProducto]);
+const mostrarModalCategoria = ref(false);
+
+function categoriaVacia() {
+    return { nombre: '', estado: 'ACTIVO' };
+}
+
+function onCategoriaCreada(categoria) {
+    categoriasDisponibles.value = [categoria, ...categoriasDisponibles.value];
+    form.categoria_producto_id = categoria.id;
+    mostrarModalCategoria.value = false;
+}
 
 /**
  * Filtros manuales: solo se consultan al enviar el formulario (botón
@@ -162,12 +183,8 @@ async function confirmDelete(producto) {
 
                 <div class="col-lg-3">
                     <label class="form-label" for="filter-categoria">Categoría</label>
-                    <select id="filter-categoria" v-model="table.filters.categoria" class="form-control">
-                        <option value="">Todas</option>
-                        <option v-for="categoria in categoriasProducto" :key="categoria.id" :value="categoria.id">
-                            {{ categoria.nombre }}
-                        </option>
-                    </select>
+                    <SearchableSelect id="filter-categoria" v-model="table.filters.categoria" :options="categoriasDisponibles"
+                        option-label="nombre" placeholder="Todas" />
                 </div>
 
                 <div class="col-lg-2">
@@ -280,118 +297,14 @@ async function confirmDelete(producto) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="categoria_producto_id">Categoría</label>
-                            <select id="categoria_producto_id" v-model="form.categoria_producto_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.categoria_producto_id }" required>
-                                <option v-for="categoria in categoriasProducto" :key="categoria.id" :value="categoria.id">
-                                    {{ categoria.nombre }}
-                                </option>
-                            </select>
-                            <p v-if="form.errors.categoria_producto_id" class="form-error">
-                                {{ form.errors.categoria_producto_id }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="nombre">Nombre</label>
-                            <input id="nombre" v-model="form.nombre" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.nombre }" required autofocus />
-                            <p v-if="form.errors.nombre" class="form-error">
-                                {{ form.errors.nombre }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="descripcion">Descripción</label>
-                    <textarea id="descripcion" v-model="form.descripcion" class="form-control" rows="2"
-                        :class="{ 'is-invalid': form.errors.descripcion }"></textarea>
-                    <p v-if="form.errors.descripcion" class="form-error">
-                        {{ form.errors.descripcion }}
-                    </p>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="unidad_medida">Unidad de medida</label>
-                            <select id="unidad_medida" v-model="form.unidad_medida" class="form-control">
-                                <option v-for="unidad in unidadesMedida" :key="unidad.value" :value="unidad.value">
-                                    {{ unidad.label }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="precio_base">Precio base (Bs)</label>
-                            <input id="precio_base" v-model="form.precio_base" type="number" step="0.01" min="0"
-                                class="form-control" :class="{ 'is-invalid': form.errors.precio_base }" />
-                            <p v-if="form.errors.precio_base" class="form-error">
-                                {{ form.errors.precio_base }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="requiere_medidas">¿Pide medidas al cotizar?</label>
-                            <select id="requiere_medidas" v-model="form.requiere_medidas" class="form-control">
-                                <option value="SI">Sí</option>
-                                <option value="NO">No</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="cotizable_web">¿Se ofrece en el cotizador web?</label>
-                            <select id="cotizable_web" v-model="form.cotizable_web" class="form-control">
-                                <option value="NO">No</option>
-                                <option value="SI">Sí, publicarlo</option>
-                            </select>
-                            <p v-if="form.errors.cotizable_web" class="form-error">
-                                {{ form.errors.cotizable_web }}
-                            </p>
-                            <p class="fs-sm text-muted mt-1">
-                                Aparece en /cotizador solo si además tiene receta (BOM) cargada:
-                                sin receta no hay costo que calcular.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="estado">Estado</label>
-                            <select id="estado" v-model="form.estado" class="form-control">
-                                <option value="ACTIVO">Activo</option>
-                                <option value="INACTIVO">Inactivo</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                <ProductoFormFields :form="form" :errors="form.errors" :categorias-producto="categoriasDisponibles"
+                    permite-crear-categoria @crear-categoria="mostrarModalCategoria = true" />
 
                 <div class="form-group">
                     <label class="form-label">Imagen referencial (opcional)</label>
-                    <div class="d-flex align-items-center gap-3">
-                        <img v-if="editingProducto?.imagen_url" :src="editingProducto.imagen_url" alt=""
-                            class="article-thumb" />
-                        <input type="file" accept="image/*" class="form-control"
-                            @input="form.imagen = $event.target.files[0]" />
-                    </div>
-                    <p class="fs-xs text-muted mt-1 mb-0">
-                        Se convierte a JPG automáticamente para pesar menos en el servidor. Se puede reutilizar como
-                        imagen de referencia al armar una línea de cotización.
-                    </p>
+                    <FileDropzone v-model="form.imagen" :preview="editingProducto?.imagen_url" accept="image/*"
+                        :invalid="!!form.errors.imagen"
+                        hint="Se convierte a JPG automáticamente. Se puede reutilizar al armar una línea de cotización." />
                     <p v-if="form.errors.imagen" class="form-error">{{ form.errors.imagen }}</p>
                 </div>
             </div>
@@ -409,4 +322,13 @@ async function confirmDelete(producto) {
             </div>
         </form>
     </Modal>
+
+    <QuickCreateModal :show="mostrarModalCategoria" title="Nueva categoría de producto"
+        route-name="categorias-producto.rapido" :initial-data="categoriaVacia" submit-label="Crear categoría"
+        hint="Se guarda de una vez en el catálogo de categorías; al terminar queda elegida en este producto."
+        max-width="md" @close="mostrarModalCategoria = false" @created="onCategoriaCreada">
+        <template #default="{ form: categoriaForm, errors: categoriaErrors }">
+            <CategoriaProductoFormFields :form="categoriaForm" :errors="categoriaErrors" />
+        </template>
+    </QuickCreateModal>
 </template>

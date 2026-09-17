@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Compra\StoreCompraRequest;
 use App\Http\Requests\Compra\UpdateCompraRequest;
+use App\Models\Area;
+use App\Models\CategoriaMaterial;
 use App\Models\Compra;
 use App\Models\Empleado;
 use App\Models\Material;
@@ -201,6 +203,13 @@ class CompraController extends Controller
             'materiales' => Material::query()->estado('ACTIVO')->orderBy('nombre')
                 ->get(['id', 'nombre', 'presentacion', 'unidad_medida', 'precio_unitario']),
             'empleadoActualId' => $request->user()->empleado?->id,
+            // Solo para los modales de alta rápida (Nuevo proveedor/
+            // responsable/material embebidos en el formulario, ver
+            // Components/QuickCreateModal.vue).
+            'categoriasMaterial' => CategoriaMaterial::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
+            'sucursales' => $request->user()->sucursalesDisponibles(soloActivas: true),
+            'areas' => Area::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
+            'cargosEmpleado' => Empleado::cargos(),
         ];
     }
 

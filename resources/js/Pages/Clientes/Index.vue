@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import ClienteFormFields from '@/Components/Cliente/ClienteFormFields.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -233,108 +234,7 @@ async function confirmDelete(cliente) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="tipo">Tipo</label>
-                            <select id="tipo" v-model="form.tipo" class="form-control">
-                                <option value="JURIDICO">Jurídico</option>
-                                <option value="NATURAL">Natural</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-8">
-                        <div class="form-group">
-                            <label class="form-label" for="razon_social">Razón social</label>
-                            <input id="razon_social" v-model="form.razon_social" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.razon_social }" required autofocus />
-                            <p v-if="form.errors.razon_social" class="form-error">
-                                {{ form.errors.razon_social }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="nit">NIT</label>
-                            <input id="nit" v-model="form.nit" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.nit }" required />
-                            <p v-if="form.errors.nit" class="form-error">
-                                {{ form.errors.nit }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="contacto_nombre">Contacto</label>
-                            <input id="contacto_nombre" v-model="form.contacto_nombre" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.contacto_nombre }" />
-                            <p v-if="form.errors.contacto_nombre" class="form-error">
-                                {{ form.errors.contacto_nombre }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="telefono">Teléfono</label>
-                            <input id="telefono" v-model="form.telefono" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.telefono }" />
-                            <p v-if="form.errors.telefono" class="form-error">
-                                {{ form.errors.telefono }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="email">Email</label>
-                            <input id="email" v-model="form.email" type="email" class="form-control"
-                                :class="{ 'is-invalid': form.errors.email }" />
-                            <p v-if="form.errors.email" class="form-error">
-                                {{ form.errors.email }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="direccion">Dirección</label>
-                            <input id="direccion" v-model="form.direccion" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.direccion }" />
-                            <p v-if="form.errors.direccion" class="form-error">
-                                {{ form.errors.direccion }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="ciudad">Ciudad</label>
-                            <input id="ciudad" v-model="form.ciudad" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.ciudad }" />
-                            <p v-if="form.errors.ciudad" class="form-error">
-                                {{ form.errors.ciudad }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="estado">Estado</label>
-                    <select id="estado" v-model="form.estado" class="form-control">
-                        <option value="ACTIVO">Activo</option>
-                        <option value="INACTIVO">Inactivo</option>
-                    </select>
-                </div>
+                <ClienteFormFields :form="form" :errors="form.errors" />
             </div>
 
             <div class="modal-footer">

@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import MaterialFormFields from '@/Components/Material/MaterialFormFields.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -293,138 +294,7 @@ async function confirmDelete(material) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="categoria_material_id">Categoría</label>
-                            <select id="categoria_material_id" v-model="form.categoria_material_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.categoria_material_id }" required>
-                                <option v-for="categoria in categoriasMaterial" :key="categoria.id" :value="categoria.id">
-                                    {{ categoria.nombre }}
-                                </option>
-                            </select>
-                            <p v-if="form.errors.categoria_material_id" class="form-error">
-                                {{ form.errors.categoria_material_id }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="nombre">Nombre</label>
-                            <input id="nombre" v-model="form.nombre" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.nombre }" required autofocus />
-                            <p v-if="form.errors.nombre" class="form-error">
-                                {{ form.errors.nombre }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-8">
-                        <div class="form-group">
-                            <label class="form-label" for="presentacion">Presentación</label>
-                            <input id="presentacion" v-model="form.presentacion" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.presentacion }"
-                                placeholder="Rollo 3,20x50m, Plancha 2x1m..." required />
-                            <p v-if="form.errors.presentacion" class="form-error">
-                                {{ form.errors.presentacion }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="unidad_medida">Unidad de medida</label>
-                            <select id="unidad_medida" v-model="form.unidad_medida" class="form-control">
-                                <option v-for="unidad in unidadesMedida" :key="unidad.value" :value="unidad.value">
-                                    {{ unidad.label }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="precio_presentacion">Precio presentación (Bs)</label>
-                            <input id="precio_presentacion" v-model="form.precio_presentacion" type="number" step="0.01"
-                                min="0" class="form-control" :class="{ 'is-invalid': form.errors.precio_presentacion }"
-                                required />
-                            <p v-if="form.errors.precio_presentacion" class="form-error">
-                                {{ form.errors.precio_presentacion }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="precio_unitario">Precio unitario (Bs)</label>
-                            <input id="precio_unitario" v-model="form.precio_unitario" type="number" step="0.01"
-                                min="0" class="form-control" :class="{ 'is-invalid': form.errors.precio_unitario }"
-                                required />
-                            <p v-if="form.errors.precio_unitario" class="form-error">
-                                {{ form.errors.precio_unitario }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="stock_actual">Stock actual</label>
-                            <input id="stock_actual" v-model="form.stock_actual" type="number" step="0.01" min="0"
-                                class="form-control" :class="{ 'is-invalid': form.errors.stock_actual }" required />
-                            <p v-if="form.errors.stock_actual" class="form-error">
-                                {{ form.errors.stock_actual }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="stock_minimo">Stock mínimo</label>
-                            <input id="stock_minimo" v-model="form.stock_minimo" type="number" step="0.01" min="0"
-                                class="form-control" :class="{ 'is-invalid': form.errors.stock_minimo }" required />
-                            <p v-if="form.errors.stock_minimo" class="form-error">
-                                {{ form.errors.stock_minimo }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="redondeo_compra">Redondeo de compra</label>
-                            <input id="redondeo_compra" v-model="form.redondeo_compra" v-decimal="4" type="text"
-                                inputmode="decimal" class="form-control"
-                                :class="{ 'is-invalid': form.errors.redondeo_compra }" placeholder="Sin redondeo" />
-                            <p v-if="form.errors.redondeo_compra" class="form-error">
-                                {{ form.errors.redondeo_compra }}
-                            </p>
-                            <p class="fs-sm text-muted mt-1">
-                                Al costear, la cantidad consumida se redondea hacia arriba a este múltiplo (en
-                                {{ unidadesMedida.find((u) => u.value === form.unidad_medida)?.label ?? form.unidad_medida }}).
-                                Vacío = se usa la cantidad exacta. Ej.: <code>1</code> unidades enteras,
-                                <code>6</code> barra de 6 m, <code>2.98</code> plancha de acrílico.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="estado">Estado</label>
-                            <select id="estado" v-model="form.estado" class="form-control">
-                                <option value="ACTIVO">Activo</option>
-                                <option value="INACTIVO">Inactivo</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                <MaterialFormFields :form="form" :errors="form.errors" :categorias-material="categoriasMaterial" />
             </div>
 
             <div class="modal-footer">

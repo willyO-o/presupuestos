@@ -231,3 +231,49 @@ test('super-admin bypasses individual permissions', function () {
         ->get(route('clientes.index'))
         ->assertOk();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Alta rápida (modal embebido en otro formulario, ver CotizacionForm.vue):
+| responde JSON en vez de redirigir, para no navegar fuera de ese formulario.
+|--------------------------------------------------------------------------
+*/
+
+test('a user with permission can quick-create a cliente and gets it back as json', function () {
+    $user = userWithClientePermissions('clientes.crear');
+
+    $response = $this->actingAs($user)->postJson(route('clientes.rapido'), [
+        'tipo' => 'JURIDICO',
+        'razon_social' => 'Cliente de prueba SRL',
+        'nit' => '1234567',
+        'estado' => 'ACTIVO',
+    ]);
+
+    $response->assertOk()->assertJsonPath('razon_social', 'Cliente de prueba SRL');
+    $this->assertDatabaseHas('cliente', ['razon_social' => 'Cliente de prueba SRL', 'nit' => '1234567']);
+});
+
+test('a user without permission cannot quick-create a cliente', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->postJson(route('clientes.rapido'), [
+        'tipo' => 'JURIDICO',
+        'razon_social' => 'Cliente de prueba SRL',
+        'nit' => '1234567',
+        'estado' => 'ACTIVO',
+    ])->assertForbidden();
+
+    $this->assertDatabaseCount('cliente', 0);
+});
+
+test('quick-creating a cliente validates the same rules as the full form', function () {
+    Cliente::factory()->create(['nit' => '1234567']);
+    $user = userWithClientePermissions('clientes.crear');
+
+    $this->actingAs($user)->postJson(route('clientes.rapido'), [
+        'tipo' => 'JURIDICO',
+        'razon_social' => 'Otro cliente',
+        'nit' => '1234567',
+        'estado' => 'ACTIVO',
+    ])->assertJsonValidationErrors('nit');
+});

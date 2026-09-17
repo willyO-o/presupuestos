@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -270,147 +271,8 @@ async function confirmDelete(empleado) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="nombres">Nombres</label>
-                            <input id="nombres" v-model="form.nombres" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.nombres }" required autofocus />
-                            <p v-if="form.errors.nombres" class="form-error">
-                                {{ form.errors.nombres }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="paterno">Apellido paterno</label>
-                            <input id="paterno" v-model="form.paterno" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.paterno }" />
-                            <p v-if="form.errors.paterno" class="form-error">
-                                {{ form.errors.paterno }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="materno">Apellido materno</label>
-                            <input id="materno" v-model="form.materno" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.materno }" />
-                            <p v-if="form.errors.materno" class="form-error">
-                                {{ form.errors.materno }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="ci">CI</label>
-                            <input id="ci" v-model="form.ci" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.ci }" required />
-                            <p v-if="form.errors.ci" class="form-error">
-                                {{ form.errors.ci }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="user_id">Cuenta de usuario (opcional)</label>
-                            <select id="user_id" v-model="form.user_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.user_id }">
-                                <option value="">Sin vincular</option>
-                                <option v-for="usuario in usuarios" :key="usuario.id" :value="usuario.id">
-                                    {{ usuario.name }} ({{ usuario.email }})
-                                </option>
-                            </select>
-                            <p v-if="form.errors.user_id" class="form-error">
-                                {{ form.errors.user_id }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="sucursal_id">Sucursal</label>
-                            <select id="sucursal_id" v-model="form.sucursal_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.sucursal_id }" required>
-                                <option v-for="sucursal in sucursales" :key="sucursal.id" :value="sucursal.id">
-                                    {{ sucursal.nombre }}
-                                </option>
-                            </select>
-                            <p v-if="form.errors.sucursal_id" class="form-error">
-                                {{ form.errors.sucursal_id }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="area_id">Área</label>
-                            <select id="area_id" v-model="form.area_id" class="form-control"
-                                :class="{ 'is-invalid': form.errors.area_id }" required>
-                                <option v-for="area in areas" :key="area.id" :value="area.id">
-                                    {{ area.nombre }}
-                                </option>
-                            </select>
-                            <p v-if="form.errors.area_id" class="form-error">
-                                {{ form.errors.area_id }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="cargo">Cargo</label>
-                            <select id="cargo" v-model="form.cargo" class="form-control"
-                                :class="{ 'is-invalid': form.errors.cargo }" required>
-                                <option value="" disabled>Selecciona un cargo</option>
-                                <option v-for="c in cargos" :key="c" :value="c">{{ c }}</option>
-                            </select>
-                            <p v-if="form.errors.cargo" class="form-error">
-                                {{ form.errors.cargo }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="telefono">Teléfono</label>
-                            <input id="telefono" v-model="form.telefono" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.telefono }" />
-                            <p v-if="form.errors.telefono" class="form-error">
-                                {{ form.errors.telefono }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div class="form-group">
-                            <label class="form-label" for="fecha_ingreso">Fecha de ingreso</label>
-                            <input id="fecha_ingreso" v-model="form.fecha_ingreso" type="date" class="form-control"
-                                :class="{ 'is-invalid': form.errors.fecha_ingreso }" required />
-                            <p v-if="form.errors.fecha_ingreso" class="form-error">
-                                {{ form.errors.fecha_ingreso }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="estado">Estado</label>
-                    <select id="estado" v-model="form.estado" class="form-control">
-                        <option value="ACTIVO">Activo</option>
-                        <option value="INACTIVO">Inactivo</option>
-                    </select>
-                </div>
+                <EmpleadoFormFields :form="form" :errors="form.errors" :sucursales="sucursales" :areas="areas"
+                    :cargos="cargos" :usuarios="usuarios" />
             </div>
 
             <div class="modal-footer">

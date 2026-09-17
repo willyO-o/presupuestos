@@ -335,3 +335,42 @@ test('deleting a producto removes its imagen from disk', function () {
 
     Storage::disk('public')->assertMissing('productos/foto.jpg');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Alta rápida (modal embebido en la línea "Producto" de
+| Cotizaciones/Partials/CotizacionForm.vue): responde JSON en vez de
+| redirigir, para no navegar fuera de esa cotización a medio llenar.
+|--------------------------------------------------------------------------
+*/
+
+test('a user with permission can quick-create a producto and gets it back as json', function () {
+    $categoria = CategoriaProducto::factory()->create();
+    $user = userWithProductoPermissions('productos.crear');
+
+    $response = $this->actingAs($user)->postJson(route('productos.rapido'), [
+        'categoria_producto_id' => $categoria->id,
+        'nombre' => 'Vinil de corte',
+        'unidad_medida' => 'M2',
+        'requiere_medidas' => 'SI',
+        'estado' => 'ACTIVO',
+    ]);
+
+    $response->assertOk()->assertJsonPath('nombre', 'Vinil de corte');
+    $this->assertDatabaseHas('producto', ['nombre' => 'Vinil de corte', 'categoria_producto_id' => $categoria->id]);
+});
+
+test('a user without permission cannot quick-create a producto', function () {
+    $categoria = CategoriaProducto::factory()->create();
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->postJson(route('productos.rapido'), [
+        'categoria_producto_id' => $categoria->id,
+        'nombre' => 'Vinil de corte',
+        'unidad_medida' => 'M2',
+        'requiere_medidas' => 'SI',
+        'estado' => 'ACTIVO',
+    ])->assertForbidden();
+
+    $this->assertDatabaseCount('producto', 0);
+});

@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import ProveedorFormFields from '@/Components/Proveedor/ProveedorFormFields.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -219,70 +220,7 @@ async function confirmDelete(proveedor) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <div class="form-group">
-                    <label class="form-label" for="nombre">Nombre</label>
-                    <input id="nombre" v-model="form.nombre" type="text" class="form-control"
-                        :class="{ 'is-invalid': form.errors.nombre }" required autofocus />
-                    <p v-if="form.errors.nombre" class="form-error">
-                        {{ form.errors.nombre }}
-                    </p>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="nit">NIT</label>
-                            <input id="nit" v-model="form.nit" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.nit }" />
-                            <p v-if="form.errors.nit" class="form-error">
-                                {{ form.errors.nit }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="contacto">Contacto</label>
-                            <input id="contacto" v-model="form.contacto" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.contacto }" />
-                            <p v-if="form.errors.contacto" class="form-error">
-                                {{ form.errors.contacto }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="direccion">Dirección</label>
-                    <input id="direccion" v-model="form.direccion" type="text" class="form-control"
-                        :class="{ 'is-invalid': form.errors.direccion }" />
-                    <p v-if="form.errors.direccion" class="form-error">
-                        {{ form.errors.direccion }}
-                    </p>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="telefono">Teléfono</label>
-                            <input id="telefono" v-model="form.telefono" type="text" class="form-control"
-                                :class="{ 'is-invalid': form.errors.telefono }" />
-                            <p v-if="form.errors.telefono" class="form-error">
-                                {{ form.errors.telefono }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="form-group">
-                            <label class="form-label" for="estado">Estado</label>
-                            <select id="estado" v-model="form.estado" class="form-control">
-                                <option value="ACTIVO">Activo</option>
-                                <option value="INACTIVO">Inactivo</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                <ProveedorFormFields :form="form" :errors="form.errors" />
             </div>
 
             <div class="modal-footer">

@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
+import CategoriaProductoFormFields from '@/Components/CategoriaProducto/CategoriaProductoFormFields.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -197,22 +198,7 @@ async function confirmDelete(categoria) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <div class="form-group">
-                    <label class="form-label" for="nombre">Nombre</label>
-                    <input id="nombre" v-model="form.nombre" type="text" class="form-control"
-                        :class="{ 'is-invalid': form.errors.nombre }" required autofocus />
-                    <p v-if="form.errors.nombre" class="form-error">
-                        {{ form.errors.nombre }}
-                    </p>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="estado">Estado</label>
-                    <select id="estado" v-model="form.estado" class="form-control">
-                        <option value="ACTIVO">Activo</option>
-                        <option value="INACTIVO">Inactivo</option>
-                    </select>
-                </div>
+                <CategoriaProductoFormFields :form="form" :errors="form.errors" />
             </div>
 
             <div class="modal-footer">

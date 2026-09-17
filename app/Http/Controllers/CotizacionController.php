@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Exceptions\FormulaInvalidaException;
 use App\Http\Requests\Cotizacion\StoreCotizacionRequest;
 use App\Http\Requests\Cotizacion\UpdateCotizacionRequest;
+use App\Models\Area;
+use App\Models\CategoriaProducto;
 use App\Models\Cliente;
 use App\Models\Cotizacion;
 use App\Models\CotizacionDetalleItem;
@@ -346,6 +348,13 @@ class CotizacionController extends Controller
                 ->get(['id', 'nombre', 'descripcion', 'factor_complejidad', 'margen_minimo']),
             'tiposItem' => CotizacionDetalleItem::ETIQUETAS_TIPO,
             'empleadoActualId' => $request->user()->empleado?->id,
+            // Solo para los modales de alta rápida (Nuevo cliente/vendedor/
+            // producto embebidos en el formulario, ver
+            // Components/QuickCreateModal.vue) — el formulario de cotización
+            // en sí no los usa para nada más.
+            'categoriasProducto' => CategoriaProducto::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
+            'areas' => Area::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
+            'cargosEmpleado' => Empleado::cargos(),
             'config' => [
                 'margen_sugerido' => (float) config('cotizacion.margen_sugerido'),
                 'dias_vencimiento' => (int) config('cotizacion.dias_vencimiento'),
