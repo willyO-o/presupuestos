@@ -7,9 +7,13 @@ use App\Models\Cotizacion;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\Sucursal;
+use App\Models\User;
+use App\Notifications\CotizacionAprobada;
+use App\Notifications\CotizacionSolicitada;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -69,6 +73,10 @@ class ClientePortalController extends Controller
         }
 
         $cotizacion->update(['estado' => $accion === 'aprobar' ? 'APROBADA' : 'RECHAZADA']);
+
+        if ($accion === 'aprobar' && ($vendedor = $cotizacion->vendedor()) !== null) {
+            $vendedor->notify(new CotizacionAprobada($cotizacion));
+        }
 
         return redirect()->route('portal.cotizacion', $cotizacion)
             ->with('success', $accion === 'aprobar' ? 'Cotización aprobada.' : 'Cotización rechazada.');
@@ -151,6 +159,8 @@ class ClientePortalController extends Controller
 
             return $cotizacion;
         });
+
+        Notification::send(User::administradores(), new CotizacionSolicitada($cotizacion->load('cliente')));
 
         return redirect()->route('portal.cotizacion', $cotizacion)
             ->with('success', 'Solicitud enviada. Un asesor la revisará y te enviará el presupuesto.');

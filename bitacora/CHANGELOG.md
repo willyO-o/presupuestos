@@ -13,6 +13,61 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-09-17 — Notificaciones internas: administrador y vendedor
+
+**Qué cambió:** se agregó un sistema de notificaciones in-app (campanita del
+topbar + página "Ver todas") con 6 eventos de negocio:
+
+- Para el rol `administrador`: se emite una orden de compra (`compras.store`),
+  se registra un pago (`pagos.store`), un cliente solicita una cotización
+  desde el portal (`portal.solicitar.store`).
+- Para el vendedor dueño de la cotización de origen: se aprueba su cotización
+  (`cotizaciones.aprobar` interno y `portal.responder` del cliente), se
+  modifica el avance de un ítem de su pedido (`pedidos.detalle.estado`), se
+  emite una nota de entrega de su pedido (`notas-entrega.store`).
+
+**Por qué:** pedido explícito del usuario — que administrador y vendedor se
+enteren de estos hitos sin tener que revisar cada listado a mano.
+
+**Cómo:**
+- Tabla nativa `notifications` (`make:notifications-table`) + canal
+  `database` únicamente (sin mail: `MAIL_MAILER=log` en este entorno, y una
+  notificación in-app no debe depender de un worker de cola — ninguna clase
+  implementa `ShouldQueue`, se envían síncronas).
+- 6 clases en `App\Notifications\*` (`OrdenCompraEmitida`, `PagoRegistrado`,
+  `CotizacionSolicitada`, `AvancePedidoActualizado`, `CotizacionAprobada`,
+  `OrdenEntregaEmitida`), cada una con `toArray()` devolviendo
+  `titulo/mensaje/url/icono/color` — `color` mapea directo a las clases
+  `.stat-icon-{color}` ya existentes (sin inventar paleta nueva).
+- `User::administradores()` (nuevo, `app/Models/User.php`): usa
+  `whereHas('roles', ...)` en vez del scope `role()` de Spatie — ese scope
+  **lanza** `RoleDoesNotExist` si el rol no existe todavía en la fila
+  `roles` (rompía `CompraControllerTest`/`PortalClienteTest`, que no seedean
+  `administrador`), y un efecto secundario de notificación nunca debe tumbar
+  la operación principal.
+- `Cotizacion::vendedor()` / `Pedido::vendedor()` (nuevo): resuelven el
+  `User` del empleado dueño de la cotización de origen; `null` si la
+  solicitó el cliente por el portal sin asignar (`empleado_id` nulo) o el
+  empleado no tiene cuenta vinculada — en ese caso simplemente no se notifica
+  a nadie del lado vendedor.
+- `PedidoController::actualizarEstado` evita auto-notificar: si quien avanza
+  el ítem es el mismo usuario que el vendedor dueño, no se envía nada.
+- `NotificacionController` (nuevo): `index` (listado paginado,
+  `Pages/Notificaciones/Index.vue`), `abrir` (marca como leída y redirige a
+  `data.url` en un solo clic — así el dropdown del topbar no necesita un
+  segundo viaje al servidor) y `marcarTodasLeidas`. Todo dentro del grupo de
+  rutas `auth` general, sin permiso propio: cada quien ve solo lo suyo
+  (`notifiable_id` scopeado a mano, mismo patrón sin Policies del resto del
+  proyecto).
+- `HandleInertiaRequests` comparte `notificaciones = {no_leidas, recientes}`
+  en cada visita (closures, mismo patrón que `flash`) para que
+  `Components/Layout/Topbar.vue` deje de mostrar la campanita mockeada que
+  traía el template.
+- CSS nuevo bajo app.css §32 (`.notif-*`) — ver
+  `.claude/skills/xtrapubli-design-system/references/component-classes.md`.
+- Tests: `tests/Feature/NotificacionesTest.php` (10, cubre los 6 disparadores
+  + index/abrir/marcar-todas del `NotificacionController`).
+
 ## 2026-09-16 — Botón "Nuevo X" junto a cada select con dependencia dinámica
 
 **Qué cambió:** además de "Nuevo cliente" (ver la entrada de alta rápida de

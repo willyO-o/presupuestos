@@ -16,6 +16,7 @@ use App\Models\Pago;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
 use App\Models\PedidoSeguimiento;
+use App\Notifications\AvancePedidoActualizado;
 use App\Services\Calculo\CosteoProductoService;
 use App\Services\Calculo\MedidasCotizacion;
 use App\Services\Pedido\ConvertirCotizacionService;
@@ -277,6 +278,10 @@ class PedidoController extends Controller
 
             $pedido->recalcularEstado();
         });
+
+        if (($vendedor = $pedido->vendedor()) !== null && $vendedor->id !== $request->user()->id) {
+            $vendedor->notify(new AvancePedidoActualizado($pedido, $detalle));
+        }
 
         return redirect()->route('pedidos.show', $pedido)
             ->with('success', 'Estado del ítem actualizado.');

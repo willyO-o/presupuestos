@@ -69,6 +69,15 @@ class Pedido extends Model
     }
 
     /**
+     * Vendedor dueño de la cotización de origen (ver Cotizacion::vendedor()),
+     * destinatario de las notificaciones de avance/entrega de este pedido.
+     */
+    public function vendedor(): ?User
+    {
+        return $this->cotizacion?->vendedor();
+    }
+
+    /**
      * Líneas del pedido (copia de cotizacion_detalle al convertir). Cada
      * ítem avanza por sus propias etapas.
      */

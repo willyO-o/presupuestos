@@ -243,6 +243,33 @@ partido con blob de marca:
   subrayado con ícono a la izquierda y botón opcional a la derecha (mostrar/ocultar contraseña),
   usando `--text-muted` / `--border-subtle` / `--c-primary` en vez de colores nuevos.
 
+## Notificaciones (`.notif-*`)
+
+Dropdown de la campanita en `Components/Layout/Topbar.vue` + listado completo en
+`Pages/Notificaciones/Index.vue` (app.css sección "32. NOTIFICACIONES"):
+
+```html
+<Link :href="n.url" class="list-group-item-start notif-link">
+  <span class="list-icon" :class="`stat-icon-${n.color}`"><i :class="n.icono"></i></span>
+  <div class="min-w-0">
+    <p class="list-group-item-title">{{ n.titulo }}</p>
+    <p class="fs-xs text-muted">{{ n.mensaje }}</p>
+  </div>
+  <span v-if="!n.leida" class="notif-unread-dot"></span>
+</Link>
+```
+
+- `.notif-link` — vuelve clickeable un `.list-group-item-start` completo (icono + texto) sin
+  heredar el subrayado/color de enlace por defecto.
+- `.notif-unread-dot` — punto `--c-primary` que marca una notificación sin leer.
+- `.notif-empty` — mensaje centrado cuando no hay notificaciones.
+- `.notif-footer` — pie del dropdown ("Marcar todas como leídas" / "Ver todas").
+- `.notif-item-unread` — resalta la fila en el listado completo (`bg-soft-primary`) mientras
+  no se marque como leída.
+
+No reinventa colores: reusa `.stat-icon-{color}` (`primary/success/warning/danger/info`) para
+el ícono según el campo `color` que manda cada `App\Notifications\*::toArray()`.
+
 ## Al agregar una clase nueva
 
 Sigue el patrón de color de tres variables (`--c-{nombre}` / `-dark` / `-soft`) y añade la

@@ -3062,3 +3062,36 @@
     background-color: var(--border-subtle);
     @apply rounded-full;
 }
+
+/* ==========================================================================
+   32. NOTIFICACIONES (Topbar dropdown + Pages/Notificaciones/Index.vue)
+   ========================================================================== */
+
+/* Convierte un .list-group-item-start en un link clickeable de ancho
+   completo (el <Link> envuelve icono + texto), sin heredar el color/subrayado
+   de enlace por defecto. */
+.notif-link {
+    color: inherit;
+    @apply w-full no-underline;
+}
+
+.notif-unread-dot {
+    background-color: var(--c-primary);
+    @apply ms-2 h-2 w-2 shrink-0 self-start rounded-full;
+}
+
+.notif-empty {
+    color: var(--text-muted);
+    @apply px-5 py-8 text-center text-sm;
+}
+
+.notif-footer {
+    border-color: var(--border-subtle);
+    @apply flex items-center justify-between gap-2 border-t px-5 py-3;
+}
+
+/* Fila resaltada en el listado completo (Pages/Notificaciones/Index.vue)
+   mientras no se marque como leída. */
+.notif-item-unread {
+    background-color: var(--c-primary-soft);
+}

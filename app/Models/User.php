@@ -8,6 +8,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -72,6 +73,23 @@ class User extends Authenticatable
     public function estaActivo(): bool
     {
         return $this->estado !== 'INACTIVO';
+    }
+
+    /**
+     * Cuentas con rol `administrador`, destinatarias de las notificaciones
+     * "para el administrador" (orden de compra, estado de pagos, solicitudes
+     * de cotización). `whereHas` en vez del scope `role()` de Spatie: ese
+     * scope LANZA `RoleDoesNotExist` si el rol todavía no existe en la fila
+     * `roles` (ej. un entorno recién migrado sin seedear todavía), y una
+     * notificación nunca debe tumbar la operación principal.
+     *
+     * @return Collection<int, User>
+     */
+    public static function administradores(): Collection
+    {
+        return static::query()
+            ->whereHas('roles', fn ($query) => $query->where('name', 'administrador'))
+            ->get();
     }
 
     /**

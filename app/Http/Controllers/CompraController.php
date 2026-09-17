@@ -10,10 +10,13 @@ use App\Models\Compra;
 use App\Models\Empleado;
 use App\Models\Material;
 use App\Models\Proveedor;
+use App\Models\User;
+use App\Notifications\OrdenCompraEmitida;
 use App\Services\Compra\AprobarCompraService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Response;
 
 class CompraController extends Controller
@@ -75,6 +78,8 @@ class CompraController extends Controller
 
             return $compra;
         });
+
+        Notification::send(User::administradores(), new OrdenCompraEmitida($compra->load('proveedor')));
 
         return redirect()->route('compras.show', $compra)
             ->with('success', 'Compra registrada correctamente.');

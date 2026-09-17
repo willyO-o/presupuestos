@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Pago\StorePagoRequest;
 use App\Models\Pago;
 use App\Models\Pedido;
+use App\Models\User;
+use App\Notifications\PagoRegistrado;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Response;
 
 class PagoController extends Controller
@@ -60,7 +63,7 @@ class PagoController extends Controller
 
         $monto = round((float) $datos['monto'], 2);
 
-        $pedido->pagos()->create([
+        $pago = $pedido->pagos()->create([
             'monto' => $monto,
             'fecha_pago' => $datos['fecha_pago'],
             'metodo_pago' => $datos['metodo_pago'],
@@ -68,6 +71,8 @@ class PagoController extends Controller
                 ? $request->file('comprobante')->store('comprobantes-pago', 'public')
                 : null,
         ]);
+
+        Notification::send(User::administradores(), new PagoRegistrado($pago->setRelation('pedido', $pedido)));
 
         return redirect()->back()
             ->with('success', "Pago registrado. Saldo del pedido {$pedido->numero_pedido}: Bs ".number_format($pedido->fresh()->saldo(), 2));

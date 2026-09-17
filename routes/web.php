@@ -13,6 +13,7 @@ use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FormulaController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\NotaEntregaController;
+use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\OrdenCompraClienteController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PedidoController;
@@ -84,6 +85,12 @@ Route::middleware(['auth', 'role:cliente'])->prefix('portal')->name('portal.')->
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Sin permiso propio: cada usuario ve solo sus propias notificaciones
+    // (NotificacionController las scopea a mano por notifiable_id).
+    Route::get('/notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
+    Route::get('/notificaciones/{notificacion}/ir', [NotificacionController::class, 'abrir'])->name('notificaciones.abrir');
+    Route::post('/notificaciones/marcar-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.marcar-todas');
 
     Route::get('/sucursales', [SucursalController::class, 'index'])
         ->middleware('can:sucursales.ver')

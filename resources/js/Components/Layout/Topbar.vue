@@ -1,9 +1,21 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { computed, onMounted, ref } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
+import { tiempoRelativo } from '@/Utils/TimeAgo';
 
 defineEmits(['toggle-sidebar']);
+
+/* ---------------------------------------------------------------------- */
+/* Notificaciones (compartidas por HandleInertiaRequests en cada visita)   */
+/* ---------------------------------------------------------------------- */
+const page = usePage();
+const noLeidas = computed(() => page.props.notificaciones?.no_leidas ?? 0);
+const recientes = computed(() => page.props.notificaciones?.recientes ?? []);
+
+function marcarTodasLeidas() {
+    router.post(route('notificaciones.marcar-todas'), {}, { preserveScroll: true, preserveState: true });
+}
 
 /* ---------------------------------------------------------------------- */
 /* Modo oscuro                                                             */
@@ -121,12 +133,12 @@ function toggleFullscreen() {
 
             <Dropdown
                 align="right"
-                width="80"
+                width="96"
                 content-classes="p-0 bg-transparent"
             >
                 <template #trigger>
                     <button type="button" class="topbar-icon-btn">
-                        <span class="badge-dot"></span>
+                        <span v-if="noLeidas > 0" class="badge-dot"></span>
                         <svg
                             viewBox="0 0 24 24"
                             fill="none"
@@ -142,56 +154,54 @@ function toggleFullscreen() {
                     </button>
                 </template>
                 <template #content>
-                    <div class="card border-0 shadow-none" style="width: 320px">
+                    <div class="card border-0 shadow-none" style="width: 340px">
                         <div class="card-header">
                             <span class="card-title">Notificaciones</span>
-                            <span class="badge badge-soft-primary">3 Nuevas</span>
+                            <span v-if="noLeidas > 0" class="badge badge-soft-primary">
+                                {{ noLeidas }} nueva{{ noLeidas === 1 ? '' : 's' }}
+                            </span>
                         </div>
-                        <ul class="list-group px-5">
-                            <li class="list-group-item">
-                                <div class="list-group-item-start">
-                                    <span class="list-icon stat-icon-success"
-                                        >💰</span
+                        <ul v-if="recientes.length" class="list-group px-5">
+                            <li
+                                v-for="n in recientes"
+                                :key="n.id"
+                                class="list-group-item"
+                            >
+                                <Link :href="n.url" class="list-group-item-start notif-link">
+                                    <span
+                                        class="list-icon"
+                                        :class="`stat-icon-${n.color}`"
                                     >
+                                        <i :class="n.icono"></i>
+                                    </span>
                                     <div class="min-w-0">
-                                        <p class="list-group-item-title">
-                                            Presupuesto aprobado
+                                        <p
+                                            class="list-group-item-title"
+                                            :class="{ 'fw-normal': n.leida }"
+                                        >
+                                            {{ n.titulo }}
                                         </p>
-                                        <p class="fs-xs text-muted">
-                                            Hace 5 minutos
-                                        </p>
+                                        <p class="fs-xs text-muted truncate">{{ n.mensaje }}</p>
+                                        <p class="fs-xs text-muted">{{ tiempoRelativo(n.creada_hace) }}</p>
                                     </div>
-                                </div>
-                            </li>
-                            <li class="list-group-item">
-                                <div class="list-group-item-start">
-                                    <span class="list-icon stat-icon-warning"
-                                        >⛽</span
-                                    >
-                                    <div class="min-w-0">
-                                        <p class="list-group-item-title">
-                                            Consumo por encima del limite
-                                        </p>
-                                        <p class="fs-xs text-muted">
-                                            Hace 2 horas
-                                        </p>
-                                    </div>
-                                </div>
-                            </li>
-                            <li class="list-group-item">
-                                <div class="list-group-item-start">
-                                    <span class="list-icon stat-icon-info"
-                                        >📄</span
-                                    >
-                                    <div class="min-w-0">
-                                        <p class="list-group-item-title">
-                                            Nuevo reporte disponible
-                                        </p>
-                                        <p class="fs-xs text-muted">Ayer</p>
-                                    </div>
-                                </div>
+                                    <span v-if="!n.leida" class="notif-unread-dot"></span>
+                                </Link>
                             </li>
                         </ul>
+                        <p v-else class="notif-empty">No tienes notificaciones todavía.</p>
+                        <div class="notif-footer">
+                            <button
+                                v-if="noLeidas > 0"
+                                type="button"
+                                class="card-link"
+                                @click="marcarTodasLeidas"
+                            >
+                                Marcar todas como leídas
+                            </button>
+                            <Link :href="route('notificaciones.index')" class="card-link">
+                                Ver todas
+                            </Link>
+                        </div>
                     </div>
                 </template>
             </Dropdown>

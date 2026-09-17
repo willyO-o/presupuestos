@@ -11,7 +11,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Models/Concerns/** | .ai/rules/concerns.md |
 | config/acl.php | .ai/rules/config.md |
 | app/Services/Imagen/**, app/Http/Controllers/ProductoController.php, app/Http/Controllers/CotizacionController.php, app/Http/Controllers/NotaEntregaController.php | .ai/rules/controllers-http-controllers.md |
-| app/Http/Controllers/CotizadorPublicoController.php, config/cotizador.php | .ai/rules/controllers-views-publico.md |
+| app/Http/Controllers/CotizadorPublicoController.php, config/cotizador.php, app/Http/Controllers/** | .ai/rules/controllers-views-publico.md |
 | app/Http/Controllers/**, app/Http/Controllers/FormulaController.php, app/Http/Controllers/CompraController.php, app/Http/Controllers/PedidoController.php, app/Http/Controllers/NotaEntregaController.php, app/Http/Controllers/PagoController.php, app/Http/Controllers/UsuarioController.php, app/Http/Controllers/ClientePortalController.php, app/Http/Controllers/CotizacionController.php | .ai/rules/controllers.md |
 | app/Http/Controllers/CotizacionController.php, app/Http/Requests/Cotizacion/**, app/Models/Cotizacion.php, app/Models/CotizacionDetalle.php, app/Services/Calculo/PrecioSugeridoService.php, resources/js/Pages/Cotizaciones/**, database/seeders/CotizacionSeeder.php, config/cotizacion.php, app/Models/Pedido.php | .ai/rules/cotizaciones.md |
 | app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/css.md |

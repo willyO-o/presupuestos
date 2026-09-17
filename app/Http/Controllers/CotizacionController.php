@@ -13,6 +13,7 @@ use App\Models\CotizacionDetalleItem;
 use App\Models\Empleado;
 use App\Models\Producto;
 use App\Models\TipoProyecto;
+use App\Notifications\CotizacionAprobada;
 use App\Services\Calculo\MotorMargenService;
 use App\Services\Calculo\PrecioSugeridoService;
 use App\Services\Imagen\ConvierteImagenAJpgService;
@@ -372,6 +373,10 @@ class CotizacionController extends Controller
         }
 
         $cotizacion->update(['estado' => $nuevoEstado]);
+
+        if ($nuevoEstado === 'APROBADA' && ($vendedor = $cotizacion->vendedor()) !== null) {
+            $vendedor->notify(new CotizacionAprobada($cotizacion));
+        }
 
         return redirect()->route('cotizaciones.show', $cotizacion)
             ->with('success', "Cotización {$verbo} correctamente.");

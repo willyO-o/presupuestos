@@ -104,6 +104,17 @@ class Cotizacion extends Model
         return $this->belongsTo(Empleado::class);
     }
 
+    /**
+     * Cuenta de usuario del vendedor dueño de la cotización (empleado que la
+     * atendió), destinatario de las notificaciones de avance/aprobación. Null
+     * si la solicitó el cliente por el portal sin asignar todavía
+     * (`empleado_id` nulo) o si el empleado no tiene cuenta vinculada.
+     */
+    public function vendedor(): ?User
+    {
+        return $this->empleado?->user;
+    }
+
     public function sucursal(): BelongsTo
     {
         return $this->belongsTo(Sucursal::class);

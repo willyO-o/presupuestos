@@ -7,6 +7,7 @@ use App\Models\Area;
 use App\Models\Empleado;
 use App\Models\NotaEntrega;
 use App\Models\Pedido;
+use App\Notifications\OrdenEntregaEmitida;
 use App\Services\Imagen\ConvierteImagenAJpgService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -115,6 +116,10 @@ class NotaEntregaController extends Controller
 
             return $nota;
         });
+
+        if (($vendedor = $pedido->vendedor()) !== null) {
+            $vendedor->notify(new OrdenEntregaEmitida($nota->setRelation('pedido', $pedido)));
+        }
 
         return redirect()->route('notas-entrega.show', $nota)
             ->with('success', "Nota de entrega {$nota->numero_nota} emitida.");

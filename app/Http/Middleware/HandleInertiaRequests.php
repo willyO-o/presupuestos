@@ -50,6 +50,39 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            // Campanita del topbar (Components/Layout/Topbar.vue): últimas N +
+            // el conteo de no leídas, en cada visita. Closures por la misma
+            // razón que 'flash' — no evaluar para invitados/portal cliente.
+            'notificaciones' => fn () => $this->notificacionesTopbar($user),
+        ];
+    }
+
+    /**
+     * @return array{no_leidas: int, recientes: list<array<string, mixed>>}|null
+     */
+    private function notificacionesTopbar(?User $user): ?array
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        return [
+            'no_leidas' => $user->unreadNotifications()->count(),
+            'recientes' => $user->notifications()
+                ->orderByDesc('created_at')
+                ->limit(8)
+                ->get()
+                ->map(fn ($n) => [
+                    'id' => $n->id,
+                    'titulo' => $n->data['titulo'] ?? '',
+                    'mensaje' => $n->data['mensaje'] ?? '',
+                    'icono' => $n->data['icono'] ?? 'fa-solid fa-bell',
+                    'color' => $n->data['color'] ?? 'primary',
+                    'leida' => $n->read_at !== null,
+                    'creada_hace' => $n->created_at?->toIso8601String(),
+                    'url' => route('notificaciones.abrir', $n->id),
+                ])
+                ->all(),
         ];
     }
 
