@@ -27,7 +27,7 @@
 import { ref, shallowRef, computed, watch, onMounted, markRaw } from 'vue'
 
 // El paquete pesa ~80 KB y no se usa hasta que se abre el filtro, así que se
-// carga con import() dinámico (mismo patrón que Chart.js en BaseChart.vue):
+// carga con import() dinámico (mismo patrón que ECharts en BaseChart.vue):
 // queda en su propio chunk y no engorda ni app.js ni la página que lo usa.
 // Mientras carga se muestra un esqueleto no interactivo con el valor actual.
 const DateRangePicker = shallowRef(null)

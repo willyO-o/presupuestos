@@ -24,3 +24,12 @@ Dos modelos más ganaron el trait para esto: `CotizacionDetalle` (`cotizacion`) 
 **TRAMPA al escribir tests de reportes**: `AreaFactory` usa `fake()->unique()->randomElement()` sobre SIETE nombres y `SucursalFactory` `unique()->city()` — a la octava área revienta con "Maximum retries of 10000". Hay que `recycle()` sucursal y área en vez de dejar que las cadenas de factory creen filas sueltas (que además falsearían el conteo del propio reporte). Ver `montarMovimiento()` en AlcanceReportesTest.
 
 Tests: `AlcanceReportesTest` (8). Verificado con mutación: quitar los `visiblePara` de los cuatro servicios tumba 5 de 8.
+
+## BI ampliado: 5 pestañas, PeriodoReporte y Pronostico compartidos (2026-10-12)
+Inteligencia de negocios son 5 rutas bajo `can:reportes.bi` (`reportes.bi`, `.costos`, `.rentabilidad`, `.alertas`, `.simulador`), armadas por `ReporteController::paginaBi()` con filtro `desde/hasta`. Servicios: `CostosMaterialesService`, `PresupuestosRentabilidadService`, `AlertasNegocioService`, `SimuladorDecisionesService` (+ `InteligenciaNegociosService::datos($usuario, ?$periodo)`). Parámetros en `config/bi.php`; los umbrales de margen bajo son los del semáforo (`config/margen.php`), no duplicarlos.
+- `PeriodoReporte` da el rango y los meses (series mensuales con ceros, para que la recta use meses consecutivos). Consultar con los Carbon `$periodo->desde/hasta`, NUNCA con `toDateString()`: en sqlite las columnas `date` se guardan con hora y `whereBetween('fecha', [..., '2026-10-12'])` excluye el último día (rompió AlcanceReportesTest).
+- `Pronostico` (regresión, media móvil, proyección ± error típico, variación %/mes) es la única matemática de pronóstico; con < 3 puntos devuelve [] y la pantalla lo dice.
+- Rentabilidad solo con `costo_ajustado > 0`: las cotizaciones previas al motor de margen guardan costo 0 (su "utilidad" sería el 100 %); se cuentan en `excluidos_sin_costo`.
+- El simulador NO tiene endpoint: recalcula en el navegador con `Utils/MotorMargen.js` (espejo del motor); el servidor solo da la base y la config.
+- Alertas comparan con `alcanza()` (redondeo a 6 decimales): 120/100−1 = 0,1999… quedaba bajo el umbral de 20 %.
+Tests: InteligenciaNegociosAvanzadoTest (19), PronosticoTest (8).

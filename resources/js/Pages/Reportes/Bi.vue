@@ -4,11 +4,13 @@ import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
+import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 
 defineOptions({ layout: MainDashboardLayout });
 
 const props = defineProps({
     datos: { type: Object, required: true },
+    filters: { type: Object, default: () => ({}) },
 });
 
 function money(value) {
@@ -23,8 +25,9 @@ function pedidos(value) {
  * Demanda: histórico, media móvil y proyección sobre una sola línea de tiempo.
  *
  * La proyección arranca repitiendo el último dato real para que se vea de dónde
- * sale, y va punteada: es lo único del gráfico que todavía no ocurrió, y esa
- * distinción no puede depender solo del color.
+ * sale, y va punteada sobre una zona sombreada: es lo único del gráfico que
+ * todavía no ocurrió, y esa distinción no puede depender solo del color. La
+ * banda es su rango probable (± el error típico de la recta).
  */
 const demanda = computed(() => {
     const historico = props.datos.demanda.serie;
@@ -32,16 +35,24 @@ const demanda = computed(() => {
 
     const relleno = Array(Math.max(historico.length - 1, 0)).fill(null);
     const ultimoReal = historico.at(-1)?.pedidos ?? null;
+    const sinFuturo = Array(futuro.length).fill(null);
 
     return {
         labels: [...historico.map((s) => s.mes), ...futuro.map((p) => p.mes)],
+        inicio: futuro[0]?.mes ?? null,
         series: [
-            { nombre: 'Pedidos reales', datos: historico.map((s) => s.pedidos), area: true },
-            { nombre: 'Media móvil 3m', datos: props.datos.demanda.media_movil.map((m) => m.valor) },
+            { nombre: 'Pedidos reales', datos: [...historico.map((s) => s.pedidos), ...sinFuturo], area: true },
+            { nombre: 'Media móvil 3m', datos: [...props.datos.demanda.media_movil.map((m) => m.valor), ...sinFuturo] },
             {
                 nombre: 'Proyección',
                 punteada: true,
-                datos: [...relleno, ultimoReal, ...futuro.map((p) => p.pedidos_estimados)],
+                datos: futuro.length ? [...relleno, ultimoReal, ...futuro.map((p) => p.pedidos_estimados)] : [],
+            },
+            {
+                nombre: 'Rango probable',
+                tipo: 'banda',
+                inferior: futuro.length ? [...relleno, ultimoReal, ...futuro.map((p) => p.inferior)] : [],
+                superior: futuro.length ? [...relleno, ultimoReal, ...futuro.map((p) => p.superior)] : [],
             },
         ],
     };
@@ -94,18 +105,22 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
     <Head title="Inteligencia de negocios" />
 
     <div class="page-stack">
+        <BiEncabezado :periodo="datos.periodo" :filters="filters" />
+
         <div class="card">
             <div class="card-header">
                 <div>
                     <span class="card-title">Proyección de demanda</span>
                     <p class="card-subtitle">
-                        Pedidos por mes, media móvil de 3 meses y tendencia lineal a 3 meses
+                        Pedidos por mes, media móvil de 3 meses y tendencia lineal a {{ datos.demanda.proyeccion.length || 3 }} meses
+                        <span v-if="!datos.demanda.proyeccion.length">· se necesitan al menos 3 meses en el periodo para proyectar</span>
                     </p>
                 </div>
             </div>
             <div class="card-body">
                 <BaseChart titulo="Proyección de demanda" :labels="demanda.labels" :series="demanda.series"
-                    :formato="pedidos" :alto="300" vacio="Todavía no hay pedidos registrados para proyectar." />
+                    :formato="pedidos" :alto="300" :inicio-proyeccion="demanda.inicio"
+                    vacio="No hay pedidos registrados en el periodo." />
             </div>
         </div>
 
@@ -115,7 +130,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
                     <div class="card-header">
                         <div>
                             <span class="card-title">Productos más vendidos</span>
-                            <p class="card-subtitle">Top 10 por monto cotizado y aprobado</p>
+                            <p class="card-subtitle">Top 10 por monto aprobado en el periodo</p>
                         </div>
                     </div>
                     <div class="card-body">
@@ -132,7 +147,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
                     <div class="card-header">
                         <div>
                             <span class="card-title">Categorías más vendidas</span>
-                            <p class="card-subtitle">Top 10 por monto cotizado y aprobado</p>
+                            <p class="card-subtitle">Top 10 por monto aprobado en el periodo</p>
                         </div>
                     </div>
                     <div class="card-body">
@@ -167,12 +182,12 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
             <div class="card-header">
                 <div>
                     <span class="card-title">Estacionalidad</span>
-                    <p class="card-subtitle">Pedidos acumulados por mes calendario, todos los años juntos</p>
+                    <p class="card-subtitle">Pedidos del periodo acumulados por mes calendario (todos los años juntos)</p>
                 </div>
             </div>
             <div class="card-body">
                 <BaseChart titulo="Estacionalidad de pedidos" tipo="bar" :labels="estacionalidad.labels"
-                    :series="estacionalidad.series" :formato="pedidos" :alto="240"
+                    :series="estacionalidad.series" :formato="pedidos" :alto="240" enteros
                     vacio="Todavía no hay pedidos registrados." />
             </div>
         </div>

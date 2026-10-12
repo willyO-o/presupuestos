@@ -104,7 +104,7 @@ proyecto en una galería).
 - **Stat cards**: `.stat-card` `.stat-icon` + `.stat-icon-{color}`.
 - **List group**: `.list-group` `.list-group-item` `.comment-list` `.comment-item`.
 - **Tabla**: `.table-responsive` `.table-dashboard`.
-- **Donut CSS puro**: `.donut-chart` (sin uso hoy; el `.bar-chart` que había se retiró al pasar a Chart.js).
+- **Donut CSS puro**: `.donut-chart` (sin uso hoy; el `.bar-chart` que había se retiró al pasar a una librería de gráficos — hoy Apache ECharts).
 - **Grid 12 columnas**: `.row` `.col-12` `.col-lg-3` ... `.col-lg-9`.
 - **Ritmo vertical de pantalla**: `.page-stack` — envuelve los bloques de primer
   nivel de una página (tarjetas y `.row`) y los separa con la MISMA medida que
@@ -119,10 +119,11 @@ proyecto en una galería).
 
 ## Gráficos (`Components/Chart/BaseChart.vue`)
 
-Todo gráfico del panel sale de `BaseChart.vue` (Chart.js 4, cargado bajo demanda).
-Una página declara `titulo`, `labels`, `series` y un `formato`; el resto —marcas,
-tooltip, leyenda, vista de tabla y exportación a PNG— lo pone el componente. No
-instanciar `Chart` en otro sitio ni pasarle colores a mano.
+Todo gráfico del panel sale de `BaseChart.vue` (Apache ECharts 6, cargado bajo
+demanda desde `Components/Chart/EchartsCore.js`). Una página declara `titulo`,
+`labels`, `series` y un `formato`; el resto —marcas, tooltip, leyenda, vista de
+tabla y exportación a PNG— lo pone el componente. No llamar `echarts.init` en
+otro sitio ni pasarle colores a mano.
 
 **Colores de serie**: tokens `--chart-1` … `--chart-6`, definidos en `app.css`
 para claro y oscuro. Se asignan en orden y **no se ciclan**: pasadas seis series
@@ -140,10 +141,14 @@ pedido, donde además el signo se ve por el lado de la barra.
 Clases del marco (no del canvas):
 
 - `.chart` — contenedor; apila barra de herramientas, gráfico y tabla.
-- `.chart-toolbar` `.chart-legend` `.chart-legend-item` `.chart-legend-key` —
-  la leyenda va en HTML y no dibujada en el canvas: se puede seleccionar y la lee
-  un lector de pantalla. Su texto usa tokens de texto; el color lo lleva el
+- `.chart-toolbar` `.chart-legend` `.chart-legend-item` (+ `.is-off`)
+  `.chart-legend-key` (+ `.is-dashed` para proyecciones, `.is-band` para el rango
+  probable) — la leyenda va en HTML y no dibujada en el canvas: se puede
+  seleccionar, la lee un lector de pantalla y cada entrada es un botón que apaga
+  o prende su serie. Su texto usa tokens de texto; el color lo lleva el
   cuadrito, nunca la palabra.
+- `.chart-tooltip-title` `.chart-tooltip-row` `.chart-tooltip-key` — contenido
+  HTML del tooltip de ECharts (fondo y color de texto los pone el componente).
 - `.chart-actions` `.chart-action` (+ `.is-active`) `.chart-action-text` —
   botones de vista de tabla y descarga PNG.
 - `.chart-canvas` — fija el alto incluyendo la banda del eje X.
@@ -154,6 +159,24 @@ Clases del marco (no del canvas):
 Lo que **no** es un gráfico: una sola razón contra un tope (entregas a tiempo) es
 un medidor, `.reporte-progress` + `.reporte-progress-bar`; un puñado de números
 sueltos es una fila de KPIs, `.reporte-kpi`.
+
+## Inteligencia de negocios (`.bi-*`, app.css §26)
+
+Pestañas `Pages/Reportes/Bi*.vue` y componentes `Components/Reporte/*`.
+
+- `.bi-tabs` (sobre `.nav-tabs`) `.bi-filtro` `.bi-filtro-rango` `.bi-filtro-alcance`
+  `.bi-select` — encabezado común (`BiEncabezado.vue`): pestañas + filtro de fechas.
+- `.bi-kpi` `.bi-kpi-cuerpo` `.bi-kpi-nota` + `.bi-tendencia` (`-buena` / `-mala` /
+  `-neutra`) — tarjeta `BiKpi.vue` sobre `.stat-card`. La flecha dice la dirección;
+  el color, si es bueno o malo según `subirEsBueno`.
+- `.bi-aviso` — nota informativa (qué datos quedan fuera de un cálculo).
+- `.bi-alertas` `.bi-alerta` (+ `.bi-alerta-alta` / `.bi-alerta-media`)
+  `.bi-alerta-icono` `.bi-alerta-cuerpo` `.bi-alerta-encabezado` `.bi-alerta-tipo`
+  `.bi-alerta-titulo` `.bi-alerta-detalle` `.bi-alerta-accion` `.bi-alertas-vacio`.
+- `.bi-columna` — columna de tarjetas apiladas con el mismo espacio que `.page-stack`.
+- Simulador: `.bi-simulador-controles` `.bi-control-encabezado` `.bi-range`
+  `.bi-control-check` `.bi-check` y el veredicto `.bi-veredicto` (+ `-verde` /
+  `-amarillo` / `-rojo`) `.bi-veredicto-titulo` `.bi-veredicto-detalle`.
 
 ## Tabla: paginación y estados (`DataTable.vue` / `TablePagination.vue`)
 

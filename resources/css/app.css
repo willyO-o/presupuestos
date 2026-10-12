@@ -2204,9 +2204,10 @@
    --------------------------------------------------------------------------
    Dos cosas distintas:
 
-   1. `.chart-*` — el marco de Components/Chart/BaseChart.vue (Chart.js 4). El
-      gráfico se dibuja en un <canvas>; lo de acá es lo que lo rodea: leyenda,
-      botones de tabla/PNG, estado vacío. La leyenda va en HTML y no dibujada
+   1. `.chart-*` — el marco de Components/Chart/BaseChart.vue (Apache
+      ECharts 6). El gráfico se dibuja en un <canvas>; lo de acá es lo que lo
+      rodea: leyenda, botones de tabla/PNG, estado vacío y el contenido HTML
+      del tooltip. La leyenda va en HTML y no dibujada
       en el canvas para que se pueda seleccionar y la lea un lector de
       pantalla, y su texto usa tokens de texto: el color de la serie lo lleva
       el cuadrito de al lado, nunca la palabra.
@@ -2214,6 +2215,10 @@
    2. `.reporte-*` — medidores y KPIs, que NO son gráficos. Una sola razón
       contra un tope (entregas a tiempo) se lee mejor como barra de progreso
       que como un gráfico de una barra.
+
+   3. `.bi-*` — las pestañas de Inteligencia de negocios (Pages/Reportes/Bi*,
+      Components/Reporte/*): encabezado con filtro, tarjetas de tendencia,
+      alertas y controles del simulador.
    ========================================================================== */
 
 .chart {
@@ -2228,13 +2233,53 @@
     @apply m-0 flex list-none flex-wrap items-center gap-x-4 gap-y-1 p-0;
 }
 
+/* Cada entrada es un botón que apaga/prende su serie. */
 .chart-legend-item {
     color: var(--text-muted);
-    @apply flex items-center gap-1.5 text-xs;
+    @apply flex items-center gap-1.5 rounded border-0 bg-transparent p-0 text-xs transition-opacity;
+}
+
+.chart-legend-item:hover {
+    color: var(--text-heading);
+}
+
+.chart-legend-item.is-off {
+    @apply line-through opacity-50;
 }
 
 .chart-legend-key {
     @apply inline-block h-2.5 w-2.5 shrink-0 rounded-sm;
+}
+
+/* Serie punteada (proyección): la muestra de la leyenda también lo dice. */
+.chart-legend-key.is-dashed {
+    background: transparent !important;
+    border-top: 2px dashed currentColor;
+    @apply h-0 w-3.5 rounded-none;
+}
+
+/* Banda (rango probable): el mismo tono, lavado. */
+.chart-legend-key.is-band {
+    opacity: 0.3;
+}
+
+/* Contenido HTML del tooltip de ECharts (fondo y color los pone el
+   componente con los tokens del tema). */
+.chart-tooltip-title {
+    @apply mb-1 text-xs font-semibold opacity-80;
+}
+
+.chart-tooltip-row {
+    @apply flex items-center gap-2 text-xs leading-5;
+}
+
+.chart-tooltip-row b {
+    font-variant-numeric: tabular-nums;
+    @apply ms-auto ps-3 font-semibold;
+}
+
+.chart-tooltip-key {
+    @apply inline-block h-2 w-2 shrink-0 rounded-full;
 }
 
 .chart-actions {
@@ -2315,6 +2360,214 @@
 .reporte-kpi-label {
     color: var(--text-muted);
     @apply text-xs uppercase;
+}
+
+/* --- Inteligencia de negocios: encabezado con pestañas + filtro --- */
+.bi-tabs {
+    @apply flex-nowrap overflow-x-auto;
+    scrollbar-width: thin;
+}
+
+.bi-tabs .nav-link {
+    @apply inline-flex shrink-0 items-center gap-2 whitespace-nowrap no-underline;
+}
+
+.bi-filtro {
+    @apply flex flex-wrap items-end gap-3;
+}
+
+.bi-filtro-rango {
+    @apply w-full sm:w-80;
+}
+
+.bi-filtro-alcance {
+    @apply ms-auto flex items-center gap-2;
+}
+
+.bi-select {
+    @apply w-full sm:w-64;
+}
+
+/* Columna con varias tarjetas apiladas (simulador). */
+.bi-columna {
+    @apply flex flex-col gap-4 sm:gap-6;
+}
+
+.bi-columna > .card {
+    @apply mb-0;
+}
+
+/* --- Tarjeta de indicador con tendencia (Components/Reporte/BiKpi.vue) --- */
+.bi-kpi {
+    @apply h-full items-start;
+}
+
+.bi-kpi-cuerpo {
+    @apply min-w-0;
+}
+
+.bi-kpi-nota {
+    color: var(--text-muted);
+    @apply mb-0 mt-1 text-xs;
+}
+
+/* La dirección la dicen la flecha y el signo; el color solo si es bueno o
+   malo (que el costo suba es malo, que las ventas suban es bueno). */
+.bi-tendencia {
+    @apply mb-0 mt-1 inline-flex items-center gap-1 text-xs font-semibold;
+}
+
+.bi-tendencia-buena {
+    color: var(--c-success);
+}
+
+.bi-tendencia-mala {
+    color: var(--c-danger);
+}
+
+.bi-tendencia-neutra {
+    color: var(--text-muted);
+}
+
+/* Nota que explica qué datos entran o quedan afuera de un cálculo. */
+.bi-aviso {
+    background: var(--c-info-soft);
+    color: var(--text-body);
+    @apply flex items-start gap-2 rounded-lg px-3 py-2 text-xs;
+}
+
+.bi-aviso i {
+    color: var(--c-info);
+    @apply mt-0.5;
+}
+
+/* --- Alertas de costo y margen --- */
+.bi-alertas {
+    @apply m-0 flex list-none flex-col gap-3 p-0;
+}
+
+.bi-alerta {
+    border-color: var(--border-subtle);
+    @apply flex flex-wrap items-start gap-3 rounded-lg border border-l-4 p-3 sm:flex-nowrap;
+}
+
+.bi-alerta-alta {
+    border-left-color: var(--c-danger);
+}
+
+.bi-alerta-media {
+    border-left-color: var(--c-warning);
+}
+
+.bi-alerta-icono {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
+}
+
+.bi-alerta-alta .bi-alerta-icono {
+    background: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.bi-alerta-media .bi-alerta-icono {
+    background: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+
+.bi-alerta-cuerpo {
+    @apply min-w-0 flex-1;
+}
+
+.bi-alerta-encabezado {
+    @apply mb-1 flex flex-wrap items-center gap-2;
+}
+
+.bi-alerta-tipo {
+    color: var(--text-muted);
+    @apply text-xs uppercase tracking-wide;
+}
+
+.bi-alerta-titulo {
+    color: var(--text-heading);
+    @apply mb-0.5 text-sm font-semibold;
+}
+
+.bi-alerta-detalle {
+    color: var(--text-muted);
+    @apply mb-0 text-sm;
+}
+
+.bi-alerta-accion {
+    @apply shrink-0 self-center;
+}
+
+.bi-alertas-vacio {
+    color: var(--text-muted);
+    @apply flex flex-col items-center gap-2 py-8 text-center text-sm;
+}
+
+.bi-alertas-vacio i {
+    color: var(--c-success);
+    @apply text-3xl;
+}
+
+/* --- Simulador de decisiones --- */
+.bi-simulador-controles {
+    @apply flex flex-col gap-4;
+}
+
+.bi-control-encabezado {
+    color: var(--text-body);
+    @apply mb-1 flex items-center justify-between gap-2 text-sm;
+}
+
+.bi-control-encabezado output {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply font-semibold;
+}
+
+.bi-range {
+    accent-color: var(--c-primary);
+    @apply w-full cursor-pointer;
+}
+
+.bi-control-check {
+    color: var(--text-muted);
+    @apply mt-2 flex cursor-pointer items-center gap-2 text-xs;
+}
+
+.bi-check {
+    accent-color: var(--c-primary);
+}
+
+/* Veredicto del escenario: el color repite el semáforo, el texto lo explica. */
+.bi-veredicto {
+    @apply mb-4 rounded-lg border-l-4 px-4 py-3;
+}
+
+.bi-veredicto-verde {
+    background: var(--c-success-soft);
+    border-color: var(--c-success);
+}
+
+.bi-veredicto-amarillo {
+    background: var(--c-warning-soft);
+    border-color: var(--c-warning);
+}
+
+.bi-veredicto-rojo {
+    background: var(--c-danger-soft);
+    border-color: var(--c-danger);
+}
+
+.bi-veredicto-titulo {
+    color: var(--text-heading);
+    @apply mb-1 text-sm font-semibold;
+}
+
+.bi-veredicto-detalle {
+    color: var(--text-muted);
+    @apply mb-0 text-xs;
 }
 
 /* ==========================================================================

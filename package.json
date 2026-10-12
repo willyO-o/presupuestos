@@ -26,8 +26,8 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
-        "chart.js": "^4.5.1",
         "daterange-picker-vue3": "^1.0.3",
+        "echarts": "^6.1.0",
         "sweetalert2": "^11.26.25",
         "vue-multiselect": "^3.5.0"
     }

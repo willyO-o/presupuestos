@@ -3,7 +3,7 @@ import { onBeforeUnmount, ref, shallowRef } from 'vue';
 /**
  * Colores de los gráficos, leídos de los tokens CSS y reactivos al tema.
  *
- * Chart.js dibuja en un `<canvas>`: no entiende `var(--chart-1)`, hay que
+ * ECharts dibuja en un `<canvas>`: no entiende `var(--chart-1)`, hay que
  * pasarle un color resuelto. Por eso el tema se lee con `getComputedStyle` del
  * `<html>` y se vuelve a leer cuando cambia la clase `.dark` (la pone
  * `Components/Layout/Topbar.vue`). Sin esto, al cambiar a modo oscuro las
@@ -16,7 +16,7 @@ import { onBeforeUnmount, ref, shallowRef } from 'vue';
  * `app.css`. Acá solo se lee: no se generan colores ni se ciclan.
  */
 
-/** @typedef {{series: string[], grid: string, eje: string, superficie: string, texto: string, positivo: string, negativo: string}} TemaGrafico */
+/** @typedef {{series: string[], grid: string, eje: string, superficie: string, texto: string, positivo: string, negativo: string, fuente: string}} TemaGrafico */
 
 /** @type {import('vue').ShallowRef<TemaGrafico|null>} */
 const tema = shallowRef(null);
@@ -44,6 +44,9 @@ function leer() {
         // "serie 7" haría que un dato neutro pareciera bueno o malo.
         positivo: token('--c-success'),
         negativo: token('--c-danger'),
+        // El canvas no hereda la tipografía de la página: sin esto los ejes
+        // salen en la sans-serif por defecto del navegador.
+        fuente: getComputedStyle(document.body).fontFamily,
     };
 
     oscuro.value = document.documentElement.classList.contains('dark');

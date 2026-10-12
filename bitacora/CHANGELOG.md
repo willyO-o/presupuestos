@@ -13,6 +13,67 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-12 — Inteligencia de negocios ampliada + gráficos con Apache ECharts
+
+**Qué cambió:**
+- Todos los gráficos del sistema (Dashboard, Reporte financiero, Producción e
+  Inteligencia de negocios) se dibujan ahora con **Apache ECharts 6** en vez de
+  Chart.js 4 (desinstalado). Las páginas existentes no cambiaron su código de
+  gráficos: se reemplazó por dentro `Components/Chart/BaseChart.vue`.
+- Inteligencia de negocios pasó de 1 pantalla a **5 pestañas**, todas con
+  **filtro de fechas** (por defecto, últimos 12 meses) que se conserva al
+  cambiar de pestaña:
+  1. *Demanda y ventas* (la pantalla original, ahora filtrable y con rango
+     probable en la proyección).
+  2. *Costos y materiales*: proyección de costos futuros (índice de costo de
+     materiales base 100 + proyección por material), consumo de materiales
+     (real de producción vs. presupuestado en las hojas de costo), impacto en
+     Bs de las variaciones de precio y tendencia.
+  3. *Presupuestos y rentabilidad*: pronóstico de presupuestos (monto y
+     cantidad), tendencia ticket vs. costo promedio, proyección de rentabilidad
+     contra los umbrales del semáforo y distribución del semáforo.
+  4. *Alertas*: aumento de costo de materiales, presupuestos vivos con margen
+     bajo, presupuestos pendientes con costos desactualizados (re-evaluados con
+     el motor de margen), sobrecosto de material en pedidos y tendencia
+     sostenida de costos.
+  5. *Simulador de decisiones*: "¿qué pasa si…?" con costo de materiales,
+     ajuste de precio, descuento, volumen y traslado al precio; muestra
+     semáforo, precio mínimo para verde, tolerancia de costo y sensibilidad.
+
+**Por qué:** pedido del usuario — cubrir con BI las proyecciones de costos,
+consumo de materiales, rentabilidad, pronóstico de presupuestos, tendencias,
+impacto de variaciones, alertas, simulador y filtros por fecha, usando ECharts.
+
+**Cómo:**
+- `Components/Chart/EchartsCore.js` registra solo las piezas usadas (línea,
+  barra, grid, tooltip, markLine, markArea, aria, canvas) y se carga con
+  `import()`: chunk propio (~188 KB gzip) que solo bajan las pantallas con
+  gráficos. `BaseChart` mantiene su API y suma: serie `banda` (rango probable),
+  eje derecho, `umbrales`, `inicioProyeccion`, `enteros`, `ajustarEscala`,
+  leyenda que apaga/prende series, ResizeObserver y tooltip con HTML escapado.
+- Backend: `PeriodoReporte` (rango + meses) y `Pronostico` (regresión lineal,
+  media móvil, proyección ± error típico) compartidos; servicios nuevos
+  `CostosMaterialesService`, `PresupuestosRentabilidadService`,
+  `AlertasNegocioService` y `SimuladorDecisionesService`; `config/bi.php` con
+  umbrales (aumento de costo 10 %, tendencia 2 %/mes, 3 meses de proyección).
+  Rutas `reportes.bi.{costos,rentabilidad,alertas,simulador}` bajo el permiso
+  `reportes.bi` existente (sin permisos nuevos ni reseed).
+- La rentabilidad excluye las cotizaciones sin hoja de costos (anteriores al
+  motor de margen guardan costo 0) y lo avisa en pantalla. Precios de material
+  se rotulan "toda la empresa"; consumo, presupuestos y alertas respetan la
+  sucursal del usuario.
+- El simulador no tiene endpoint: usa `Utils/MotorMargen.js` (espejo del motor
+  que ya usaba el formulario de cotización) con la config del servidor.
+- Trampa encontrada: en sqlite las columnas `date` se guardan con hora, así que
+  filtrar con `'AAAA-MM-DD'` excluía el último día → se filtra con los Carbon
+  del periodo. Y 120/100 − 1 = 0,1999… en flotante: las alertas comparan
+  redondeando.
+- CSS en app.css §26 (`.chart-legend-item.is-off`, `.chart-tooltip-*`, `.bi-*`);
+  catálogo de clases y reglas `.ai/rules/{js-pages,reporte}.md` actualizados.
+- Tests: `InteligenciaNegociosAvanzadoTest` (19), `PronosticoTest` (8) y un caso
+  nuevo de filtro en `InteligenciaNegociosServiceTest`. Suite completa en verde;
+  verificado en navegador (claro, oscuro y móvil, sin errores de consola).
+
 ## 2026-09-17 — Notificaciones internas: administrador y vendedor
 
 **Qué cambió:** se agregó un sistema de notificaciones in-app (campanita del

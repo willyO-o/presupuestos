@@ -486,6 +486,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/reportes/bi', [ReporteController::class, 'bi'])
         ->middleware('can:reportes.bi')
         ->name('reportes.bi');
+    Route::get('/reportes/bi/costos', [ReporteController::class, 'biCostos'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.costos');
+    Route::get('/reportes/bi/rentabilidad', [ReporteController::class, 'biRentabilidad'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.rentabilidad');
+    Route::get('/reportes/bi/alertas', [ReporteController::class, 'biAlertas'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.alertas');
+    Route::get('/reportes/bi/simulador', [ReporteController::class, 'biSimulador'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.simulador');
 
     // --- Seguridad: roles y permisos ---
     Route::get('/roles', [RolController::class, 'index'])

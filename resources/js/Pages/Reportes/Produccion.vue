@@ -93,7 +93,7 @@ const carga = computed(() => ({
                     </div>
                     <div class="card-body">
                         <BaseChart titulo="Carga de trabajo por área" tipo="bar" horizontal :labels="carga.labels"
-                            :series="carga.series" :formato="entero" :alto="240" vacio="Sin etapas abiertas." />
+                            :series="carga.series" :formato="entero" :alto="240" enteros vacio="Sin etapas abiertas." />
                     </div>
                 </div>
             </div>
