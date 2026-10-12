@@ -2448,15 +2448,7 @@
 
 .bi-alerta {
     border-color: var(--border-subtle);
-    @apply flex flex-wrap items-start gap-3 rounded-lg border border-l-4 p-3 sm:flex-nowrap;
-}
-
-.bi-alerta-alta {
-    border-left-color: var(--c-danger);
-}
-
-.bi-alerta-media {
-    border-left-color: var(--c-warning);
+    @apply flex flex-wrap items-start gap-3 rounded-lg border p-3 sm:flex-nowrap;
 }
 
 .bi-alerta-icono {
@@ -2542,7 +2534,7 @@
 
 /* Veredicto del escenario: el color repite el semáforo, el texto lo explica. */
 .bi-veredicto {
-    @apply mb-4 rounded-lg border-l-4 px-4 py-3;
+    @apply mb-4 rounded-lg px-4 py-3;
 }
 
 .bi-veredicto-verde {
@@ -3347,4 +3339,655 @@
    mientras no se marque como leída. */
 .notif-item-unread {
     background-color: var(--c-primary-soft);
+}
+
+/* ==========================================================================
+   33. IA DEL BI (Components/Layout/AsistenteBi.vue, Pages/Reportes/BiResumen.vue,
+       anomalías de Pages/Reportes/BiAlertas.vue)
+   --------------------------------------------------------------------------
+   Tres piezas con un mismo principio visual: el texto de la IA siempre va
+   junto a la evidencia de la que sale (resultados de herramientas, tabla de
+   indicadores, hechos de la anomalía).
+
+   - `.ia-*`: lanzador flotante y panel lateral del asistente. Es un panel,
+     no un modal: convive con la página para poder mirar un reporte y
+     preguntar a la vez. En pantallas chicas ocupa todo el ancho.
+   - `.resumen-*`: pestaña Resumen semanal. Al pasar por un destacado o
+     riesgo, `.is-evidencia` resalta los indicadores que lo sustentan.
+   - `.anomalia-*`: lista de anomalías con estado nueva/revisada/descartada.
+   ========================================================================== */
+
+/* --- Asistente: lanzador --- */
+.ia-lanzador {
+    background-color: var(--c-primary);
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(20, 95, 151, 0.28), 0 2px 4px rgba(20, 22, 26, 0.12);
+    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    @apply fixed right-5 z-40 inline-flex items-center gap-2 rounded-full border-0 px-4 py-3 text-sm font-semibold transition;
+}
+
+.ia-lanzador:hover {
+    background-color: var(--c-primary-dark);
+    transform: translateY(-1px);
+}
+
+.ia-lanzador:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--c-primary) 35%, transparent);
+    outline-offset: 2px;
+}
+
+/* --- Asistente: panel --- */
+.ia-panel {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    box-shadow: -12px 0 32px rgba(20, 22, 26, 0.12);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    @apply fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l sm:w-[440px];
+}
+
+.dark .ia-panel {
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.45);
+}
+
+.ia-panel-cabecera {
+    border-color: var(--border-subtle);
+    @apply flex items-center justify-between gap-3 border-b px-4 py-3;
+}
+
+.ia-panel-identidad {
+    @apply flex min-w-0 items-center gap-3;
+}
+
+.ia-panel-icono {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
+}
+
+.ia-panel-titulo {
+    color: var(--text-heading);
+    @apply m-0 text-base font-semibold;
+}
+
+.ia-panel-sub {
+    color: var(--text-muted);
+    @apply m-0 text-xs;
+}
+
+.ia-panel-acciones {
+    @apply flex shrink-0 items-center gap-1;
+}
+
+.ia-panel-cuerpo {
+    scrollbar-width: thin;
+    @apply flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-4;
+}
+
+.ia-panel-pie {
+    border-color: var(--border-subtle);
+    @apply flex flex-col gap-2 border-t px-4 py-3;
+}
+
+.ia-cargando,
+.ia-respuesta-pendiente {
+    color: var(--text-muted);
+    @apply flex items-center gap-1.5 text-sm;
+}
+
+.ia-cargando {
+    @apply justify-center py-10;
+}
+
+/* --- Asistente: estado vacío --- */
+.ia-vacio {
+    @apply flex flex-col gap-2 py-2;
+}
+
+.ia-vacio-titulo {
+    color: var(--text-heading);
+    text-wrap: balance;
+    @apply m-0 text-base font-semibold;
+}
+
+.ia-vacio-texto {
+    color: var(--text-muted);
+    @apply m-0 text-sm;
+}
+
+.ia-sugerencias {
+    @apply mt-2 flex flex-col gap-2;
+}
+
+.ia-sugerencia {
+    background-color: var(--page-bg);
+    border-color: var(--border-subtle);
+    color: var(--text-body);
+    @apply rounded-lg border px-3 py-2 text-left text-sm transition-colors;
+}
+
+.ia-sugerencia:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--c-primary) 40%, transparent);
+    color: var(--c-primary);
+}
+
+.ia-sugerencia:disabled {
+    @apply cursor-not-allowed opacity-60;
+}
+
+/* --- Asistente: conversación --- */
+.ia-turno {
+    @apply flex flex-col gap-2;
+}
+
+.ia-pregunta {
+    background-color: var(--c-primary);
+    color: #ffffff;
+    @apply m-0 max-w-[85%] self-end whitespace-pre-line rounded-2xl rounded-br-md px-3.5 py-2 text-sm;
+}
+
+.ia-respuesta {
+    color: var(--text-body);
+    @apply flex flex-col gap-3 text-sm;
+}
+
+.ia-respuesta-texto p,
+.ia-respuesta-texto ul,
+.ia-respuesta-texto ol {
+    @apply mb-2 mt-0 leading-relaxed;
+}
+
+.ia-respuesta-texto ul,
+.ia-respuesta-texto ol {
+    @apply pl-5;
+}
+
+.ia-respuesta-texto ul {
+    list-style: disc;
+}
+
+.ia-respuesta-texto ol {
+    list-style: decimal;
+}
+
+.ia-respuesta-texto strong {
+    color: var(--text-heading);
+}
+
+.ia-respuesta-error .ia-respuesta-texto {
+    background-color: var(--c-warning-soft);
+    color: var(--text-heading);
+    @apply rounded-lg px-3 py-2;
+}
+
+.ia-respuesta-meta {
+    color: var(--text-muted);
+    @apply m-0 text-[11px];
+}
+
+/* --- Resultado de herramienta (Components/Reporte/ResultadoIa.vue) --- */
+.ia-resultado {
+    background-color: var(--page-bg);
+    border-color: var(--border-subtle);
+    @apply flex flex-col gap-2 rounded-lg border p-3;
+}
+
+.dark .ia-resultado {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.ia-resultado-titulo {
+    color: var(--text-heading);
+    @apply m-0 text-sm font-semibold;
+}
+
+.ia-resultado-tabla {
+    @apply text-xs;
+}
+
+.ia-resultado-pie {
+    @apply flex flex-wrap items-start gap-x-4 gap-y-1;
+}
+
+.ia-enlace {
+    color: var(--c-primary);
+    @apply inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-xs font-medium;
+}
+
+.ia-enlace:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.ia-calculo {
+    @apply min-w-0 flex-1 text-xs;
+}
+
+.ia-calculo summary {
+    color: var(--c-primary);
+    list-style: none;
+    @apply inline-flex cursor-pointer items-center gap-1.5 font-medium;
+}
+
+.ia-calculo summary::-webkit-details-marker {
+    display: none;
+}
+
+.ia-calculo p {
+    color: var(--text-muted);
+    @apply mb-0 mt-1.5 leading-relaxed;
+}
+
+.ia-calculo-parametros {
+    @apply flex flex-wrap gap-1;
+}
+
+.ia-calculo-parametros span {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    font-variant-numeric: tabular-nums;
+    @apply rounded border px-1.5 py-0.5;
+}
+
+.ia-calculo-parametros .ia-calculo-herramienta {
+    background-color: var(--c-primary-soft);
+    border-color: transparent;
+    color: var(--c-primary);
+    @apply font-semibold;
+}
+
+/* --- Asistente: formulario --- */
+.ia-formulario {
+    @apply flex items-end gap-2;
+}
+
+.ia-campo {
+    min-height: 2.5rem;
+    @apply resize-none leading-snug;
+}
+
+.ia-enviar {
+    @apply h-10 w-10 shrink-0 justify-center p-0;
+}
+
+.ia-error {
+    color: var(--c-danger-dark);
+    @apply m-0 flex items-start gap-1.5 text-xs;
+}
+
+.dark .ia-error {
+    color: var(--c-danger);
+}
+
+.ia-uso {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply m-0 text-[11px];
+}
+
+.ia-uso-alerta {
+    color: var(--c-warning-dark);
+    @apply font-semibold;
+}
+
+/* --- Resumen semanal --- */
+.resumen-vacio {
+    color: var(--text-muted);
+    @apply flex flex-col items-center gap-3 py-10 text-center text-sm;
+}
+
+.resumen-vacio > i {
+    color: var(--c-primary);
+    @apply text-3xl;
+}
+
+.resumen-vacio p {
+    max-width: 60ch;
+    @apply m-0;
+}
+
+.resumen-vacio-titulo {
+    color: var(--text-heading);
+    @apply m-0 text-lg font-semibold;
+}
+
+/* Titular arriba a todo el ancho; origen, alcances y acción debajo. Al
+   lado, los botones de alcance le comían el ancho al titular. */
+.resumen-cabecera-fila {
+    @apply flex flex-col gap-4;
+}
+
+.resumen-cabecera-texto {
+    @apply flex min-w-0 flex-1 flex-col gap-2;
+}
+
+.resumen-semana {
+    color: var(--text-muted);
+    @apply m-0 text-sm;
+}
+
+.resumen-semana strong {
+    color: var(--text-heading);
+    @apply font-semibold;
+}
+
+.resumen-titular {
+    color: var(--text-heading);
+    text-wrap: balance;
+    max-width: 60ch;
+    @apply m-0 text-xl font-semibold leading-snug sm:text-2xl;
+}
+
+.resumen-origen {
+    @apply m-0 flex flex-wrap items-center gap-2;
+}
+
+.resumen-origen .badge {
+    @apply inline-flex items-center gap-1.5;
+}
+
+.resumen-cabecera-acciones {
+    @apply flex flex-wrap items-center justify-between gap-2;
+}
+
+.resumen-alcances {
+    background-color: var(--page-bg);
+    @apply inline-flex flex-wrap gap-1 rounded-lg p-1;
+}
+
+.resumen-alcance {
+    color: var(--text-muted);
+    @apply rounded-md border-0 bg-transparent px-2.5 py-1 text-xs font-medium transition-colors;
+}
+
+.resumen-alcance:hover {
+    color: var(--text-heading);
+}
+
+.resumen-alcance.is-active {
+    background-color: var(--card-bg);
+    color: var(--c-primary);
+    box-shadow: 0 1px 2px rgba(20, 22, 26, 0.08);
+}
+
+.resumen-cuerpo {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2;
+}
+
+.resumen-lectura,
+.resumen-evidencia {
+    @apply flex min-w-0 flex-col gap-4 sm:gap-6;
+}
+
+.resumen-lectura > .card,
+.resumen-evidencia > .card {
+    @apply mb-0;
+}
+
+.resumen-puntos {
+    @apply m-0 flex list-none flex-col gap-1;
+}
+
+.resumen-punto {
+    color: var(--text-body);
+    @apply flex items-start gap-3 rounded-lg px-2 py-2 text-sm leading-relaxed transition-colors;
+}
+
+.resumen-punto[tabindex]:hover,
+.resumen-punto[tabindex]:focus-visible {
+    background-color: var(--page-bg);
+    outline: none;
+}
+
+.dark .resumen-punto[tabindex]:hover,
+.dark .resumen-punto[tabindex]:focus-visible {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.resumen-punto-icono {
+    @apply mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs;
+}
+
+.resumen-punto-bueno {
+    background-color: var(--c-success-soft);
+    color: var(--c-success-dark);
+}
+
+.resumen-punto-alto {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.resumen-punto-medio {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+}
+
+.resumen-punto-accion {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+}
+
+.resumen-accion {
+    color: var(--text-heading);
+    @apply block font-semibold;
+}
+
+.resumen-motivo {
+    color: var(--text-muted);
+    @apply block text-xs;
+}
+
+.resumen-kpis tbody tr {
+    transition: background-color 150ms ease;
+}
+
+/* El nombre del indicador hace salto de línea: si no, empuja las columnas
+   de variación fuera de la tarjeta. */
+/* Sin el ancho mínimo de 640 px de .table-dashboard: vive en media
+   columna (y en el panel del asistente) y si no, se corta. */
+.table-dashboard.resumen-kpis,
+.table-dashboard.ia-resultado-tabla {
+    min-width: 0;
+}
+
+.table-dashboard.resumen-kpis tbody td:first-child {
+    white-space: normal;
+    min-width: 8rem;
+}
+
+.table-dashboard.resumen-kpis tbody td.chart-table-num {
+    white-space: nowrap;
+}
+
+.table-dashboard.resumen-kpis thead th,
+.table-dashboard.resumen-kpis tbody td {
+    @apply px-2 text-xs;
+}
+
+.resumen-kpis tbody tr.is-evidencia td {
+    background-color: var(--c-primary-soft);
+}
+
+.resumen-kpis tbody tr.is-evidencia td:first-child {
+    color: var(--c-primary);
+    @apply font-semibold;
+}
+
+.dark .resumen-kpis tbody tr.is-evidencia td {
+    background-color: color-mix(in srgb, var(--c-primary) 18%, transparent);
+}
+
+.resumen-var-buena {
+    color: var(--c-success-dark);
+}
+
+.resumen-var-mala {
+    color: var(--c-danger);
+}
+
+.resumen-var-neutra {
+    color: var(--text-muted);
+}
+
+.dark .resumen-var-buena {
+    color: var(--c-success);
+}
+
+.resumen-contexto {
+    color: var(--text-body);
+    @apply flex flex-col gap-3 text-sm;
+}
+
+.resumen-contexto-titulo {
+    color: var(--text-heading);
+    @apply mb-1 font-semibold;
+}
+
+.resumen-familia {
+    @apply mb-2;
+}
+
+.resumen-familia-fila {
+    @apply flex justify-between gap-3 text-xs;
+}
+
+.resumen-historial {
+    @apply m-0 flex list-none flex-col gap-1;
+}
+
+.resumen-historial-item {
+    color: var(--text-body);
+    @apply flex w-full flex-col gap-0.5 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-sm transition-colors sm:flex-row sm:items-baseline sm:gap-4;
+}
+
+.resumen-historial-item:hover {
+    background-color: var(--page-bg);
+}
+
+.resumen-historial-item.is-active {
+    background-color: var(--c-primary-soft);
+}
+
+.resumen-historial-semana {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply shrink-0 font-semibold sm:w-64;
+}
+
+.resumen-historial-titular {
+    color: var(--text-muted);
+    @apply min-w-0;
+}
+
+/* --- Anomalías detectadas --- */
+.anomalia-filtro {
+    background-color: var(--page-bg);
+    @apply mb-4 inline-flex flex-wrap gap-1 rounded-lg p-1;
+}
+
+.anomalia-filtro-opcion {
+    color: var(--text-muted);
+    @apply inline-flex items-center gap-1.5 rounded-md border-0 bg-transparent px-3 py-1.5 text-xs font-medium transition-colors;
+}
+
+.anomalia-filtro-opcion:hover {
+    color: var(--text-heading);
+}
+
+.anomalia-filtro-opcion.is-active {
+    background-color: var(--card-bg);
+    color: var(--c-primary);
+    box-shadow: 0 1px 2px rgba(20, 22, 26, 0.08);
+}
+
+.anomalia-filtro-conteo {
+    background-color: var(--border-subtle);
+    font-variant-numeric: tabular-nums;
+    @apply rounded-full px-1.5 text-[11px];
+}
+
+.anomalias {
+    @apply m-0 flex list-none flex-col gap-3 p-0;
+}
+
+.anomalia {
+    border-color: var(--border-subtle);
+    @apply flex flex-wrap items-start gap-3 rounded-lg border p-3 sm:flex-nowrap;
+}
+
+.anomalia.is-cerrada {
+    opacity: 0.72;
+}
+
+.anomalia-icono {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
+}
+
+.anomalia-alta .anomalia-icono {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.anomalia-media .anomalia-icono {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+}
+
+.anomalia-cuerpo {
+    @apply min-w-0 flex-1;
+}
+
+.anomalia-meta {
+    @apply mb-1 flex flex-wrap items-center gap-2;
+}
+
+.anomalia-tipo {
+    color: var(--text-muted);
+    @apply text-xs font-semibold;
+}
+
+.anomalia-dato {
+    color: var(--text-muted);
+    @apply text-xs;
+}
+
+.anomalia-titulo {
+    color: var(--text-heading);
+    @apply mb-1 mt-0 text-sm font-semibold;
+}
+
+.anomalia-detalle {
+    color: var(--text-body);
+    @apply m-0 text-sm;
+}
+
+.anomalia-revisar {
+    color: var(--text-heading);
+    @apply mb-0 mt-2 flex items-start gap-2 text-sm;
+}
+
+.anomalia-revisar i {
+    color: var(--c-primary);
+    @apply mt-1 text-xs;
+}
+
+.anomalia-ia {
+    color: var(--text-muted);
+    @apply mb-0 mt-2 flex items-center gap-1.5 text-[11px];
+}
+
+.anomalia-acciones {
+    @apply flex shrink-0 flex-wrap items-center gap-1.5 self-center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ia-lanzador,
+    .resumen-punto,
+    .resumen-kpis tbody tr {
+        transition: none;
+    }
+
+    .ia-lanzador:hover {
+        transform: none;
+    }
 }

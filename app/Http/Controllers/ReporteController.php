@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Ai\ServicioIa;
+use App\Models\BiAnomalia;
+use App\Models\BiResumen;
 use App\Services\Reporte\AlertasNegocioService;
 use App\Services\Reporte\CostosMaterialesService;
 use App\Services\Reporte\InteligenciaNegociosService;
@@ -13,6 +16,7 @@ use App\Services\Reporte\ResumenDashboardService;
 use App\Services\Reporte\SimuladorDecisionesService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Response;
 
 class ReporteController extends Controller
@@ -79,7 +83,116 @@ class ReporteController extends Controller
     public function biAlertas(Request $request, AlertasNegocioService $alertas): Response
     {
         return $this->paginaBi($request, 'Reportes/BiAlertas', 'Alertas',
-            fn (PeriodoReporte $periodo) => $alertas->datos($request->user(), $periodo));
+            fn (PeriodoReporte $periodo) => [
+                ...$alertas->datos($request->user(), $periodo),
+                'anomalias' => $this->anomalias($request),
+            ]);
+    }
+
+    /**
+     * Resumen semanal redactado (pestaña "Resumen"). No usa el filtro de
+     * fechas: cada resumen ya es una semana cerrada, y se elige del historial.
+     */
+    public function biResumen(Request $request, ServicioIa $ia): Response
+    {
+        $usuario = $request->user();
+
+        $historial = BiResumen::query()
+            ->visibleResumenPara($usuario)
+            ->with('sucursal:id,nombre')
+            ->orderByDesc('semana_inicio')
+            ->orderByRaw('sucursal_id IS NULL DESC')
+            ->limit(60)
+            ->get();
+
+        $elegido = $historial->firstWhere('id', (int) $request->query('resumen')) ?? $historial->first();
+
+        return inertia('Reportes/BiResumen', [
+            'datos' => [
+                'resumen' => $elegido ? $this->presentarResumen($elegido) : null,
+                'historial' => $historial->map(fn (BiResumen $r) => [
+                    'id' => $r->id,
+                    'semana' => $r->hechos['semana']['etiqueta'] ?? $r->semana_inicio->toDateString(),
+                    'alcance' => $r->sucursal?->nombre ?? 'Toda la empresa',
+                    'titular' => $r->contenido['titular'] ?? '',
+                    'origen' => $r->origen,
+                ])->values(),
+                'puede_generar' => $usuario->can('reportes.asistente'),
+                'ia' => $ia->estado('resumen_semanal'),
+            ],
+            'filters' => [],
+            'pageTitle' => 'Inteligencia de negocios',
+            'breadcrumbs' => ['Reportes', 'Inteligencia de negocios', 'Resumen semanal'],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function presentarResumen(BiResumen $resumen): array
+    {
+        return [
+            'id' => $resumen->id,
+            'alcance' => $resumen->hechos['alcance'] ?? 'Toda la empresa',
+            // Mismo rótulo que el historial, para cambiar de alcance o de semana.
+            'alcance_corto' => $resumen->sucursal?->nombre ?? 'Toda la empresa',
+            'semana' => $resumen->hechos['semana'] ?? null,
+            'kpis' => $resumen->hechos['kpis'] ?? [],
+            'contexto' => $resumen->hechos['contexto'] ?? [],
+            'hay_anio_anterior' => $resumen->hechos['hay_anio_anterior'] ?? false,
+            'contenido' => $resumen->contenido,
+            'origen' => $resumen->origen,
+            'proveedor' => $resumen->proveedor,
+            'modelo' => $resumen->modelo,
+            'generado' => $resumen->updated_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Anomalías visibles para el usuario, filtradas por estado (por defecto
+     * las nuevas), con el conteo por estado para el filtro.
+     *
+     * @return array<string, mixed>
+     */
+    private function anomalias(Request $request): array
+    {
+        $usuario = $request->user();
+        $estado = in_array($request->query('anomalias'), [...BiAnomalia::ESTADOS, 'TODAS'], true)
+            ? $request->query('anomalias')
+            : 'NUEVA';
+
+        $base = fn () => BiAnomalia::query()->visibleAnomaliaPara($usuario);
+
+        return [
+            'estado' => $estado,
+            'conteo' => $base()->selectRaw('estado, COUNT(*) as total')->groupBy('estado')->pluck('total', 'estado'),
+            'items' => $base()
+                ->when($estado !== 'TODAS', fn ($q) => $q->where('estado', $estado))
+                ->with('sucursal:id,nombre', 'revisor:id,name')
+                ->orderByRaw("CASE severidad WHEN 'ALTA' THEN 0 ELSE 1 END")
+                ->latest('detectada_en')
+                ->latest('id')
+                ->limit(50)
+                ->get()
+                ->map(fn (BiAnomalia $a) => [
+                    'id' => $a->id,
+                    'tipo' => $a->tipo,
+                    'tipo_etiqueta' => BiAnomalia::TIPOS[$a->tipo] ?? $a->tipo,
+                    'severidad' => $a->severidad,
+                    'titulo' => $a->titulo,
+                    'detalle' => $a->detalle,
+                    'que_revisar' => $a->que_revisar,
+                    'alcance' => $a->sucursal?->nombre ?? 'Toda la empresa',
+                    'url' => $a->url,
+                    'redaccion' => $a->redaccion,
+                    'estado' => $a->estado,
+                    'detectada_en' => $a->detectada_en->toDateString(),
+                    'revisor' => $a->revisor?->name,
+                ])
+                ->values(),
+            'ultima_deteccion' => ($ultima = $base()->max('created_at')) ? Carbon::parse($ultima)->toIso8601String() : null,
+            'puede_gestionar' => $usuario->can('reportes.asistente'),
+        ];
     }
 
     public function biSimulador(Request $request, SimuladorDecisionesService $simulador): Response

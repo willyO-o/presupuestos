@@ -19,6 +19,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    familias: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 /**
@@ -39,6 +43,7 @@ const table = useServerTable({
 
 const headers = [
     { label: 'Nombre', key: 'nombre' },
+    { label: 'Familia', key: 'familia' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
@@ -54,6 +59,7 @@ const editingCategoria = ref(null);
 // funcion, reset() siempre re-evalua estos valores desde cero.
 const form = useForm(() => ({
     nombre: '',
+    familia_producto_id: null,
     estado: 'ACTIVO',
 }));
 
@@ -68,6 +74,7 @@ function openEdit(categoria) {
     editingCategoria.value = categoria;
     form.clearErrors();
     form.nombre = categoria.nombre;
+    form.familia_producto_id = categoria.familia_producto_id;
     form.estado = categoria.estado;
     showFormModal.value = true;
 }
@@ -160,6 +167,11 @@ async function confirmDelete(categoria) {
             <DataTable :headers="headers" :items="categoriasProducto.data" :paginator="categoriasProducto"
                 :loading="table.loading" empty-text="No hay categorías de producto registradas."
                 @page-change="table.changePage">
+                <template #cell-familia="{ item }">
+                    <span v-if="item.familia">{{ item.familia.nombre }}</span>
+                    <span v-else class="text-muted">Sin familia</span>
+                </template>
+
                 <template #cell-estado="{ item }">
                     <span class="badge" :class="item.estado === 'ACTIVO'
                             ? 'badge-soft-success'
@@ -198,7 +210,7 @@ async function confirmDelete(categoria) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <CategoriaProductoFormFields :form="form" :errors="form.errors" />
+                <CategoriaProductoFormFields :form="form" :errors="form.errors" :familias="familias" />
             </div>
 
             <div class="modal-footer">

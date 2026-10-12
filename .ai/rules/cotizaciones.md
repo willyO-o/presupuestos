@@ -6,9 +6,10 @@ paths:
   - app/Models/CotizacionDetalle.php
   - app/Services/Calculo/PrecioSugeridoService.php
   - 'resources/js/Pages/Cotizaciones/**'
-  - database/seeders/CotizacionSeeder.php
+  - database/seeders/HistorialComercialSeeder.php
   - config/cotizacion.php
   - app/Models/Pedido.php
+  - 'database/seeders/**'
 ---
 
 # Cotizaciones
@@ -46,9 +47,9 @@ patrones del proyecto. No reimplementar desde cero.
   las setea el (futuro) módulo de Pedidos / un job de vencimiento, no este módulo.
 - El detalle se **reemplaza entero** en cada `update` (`detalles()->delete()` +
   `createMany`) — simple y seguro mientras no exista un pedido que dependa de los ids.
-- Datos de prueba: `CotizacionSeeder` (8 cotizaciones curadas con detalle real, precio vía
-  `PrecioSugeridoService` cuando el producto tiene BOM; se salta si ya hay filas — no
-  idempotente, como los demás seeders de volumen). Tests: `CotizacionControllerTest`.
+- Datos de prueba: `HistorialComercialSeeder` (24 meses simulados con hoja de costos completa,
+  precio vía `PrecioSugeridoService`/`MotorMargenService`; se salta si ya hay cotizaciones —
+  no idempotente, como los demás seeders de volumen). Tests: `CotizacionControllerTest`.
 
 ## Flujo de producción: etapa CONTROL_CALIDAD y postventa automática
 2026-09-08, para alinear el sistema con los 3 procesos documentados de la empresa:
@@ -56,3 +57,8 @@ patrones del proyecto. No reimplementar desde cero.
 1. Se agregó `CONTROL_CALIDAD` entre ACABADO y ENTREGADO en `pedido.estado`, `pedido_detalle.estado_item` y `pedido_seguimiento.etapa` (Proceso 2, paso 4). La migración usa `->change()` con `enum`, no SQL crudo: los tests corren en SQLite y ahí Laravel traduce el enum a un CHECK. Las constantes `Pedido::ESTADOS`/`FLUJO`, `PedidoDetalle::ESTADOS` y `PedidoSeguimiento::ETAPAS` son la fuente para el frontend (Pedidos/Show las recibe como props) — al agregar una etapa hay que tocar también los mapas de badges de Pedidos/Index, Pedidos/Show, Portal/Pedidos y el array `flujo` de Portal/Pedido.
 
 2. `Pedido::recalcularEstado()` llama a `App\Services\Pedido\ProgramarPostventaService` cuando el pedido queda ENTREGADO: crea el `seguimiento_postventa` PENDIENTE a `config('postventa.dias_seguimiento')` días (Proceso 3, "Seguimiento 7 días"). Ese servicio es el ÚNICO lugar que crea seguimientos, y es idempotente (`pedido_id` único) — no crear filas a mano desde un controlador ni un seeder.
+
+## HistorialComercialSeeder: 24 meses coherentes con los servicios reales (2026-10-12)
+Reemplaza a Compra/Cotizacion/Pedido/PagoSeeder (borrados). Simula mes a mes con AprobarCompraService, PrecioSugeridoService/MotorMargenService y ConvertirCotizacionService; `Carbon::setTestNow()` hace que cada servicio deje fechas históricas. Catálogo curado y ficticio: SucursalSeeder (4, Santa Cruz abre en el mes 8), EmpleadoSeeder (perfiles de vendedor + cuentas gerente@gmail.com / vendedor@gmail.com, clave admin123), ClienteSeeder (segmentos Pareto), ProveedorSeeder, FamiliaProductoSeeder (por palabras clave, no pisa lo clasificado). Sin lotes de la factory en Material/ProductoSeeder (nombres faker contaminaban rankings).
+Escenarios plantados: vendedor La Paz inactivo ~5 semanas, caída de La Paz la última semana, cliente grande sin comprar ~4,5 meses, venta reciente en ROJO, pedido con reimpresión, tubos +24 % la semana pasada.
+El CompraSeeder anterior compraba por ROLLO sobre materiales en m² (lona a Bs 2.900/m²): no repetir. Determinista (semilla). `HistorialComercialSeeder::$mesesParaPruebas` acota en tests (HistorialComercialSeederTest).

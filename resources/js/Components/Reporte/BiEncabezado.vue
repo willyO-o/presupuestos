@@ -12,15 +12,19 @@ import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
  * pestaña se conserva el periodo elegido: las fechas viajan en la query
  * string de cada enlace, así comparar "costos" y "rentabilidad" del mismo
  * trimestre no obliga a volver a elegirlo.
+ *
+ * Sin `periodo` (pestaña Resumen: cada resumen ya es una semana cerrada) se
+ * muestran solo las pestañas.
  */
 const props = defineProps({
     /** `datos.periodo` del servicio: `{ desde, hasta, meses }`. */
-    periodo: { type: Object, required: true },
+    periodo: { type: Object, default: null },
     /** Filtros que llegaron en la URL (vacío = periodo por defecto). */
     filters: { type: Object, default: () => ({}) },
 });
 
 const pestanas = [
+    { ruta: 'reportes.bi.resumen', texto: 'Resumen semanal', icono: 'fa-solid fa-newspaper' },
     { ruta: 'reportes.bi', texto: 'Demanda y ventas', icono: 'fa-solid fa-chart-line' },
     { ruta: 'reportes.bi.costos', texto: 'Costos y materiales', icono: 'fa-solid fa-boxes-stacked' },
     { ruta: 'reportes.bi.rentabilidad', texto: 'Presupuestos y rentabilidad', icono: 'fa-solid fa-scale-balanced' },
@@ -29,8 +33,8 @@ const pestanas = [
 ];
 
 const rango = reactive({
-    desde: props.filters.desde ?? props.periodo.desde,
-    hasta: props.filters.hasta ?? props.periodo.hasta,
+    desde: props.filters.desde ?? props.periodo?.desde ?? '',
+    hasta: props.filters.hasta ?? props.periodo?.hasta ?? '',
 });
 
 function aplicar() {
@@ -38,7 +42,10 @@ function aplicar() {
 }
 
 function enlace(ruta) {
-    return props.filters.desde || props.filters.hasta ? route(ruta, { ...rango }) : route(ruta);
+    // El resumen no usa el periodo: no se arrastran las fechas hacia ahí.
+    return (props.filters.desde || props.filters.hasta) && ruta !== 'reportes.bi.resumen'
+        ? route(ruta, { desde: rango.desde, hasta: rango.hasta })
+        : route(ruta);
 }
 </script>
 
@@ -52,7 +59,7 @@ function enlace(ruta) {
                 <span>{{ p.texto }}</span>
             </Link>
         </nav>
-        <div class="card-body">
+        <div v-if="periodo" class="card-body">
             <form class="bi-filtro" @submit.prevent="aplicar">
                 <div class="bi-filtro-rango">
                     <DateRangeFilter v-model:fecha-desde="rango.desde" v-model:fecha-hasta="rango.hasta"

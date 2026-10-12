@@ -19,7 +19,7 @@ class CotizacionFactory extends Factory
      * Los montos son coherentes entre sí (total = subtotal − descuento +
      * impuesto) pero no reflejan un detalle real — para eso, encadená
      * `->has(CotizacionDetalle::factory()...)` y recalculá, o usá
-     * CotizacionSeeder.
+     * HistorialComercialSeeder.
      *
      * @return array<string, mixed>
      */

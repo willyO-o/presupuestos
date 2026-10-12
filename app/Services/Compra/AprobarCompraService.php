@@ -14,7 +14,7 @@ use RuntimeException;
  * (insumo del BI de evolución de costos, y evita alterar cotizaciones/
  * pedidos ya cerrados).
  *
- * Usado por CompraController::aprobar y CompraSeeder — no duplicar la
+ * Usado por CompraController::aprobar y HistorialComercialSeeder — no duplicar la
  * lógica en ninguno de los dos.
  */
 class AprobarCompraService

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CategoriaProducto\StoreCategoriaProductoRequest;
 use App\Http\Requests\CategoriaProducto\UpdateCategoriaProductoRequest;
 use App\Models\CategoriaProducto;
+use App\Models\FamiliaProducto;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class CategoriaProductoController extends Controller
     public function index(Request $request): Response
     {
         $categoriasProducto = CategoriaProducto::query()
+            ->with('familia:id,nombre')
             ->search($request->query('search'))
             ->estado($request->query('estado'))
             ->orderBy('nombre')
@@ -28,6 +30,9 @@ class CategoriaProductoController extends Controller
 
         return inertia('CategoriasProducto/Index', [
             'categoriasProducto' => $categoriasProducto,
+            // Familias para el selector del formulario: agrupan las categorías
+            // en el BI (ventas por familia, asistente, resumen semanal).
+            'familias' => FamiliaProducto::query()->where('estado', 'ACTIVO')->ordenado()->get(['id', 'nombre']),
             'filters' => $request->only(['search', 'estado']),
             'pageTitle' => 'Categorías de producto',
             'breadcrumbs' => ['Catálogos', 'Categorías de producto'],

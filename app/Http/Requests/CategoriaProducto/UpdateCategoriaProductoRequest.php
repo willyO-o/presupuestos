@@ -30,6 +30,7 @@ class UpdateCategoriaProductoRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
+            'familia_producto_id' => ['nullable', 'integer', Rule::exists('familia_producto', 'id')],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],
         ];
     }

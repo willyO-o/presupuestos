@@ -149,7 +149,7 @@ test('el listado manda el catalogo de sucursales y los roles globales', function
             ->component('Usuarios/Index')
             ->has('sucursales', 2)
             ->has('alcances', 3)
-            ->where('rolesGlobales', ['super-admin', 'administrador']));
+            ->where('rolesGlobales', ['super-admin', 'administrador', 'gerente']));
 });
 
 test('se puede crear una cuenta con varias sucursales asignadas', function () {

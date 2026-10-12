@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\AsistenteBiController;
+use App\Http\Controllers\BiAutomatizacionController;
 use App\Http\Controllers\CategoriaMaterialController;
 use App\Http\Controllers\CategoriaProductoController;
 use App\Http\Controllers\ClienteController;
@@ -498,6 +500,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/reportes/bi/simulador', [ReporteController::class, 'biSimulador'])
         ->middleware('can:reportes.bi')
         ->name('reportes.bi.simulador');
+    Route::get('/reportes/bi/resumen', [ReporteController::class, 'biResumen'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.resumen');
+
+    // IA del BI: acciones manuales y asistente. Un solo permiso delegable
+    // (`reportes.asistente`); el asistente vive en el layout, así que no
+    // exige además `reportes.bi`.
+    Route::middleware('can:reportes.asistente')->group(function () {
+        Route::post('/reportes/bi/resumen/generar', [BiAutomatizacionController::class, 'generarResumen'])
+            ->name('reportes.bi.resumen.generar');
+        Route::post('/reportes/bi/anomalias/detectar', [BiAutomatizacionController::class, 'detectarAnomalias'])
+            ->name('reportes.bi.anomalias.detectar');
+        Route::patch('/reportes/bi/anomalias/{anomalia}', [BiAutomatizacionController::class, 'actualizarAnomalia'])
+            ->name('reportes.bi.anomalias.actualizar');
+        Route::get('/reportes/bi/asistente', [AsistenteBiController::class, 'historial'])
+            ->name('reportes.bi.asistente.historial');
+        Route::post('/reportes/bi/asistente', [AsistenteBiController::class, 'preguntar'])
+            ->name('reportes.bi.asistente.preguntar');
+    });
 
     // --- Seguridad: roles y permisos ---
     Route::get('/roles', [RolController::class, 'index'])

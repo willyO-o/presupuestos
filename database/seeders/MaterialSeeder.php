@@ -12,8 +12,10 @@ class MaterialSeeder extends Seeder
      * Catálogo curado con nombres/presentaciones reales (según la hoja de
      * costos citada en database-design.md §6), en vez de los nombres
      * genéricos de la factory — así el módulo se puede probar/mostrar con
-     * datos creíbles. Se completa con un lote aleatorio vía factory para
-     * tener volumen suficiente para paginación/búsqueda.
+     * datos creíbles. Los precios son los de arranque del historial de
+     * HistorialComercialSeeder, que después los hace evolucionar con cada
+     * compra. Sin lote aleatorio de la factory: materiales con nombres
+     * inventados ensucian los rankings y el asistente del BI.
      */
     public function run(): void
     {
@@ -77,6 +79,5 @@ class MaterialSeeder extends Seeder
             }
         }
 
-        Material::factory(10)->recycle(CategoriaMaterial::all())->create();
     }
 }

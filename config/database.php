@@ -84,6 +84,40 @@ return [
             ]) : [],
         ],
 
+        /*
+         * Conexión de SOLO LECTURA que usan las funciones de IA del BI
+         * (App\Ai\Seguridad\ConsultaSoloLectura). Dos barreras:
+         *
+         * 1. `SET SESSION TRANSACTION READ ONLY` al abrir la sesión: el motor
+         *    rechaza INSERT/UPDATE/DELETE aunque el usuario tuviera permiso.
+         * 2. Un usuario de MariaDB propio con GRANT SELECT sobre las tablas de
+         *    negocio únicamente (sin users, roles, permisos, sesiones ni
+         *    tokens): `php artisan ia:usuario-lectura` imprime el SQL. Sin
+         *    IA_DB_USERNAME cae al usuario normal, y la barrera 1 sigue.
+         */
+        'mariadb_lectura' => [
+            'driver' => 'mariadb',
+            'url' => env('DB_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            // `?:` y no el default de env(): una línea `IA_DB_USERNAME=` vacía
+            // en el .env devuelve '' (no null) y dejaría la conexión sin usuario.
+            'username' => env('IA_DB_USERNAME') ?: env('DB_USERNAME', 'root'),
+            'password' => env('IA_DB_USERNAME') ? env('IA_DB_PASSWORD', '') : env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_INIT_COMMAND => 'SET SESSION TRANSACTION READ ONLY',
+            ]) : [],
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),

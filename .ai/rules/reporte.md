@@ -33,3 +33,8 @@ Inteligencia de negocios son 5 rutas bajo `can:reportes.bi` (`reportes.bi`, `.co
 - El simulador NO tiene endpoint: recalcula en el navegador con `Utils/MotorMargen.js` (espejo del motor); el servidor solo da la base y la config.
 - Alertas comparan con `alcanza()` (redondeo a 6 decimales): 120/100−1 = 0,1999… quedaba bajo el umbral de 20 %.
 Tests: InteligenciaNegociosAvanzadoTest (19), PronosticoTest (8).
+
+## Anomalías y resumen semanal: detección estadística, redacción opcional (2026-10-12)
+`DeteccionAnomaliasService` (comando `bi:detectar-anomalias`, diario 06:30 La Paz): volumen semanal de cotizaciones con COLA DE POISSON contra la mediana de 8 semanas + cambio ≥ 50 % (un z robusto con MAD resultó demasiado sordo con conteos chicos); margen < P10 de 180 días o ROJO; vendedor sin cotizar > máx(7, 2×su ritmo); cliente del grupo Pareto 80 % sin comprar > máx(45, 2×su intervalo). Deduplica por `bi_anomalia.huella`; solo ALTA notifica. Umbrales en `config/bi.php` (`anomalias`).
+`ResumenSemanalService` (comando `bi:resumen-semanal`, lunes 07:00): KPIs contra el PROMEDIO DE 4 SEMANAS (referencia principal: una semana sola salta cientos de % por un pedido corporativo), semana anterior y año anterior (null si no hay historia). Consolidado + uno por sucursal con movimiento; `visibleResumenPara` muestra el consolidado solo a quien ve todas.
+TRAMPA sqlite: columnas `date` guardan hora → `updateOrCreate`/`where('fecha','>',hoy)` fallan en tests; usar `whereDate`. Tests: AnomaliasBiTest, ResumenSemanalTest, BiIaPantallasTest.

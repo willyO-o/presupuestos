@@ -10,9 +10,9 @@ class ProductoSeeder extends Seeder
 {
     /**
      * Catálogo curado con nombres reales (ver database-design.md §7), en
-     * vez de los nombres genéricos de la factory. Se completa con un lote
-     * aleatorio vía factory para tener volumen suficiente para
-     * paginación/búsqueda.
+     * vez de los nombres genéricos de la factory. Sin lote aleatorio: un
+     * producto inventado en una categoría al azar aparece en los rankings de
+     * ventas y en el asistente del BI como si fuera real.
      *
      * "Letras corpóreas 3D iluminadas" y "Exhibidor de piso MDF a medida"
      * quedan a propósito como UNIDAD/requiere_medidas=SI sin BOM todavía:
@@ -85,6 +85,5 @@ class ProductoSeeder extends Seeder
             }
         }
 
-        Producto::factory(10)->recycle(CategoriaProducto::all())->create();
     }
 }

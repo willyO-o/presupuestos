@@ -170,13 +170,36 @@ Pestañas `Pages/Reportes/Bi*.vue` y componentes `Components/Reporte/*`.
   `-neutra`) — tarjeta `BiKpi.vue` sobre `.stat-card`. La flecha dice la dirección;
   el color, si es bueno o malo según `subirEsBueno`.
 - `.bi-aviso` — nota informativa (qué datos quedan fuera de un cálculo).
-- `.bi-alertas` `.bi-alerta` (+ `.bi-alerta-alta` / `.bi-alerta-media`)
+- `.bi-alertas` `.bi-alerta` (+ `.bi-alerta-alta` / `.bi-alerta-media`: solo tiñen el icono; sin
+  borde lateral de color, la severidad la dicen el icono y la etiqueta)
   `.bi-alerta-icono` `.bi-alerta-cuerpo` `.bi-alerta-encabezado` `.bi-alerta-tipo`
   `.bi-alerta-titulo` `.bi-alerta-detalle` `.bi-alerta-accion` `.bi-alertas-vacio`.
 - `.bi-columna` — columna de tarjetas apiladas con el mismo espacio que `.page-stack`.
 - Simulador: `.bi-simulador-controles` `.bi-control-encabezado` `.bi-range`
   `.bi-control-check` `.bi-check` y el veredicto `.bi-veredicto` (+ `-verde` /
   `-amarillo` / `-rojo`) `.bi-veredicto-titulo` `.bi-veredicto-detalle`.
+
+## IA del BI (`.ia-*`, `.resumen-*`, `.anomalia-*`, app.css §33)
+
+El texto de la IA siempre va junto a la evidencia de la que sale.
+
+- Asistente (`Components/Layout/AsistenteBi.vue`): `.ia-lanzador` (botón flotante), `.ia-panel`
+  (+ `-cabecera`, `-identidad`, `-icono`, `-titulo`, `-sub`, `-acciones`, `-cuerpo`, `-pie`), `.ia-vacio`
+  `.ia-sugerencias` `.ia-sugerencia`, `.ia-turno` `.ia-pregunta` `.ia-respuesta` (+ `-texto`, `-error`,
+  `-meta`, `-pendiente`), `.ia-formulario` `.ia-campo` `.ia-enviar` `.ia-error` `.ia-uso` (+ `-alerta`).
+  Es un panel lateral, no un modal: convive con la página.
+- Resultado de herramienta (`Components/Reporte/ResultadoIa.vue`): `.ia-resultado` (+ `-titulo`,
+  `-tabla`, `-pie`), `.ia-enlace`, `.ia-calculo` (+ `-parametros`, `-herramienta`) para "Cómo lo calculé".
+- Resumen semanal (`Pages/Reportes/BiResumen.vue`): `.resumen-cabecera-*`, `.resumen-titular`,
+  `.resumen-alcances` `.resumen-alcance`, `.resumen-cuerpo` (`.resumen-lectura` + `.resumen-evidencia`),
+  `.resumen-punto` (+ `-icono`, `-bueno`, `-alto`, `-medio`, `-accion`), `.resumen-kpis` con
+  `tr.is-evidencia` (se resalta al pasar por la frase que la cita), `.resumen-var-buena/-mala/-neutra`,
+  `.resumen-contexto*`, `.resumen-familia*`, `.resumen-historial*`, `.resumen-vacio*`.
+- Anomalías (`Pages/Reportes/BiAlertas.vue`): `.anomalia-filtro` (+ `-opcion`, `-conteo`), `.anomalias`,
+  `.anomalia` (+ `.anomalia-alta` / `-media`, `.is-cerrada`) `.anomalia-icono` `-cuerpo` `-meta` `-tipo`
+  `-dato` `-titulo` `-detalle` `-revisar` `-ia` `-acciones`.
+- Las tablas compactas `.table-dashboard.resumen-kpis` / `.ia-resultado-tabla` anulan el
+  `min-width: 640px` de `.table-dashboard` (viven en media columna o en el panel).
 
 ## Tabla: paginación y estados (`DataTable.vue` / `TablePagination.vue`)
 

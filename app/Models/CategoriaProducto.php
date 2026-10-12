@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
+    'familia_producto_id',
     'nombre',
     'estado',
 ])]
@@ -25,6 +28,20 @@ class CategoriaProducto extends Model
      * @var string
      */
     protected $table = 'categoria_producto';
+
+    /**
+     * Familia comercial a la que pertenece (agrupación del BI). Nullable: una
+     * categoría nueva queda "Sin familia" hasta que alguien la clasifique.
+     */
+    public function familia(): BelongsTo
+    {
+        return $this->belongsTo(FamiliaProducto::class, 'familia_producto_id');
+    }
+
+    public function productos(): HasMany
+    {
+        return $this->hasMany(Producto::class);
+    }
 
     /**
      * Filtra por coincidencia parcial en nombre. Sin término, no aplica ningún filtro.

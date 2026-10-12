@@ -15,7 +15,7 @@ class CompraFactory extends Factory
     /**
      * El `total` es coherente por sí solo pero no refleja un detalle real —
      * para eso encadená `->has(CompraDetalle::factory()...)` y recalculá, o
-     * usá CompraSeeder.
+     * usá HistorialComercialSeeder.
      *
      * @return array<string, mixed>
      */

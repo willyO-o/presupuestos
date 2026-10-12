@@ -13,13 +13,14 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Services/Imagen/**, app/Http/Controllers/ProductoController.php, app/Http/Controllers/CotizacionController.php, app/Http/Controllers/NotaEntregaController.php | .ai/rules/controllers-http-controllers.md |
 | app/Http/Controllers/CotizadorPublicoController.php, config/cotizador.php, app/Http/Controllers/** | .ai/rules/controllers-views-publico.md |
 | app/Http/Controllers/**, app/Http/Controllers/FormulaController.php, app/Http/Controllers/CompraController.php, app/Http/Controllers/PedidoController.php, app/Http/Controllers/NotaEntregaController.php, app/Http/Controllers/PagoController.php, app/Http/Controllers/UsuarioController.php, app/Http/Controllers/ClientePortalController.php, app/Http/Controllers/CotizacionController.php | .ai/rules/controllers.md |
-| app/Http/Controllers/CotizacionController.php, app/Http/Requests/Cotizacion/**, app/Models/Cotizacion.php, app/Models/CotizacionDetalle.php, app/Services/Calculo/PrecioSugeridoService.php, resources/js/Pages/Cotizaciones/**, database/seeders/CotizacionSeeder.php, config/cotizacion.php, app/Models/Pedido.php | .ai/rules/cotizaciones.md |
+| app/Http/Controllers/CotizacionController.php, app/Http/Requests/Cotizacion/**, app/Models/Cotizacion.php, app/Models/CotizacionDetalle.php, app/Services/Calculo/PrecioSugeridoService.php, resources/js/Pages/Cotizaciones/**, database/seeders/HistorialComercialSeeder.php, config/cotizacion.php, app/Models/Pedido.php, database/seeders/** | .ai/rules/cotizaciones.md |
 | app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/css.md |
 | resources/js/Data/** | .ai/rules/data.md |
 | **/* | .ai/rules/general.md |
 | app/Services/Pdf/**, app/Http/Controllers/DocumentoPdfController.php | .ai/rules/http-controllers.md |
 | resources/js/Components/Chart/**, resources/js/Composables/UseChartTheme.js, resources/js/Pages/Reportes/**, resources/js/Pages/Dashboard.vue | .ai/rules/js-pages.md |
 | resources/js/**/*.vue, resources/js/** | .ai/rules/js.md |
+| app/Ai/**, config/ia.php, app/Http/Controllers/AsistenteBiController.php, app/Http/Controllers/BiAutomatizacionController.php, resources/js/Components/Layout/AsistenteBi.vue | .ai/rules/ia.md |
 | resources/js/Layouts/**/*.vue, resources/js/Components/Layout/** | .ai/rules/layouts.md |
 | database/migrations/2026_08_23_04*.php, database/migrations/** | .ai/rules/migrations.md |
 | app/Models/Sucursal.php, app/Models/Formula.php | .ai/rules/models.md |

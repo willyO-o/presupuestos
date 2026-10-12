@@ -14,7 +14,7 @@ use RuntimeException;
  * database-design.md §12): crea el `pedido`, copia las líneas a
  * `pedido_detalle` y deja la cotización como CONVERTIDA.
  *
- * Usado por PedidoController::store y PedidoSeeder — no duplicar.
+ * Usado por PedidoController::store y HistorialComercialSeeder — no duplicar.
  */
 class ConvertirCotizacionService
 {

@@ -274,10 +274,12 @@ function ejeValor(formato, secundario = false) {
         splitLine: secundario
             ? { show: false }
             : { lineStyle: { color: tema.value?.grid, width: 1, type: 'solid' } },
-        splitNumber: 5,
+        // Barras horizontales: el eje de valores va abajo, donde los montos
+        // largos se pisan; con 3 divisiones entran aun en el panel angosto.
+        splitNumber: props.horizontal ? 3 : 5,
         scale: props.ajustarEscala,
         ...(props.enteros ? { minInterval: 1 } : {}),
-        axisLabel: { color: tema.value?.eje, fontSize: 11, margin: 8, formatter: (v) => formato(v) },
+        axisLabel: { color: tema.value?.eje, fontSize: 11, margin: 8, hideOverlap: true, formatter: (v) => formato(v) },
     };
 }
 
@@ -322,7 +324,9 @@ function marcas(listas) {
             symbol: 'none',
             animation: false,
             lineStyle: { color: tema.value?.eje, width: 1, type: [4, 4] },
-            label: { color: tema.value?.eje, fontSize: 11, position: 'insideEndTop', formatter: (p) => p.name },
+            // En barras horizontales la línea es vertical: con 'insideEndTop'
+            // el rótulo saldría girado encima de las barras.
+            label: { color: tema.value?.eje, fontSize: 11, position: props.horizontal ? 'end' : 'insideEndTop', formatter: (p) => p.name },
             data: umbrales.map((u) => (props.horizontal ? { xAxis: u.valor, name: u.nombre } : { yAxis: u.valor, name: u.nombre })),
         };
     });

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Sidebar from '@/Components/Layout/Sidebar.vue';
 import Topbar from '@/Components/Layout/Topbar.vue';
+import AsistenteBi from '@/Components/Layout/AsistenteBi.vue';
 import Footer from '@/Components/Layout/Footer.vue';
 
 const page = usePage();
@@ -93,5 +94,8 @@ const isSidebarOpen = ref(window.innerWidth >= 1024);
 
             <Footer />
         </div>
+
+        <!-- Asistente de BI: solo se dibuja con `reportes.asistente`. -->
+        <AsistenteBi />
     </div>
 </template>

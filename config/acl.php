@@ -48,7 +48,7 @@ return [
     |
     */
     'sucursales' => [
-        'roles_globales' => ['super-admin', 'administrador'],
+        'roles_globales' => ['super-admin', 'administrador', 'gerente'],
         'sufijo_override' => 'ver_todas_sucursales',
     ],
 
@@ -267,6 +267,9 @@ return [
                 'reportes.financiero' => 'Ver reportes financieros',
                 'reportes.produccion' => 'Ver reportes de producción',
                 'reportes.bi' => 'Ver inteligencia de negocios (BI)',
+                // Delegable: gerencia y administración lo traen de fábrica, y
+                // se puede asignar a cualquier otro rol desde Roles y permisos.
+                'reportes.asistente' => 'Usar el asistente de IA del BI (preguntas en lenguaje natural, generar resumen semanal, revisar anomalías)',
             ],
         ],
 
@@ -342,9 +345,35 @@ return [
                 'notas-entrega.ver', 'notas-entrega.crear',
                 'seguimientos-postventa.ver', 'seguimientos-postventa.registrar',
                 'pagos.ver', 'pagos.registrar',
-                'reportes.financiero', 'reportes.produccion', 'reportes.bi',
+                'reportes.financiero', 'reportes.produccion', 'reportes.bi', 'reportes.asistente',
                 'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
                 'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
+            ],
+        ],
+
+        // Gerencia: ve toda la empresa (está en `sucursales.roles_globales`) y
+        // decide con el BI, pero no administra catálogos, usuarios ni compras.
+        'gerente' => [
+            'label' => 'Gerente',
+            'permissions' => [
+                'dashboard.ver',
+                'sucursales.ver',
+                'empleados.ver',
+                'clientes.ver',
+                'materiales.ver', 'materiales.ver_costos',
+                'proveedores.ver',
+                'compras.ver',
+                'categorias-producto.ver',
+                'productos.ver',
+                'tipos-proyecto.ver',
+                'cotizaciones.ver', 'cotizaciones.aprobar',
+                'solicitudes-web.ver',
+                'pedidos.ver', 'pedidos.ver_todas_sucursales',
+                'ordenes-compra-cliente.ver',
+                'notas-entrega.ver',
+                'seguimientos-postventa.ver',
+                'pagos.ver',
+                'reportes.financiero', 'reportes.produccion', 'reportes.bi', 'reportes.asistente',
             ],
         ],
 

@@ -93,6 +93,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Cuentas activas que tienen `$permiso` (directo, por alguno de sus roles
+     * o por ser super-admin). Mismo motivo que `administradores()` para no
+     * usar el scope `permission()` de Spatie: lanza si el permiso todavía no
+     * existe, y una notificación nunca debe tumbar la operación principal.
+     *
+     * @return Collection<int, User>
+     */
+    public static function conPermiso(string $permiso): Collection
+    {
+        return static::query()
+            ->where('estado', 'ACTIVO')
+            ->where(fn ($query) => $query
+                ->whereHas('permissions', fn ($p) => $p->where('name', $permiso))
+                ->orWhereHas('roles', fn ($r) => $r
+                    ->where('name', 'super-admin')
+                    ->orWhereHas('permissions', fn ($p) => $p->where('name', $permiso))))
+            ->get();
+    }
+
+    /**
      * URL pública de la foto de perfil (disco `public`, ver
      * `php artisan storage:link`). Null si el usuario no subió foto.
      */

@@ -42,3 +42,19 @@ export function variacion(value, decimales = 1) {
 
     return `${signo}${Math.abs(Number(value)).toLocaleString(LOCALE, { maximumFractionDigits: decimales })} %`;
 }
+
+/**
+ * Formateador por nombre, para datos que llegan del servidor con su formato
+ * declarado (resultados de las herramientas del asistente, indicadores del
+ * resumen semanal): 'bs' | 'numero' | 'porcentaje' | 'variacion' | 'cantidad'.
+ */
+export function formateador(formato) {
+    return {
+        bs: moneyCorto,
+        bs_exacto: money,
+        numero: (v) => numero(v, 1),
+        cantidad: (v) => numero(v, 0),
+        porcentaje: (v) => porcentaje(v),
+        variacion: (v) => variacion(v),
+    }[formato] ?? ((v) => (v === null || v === undefined ? '—' : String(v)));
+}

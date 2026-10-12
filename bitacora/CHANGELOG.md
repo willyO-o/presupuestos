@@ -13,6 +13,62 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-12 — IA en el BI: anomalías, resumen semanal, asistente y datos de 24 meses
+
+**Qué cambió:**
+- **Detección de anomalías** (diaria, 06:30): caídas o alzas de cotizaciones por
+  sucursal, ventas con margen muy bajo, vendedores sin actividad y clientes grandes
+  que dejaron de comprar. Se ven en la pestaña Alertas con estado nueva / revisada /
+  descartada; las de prioridad alta llegan a la campanita.
+- **Resumen semanal** (lunes 07:00): pestaña nueva "Resumen semanal" con titular,
+  destacados, riesgos y recomendaciones, consolidado y por sucursal, junto a la
+  tabla de indicadores de la que sale (al pasar por una frase se resaltan sus
+  indicadores). Historial de semanas y botón para regenerar.
+- **Asistente de preguntas** en lenguaje natural: panel lateral disponible en todo
+  el panel para quien tenga el permiso `reportes.asistente`. Cada respuesta trae
+  gráficos y tablas dibujados con los datos de la base y un "Cómo lo calculé".
+- **Familias de producto**: tabla `familia_producto` y campo en el CRUD de
+  categorías (6 familias, clasificación automática por palabras clave).
+- **Rol Gerente** (ve toda la empresa) y permiso delegable `reportes.asistente`.
+- **Datos de prueba de 24 meses** coherentes (`HistorialComercialSeeder`).
+
+**Por qué:** pedido del usuario — fases 1 y 2 de la propuesta de IA para el BI,
+con Gemini como proveedor principal, tope de USD 20 al mes, solo consultas de
+lectura y sin enviar datos sensibles.
+
+**Cómo:**
+- SDK oficial `laravel/ai` 1.2 (requirió subir `laravel/boost` 2.5 → 2.10 por
+  `laravel/mcp`; Laravel no cambió). Toda llamada pasa por `App\Ai\ServicioIa`:
+  interruptor, proveedores con clave, tope mensual con el costo de cada llamada en
+  `ia_uso`, failover Gemini → Claude.
+- **La IA no calcula cifras**: redacta hechos calculados en PHP o elige entre 8
+  herramientas cerradas (`App\Ai\Tools`). Un verificador descarta todo texto con un
+  número que no esté en los hechos y se publica la plantilla automática. Sin claves
+  o sin presupuesto, resumen y anomalías salen igual con plantilla.
+- **Solo lectura, en tres capas**: conexión `mariadb_lectura` con
+  `SET SESSION TRANSACTION READ ONLY`, guardia que solo deja pasar SELECT, y
+  usuario MariaDB con permiso por tabla y columna (`php artisan ia:usuario-lectura`).
+  Un minimizador quita contraseñas, tokens, correos, teléfonos, NIT, CI y
+  direcciones antes de que algo salga hacia el proveedor.
+- Estadística: cola de Poisson para conteos semanales (el z robusto con MAD era
+  demasiado sordo con números chicos), percentil 10 para márgenes, ritmo propio
+  de cada vendedor y cliente; el resumen compara contra el promedio de 4 semanas
+  porque una semana sola salta cientos de por ciento con un pedido corporativo.
+- Seeder: simula mes a mes con los servicios reales y `Carbon::setTestNow()`;
+  reemplaza a Compra/Cotizacion/Pedido/PagoSeeder. El `CompraSeeder` anterior
+  compraba por rollo sobre materiales medidos en m² (lona a Bs 2.900/m²), lo que
+  inflaba todos los costos. Sucursales, plantel, clientes y proveedores ficticios
+  y curados; sin productos ni materiales inventados por la factory. Escenarios
+  plantados para que cada alerta tenga qué mostrar.
+- Trampas encontradas: nombres de modelo con puntos rompen `config("ia.precios.x")`;
+  `IA_DB_USERNAME=` vacío dejaba la conexión sin usuario; el guardia de solo lectura
+  se registraba por nombre de conexión y no sobrevivía a una reconexión; en sqlite
+  `updateOrCreate` sobre columnas `date` duplicaba.
+- Tests: `IaServicioTest`, `AnomaliasBiTest`, `ResumenSemanalTest`,
+  `AsistenteBiTest`, `BiIaPantallasTest`, `HistorialComercialSeederTest`,
+  `Unit/IaSeguridadTest`. Suite completa en verde; verificado en navegador contra
+  una base demo (claro, oscuro y móvil, sin errores de consola).
+
 ## 2026-10-12 — Inteligencia de negocios ampliada + gráficos con Apache ECharts
 
 **Qué cambió:**

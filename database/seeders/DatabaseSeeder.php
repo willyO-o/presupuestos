@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             AreaSeeder::class,
             CategoriaMaterialSeeder::class,
             CategoriaProductoSeeder::class,
+            // Agrupa las categorías en familias comerciales (BI).
+            FamiliaProductoSeeder::class,
             ProveedorSeeder::class,
             ClienteSeeder::class,
             EmpleadoSeeder::class,
@@ -28,15 +30,15 @@ class DatabaseSeeder extends Seeder
             ProductoSeeder::class,
             FormulaSeeder::class,
             ProductoMaterialSeeder::class,
-            CompraSeeder::class,
-            // Antes de CotizacionSeeder: cada línea cotizada elige un nivel
-            // de complejidad para el motor de margen.
+            // Antes del historial: cada línea cotizada elige un nivel de
+            // complejidad para el motor de margen.
             TipoProyectoSeeder::class,
-            CotizacionSeeder::class,
-            PedidoSeeder::class,
+            // 24 meses de compras, cotizaciones, pedidos, producción, consumo
+            // y cobranza, simulados en orden cronológico con los servicios
+            // reales (reemplaza a Compra/Cotizacion/Pedido/PagoSeeder).
+            HistorialComercialSeeder::class,
             OrdenCompraClienteSeeder::class,
             NotaEntregaSeeder::class,
-            PagoSeeder::class,
             // Cierra el flujo: programa/completa el contacto postventa de los
             // pedidos ya entregados.
             SeguimientoPostventaSeeder::class,
