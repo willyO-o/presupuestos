@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\IaConsultaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -25,6 +27,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class IaConsulta extends Model
 {
+    /** @use HasFactory<IaConsultaFactory> */
+    use HasFactory;
+
     /**
      * Tabla en singular (convención de este esquema, ver .ai/rules/migrations.md).
      *

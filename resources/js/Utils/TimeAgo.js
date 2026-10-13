@@ -37,3 +37,43 @@ export function tiempoRelativo(iso) {
 
     return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+/**
+ * Rótulo de un día para agrupar listas: "Hoy", "Ayer" o "lunes 6 de octubre"
+ * (con el año solo si no es el actual). Trabaja con fechas `AAAA-MM-DD` ya
+ * calculadas por el servidor en hora de la empresa, sin pasar por la zona
+ * horaria del navegador: el mediodía UTC no cambia de día en ninguna zona.
+ *
+ * @param {string|null} dia Fecha AAAA-MM-DD.
+ * @param {string|null} hoy Fecha AAAA-MM-DD de hoy, según el servidor.
+ * @returns {string}
+ */
+export function etiquetaDia(dia, hoy) {
+    if (!dia) {
+        return '';
+    }
+
+    const fecha = new Date(`${dia}T12:00:00Z`);
+
+    if (hoy) {
+        const dias = Math.round((new Date(`${hoy}T12:00:00Z`) - fecha) / 86_400_000);
+
+        if (dias === 0) {
+            return 'Hoy';
+        }
+        if (dias === 1) {
+            return 'Ayer';
+        }
+    }
+
+    const mismoAnio = hoy && hoy.slice(0, 4) === dia.slice(0, 4);
+    const texto = fecha.toLocaleDateString('es-BO', {
+        timeZone: 'UTC',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        ...(mismoAnio ? {} : { year: 'numeric' }),
+    });
+
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}

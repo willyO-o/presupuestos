@@ -518,6 +518,8 @@ Route::middleware('auth')->group(function () {
             ->name('reportes.bi.asistente.historial');
         Route::post('/reportes/bi/asistente', [AsistenteBiController::class, 'preguntar'])
             ->name('reportes.bi.asistente.preguntar');
+        Route::get('/reportes/bi/asistente/consultas', [AsistenteBiController::class, 'consultas'])
+            ->name('reportes.bi.asistente.consultas');
     });
 
     // --- Seguridad: roles y permisos ---

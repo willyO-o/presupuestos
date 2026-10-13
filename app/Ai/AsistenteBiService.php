@@ -6,6 +6,7 @@ use App\Ai\Agents\AsistenteBi;
 use App\Ai\Excepciones\IaNoDisponible;
 use App\Models\IaConsulta;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Ai\Responses\AgentResponse;
@@ -19,6 +20,9 @@ use Laravel\Ai\Responses\Data\ToolResult;
  */
 class AsistenteBiService
 {
+    /** Consultas que muestra el panel: de una conversación o del historial. */
+    public const LIMITE_HISTORIAL = 20;
+
     public function __construct(private readonly ServicioIa $ia) {}
 
     /**
@@ -91,10 +95,68 @@ class AsistenteBiService
             ->where('user_id', $usuario->id)
             ->where('conversacion_id', $conversacionId)
             ->latest('id')
-            ->limit(20)
+            ->limit(self::LIMITE_HISTORIAL)
             ->get()
             ->reverse()
             ->values();
+    }
+
+    /**
+     * Las últimas consultas del usuario (de todas sus conversaciones), la
+     * más reciente primero. Con `$dia` se limita a ese día en hora de la
+     * empresa: `created_at` está en UTC y La Paz va 4 horas atrás, así que
+     * un día local cruza dos días UTC.
+     *
+     * @return Collection<int, IaConsulta>
+     */
+    public function ultimasConsultas(User $usuario, ?CarbonImmutable $dia = null): Collection
+    {
+        return IaConsulta::query()
+            ->select(['id', 'conversacion_id', 'pregunta', 'resultados', 'estado', 'created_at'])
+            ->where('user_id', $usuario->id)
+            ->when($dia, fn ($q) => $q->whereBetween('created_at', [
+                $dia->startOfDay()->utc(),
+                $dia->endOfDay()->utc(),
+            ]))
+            ->latest('id')
+            ->limit(self::LIMITE_HISTORIAL)
+            ->get();
+    }
+
+    /**
+     * La conversación que contiene la consulta, para reabrirla desde el
+     * historial. Si la conversación es más larga que el límite, se devuelve
+     * la ventana de consultas que rodea a la elegida (si no, una pregunta
+     * vieja de una conversación larga no aparecería al abrirla). Una consulta
+     * sin conversación (la IA no respondió) se devuelve sola.
+     *
+     * @return Collection<int, IaConsulta>|null null si la consulta no es del usuario
+     */
+    public function conversacionDe(User $usuario, int $consultaId): ?Collection
+    {
+        $consulta = IaConsulta::query()->where('user_id', $usuario->id)->find($consultaId);
+
+        if ($consulta === null) {
+            return null;
+        }
+
+        if ($consulta->conversacion_id === null) {
+            return collect([$consulta]);
+        }
+
+        $ids = IaConsulta::query()
+            ->where('user_id', $usuario->id)
+            ->where('conversacion_id', $consulta->conversacion_id)
+            ->orderBy('id')
+            ->pluck('id');
+
+        $posicion = $ids->search($consulta->id);
+        $inicio = max(0, min($posicion - intdiv(self::LIMITE_HISTORIAL, 2), $ids->count() - self::LIMITE_HISTORIAL));
+
+        return IaConsulta::query()
+            ->whereIn('id', $ids->slice($inicio, self::LIMITE_HISTORIAL)->all())
+            ->orderBy('id')
+            ->get();
     }
 
     /**

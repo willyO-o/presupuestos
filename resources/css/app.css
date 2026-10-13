@@ -3838,6 +3838,324 @@
     @apply font-semibold;
 }
 
+/* --- Asistente: separadores de día y hora en la conversación ---
+   Una conversación reabierta desde el historial puede tener días; el
+   separador dice de cuándo es lo que se está leyendo. */
+.ia-separador-dia {
+    color: var(--text-muted);
+    @apply m-0 flex items-center gap-3 text-[11px] font-semibold;
+}
+
+.ia-separador-dia::before,
+.ia-separador-dia::after {
+    content: '';
+    background-color: var(--border-subtle);
+    @apply h-px flex-1;
+}
+
+.ia-pregunta-hora {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply -mt-1 mb-0 self-end text-[10px];
+}
+
+.ia-turno {
+    scroll-margin-top: 1rem;
+    @apply rounded-xl outline-none;
+}
+
+/* Turno abierto desde el historial: un halo que se apaga solo, para que el
+   ojo lo encuentre al llegar sin que quede marcado para siempre. */
+.ia-turno.is-destacado {
+    animation: ia-destacar 2.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes ia-destacar {
+    0%,
+    35% {
+        background-color: var(--c-primary-soft);
+        box-shadow: 0 0 0 8px var(--c-primary-soft);
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 8px transparent;
+    }
+}
+
+/* --- Asistente: historial de consultas --- */
+.ia-historial {
+    @apply flex min-h-0 flex-1 flex-col;
+}
+
+.ia-historial-barra {
+    border-color: var(--border-subtle);
+    @apply flex flex-col gap-3 border-b px-4 py-3;
+}
+
+.ia-historial-encabezado {
+    @apply flex items-start gap-2;
+}
+
+.ia-volver {
+    color: var(--text-muted);
+    @apply -ml-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent text-sm transition-colors;
+}
+
+.ia-volver:hover {
+    background-color: var(--c-light);
+    color: var(--text-heading);
+}
+
+.dark .ia-volver:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.ia-volver:focus-visible,
+.ia-filtro-quitar:focus-visible,
+.ia-historial-item:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--c-primary) 50%, transparent);
+    outline-offset: 2px;
+}
+
+.ia-historial-titulo {
+    color: var(--text-heading);
+    @apply m-0 text-sm font-semibold leading-8 outline-none;
+}
+
+.ia-historial-sub {
+    color: var(--text-muted);
+    @apply -mt-1 mb-0 text-xs;
+}
+
+.ia-historial-filtro {
+    @apply flex flex-wrap items-center gap-2;
+}
+
+.ia-fecha {
+    background-color: var(--page-bg);
+    border-color: var(--border-subtle);
+    color: var(--text-muted);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    @apply m-0 flex h-9 min-w-0 max-w-[220px] flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-sm;
+}
+
+.dark .ia-fecha {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.ia-fecha:focus-within {
+    border-color: color-mix(in srgb, var(--c-primary) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 14%, transparent);
+}
+
+.ia-fecha-input {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-sm shadow-none outline-none focus:ring-0;
+}
+
+.dark .ia-fecha-input {
+    color-scheme: dark;
+}
+
+.ia-filtro-quitar {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply inline-flex h-7 items-center gap-1.5 rounded-full border-0 px-2.5 text-xs font-medium transition-colors;
+}
+
+.ia-filtro-quitar:hover {
+    background-color: color-mix(in srgb, var(--c-primary) 18%, transparent);
+}
+
+.ia-historial-cuerpo {
+    scrollbar-width: thin;
+    @apply flex-1 overflow-y-auto px-4 pb-5;
+}
+
+.ia-historial-error {
+    @apply mt-3 items-center;
+}
+
+.ia-historial-error .ia-enlace {
+    @apply ml-auto shrink-0;
+}
+
+/* Cabecera de día pegada arriba al desplazar: se sabe en qué día se está. */
+.ia-historial-dia {
+    background-color: var(--card-bg);
+    color: var(--text-heading);
+    @apply sticky top-0 z-[1] m-0 flex items-center gap-2 pb-1.5 pt-4 text-xs font-semibold;
+}
+
+.ia-historial-conteo {
+    background-color: var(--c-secondary-soft);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply rounded-full px-1.5 py-px text-[10px] font-semibold;
+}
+
+.ia-historial-lista {
+    @apply m-0 flex list-none flex-col gap-0.5 p-0;
+}
+
+.ia-historial-item {
+    color: var(--text-body);
+    transition: background-color 0.15s ease;
+    @apply -mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-xl border-0 bg-transparent px-2 py-2.5 text-left;
+}
+
+.ia-historial-item:hover:not(:disabled) {
+    background-color: var(--c-primary-soft);
+}
+
+.ia-historial-item:disabled {
+    @apply cursor-wait;
+}
+
+.ia-historial-item:disabled:not(.is-abriendo) {
+    @apply opacity-50;
+}
+
+.ia-historial-item.is-abriendo {
+    background-color: var(--c-primary-soft);
+}
+
+.ia-historial-hora {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply w-9 shrink-0 pt-px text-xs;
+}
+
+.ia-historial-texto {
+    @apply flex min-w-0 flex-1 flex-col gap-1;
+}
+
+.ia-historial-pregunta {
+    color: var(--text-heading);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    @apply overflow-hidden text-sm leading-snug;
+}
+
+.ia-historial-meta {
+    color: var(--text-muted);
+    @apply flex flex-wrap gap-x-3 gap-y-0.5 text-[11px];
+}
+
+.ia-historial-meta > span {
+    @apply inline-flex items-center gap-1;
+}
+
+/* El ámbar de marca sobre blanco no llega a 4.5:1 en texto de 11px: se
+   oscurece en claro; en oscuro el ámbar normal ya contrasta. */
+.ia-historial-item.is-error .ia-historial-meta {
+    color: color-mix(in srgb, var(--c-warning-dark) 62%, #000000);
+}
+
+.dark .ia-historial-item.is-error .ia-historial-meta {
+    color: var(--c-warning);
+}
+
+.ia-historial-flecha {
+    color: var(--text-muted);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+    @apply flex h-5 w-4 shrink-0 items-center justify-center text-[11px];
+}
+
+.ia-historial-item:hover:not(:disabled) .ia-historial-flecha {
+    color: var(--c-primary);
+    transform: translateX(2px);
+}
+
+.ia-girando {
+    border-color: var(--c-primary);
+    border-right-color: transparent;
+    @apply inline-block h-3 w-3 animate-spin rounded-full border-2;
+}
+
+.ia-historial-nota {
+    background-color: var(--page-bg);
+    color: var(--text-muted);
+    @apply mb-0 mt-4 flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-relaxed;
+}
+
+.dark .ia-historial-nota {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.ia-historial-nota i {
+    @apply mt-0.5;
+}
+
+.ia-historial-vacio {
+    @apply flex flex-col items-center gap-2 px-4 py-12 text-center;
+}
+
+.ia-historial-vacio-icono {
+    background-color: var(--c-secondary-soft);
+    color: var(--text-muted);
+    @apply mb-1 flex h-12 w-12 items-center justify-center rounded-2xl text-lg;
+}
+
+.ia-historial-vacio .ia-vacio-texto {
+    @apply mb-2 max-w-[30ch];
+}
+
+/* Esqueleto: misma forma que la lista que viene (cabecera de día + filas). */
+.ia-historial-esqueleto {
+    @apply flex flex-col gap-5 pt-4;
+}
+
+.ia-esqueleto-grupo {
+    @apply flex flex-col gap-2;
+}
+
+.ia-esqueleto {
+    background-color: color-mix(in srgb, var(--text-muted) 14%, transparent);
+    animation: ia-esqueleto-pulso 1.4s ease-in-out infinite;
+    @apply block rounded-lg;
+}
+
+.ia-esqueleto-dia {
+    @apply h-3 w-24;
+}
+
+.ia-esqueleto-fila {
+    @apply h-12 w-full;
+}
+
+.ia-esqueleto-fila:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.ia-esqueleto-fila:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+@keyframes ia-esqueleto-pulso {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ia-turno.is-destacado {
+        animation-duration: 0.01ms;
+        background-color: var(--c-primary-soft);
+    }
+
+    .ia-esqueleto,
+    .ia-girando {
+        animation: none;
+    }
+}
+
 /* --- Resumen semanal --- */
 .resumen-vacio {
     color: var(--text-muted);

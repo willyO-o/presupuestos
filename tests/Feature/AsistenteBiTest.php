@@ -246,3 +246,101 @@ test('el límite de preguntas por hora corta con 429', function () {
         ->assertStatus(429)
         ->assertJsonPath('message', fn (string $m) => str_contains($m, 'límite'));
 });
+
+/*
+|--------------------------------------------------------------------------
+| Historial de consultas
+|--------------------------------------------------------------------------
+*/
+
+test('el historial lista las últimas 20 consultas propias, la más reciente primero', function () {
+    $this->global->givePermissionTo('reportes.asistente');
+
+    IaConsulta::factory()->count(22)->for($this->global)->sequence(fn ($s) => ['pregunta' => "Pregunta {$s->index}"])->create();
+    IaConsulta::factory()->for($this->local)->create(['pregunta' => 'De otro usuario']);
+    IaConsulta::factory()->for($this->global)->create([
+        'pregunta' => 'Con gráfico',
+        'resultados' => [['herramienta' => 'ConsultarVentas', 'grafico' => ['tipo' => 'bar'], 'tabla' => ['filas' => []]]],
+    ]);
+
+    $respuesta = $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.consultas'))
+        ->assertOk()
+        ->assertJsonPath('limite', 20)
+        ->assertJsonCount(20, 'consultas')
+        ->assertJsonPath('consultas.0.pregunta', 'Con gráfico')
+        ->assertJsonPath('consultas.0.graficos', 1)
+        ->assertJsonPath('consultas.0.tablas', 1)
+        ->assertJsonPath('consultas.1.pregunta', 'Pregunta 21')
+        ->assertJsonMissingPath('consultas.0.respuesta');
+
+    expect(collect($respuesta->json('consultas'))->pluck('pregunta'))->not->toContain('De otro usuario');
+});
+
+test('el historial filtra por día en hora de la empresa, no en UTC', function () {
+    $this->global->givePermissionTo('reportes.asistente');
+
+    // 02:00 UTC del 7 = 22:00 del 6 en La Paz (UTC-4).
+    IaConsulta::factory()->for($this->global)->create(['pregunta' => 'Noche del 6', 'created_at' => '2026-10-07 02:00:00']);
+    IaConsulta::factory()->for($this->global)->create(['pregunta' => 'Mañana del 7', 'created_at' => '2026-10-07 13:00:00']);
+
+    $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.consultas', ['fecha' => '2026-10-06']))
+        ->assertOk()
+        ->assertJsonCount(1, 'consultas')
+        ->assertJsonPath('consultas.0.pregunta', 'Noche del 6')
+        ->assertJsonPath('consultas.0.dia', '2026-10-06')
+        ->assertJsonPath('consultas.0.hora', '22:00');
+
+    $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.consultas', ['fecha' => '2999-01-01']))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('fecha');
+});
+
+test('una consulta del historial abre su conversación', function () {
+    $this->global->givePermissionTo('reportes.asistente');
+
+    $primera = IaConsulta::factory()->for($this->global)->create(['conversacion_id' => 'conv-vieja', 'pregunta' => '¿Cuánto vendimos?']);
+    IaConsulta::factory()->for($this->global)->create(['conversacion_id' => 'conv-vieja', 'pregunta' => '¿Y el mes pasado?']);
+    IaConsulta::factory()->for($this->global)->create(['conversacion_id' => 'conv-nueva', 'pregunta' => 'Otra cosa']);
+    $sinRespuesta = IaConsulta::factory()->for($this->global)->sinRespuesta()->create();
+
+    $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.historial', ['consulta_id' => $primera->id]))
+        ->assertOk()
+        ->assertJsonCount(2, 'consultas')
+        ->assertJsonPath('consultas.0.pregunta', '¿Cuánto vendimos?')
+        ->assertJsonPath('consultas.1.pregunta', '¿Y el mes pasado?');
+
+    $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.historial', ['consulta_id' => $sinRespuesta->id]))
+        ->assertOk()
+        ->assertJsonCount(1, 'consultas')
+        ->assertJsonPath('consultas.0.id', $sinRespuesta->id);
+});
+
+test('una conversación larga se abre alrededor de la consulta elegida', function () {
+    $this->global->givePermissionTo('reportes.asistente');
+
+    $consultas = IaConsulta::factory()->count(30)->for($this->global)->create(['conversacion_id' => 'conv-larga']);
+    $elegida = $consultas[3];
+
+    $ids = collect($this->actingAs($this->global)
+        ->getJson(route('reportes.bi.asistente.historial', ['consulta_id' => $elegida->id]))
+        ->assertOk()
+        ->assertJsonCount(20, 'consultas')
+        ->json('consultas'))->pluck('id');
+
+    expect($ids)->toContain($elegida->id)
+        ->and($ids->first())->toBe($consultas[0]->id);
+});
+
+test('no se puede abrir una consulta de otro usuario', function () {
+    $this->global->givePermissionTo('reportes.asistente');
+    $ajena = IaConsulta::factory()->for($this->local)->create();
+
+    $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.historial', ['consulta_id' => $ajena->id]))
+        ->assertNotFound();
+});
+
+test('el historial pide el permiso del asistente', function () {
+    $this->actingAs(User::factory()->create())
+        ->getJson(route('reportes.bi.asistente.consultas'))
+        ->assertForbidden();
+});

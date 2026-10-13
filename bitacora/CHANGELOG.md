@@ -13,6 +13,39 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-12 — Asistente IA: historial de consultas por fecha y rediseño del panel
+
+**Qué cambió:**
+- **Historial de consultas** dentro del panel del asistente (botón "Historial" en la
+  cabecera): las últimas 20 preguntas del usuario agrupadas por día (Hoy, Ayer, "Lunes,
+  6 de octubre"), con hora, cuántos gráficos/tablas trajo cada respuesta o "Sin
+  respuesta". Selector de fecha para ver las consultas de un día puntual.
+- Al elegir una consulta se reabre su conversación, se baja hasta esa pregunta y se
+  resalta un momento; se puede seguir preguntando en ella. La conversación muestra
+  separadores de día y la hora de cada pregunta.
+- Rediseño del lanzador y del panel: marca propia del asistente (degradé azul → teal),
+  botón de dos líneas "Asistente IA", sugerencias con ícono, campo de escritura unificado.
+- Corrección: el loader "Consultando los datos…" salía en vertical.
+
+**Por qué:** pedido del usuario — poder volver a ver lo que se preguntó al asistente,
+por fecha, y que el botón del asistente se identifique mejor.
+
+**Cómo:**
+- Las consultas ya se guardaban en `ia_consulta` (sin vencimiento); faltaba leerlas.
+  Endpoint nuevo `GET reportes/bi/asistente/consultas?fecha=` (`HistorialAsistenteRequest`)
+  y `historial?consulta_id=` para reabrir una conversación (404 si no es del usuario).
+  Una conversación de más de 20 consultas se abre en la ventana que rodea a la elegida.
+- El día y la hora salen del servidor en hora de la empresa (`ia.zona_horaria`):
+  `created_at` está en UTC y una consulta de las 22:00 en La Paz cae al día siguiente
+  en UTC; agrupar en el navegador desalinearía la lista con el filtro.
+- Todo en el mismo panel (no un modal ni otra página): el asistente convive con el
+  reporte que se está mirando. Escape retrocede un nivel (historial → chat → cerrar).
+- Tests: 6 nuevos en `AsistenteBiTest` (límite de 20, solo las propias, filtro por día en
+  hora de La Paz, reabrir conversación, ventana de conversación larga, permiso).
+  `IaConsultaFactory` nueva. Verificado en Edge contra la app real (claro, oscuro, móvil).
+
+---
+
 ## 2026-10-12 — IA en el BI: anomalías, resumen semanal, asistente y datos de 24 meses
 
 **Qué cambió:**

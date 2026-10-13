@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3';
 import ResultadoIa from '@/Components/Reporte/ResultadoIa.vue';
 import { textoIaAHtml } from '@/Utils/TextoIa.js';
+import { etiquetaDia } from '@/Utils/TimeAgo.js';
 
 /**
  * Asistente de BI: panel lateral para preguntar en lenguaje natural.
@@ -15,6 +16,11 @@ import { textoIaAHtml } from '@/Utils/TextoIa.js';
  * herramientas que usó: los gráficos y tablas se dibujan con esos datos (de
  * la base), y "Cómo lo calculé" muestra la consulta. El backend (App\Ai\*)
  * pone el tope de gasto, el límite por hora y la conexión de solo lectura.
+ *
+ * Dos vistas en el mismo panel: `chat` (la conversación) e `historial` (las
+ * últimas consultas guardadas, por día, con filtro por fecha). Elegir una
+ * consulta del historial reabre su conversación y la resalta; desde ahí se
+ * puede seguir preguntando en ella.
  */
 const page = usePage();
 
@@ -45,6 +51,22 @@ const error = ref('');
 const pregunta = ref('');
 const lista = ref(null);
 const campo = ref(null);
+const hoy = ref(null);
+
+/** 'chat' | 'historial' */
+const vista = ref('chat');
+const destacada = ref(null);
+const tituloHistorial = ref(null);
+const botonHistorial = ref(null);
+
+const historial = ref({
+    cargando: false,
+    error: '',
+    consultas: [],
+    limite: 20,
+    abriendo: null,
+});
+const filtroFecha = ref('');
 
 const disponible = computed(() => estado.value?.disponible !== false);
 
@@ -68,6 +90,7 @@ async function cargarHistorial() {
     try {
         const { data } = await window.axios.get(route('reportes.bi.asistente.historial'));
         estado.value = data.estado;
+        hoy.value = data.hoy;
         consultas.value = data.consultas;
         conversacionId.value = data.consultas.at(-1)?.conversacion_id ?? null;
     } catch {
@@ -87,7 +110,9 @@ async function alternar(valor = !abierto.value) {
             await cargarHistorial();
         }
         await nextTick();
-        campo.value?.focus();
+        if (vista.value === 'chat') {
+            campo.value?.focus();
+        }
     }
 }
 
@@ -108,8 +133,9 @@ async function preguntar(texto = pregunta.value) {
 
     error.value = '';
     enviando.value = true;
+    destacada.value = null;
     pregunta.value = '';
-    const pendiente = { id: `pendiente-${Date.now()}`, pregunta: limpia, pendiente: true, resultados: [] };
+    const pendiente = { id: `pendiente-${Date.now()}`, pregunta: limpia, pendiente: true, resultados: [], dia: hoy.value };
     consultas.value.push(pendiente);
     bajar();
 
@@ -138,9 +164,149 @@ async function preguntar(texto = pregunta.value) {
 function nuevaConversacion() {
     consultas.value = [];
     conversacionId.value = null;
+    destacada.value = null;
     error.value = '';
-    campo.value?.focus();
+    vista.value = 'chat';
+    nextTick(() => campo.value?.focus());
 }
+
+/* --- Historial --- */
+
+async function cargarConsultas() {
+    historial.value.cargando = true;
+    historial.value.error = '';
+
+    try {
+        const { data } = await window.axios.get(route('reportes.bi.asistente.consultas'), {
+            params: filtroFecha.value ? { fecha: filtroFecha.value } : {},
+        });
+        historial.value.consultas = data.consultas;
+        historial.value.limite = data.limite;
+        hoy.value = data.hoy;
+    } catch (e) {
+        historial.value.consultas = [];
+        historial.value.error = e.response?.data?.errors?.fecha?.[0]
+            ?? 'No se pudo cargar el historial. Revisa tu conexión e intenta de nuevo.';
+    } finally {
+        historial.value.cargando = false;
+    }
+}
+
+function abrirHistorial() {
+    vista.value = 'historial';
+    cargarConsultas();
+    nextTick(() => tituloHistorial.value?.focus());
+}
+
+function volverAlChat() {
+    vista.value = 'chat';
+    nextTick(() => campo.value?.focus());
+}
+
+function alternarHistorial() {
+    if (vista.value === 'historial') {
+        volverAlChat();
+    } else {
+        abrirHistorial();
+    }
+}
+
+function filtrarPorFecha() {
+    cargarConsultas();
+}
+
+function quitarFiltro() {
+    filtroFecha.value = '';
+    cargarConsultas();
+}
+
+async function abrirConsulta(item) {
+    if (historial.value.abriendo) {
+        return;
+    }
+
+    historial.value.abriendo = item.id;
+    historial.value.error = '';
+
+    try {
+        const { data } = await window.axios.get(route('reportes.bi.asistente.historial'), {
+            params: { consulta_id: item.id },
+        });
+        estado.value = data.estado;
+        hoy.value = data.hoy;
+        consultas.value = data.consultas;
+        conversacionId.value = item.conversacion_id ?? null;
+        error.value = '';
+        destacada.value = item.id;
+        vista.value = 'chat';
+
+        await nextTick();
+        const turno = document.getElementById(`ia-turno-${item.id}`);
+        const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        turno?.scrollIntoView({ block: 'start', behavior: reducir ? 'auto' : 'smooth' });
+        turno?.focus({ preventScroll: true });
+    } catch (e) {
+        historial.value.error = e.response?.status === 404
+            ? 'Esa consulta ya no está en tu historial.'
+            : 'No se pudo abrir la consulta. Intenta de nuevo.';
+    } finally {
+        historial.value.abriendo = null;
+    }
+}
+
+/** Consultas del historial agrupadas por día, en el orden que llegan. */
+const gruposHistorial = computed(() => {
+    const grupos = [];
+
+    for (const consulta of historial.value.consultas) {
+        const ultimo = grupos.at(-1);
+
+        if (ultimo?.dia === consulta.dia) {
+            ultimo.consultas.push(consulta);
+        } else {
+            grupos.push({ dia: consulta.dia, consultas: [consulta] });
+        }
+    }
+
+    return grupos;
+});
+
+const subtituloHistorial = computed(() => {
+    if (filtroFecha.value) {
+        return etiquetaDia(filtroFecha.value, hoy.value);
+    }
+
+    return `Tus ${historial.value.limite} consultas más recientes`;
+});
+
+/** El historial llegó al tope: hay más guardadas de las que se ven. */
+const historialRecortado = computed(() => historial.value.consultas.length >= historial.value.limite);
+
+function metaConsulta(item) {
+    if (item.estado === 'ERROR') {
+        return [{ icono: 'fa-circle-exclamation', texto: 'Sin respuesta' }];
+    }
+
+    const partes = [];
+
+    if (item.graficos) {
+        partes.push({ icono: 'fa-chart-column', texto: `${item.graficos} ${item.graficos === 1 ? 'gráfico' : 'gráficos'}` });
+    }
+    if (item.tablas) {
+        partes.push({ icono: 'fa-table', texto: `${item.tablas} ${item.tablas === 1 ? 'tabla' : 'tablas'}` });
+    }
+
+    return partes.length ? partes : [{ icono: 'fa-align-left', texto: 'Respuesta en texto' }];
+}
+
+/** Separador de día en la conversación: solo cuando cambia de un turno al siguiente. */
+function cambiaDeDia(indice) {
+    const actual = consultas.value[indice]?.dia;
+
+    return Boolean(actual) && (indice === 0 || consultas.value[indice - 1]?.dia !== actual);
+}
+
+/* --- Teclado y formulario --- */
 
 function alTeclear(evento) {
     if (evento.key === 'Enter' && !evento.shiftKey) {
@@ -150,21 +316,18 @@ function alTeclear(evento) {
 }
 
 function alEscape(evento) {
-    if (evento.key === 'Escape' && abierto.value) {
+    if (evento.key !== 'Escape' || !abierto.value) {
+        return;
+    }
+
+    // Escape retrocede un nivel: del historial al chat, del chat a cerrar.
+    if (vista.value === 'historial') {
+        volverAlChat();
+        botonHistorial.value?.focus();
+    } else {
         alternar(false);
     }
 }
-
-/** Estado de la IA para la cabecera; null mientras no se cargó el historial. */
-const estadoCabecera = computed(() => {
-    if (!estado.value) {
-        return null;
-    }
-
-    return disponible.value
-        ? { clase: 'ia-estado-ok', texto: 'Disponible' }
-        : { clase: 'ia-estado-off', texto: 'No disponible' };
-});
 
 const usoTexto = computed(() => {
     if (!estado.value) {
@@ -175,6 +338,17 @@ const usoTexto = computed(() => {
     const tope = Number(estado.value.presupuesto ?? 0).toLocaleString('es-BO', { maximumFractionDigits: 0 });
 
     return `Uso del mes: USD ${gasto} de ${tope}`;
+});
+
+/** Estado de la IA para la cabecera; null mientras no se cargó el historial. */
+const estadoCabecera = computed(() => {
+    if (!estado.value) {
+        return null;
+    }
+
+    return disponible.value
+        ? { clase: 'ia-estado-ok', texto: 'Disponible' }
+        : { clase: 'ia-estado-off', texto: 'No disponible' };
 });
 
 onMounted(() => {
@@ -218,14 +392,18 @@ watch(pregunta, () => nextTick(() => {
                             Asistente IA
                             <span v-if="estadoCabecera" class="ia-estado" :class="estadoCabecera.clase">{{ estadoCabecera.texto }}</span>
                         </h2>
-                        <p class="ia-panel-sub">Responde con datos del sistema, de las sucursales que ves</p>
+                        <p class="ia-panel-sub">Responde con datos de las sucursales que ves</p>
                     </div>
                 </div>
                 <div class="ia-panel-acciones">
-                    <button type="button" class="chart-action" :disabled="!consultas.length" title="Nueva conversación"
-                        @click="nuevaConversacion">
+                    <button ref="botonHistorial" type="button" class="chart-action" :class="{ 'is-active': vista === 'historial' }"
+                        :aria-pressed="vista === 'historial'" title="Consultas anteriores" @click="alternarHistorial">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span class="chart-action-text">Historial</span>
+                    </button>
+                    <button type="button" class="chart-action" :disabled="!consultas.length && vista === 'chat'" title="Nueva conversación"
+                        aria-label="Nueva conversación" @click="nuevaConversacion">
                         <i class="fa-solid fa-plus"></i>
-                        <span class="chart-action-text">Nueva</span>
                     </button>
                     <button type="button" class="chart-action" aria-label="Cerrar el asistente" @click="alternar(false)">
                         <i class="fa-solid fa-xmark"></i>
@@ -233,7 +411,105 @@ watch(pregunta, () => nextTick(() => {
                 </div>
             </header>
 
-            <div ref="lista" class="ia-panel-cuerpo" aria-live="polite">
+            <!-- Vista: historial de consultas -->
+            <section v-if="vista === 'historial'" class="ia-historial" aria-labelledby="ia-historial-titulo">
+                <div class="ia-historial-barra">
+                    <div class="ia-historial-encabezado">
+                        <button type="button" class="ia-volver" aria-label="Volver a la conversación" @click="volverAlChat">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        <div class="min-w-0">
+                            <h3 id="ia-historial-titulo" ref="tituloHistorial" class="ia-historial-titulo" tabindex="-1">
+                                Historial de consultas
+                            </h3>
+                            <p class="ia-historial-sub">{{ subtituloHistorial }}</p>
+                        </div>
+                    </div>
+
+                    <div class="ia-historial-filtro">
+                        <label for="ia-historial-fecha" class="ia-fecha">
+                            <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                            <span class="sr-only">Ver las consultas de una fecha</span>
+                            <input id="ia-historial-fecha" v-model="filtroFecha" type="date" class="ia-fecha-input" :max="hoy ?? undefined"
+                                @change="filtrarPorFecha" />
+                        </label>
+                        <button v-if="filtroFecha" type="button" class="ia-filtro-quitar" @click="quitarFiltro">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                            Ver las últimas
+                        </button>
+                    </div>
+                </div>
+
+                <div class="ia-historial-cuerpo" :aria-busy="historial.cargando">
+                    <p v-if="historial.error" class="ia-error ia-historial-error" role="alert">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>{{ historial.error }}</span>
+                        <button type="button" class="ia-enlace" @click="cargarConsultas">Reintentar</button>
+                    </p>
+
+                    <div v-if="historial.cargando" class="ia-historial-esqueleto" role="status">
+                        <span class="sr-only">Cargando el historial…</span>
+                        <div v-for="n in 2" :key="n" class="ia-esqueleto-grupo" aria-hidden="true">
+                            <span class="ia-esqueleto ia-esqueleto-dia"></span>
+                            <span v-for="f in 3" :key="f" class="ia-esqueleto ia-esqueleto-fila"></span>
+                        </div>
+                    </div>
+
+                    <div v-else-if="!historial.consultas.length && !historial.error" class="ia-historial-vacio">
+                        <span class="ia-historial-vacio-icono" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                        <template v-if="filtroFecha">
+                            <p class="ia-vacio-titulo">Sin consultas ese día</p>
+                            <p class="ia-vacio-texto">No hiciste preguntas al asistente el {{ etiquetaDia(filtroFecha, hoy).toLowerCase() }}.</p>
+                            <button type="button" class="btn btn-soft-primary btn-sm" @click="quitarFiltro">Ver las últimas consultas</button>
+                        </template>
+                        <template v-else>
+                            <p class="ia-vacio-titulo">Todavía no hay consultas</p>
+                            <p class="ia-vacio-texto">Cada pregunta que hagas queda guardada aquí, con sus gráficos, para volver a verla cuando la necesites.</p>
+                            <button type="button" class="btn btn-soft-primary btn-sm" @click="volverAlChat">Hacer una pregunta</button>
+                        </template>
+                    </div>
+
+                    <template v-else>
+                        <section v-for="grupo in gruposHistorial" :key="grupo.dia" class="ia-historial-grupo">
+                            <h4 class="ia-historial-dia">
+                                {{ etiquetaDia(grupo.dia, hoy) }}
+                                <span class="ia-historial-conteo">{{ grupo.consultas.length }}</span>
+                            </h4>
+                            <ol class="ia-historial-lista">
+                                <li v-for="item in grupo.consultas" :key="item.id">
+                                    <button type="button" class="ia-historial-item" :class="{ 'is-error': item.estado === 'ERROR', 'is-abriendo': historial.abriendo === item.id }"
+                                        :disabled="historial.abriendo !== null" @click="abrirConsulta(item)">
+                                        <span class="ia-historial-hora">{{ item.hora }}</span>
+                                        <span class="ia-historial-texto">
+                                            <span class="ia-historial-pregunta">{{ item.pregunta }}</span>
+                                            <span class="ia-historial-meta">
+                                                <span v-for="m in metaConsulta(item)" :key="m.texto">
+                                                    <i class="fa-solid" :class="m.icono" aria-hidden="true"></i>
+                                                    {{ m.texto }}
+                                                </span>
+                                            </span>
+                                        </span>
+                                        <span class="ia-historial-flecha" aria-hidden="true">
+                                            <span v-if="historial.abriendo === item.id" class="ia-girando"></span>
+                                            <i v-else class="fa-solid fa-chevron-right"></i>
+                                        </span>
+                                    </button>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <p v-if="historialRecortado" class="ia-historial-nota">
+                            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                            {{ filtroFecha
+                                ? `Se muestran las ${historial.limite} más recientes de ese día.`
+                                : 'Se guardan todas tus consultas. Para ver otras más antiguas, elige una fecha.' }}
+                        </p>
+                    </template>
+                </div>
+            </section>
+
+            <!-- Vista: conversación -->
+            <div v-show="vista === 'chat'" ref="lista" class="ia-panel-cuerpo" aria-live="polite">
                 <div v-if="!cargado" class="ia-cargando" role="status">
                     <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
                 </div>
@@ -256,29 +532,36 @@ watch(pregunta, () => nextTick(() => {
                 </div>
 
                 <template v-else>
-                    <article v-for="c in consultas" :key="c.id" class="ia-turno">
-                        <p class="ia-pregunta">{{ c.pregunta }}</p>
+                    <template v-for="(c, indice) in consultas" :key="c.id">
+                        <p v-if="cambiaDeDia(indice)" class="ia-separador-dia">
+                            <span>{{ etiquetaDia(c.dia, hoy) }}</span>
+                        </p>
 
-                        <div v-if="c.pendiente" class="ia-respuesta ia-respuesta-pendiente" role="status">
-                            <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-                            <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
-                            <span>Consultando los datos…</span>
-                        </div>
+                        <article :id="`ia-turno-${c.id}`" class="ia-turno" :class="{ 'is-destacado': destacada === c.id }" tabindex="-1">
+                            <p class="ia-pregunta">{{ c.pregunta }}</p>
+                            <p v-if="c.hora" class="ia-pregunta-hora">{{ c.hora }}</p>
 
-                        <div v-else class="ia-respuesta" :class="{ 'ia-respuesta-error': c.estado === 'ERROR' }">
-                            <p class="ia-autor">
+                            <div v-if="c.pendiente" class="ia-respuesta ia-respuesta-pendiente" role="status">
                                 <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-                                Asistente
-                            </p>
-                            <div class="ia-respuesta-texto" v-html="textoIaAHtml(c.respuesta)"></div>
-                            <ResultadoIa v-for="(r, i) in c.resultados" :key="i" :resultado="r" />
-                            <p v-if="c.modelo" class="ia-respuesta-meta">{{ c.proveedor }} · {{ c.modelo }}</p>
-                        </div>
-                    </article>
+                                <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
+                                <span>Consultando los datos…</span>
+                            </div>
+
+                            <div v-else class="ia-respuesta" :class="{ 'ia-respuesta-error': c.estado === 'ERROR' }">
+                                <p class="ia-autor">
+                                    <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                                    Asistente
+                                </p>
+                                <div class="ia-respuesta-texto" v-html="textoIaAHtml(c.respuesta)"></div>
+                                <ResultadoIa v-for="(r, i) in c.resultados" :key="i" :resultado="r" />
+                                <p v-if="c.modelo" class="ia-respuesta-meta">{{ c.proveedor }} · {{ c.modelo }}</p>
+                            </div>
+                        </article>
+                    </template>
                 </template>
             </div>
 
-            <footer class="ia-panel-pie">
+            <footer v-show="vista === 'chat'" class="ia-panel-pie">
                 <p v-if="error" class="ia-error" role="alert">
                     <i class="fa-solid fa-circle-exclamation"></i> {{ error }}
                 </p>

@@ -192,6 +192,13 @@ El texto de la IA siempre va junto a la evidencia de la que sale.
   `.ia-turno` `.ia-pregunta` `.ia-autor` `.ia-respuesta` (+ `-texto`, `-error`, `-meta`, `-pendiente`),
   `.ia-formulario` (caja con `:focus-within`) `.ia-campo` `.ia-enviar` `.ia-pie-notas` `.ia-atajo`
   `.ia-error` `.ia-uso` (+ `-alerta`). Es un panel lateral, no un modal: convive con la página.
+- Historial del asistente (misma pieza, vista `historial`): `.ia-historial` (+ `-barra`, `-encabezado`,
+  `-titulo`, `-sub`, `-filtro`, `-cuerpo`, `-dia` (cabecera de día sticky), `-conteo`, `-lista`,
+  `-item` (+ `.is-error`, `.is-abriendo`), `-hora`, `-texto`, `-pregunta` (2 líneas), `-meta`, `-flecha`,
+  `-nota`, `-vacio`, `-error`, `-esqueleto`), `.ia-volver`, `.ia-fecha` + `.ia-fecha-input` (fecha nativa
+  en caja con `:focus-within`), `.ia-filtro-quitar`, `.ia-esqueleto` (+ `-grupo`, `-dia`, `-fila`),
+  `.ia-girando`. En la conversación: `.ia-separador-dia`, `.ia-pregunta-hora` y `.ia-turno.is-destacado`
+  (halo que se apaga solo al reabrir una consulta).
 - Resultado de herramienta (`Components/Reporte/ResultadoIa.vue`): `.ia-resultado` (+ `-titulo`,
   `-tabla`, `-pie`), `.ia-enlace`, `.ia-calculo` (+ `-parametros`, `-herramienta`) para "Cómo lo calculé".
 - Resumen semanal (`Pages/Reportes/BiResumen.vue`): `.resumen-cabecera-*`, `.resumen-titular`,
