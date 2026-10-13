@@ -3357,23 +3357,104 @@
    - `.anomalia-*`: lista de anomalías con estado nueva/revisada/descartada.
    ========================================================================== */
 
-/* --- Asistente: lanzador --- */
-.ia-lanzador {
-    background-color: var(--c-primary);
+/* --- Asistente: marca ---
+   Disco con el degradé azul -> teal de XtraPubli. Es la seña del asistente:
+   se repite en el lanzador, la cabecera, el estado vacío y cada respuesta,
+   para que "esto es la IA" se reconozca de un vistazo. */
+.ia-marca {
+    background-image: linear-gradient(135deg, var(--c-primary) 0%, var(--c-info) 100%);
     color: #ffffff;
-    box-shadow: 0 6px 18px rgba(20, 95, 151, 0.28), 0 2px 4px rgba(20, 22, 26, 0.12);
+    @apply relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm;
+}
+
+.ia-marca-xs {
+    @apply h-5 w-5 rounded-md text-[10px];
+}
+
+.ia-marca-lg {
+    @apply mb-1 h-12 w-12 rounded-2xl text-lg;
+}
+
+/* --- Asistente: lanzador ---
+   Se distingue de los `.btn-primary` de la página: degradé oscuro, dos
+   líneas (qué es y para qué sirve) y un pulso que se repite solo 3 veces al
+   aparecer. En móvil queda el disco solo, para no tapar contenido. */
+.ia-lanzador {
+    background-image: linear-gradient(135deg, var(--c-primary-dark) 0%, var(--c-info-dark) 100%);
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(11, 110, 117, 0.3), 0 2px 6px rgba(20, 22, 26, 0.16);
     bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-    @apply fixed right-5 z-40 inline-flex items-center gap-2 rounded-full border-0 px-4 py-3 text-sm font-semibold transition;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    @apply fixed right-5 z-40 inline-flex items-center gap-3 rounded-full border-0 p-2 text-left sm:pr-5;
 }
 
 .ia-lanzador:hover {
-    background-color: var(--c-primary-dark);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(11, 110, 117, 0.36), 0 3px 8px rgba(20, 22, 26, 0.18);
+}
+
+.ia-lanzador:active {
+    transform: translateY(0);
 }
 
 .ia-lanzador:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--c-primary) 35%, transparent);
-    outline-offset: 2px;
+    outline: 3px solid color-mix(in srgb, var(--brand-blue-light) 70%, transparent);
+    outline-offset: 3px;
+}
+
+.ia-lanzador-marca {
+    background-image: none;
+    background-color: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+    @apply h-11 w-11 rounded-full text-base;
+}
+
+.ia-lanzador-marca i {
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ia-lanzador:hover .ia-lanzador-marca i {
+    transform: rotate(-14deg) scale(1.12);
+}
+
+.ia-lanzador-marca::after {
+    content: '';
+    border-radius: inherit;
+    animation: ia-pulso 2.4s cubic-bezier(0.16, 1, 0.3, 1) 1s 3;
+    @apply pointer-events-none absolute inset-0;
+}
+
+@keyframes ia-pulso {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand-blue-light) 75%, transparent);
+    }
+    100% {
+        box-shadow: 0 0 0 16px color-mix(in srgb, var(--brand-blue-light) 0%, transparent);
+    }
+}
+
+.ia-lanzador-texto {
+    @apply hidden flex-col leading-tight sm:flex;
+}
+
+.ia-lanzador-titulo {
+    @apply text-sm font-semibold;
+}
+
+.ia-lanzador-sub {
+    color: rgba(255, 255, 255, 0.86);
+    @apply text-[11px];
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ia-lanzador,
+    .ia-lanzador-marca i {
+        transition: none;
+    }
+
+    .ia-lanzador-marca::after {
+        animation: none;
+    }
 }
 
 /* --- Asistente: panel --- */
@@ -3398,15 +3479,33 @@
     @apply flex min-w-0 items-center gap-3;
 }
 
-.ia-panel-icono {
-    background-color: var(--c-primary-soft);
-    color: var(--c-primary);
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
-}
-
 .ia-panel-titulo {
     color: var(--text-heading);
-    @apply m-0 text-base font-semibold;
+    @apply m-0 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-base font-semibold;
+}
+
+.ia-estado {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium;
+}
+
+.ia-estado::before {
+    content: '';
+    background-color: currentColor;
+    @apply h-1.5 w-1.5 rounded-full;
+}
+
+.ia-estado-ok {
+    background-color: var(--c-success-soft);
+    color: var(--c-success-dark);
+}
+
+.dark .ia-estado-ok {
+    color: var(--c-success);
+}
+
+.ia-estado-off {
+    background-color: var(--c-secondary-soft);
+    color: var(--text-muted);
 }
 
 .ia-panel-sub {
@@ -3441,6 +3540,10 @@
     @apply justify-center py-10;
 }
 
+.ia-respuesta-pendiente .ia-marca {
+    @apply mr-1;
+}
+
 /* --- Asistente: estado vacío --- */
 .ia-vacio {
     @apply flex flex-col gap-2 py-2;
@@ -3457,20 +3560,57 @@
     @apply m-0 text-sm;
 }
 
+.ia-sugerencias-titulo {
+    color: var(--text-muted);
+    @apply m-0 mt-3 text-xs font-semibold;
+}
+
 .ia-sugerencias {
-    @apply mt-2 flex flex-col gap-2;
+    @apply flex flex-col gap-2;
 }
 
 .ia-sugerencia {
-    background-color: var(--page-bg);
+    background-color: var(--card-bg);
     border-color: var(--border-subtle);
     color: var(--text-body);
-    @apply rounded-lg border px-3 py-2 text-left text-sm transition-colors;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    @apply flex w-full items-center gap-3 rounded-xl border px-2.5 py-2 text-left text-sm;
 }
 
-.ia-sugerencia:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--c-primary) 40%, transparent);
+.ia-sugerencia-icono {
+    background-color: var(--c-primary-soft);
     color: var(--c-primary);
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs;
+}
+
+.ia-sugerencia-texto {
+    @apply min-w-0 flex-1 leading-snug;
+}
+
+.ia-sugerencia-flecha {
+    color: var(--c-primary);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    @apply shrink-0 text-xs;
+}
+
+.ia-sugerencia:hover:not(:disabled),
+.ia-sugerencia:focus-visible {
+    background-color: var(--c-primary-soft);
+    border-color: color-mix(in srgb, var(--c-primary) 35%, transparent);
+    color: var(--text-heading);
+}
+
+.ia-sugerencia:hover:not(:disabled) .ia-sugerencia-flecha,
+.ia-sugerencia:focus-visible .ia-sugerencia-flecha {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.ia-sugerencia:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--c-primary) 45%, transparent);
+    outline-offset: 2px;
 }
 
 .ia-sugerencia:disabled {
@@ -3491,6 +3631,11 @@
 .ia-respuesta {
     color: var(--text-body);
     @apply flex flex-col gap-3 text-sm;
+}
+
+.ia-autor {
+    color: var(--text-heading);
+    @apply m-0 inline-flex items-center gap-2 text-xs font-semibold;
 }
 
 .ia-respuesta-texto p,
@@ -3598,18 +3743,79 @@
     @apply font-semibold;
 }
 
-/* --- Asistente: formulario --- */
+/* --- Asistente: formulario ---
+   Campo y botón dentro de una misma caja: el foco se marca en la caja
+   entera (`:focus-within`), no solo en el textarea. */
 .ia-formulario {
-    @apply flex items-end gap-2;
+    background-color: var(--page-bg);
+    border-color: var(--border-subtle);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    @apply flex items-end gap-2 rounded-2xl border py-1.5 pl-3.5 pr-1.5;
+}
+
+.dark .ia-formulario {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.ia-formulario:focus-within {
+    border-color: color-mix(in srgb, var(--c-primary) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 14%, transparent);
 }
 
 .ia-campo {
-    min-height: 2.5rem;
-    @apply resize-none leading-snug;
+    color: var(--text-heading);
+    caret-color: var(--c-primary);
+    min-height: 2.25rem;
+    @apply flex-1 resize-none border-0 bg-transparent px-0 py-2 text-sm leading-snug shadow-none outline-none focus:ring-0;
+}
+
+.ia-campo::placeholder {
+    color: var(--text-muted);
+}
+
+.ia-campo:disabled {
+    @apply cursor-not-allowed;
 }
 
 .ia-enviar {
-    @apply h-10 w-10 shrink-0 justify-center p-0;
+    background-image: linear-gradient(135deg, var(--c-primary) 0%, var(--c-info) 100%);
+    color: #ffffff;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-0 text-sm;
+}
+
+.ia-enviar:hover:not(:disabled) {
+    transform: scale(1.06);
+}
+
+.ia-enviar:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--c-primary) 50%, transparent);
+    outline-offset: 2px;
+}
+
+.ia-enviar:disabled {
+    background-image: none;
+    background-color: var(--c-secondary-soft);
+    color: var(--text-muted);
+    @apply cursor-not-allowed;
+}
+
+.ia-pie-notas {
+    @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-1;
+}
+
+.ia-atajo {
+    color: var(--text-muted);
+    @apply hidden text-[11px] sm:inline;
+}
+
+.ia-atajo kbd {
+    background-color: var(--card-bg);
+    border-color: var(--border-subtle);
+    color: var(--text-body);
+    font-family: inherit;
+    box-shadow: 0 1px 0 var(--border-subtle);
+    @apply rounded border px-1 py-px text-[10px] font-medium;
 }
 
 .ia-error {

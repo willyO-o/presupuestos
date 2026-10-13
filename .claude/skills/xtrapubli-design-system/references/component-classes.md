@@ -183,11 +183,15 @@ Pestañas `Pages/Reportes/Bi*.vue` y componentes `Components/Reporte/*`.
 
 El texto de la IA siempre va junto a la evidencia de la que sale.
 
-- Asistente (`Components/Layout/AsistenteBi.vue`): `.ia-lanzador` (botón flotante), `.ia-panel`
-  (+ `-cabecera`, `-identidad`, `-icono`, `-titulo`, `-sub`, `-acciones`, `-cuerpo`, `-pie`), `.ia-vacio`
-  `.ia-sugerencias` `.ia-sugerencia`, `.ia-turno` `.ia-pregunta` `.ia-respuesta` (+ `-texto`, `-error`,
-  `-meta`, `-pendiente`), `.ia-formulario` `.ia-campo` `.ia-enviar` `.ia-error` `.ia-uso` (+ `-alerta`).
-  Es un panel lateral, no un modal: convive con la página.
+- Asistente (`Components/Layout/AsistenteBi.vue`): `.ia-marca` (+ `-xs`, `-lg`) es la seña del
+  asistente — disco con degradé azul → teal que se repite en lanzador, cabecera, estado vacío y cada
+  respuesta; úsala para todo lo que sea "esto es la IA". `.ia-lanzador` (botón flotante, + `-marca`,
+  `-texto`, `-titulo`, `-sub`; en móvil queda solo el disco), `.ia-panel` (+ `-cabecera`, `-identidad`,
+  `-titulo`, `-sub`, `-acciones`, `-cuerpo`, `-pie`), `.ia-estado` (+ `-ok`, `-off`), `.ia-vacio`
+  `.ia-sugerencias-titulo` `.ia-sugerencias` `.ia-sugerencia` (+ `-icono`, `-texto`, `-flecha`),
+  `.ia-turno` `.ia-pregunta` `.ia-autor` `.ia-respuesta` (+ `-texto`, `-error`, `-meta`, `-pendiente`),
+  `.ia-formulario` (caja con `:focus-within`) `.ia-campo` `.ia-enviar` `.ia-pie-notas` `.ia-atajo`
+  `.ia-error` `.ia-uso` (+ `-alerta`). Es un panel lateral, no un modal: convive con la página.
 - Resultado de herramienta (`Components/Reporte/ResultadoIa.vue`): `.ia-resultado` (+ `-titulo`,
   `-tabla`, `-pie`), `.ia-enlace`, `.ia-calculo` (+ `-parametros`, `-herramienta`) para "Cómo lo calculé".
 - Resumen semanal (`Pages/Reportes/BiResumen.vue`): `.resumen-cabecera-*`, `.resumen-titular`,

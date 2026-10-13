@@ -25,12 +25,12 @@ const puede = computed(() => {
 });
 
 const SUGERENCIAS = [
-    '¿Cuánto vendimos este trimestre frente al anterior?',
-    '¿Qué familia de productos deja más margen este año?',
-    '¿Hay pedidos atrasados ahora?',
-    '¿Qué materiales subieron de precio en los últimos 3 meses?',
-    'Proyecta las ventas de los próximos 3 meses',
-    '¿Qué debería revisar esta semana?',
+    { texto: '¿Cuánto vendimos este trimestre frente al anterior?', icono: 'fa-chart-line' },
+    { texto: '¿Qué familia de productos deja más margen este año?', icono: 'fa-chart-pie' },
+    { texto: '¿Hay pedidos atrasados ahora?', icono: 'fa-truck-fast' },
+    { texto: '¿Qué materiales subieron de precio en los últimos 3 meses?', icono: 'fa-boxes-stacked' },
+    { texto: 'Proyecta las ventas de los próximos 3 meses', icono: 'fa-arrow-trend-up' },
+    { texto: '¿Qué debería revisar esta semana?', icono: 'fa-list-check' },
 ];
 
 const CLAVE_ABIERTO = 'asistente-bi-abierto';
@@ -155,6 +155,17 @@ function alEscape(evento) {
     }
 }
 
+/** Estado de la IA para la cabecera; null mientras no se cargó el historial. */
+const estadoCabecera = computed(() => {
+    if (!estado.value) {
+        return null;
+    }
+
+    return disponible.value
+        ? { clase: 'ia-estado-ok', texto: 'Disponible' }
+        : { clase: 'ia-estado-off', texto: 'No disponible' };
+});
+
 const usoTexto = computed(() => {
     if (!estado.value) {
         return '';
@@ -163,7 +174,7 @@ const usoTexto = computed(() => {
     const gasto = Number(estado.value.gasto_mes ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const tope = Number(estado.value.presupuesto ?? 0).toLocaleString('es-BO', { maximumFractionDigits: 0 });
 
-    return `Uso de IA este mes: USD ${gasto} de ${tope}`;
+    return `Uso del mes: USD ${gasto} de ${tope}`;
 });
 
 onMounted(() => {
@@ -188,17 +199,25 @@ watch(pregunta, () => nextTick(() => {
 <template>
     <div v-if="puede" class="contents">
         <button v-show="!abierto" type="button" class="ia-lanzador" aria-controls="asistente-bi" :aria-expanded="abierto"
-            @click="alternar(true)">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>Preguntar al BI</span>
+            aria-label="Abrir el asistente de IA" @click="alternar(true)">
+            <span class="ia-marca ia-lanzador-marca" aria-hidden="true">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </span>
+            <span class="ia-lanzador-texto" aria-hidden="true">
+                <span class="ia-lanzador-titulo">Asistente IA</span>
+                <span class="ia-lanzador-sub">Pregunta sobre tus datos</span>
+            </span>
         </button>
 
         <aside v-show="abierto" id="asistente-bi" class="ia-panel" aria-label="Asistente de inteligencia de negocios">
             <header class="ia-panel-cabecera">
                 <div class="ia-panel-identidad">
-                    <span class="ia-panel-icono"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-                    <div>
-                        <h2 class="ia-panel-titulo">Asistente de BI</h2>
+                    <span class="ia-marca" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <div class="min-w-0">
+                        <h2 class="ia-panel-titulo">
+                            Asistente IA
+                            <span v-if="estadoCabecera" class="ia-estado" :class="estadoCabecera.clase">{{ estadoCabecera.texto }}</span>
+                        </h2>
                         <p class="ia-panel-sub">Responde con datos del sistema, de las sucursales que ves</p>
                     </div>
                 </div>
@@ -220,14 +239,18 @@ watch(pregunta, () => nextTick(() => {
                 </div>
 
                 <div v-else-if="!consultas.length" class="ia-vacio">
+                    <span class="ia-marca ia-marca-lg" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
                     <p class="ia-vacio-titulo">Pregunta por ventas, márgenes, pedidos, costos o alertas.</p>
                     <p class="ia-vacio-texto">
                         Las cifras salen de consultas a la base de datos: cada respuesta muestra cómo se calculó.
                     </p>
+                    <p class="ia-sugerencias-titulo">Prueba con</p>
                     <div class="ia-sugerencias">
-                        <button v-for="s in SUGERENCIAS" :key="s" type="button" class="ia-sugerencia"
-                            :disabled="!disponible || enviando" @click="preguntar(s)">
-                            {{ s }}
+                        <button v-for="s in SUGERENCIAS" :key="s.texto" type="button" class="ia-sugerencia"
+                            :disabled="!disponible || enviando" @click="preguntar(s.texto)">
+                            <span class="ia-sugerencia-icono" aria-hidden="true"><i class="fa-solid" :class="s.icono"></i></span>
+                            <span class="ia-sugerencia-texto">{{ s.texto }}</span>
+                            <i class="fa-solid fa-arrow-right ia-sugerencia-flecha" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -237,11 +260,16 @@ watch(pregunta, () => nextTick(() => {
                         <p class="ia-pregunta">{{ c.pregunta }}</p>
 
                         <div v-if="c.pendiente" class="ia-respuesta ia-respuesta-pendiente" role="status">
+                            <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
                             <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
                             <span>Consultando los datos…</span>
                         </div>
 
                         <div v-else class="ia-respuesta" :class="{ 'ia-respuesta-error': c.estado === 'ERROR' }">
+                            <p class="ia-autor">
+                                <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                                Asistente
+                            </p>
                             <div class="ia-respuesta-texto" v-html="textoIaAHtml(c.respuesta)"></div>
                             <ResultadoIa v-for="(r, i) in c.resultados" :key="i" :resultado="r" />
                             <p v-if="c.modelo" class="ia-respuesta-meta">{{ c.proveedor }} · {{ c.modelo }}</p>
@@ -260,15 +288,18 @@ watch(pregunta, () => nextTick(() => {
 
                 <form class="ia-formulario" @submit.prevent="preguntar()">
                     <label for="asistente-bi-pregunta" class="sr-only">Tu pregunta</label>
-                    <textarea id="asistente-bi-pregunta" ref="campo" v-model="pregunta" class="form-control ia-campo" rows="1"
+                    <textarea id="asistente-bi-pregunta" ref="campo" v-model="pregunta" class="ia-campo" rows="1"
                         maxlength="500" placeholder="Ej.: ¿Cuánto vendimos en letras 3D este año?"
                         :disabled="enviando || !disponible" @keydown="alTeclear"></textarea>
-                    <button type="submit" class="btn btn-primary ia-enviar" :disabled="enviando || !pregunta.trim() || !disponible"
+                    <button type="submit" class="ia-enviar" :disabled="enviando || !pregunta.trim() || !disponible"
                         aria-label="Enviar pregunta">
                         <i class="fa-solid fa-paper-plane"></i>
                     </button>
                 </form>
-                <p class="ia-uso" :class="{ 'ia-uso-alerta': estado?.cerca_del_tope }">{{ usoTexto }}</p>
+                <div class="ia-pie-notas">
+                    <span class="ia-atajo"><kbd>Enter</kbd> envía · <kbd>Shift</kbd> + <kbd>Enter</kbd> nueva línea</span>
+                    <span class="ia-uso" :class="{ 'ia-uso-alerta': estado?.cerca_del_tope }">{{ usoTexto }}</span>
+                </div>
             </footer>
         </aside>
     </div>
