@@ -3828,9 +3828,28 @@
     }
 }
 
+/* Ola: cada letra oscila entre tenue y sólida con un desfase según su
+   posición, así la onda recorre el texto de izquierda a derecha. Las letras
+   que el tecleo va sumando entran ya en fase. */
+.texto-tecleado.is-ola .texto-tecleado-letra {
+    animation: texto-tecleado-ola 1.8s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 55ms);
+}
+
+@keyframes texto-tecleado-ola {
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ia-pensamiento,
-    .texto-tecleado-cursor {
+    .texto-tecleado-cursor,
+    .texto-tecleado.is-ola .texto-tecleado-letra {
         animation: none;
     }
 }

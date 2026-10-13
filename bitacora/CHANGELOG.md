@@ -20,6 +20,8 @@ entrada nueva acá ANTES de darlo por terminado. Ver
   estela de circulitos) con puntos grandes animados y "Pensando".
 - El texto de la etapa ("Calculando los resultados", …) se escribe letra por letra con un
   cursor, y va en gris tenue para que se lea como estado y no como respuesta.
+- Además, una onda de opacidad recorre el texto de la etapa (de tenue a sólido, letra por
+  letra), al ritmo de los puntos de carga (prop `ola` de `TextoTecleado`).
 
 **Por qué:** pedido del usuario — que la espera se note viva y que el texto de carga no se
 confunda con la respuesta.

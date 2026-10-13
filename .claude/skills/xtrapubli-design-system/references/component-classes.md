@@ -203,7 +203,8 @@ El texto de la IA siempre va junto a la evidencia de la que sale.
   `.ia-girando`. En la conversación: `.ia-separador-dia`, `.ia-pregunta-hora` y `.ia-turno.is-destacado`
   (halo que se apaga solo al reabrir una consulta). Espera de la respuesta: `.ia-pensamiento` (burbuja de
   pensamiento con estela hacia el robot, + `-puntos`), `.ia-espera` (+ `-linea` (+ `.is-larga`), `-nota`,
-  `-reloj`). Texto letra por letra: `Components/TextoTecleado.vue` (`.texto-tecleado`, `-cursor`); es
+  `-reloj`). Texto letra por letra: `Components/TextoTecleado.vue` (`.texto-tecleado`, `-cursor`; con la prop `ola`,
+  `.is-ola` + `.texto-tecleado-letra` y una onda de opacidad que recorre las letras); es
   solo visual, va `aria-hidden` con el texto completo al lado en `.sr-only`.
 - Resultado de herramienta (`Components/Reporte/ResultadoIa.vue`): `.ia-resultado` (+ `-titulo`,
   `-tabla`, `-pie`), `.ia-enlace`, `.ia-calculo` (+ `-parametros`, `-herramienta`) para "Cómo lo calculé".

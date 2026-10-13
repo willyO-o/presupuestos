@@ -793,7 +793,7 @@ watch(pregunta, () => nextTick(() => {
                                          tecleo letra por letra y el reloj son solo visuales. -->
                                     <p class="ia-espera-linea" :class="{ 'is-larga': etapaEspera.larga }" role="status">
                                         <span class="sr-only">{{ etapaEspera.texto }}</span>
-                                        <TextoTecleado :texto="etapaEspera.texto" aria-hidden="true" @terminado="seguirAbajo" />
+                                        <TextoTecleado :texto="etapaEspera.texto" ola aria-hidden="true" @terminado="seguirAbajo" />
                                     </p>
                                     <p class="ia-espera-nota">
                                         {{ etapaEspera.larga ? 'No recargues la página: la respuesta llegará aquí.' : 'Suele tardar 1 a 2 minutos.' }}
