@@ -3357,22 +3357,224 @@
    - `.anomalia-*`: lista de anomalías con estado nueva/revisada/descartada.
    ========================================================================== */
 
-/* --- Asistente: marca ---
-   Disco con el degradé azul -> teal de XtraPubli. Es la seña del asistente:
-   se repite en el lanzador, la cabecera, el estado vacío y cada respuesta,
-   para que "esto es la IA" se reconozca de un vistazo. */
-.ia-marca {
-    background-image: linear-gradient(135deg, var(--c-primary) 0%, var(--c-info) 100%);
-    color: #ffffff;
-    @apply relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm;
+/* --- Asistente: mascota (Components/Layout/RobotIa.vue) ---
+   SVG por partes: cada estado (`.is-reposo`, `.is-pensando`, `.is-contento`,
+   `.is-apagado`, `.is-quieto`) anima solo transform/opacity de una pieza. Es
+   la seña del asistente en el lanzador, la cabecera, la bienvenida, la
+   espera y cada respuesta. Las cabecitas de la conversación van quietas:
+   decenas de animaciones a la vez distraen y gastan. */
+.robot-ia {
+    overflow: visible;
+    @apply block shrink-0;
 }
 
-.ia-marca-xs {
-    @apply h-5 w-5 rounded-md text-[10px];
+.robot-ia .robot-ojos,
+.robot-ia .robot-pluma,
+.robot-ia .robot-cabeza-movil,
+.robot-ia .robot-mano,
+.robot-ia .robot-punto {
+    transform-box: fill-box;
 }
 
-.ia-marca-lg {
-    @apply mb-1 h-12 w-12 rounded-2xl text-lg;
+.robot-ia .robot-ojos {
+    transform-origin: center;
+    transition: opacity 0.3s ease;
+}
+
+.robot-ia .robot-pluma {
+    transform-origin: 15% 100%;
+}
+
+.robot-ia .robot-cabeza-movil {
+    transform-origin: 50% 90%;
+}
+
+.robot-ia .robot-mano {
+    transform-origin: 50% 100%;
+}
+
+.ia-robot-cabecera {
+    @apply h-10 w-10;
+}
+
+.ia-robot-bienvenida {
+    @apply -ml-1 mb-1 h-20 w-20;
+}
+
+.ia-robot-espera {
+    @apply -my-1 h-9 w-9;
+}
+
+.ia-robot-autor {
+    @apply h-[22px] w-[22px];
+}
+
+/* Reposo: parpadea cada tanto y la pluma se mece. */
+.robot-ia.is-reposo .robot-ojos {
+    animation: robot-parpadeo 5.5s ease-in-out infinite;
+}
+
+.robot-ia.is-reposo .robot-pluma {
+    animation: robot-pluma 4.5s ease-in-out infinite;
+}
+
+/* Pensando: la burbuja escribe, mira alrededor y la pluma se agita. */
+.robot-ia.is-pensando .robot-ojos {
+    animation: robot-mirar 3.2s ease-in-out infinite;
+}
+
+.robot-ia.is-pensando .robot-pluma {
+    animation: robot-pluma 1.6s ease-in-out infinite;
+}
+
+.robot-ia.is-pensando .robot-punto {
+    animation: robot-escribir 1.2s ease-in-out infinite;
+}
+
+.robot-ia.is-pensando .robot-punto:nth-of-type(2) {
+    animation-delay: 0.16s;
+}
+
+.robot-ia.is-pensando .robot-punto:nth-of-type(3) {
+    animation-delay: 0.32s;
+}
+
+/* Asiente al cambiar de etapa de espera (prop `pulso`). */
+.robot-ia.is-asintiendo .robot-cabeza-movil {
+    animation: robot-asentir 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Contento: llegó la respuesta. Una sola vez. */
+.robot-ia.is-contento .robot-cabeza-movil {
+    animation: robot-saltito 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.robot-ia.is-contento .robot-ojos {
+    animation: robot-alegria 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.robot-ia.is-contento .robot-mano,
+.ia-lanzador:hover .robot-ia .robot-mano {
+    animation: robot-pulgar 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Apagado: IA no disponible. */
+.robot-ia.is-apagado .robot-ojos {
+    opacity: 0.3;
+}
+
+@keyframes robot-parpadeo {
+    0%,
+    92%,
+    100% {
+        transform: scaleY(1);
+    }
+    95% {
+        transform: scaleY(0.12);
+    }
+}
+
+@keyframes robot-pluma {
+    0%,
+    100% {
+        transform: rotate(-3deg);
+    }
+    50% {
+        transform: rotate(5deg);
+    }
+}
+
+@keyframes robot-mirar {
+    0%,
+    100% {
+        transform: translateX(0) scaleY(1);
+    }
+    20% {
+        transform: translateX(-2.5px) scaleY(1);
+    }
+    45% {
+        transform: translateX(2.5px) scaleY(1);
+    }
+    62% {
+        transform: translateX(0) scaleY(1);
+    }
+    66% {
+        transform: translateX(0) scaleY(0.12);
+    }
+    70% {
+        transform: translateX(0) scaleY(1);
+    }
+}
+
+@keyframes robot-escribir {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+    30% {
+        transform: translateY(-2.5px);
+        opacity: 1;
+    }
+}
+
+@keyframes robot-asentir {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0);
+    }
+    40% {
+        transform: translateY(2px) rotate(-3deg);
+    }
+}
+
+@keyframes robot-saltito {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    35% {
+        transform: translateY(-4px);
+    }
+    65% {
+        transform: translateY(0.5px);
+    }
+}
+
+@keyframes robot-alegria {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.18);
+    }
+}
+
+@keyframes robot-pulgar {
+    0%,
+    100% {
+        transform: rotate(0);
+    }
+    25% {
+        transform: rotate(-12deg);
+    }
+    50% {
+        transform: rotate(8deg);
+    }
+    75% {
+        transform: rotate(-5deg);
+    }
+}
+
+/* Sin movimiento: la mascota queda en su pose (el estado apagado se ve igual,
+   por opacidad). !important porque cada estado anima con más especificidad. */
+@media (prefers-reduced-motion: reduce) {
+    .robot-ia,
+    .robot-ia * {
+        animation: none !important;
+    }
 }
 
 /* --- Asistente: lanzador ---
@@ -3385,7 +3587,7 @@
     box-shadow: 0 10px 24px rgba(11, 110, 117, 0.3), 0 2px 6px rgba(20, 22, 26, 0.16);
     bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    @apply fixed right-5 z-40 inline-flex items-center gap-3 rounded-full border-0 p-2 text-left sm:pr-5;
+    @apply fixed right-5 z-40 inline-flex items-center gap-3 rounded-full border-0 p-1.5 text-left sm:pr-5;
 }
 
 .ia-lanzador:hover {
@@ -3403,18 +3605,11 @@
 }
 
 .ia-lanzador-marca {
-    background-image: none;
-    background-color: rgba(255, 255, 255, 0.16);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-    @apply h-11 w-11 rounded-full text-base;
+    @apply relative h-12 w-12 shrink-0 rounded-full;
 }
 
-.ia-lanzador-marca i {
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ia-lanzador:hover .ia-lanzador-marca i {
-    transform: rotate(-14deg) scale(1.12);
+.ia-lanzador-marca .robot-ia {
+    @apply h-full w-full;
 }
 
 .ia-lanzador-marca::after {
@@ -3447,8 +3642,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ia-lanzador,
-    .ia-lanzador-marca i {
+    .ia-lanzador {
         transition: none;
     }
 
@@ -3540,9 +3734,6 @@
     @apply justify-center py-10;
 }
 
-.ia-respuesta-pendiente .ia-marca {
-    @apply mr-1;
-}
 
 /* --- Asistente: espera de la respuesta ---
    Etapa por tiempo + reloj: la respuesta tarda 1-2 minutos y sin señales de
@@ -3555,54 +3746,92 @@
     @apply flex min-w-0 flex-1 flex-col gap-0.5;
 }
 
+/* Burbuja de pensamiento: estela de dos circulitos hacia el robot (a la
+   izquierda) y puntos grandes que saltan. Entra creciendo desde la estela. */
+.ia-pensamiento {
+    background-color: var(--c-primary-soft);
+    border-color: color-mix(in srgb, var(--c-primary) 24%, transparent);
+    color: var(--c-primary);
+    transform-origin: 0 100%;
+    animation: ia-pensamiento-entrada 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    @apply relative mb-1.5 ml-3 inline-flex items-center gap-2.5 self-start rounded-2xl border px-3.5 py-2 text-sm font-semibold;
+}
+
+.ia-pensamiento::before,
+.ia-pensamiento::after {
+    content: '';
+    background-color: var(--c-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--c-primary) 24%, transparent);
+    @apply absolute rounded-full;
+}
+
+.ia-pensamiento::before {
+    @apply -left-[9px] bottom-0.5 h-2 w-2;
+}
+
+.ia-pensamiento::after {
+    @apply -left-[15px] -bottom-1 h-1.5 w-1.5;
+}
+
+.ia-pensamiento-puntos {
+    @apply inline-flex items-center gap-1.5;
+}
+
+.dark .ia-pensamiento {
+    color: var(--brand-blue-light);
+}
+
+@keyframes ia-pensamiento-entrada {
+    from {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* La etapa se lee como estado, no como respuesta: tenue y sin negrita. Las
+   esperas largas suben un tono para que el aviso se note. */
 .ia-espera-linea {
-    color: var(--text-heading);
-    @apply m-0 text-sm font-medium leading-5;
+    color: var(--text-muted);
+    @apply m-0 text-sm leading-5;
 }
 
-.ia-espera-etapa.is-larga {
+.ia-espera-linea.is-larga {
     color: var(--text-body);
-}
-
-.ia-espera-puntos {
-    @apply inline-flex items-center gap-1;
-}
-
-.ia-espera-puntos .table-loading-dot {
-    @apply h-1 w-1;
 }
 
 .ia-espera-nota {
     color: var(--text-muted);
-    @apply m-0 text-xs;
+    @apply m-0 text-xs opacity-80;
 }
 
 .ia-espera-reloj {
     background-color: var(--c-secondary-soft);
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
-    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4;
+    @apply mt-2 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4;
 }
 
-.ia-etapa-enter-active,
-.ia-etapa-leave-active {
-    transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+/* --- Texto escrito letra por letra (Components/TextoTecleado.vue) --- */
+.texto-tecleado-cursor {
+    background-color: currentColor;
+    animation: texto-tecleado-parpadeo 0.9s steps(1) infinite;
+    @apply ml-0.5 inline-block h-[1em] w-px align-[-0.15em];
 }
 
-.ia-etapa-enter-from {
-    opacity: 0;
-    transform: translateY(4px);
-}
-
-.ia-etapa-leave-to {
-    opacity: 0;
-    transform: translateY(-4px);
+@keyframes texto-tecleado-parpadeo {
+    50% {
+        opacity: 0;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ia-etapa-enter-active,
-    .ia-etapa-leave-active {
-        transition: none;
+    .ia-pensamiento,
+    .texto-tecleado-cursor {
+        animation: none;
     }
 }
 

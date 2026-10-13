@@ -2,6 +2,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import ResultadoIa from '@/Components/Reporte/ResultadoIa.vue';
+import RobotIa from '@/Components/Layout/RobotIa.vue';
+import TextoTecleado from '@/Components/TextoTecleado.vue';
 import { textoIaAHtml } from '@/Utils/TextoIa.js';
 import { etiquetaDia } from '@/Utils/TimeAgo.js';
 
@@ -85,6 +87,18 @@ const hoy = ref(null);
 /** 'chat' | 'historial' */
 const vista = ref('chat');
 const destacada = ref(null);
+
+/** Respuesta recién llegada: su robot celebra una vez (no las del historial). */
+const recienLlegada = ref(null);
+let temporizadorCelebrar = null;
+
+function celebrar(consultaId) {
+    window.clearTimeout(temporizadorCelebrar);
+    recienLlegada.value = consultaId;
+    temporizadorCelebrar = window.setTimeout(() => {
+        recienLlegada.value = null;
+    }, 1500);
+}
 const tituloHistorial = ref(null);
 const botonHistorial = ref(null);
 
@@ -183,8 +197,8 @@ const relojEspera = computed(() => {
 
 /**
  * Al cambiar de etapa el turno puede crecer (los textos largos ocupan dos
- * líneas y traen la nota de no recargar). Corre al terminar la transición,
- * cuando el texto nuevo ya ocupa su lugar, y baja solo si el usuario ya
+ * líneas y traen la nota de no recargar). Corre al terminar de teclear la
+ * etapa, cuando el texto nuevo ya ocupa su lugar, y baja solo si el usuario ya
  * estaba abajo: no le mueve la vista si está releyendo algo anterior.
  */
 function seguirAbajo() {
@@ -261,6 +275,7 @@ async function retomarPendiente() {
 
                 if (reemplazarTurno(turno)) {
                     await abrirConsulta(llegada);
+                    celebrar(llegada.id);
                 }
 
                 return;
@@ -346,6 +361,9 @@ async function preguntar(texto = pregunta.value) {
         });
 
         if (reemplazarTurno(pendiente, data.consulta)) {
+            if (data.consulta.estado === 'OK') {
+                celebrar(data.consulta.id);
+            }
             conversacionId.value = data.consulta.conversacion_id ?? conversacionId.value;
         }
         estado.value = data.estado;
@@ -573,6 +591,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    window.clearTimeout(temporizadorCelebrar);
     montado = false;
     document.removeEventListener('keydown', alEscape);
     window.clearInterval(reloj);
@@ -592,8 +611,8 @@ watch(pregunta, () => nextTick(() => {
     <div v-if="puede" class="contents">
         <button v-show="!abierto" type="button" class="ia-lanzador" aria-controls="asistente-bi" :aria-expanded="abierto"
             aria-label="Abrir el asistente de IA" @click="alternar(true)">
-            <span class="ia-marca ia-lanzador-marca" aria-hidden="true">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span class="ia-lanzador-marca" aria-hidden="true">
+                <RobotIa animo="reposo" />
             </span>
             <span class="ia-lanzador-texto" aria-hidden="true">
                 <span class="ia-lanzador-titulo">Asistente IA</span>
@@ -604,7 +623,7 @@ watch(pregunta, () => nextTick(() => {
         <aside v-show="abierto" id="asistente-bi" class="ia-panel" aria-label="Asistente de inteligencia de negocios">
             <header class="ia-panel-cabecera">
                 <div class="ia-panel-identidad">
-                    <span class="ia-marca" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <RobotIa class="ia-robot-cabecera" variante="cabeza" :animo="estado && !disponible ? 'apagado' : 'quieto'" />
                     <div class="min-w-0">
                         <h2 class="ia-panel-titulo">
                             Asistente IA
@@ -733,7 +752,7 @@ watch(pregunta, () => nextTick(() => {
                 </div>
 
                 <div v-else-if="!consultas.length" class="ia-vacio">
-                    <span class="ia-marca ia-marca-lg" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <RobotIa class="ia-robot-bienvenida" :animo="disponible ? 'reposo' : 'apagado'" />
                     <p class="ia-vacio-titulo">Pregunta por ventas, márgenes, pedidos, costos o alertas.</p>
                     <p class="ia-vacio-texto">
                         Las cifras salen de consultas a la base de datos: cada respuesta muestra cómo se calculó.
@@ -760,30 +779,32 @@ watch(pregunta, () => nextTick(() => {
                             <p v-if="c.hora" class="ia-pregunta-hora">{{ c.hora }}</p>
 
                             <div v-if="c.pendiente" class="ia-respuesta ia-respuesta-pendiente">
-                                <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                                <!-- La burbuja del robot "escribe" y asiente con cada cambio de etapa. -->
+                                <RobotIa class="ia-robot-espera" animo="pensando" :pulso="etapaEspera.texto" />
                                 <div class="ia-espera">
-                                    <!-- Solo la etapa se anuncia al lector de pantalla; el reloj no (sería cada segundo). -->
-                                    <p class="ia-espera-linea" role="status">
-                                        <Transition name="ia-etapa" mode="out-in" @after-enter="seguirAbajo">
-                                            <span :key="etapaEspera.texto" class="ia-espera-etapa"
-                                                :class="{ 'is-larga': etapaEspera.larga }">{{ etapaEspera.texto }}</span>
-                                        </Transition>
+                                    <!-- Burbuja de pensamiento: la estela de circulitos apunta al robot. -->
+                                    <div class="ia-pensamiento" aria-hidden="true">
+                                        <span class="ia-pensamiento-puntos">
+                                            <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
+                                        </span>
+                                        Pensando
+                                    </div>
+                                    <!-- Solo la etapa se anuncia al lector de pantalla, completa; el
+                                         tecleo letra por letra y el reloj son solo visuales. -->
+                                    <p class="ia-espera-linea" :class="{ 'is-larga': etapaEspera.larga }" role="status">
+                                        <span class="sr-only">{{ etapaEspera.texto }}</span>
+                                        <TextoTecleado :texto="etapaEspera.texto" aria-hidden="true" @terminado="seguirAbajo" />
                                     </p>
                                     <p class="ia-espera-nota">
                                         {{ etapaEspera.larga ? 'No recargues la página: la respuesta llegará aquí.' : 'Suele tardar 1 a 2 minutos.' }}
                                     </p>
                                 </div>
-                                <span class="ia-espera-reloj" aria-hidden="true">
-                                    <span class="ia-espera-puntos">
-                                        <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
-                                    </span>
-                                    {{ relojEspera }}
-                                </span>
+                                <span class="ia-espera-reloj" aria-hidden="true">{{ relojEspera }}</span>
                             </div>
 
                             <div v-else class="ia-respuesta" :class="{ 'ia-respuesta-error': c.estado === 'ERROR' }">
                                 <p class="ia-autor">
-                                    <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                                    <RobotIa class="ia-robot-autor" variante="cabeza" :animo="recienLlegada === c.id ? 'contento' : 'quieto'" />
                                     Asistente
                                 </p>
                                 <div class="ia-respuesta-texto" v-html="textoIaAHtml(c.respuesta)"></div>

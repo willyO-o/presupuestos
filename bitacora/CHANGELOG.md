@@ -13,6 +13,52 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-12 — Asistente IA: burbuja de pensamiento y texto que se escribe solo
+
+**Qué cambió:**
+- Mientras se espera la respuesta aparece una burbuja de pensamiento junto al robot (con su
+  estela de circulitos) con puntos grandes animados y "Pensando".
+- El texto de la etapa ("Calculando los resultados", …) se escribe letra por letra con un
+  cursor, y va en gris tenue para que se lea como estado y no como respuesta.
+
+**Por qué:** pedido del usuario — que la espera se note viva y que el texto de carga no se
+confunda con la respuesta.
+
+**Cómo:** componente nuevo `Components/TextoTecleado.vue` (24 ms por letra, reinicia al
+cambiar el texto; con "reducir movimiento" lo muestra entero). El lector de pantalla recibe
+la frase completa en un `.sr-only`, no letra por letra. Se quitó la transición de fundido
+anterior (`ia-etapa`). Verificado en Edge (claro y oscuro) reteniendo la pregunta en el
+navegador: tecleo, cursor, texto para lector y sin errores de consola.
+
+---
+
+## 2026-10-12 — Asistente IA: mascota robot animada en SVG
+
+**Qué cambió:**
+- El asistente tiene mascota: el robot de XtraPubli (visor con ojos sonrientes, auricular,
+  pluma de la marca, burbuja de chat y pulgar arriba) reemplaza al ícono de varita en el
+  botón flotante, la cabecera, la bienvenida, la espera y la firma de cada respuesta.
+- Se mueve según lo que hace el asistente: en reposo parpadea y mece la pluma; mientras
+  espera la respuesta la burbuja "escribe", mira alrededor y asiente con cada cambio de
+  etapa del texto de carga; al llegar la respuesta celebra una vez; con la IA no
+  disponible los ojos se apagan. Al pasar el mouse por el botón saluda con el pulgar.
+
+**Por qué:** pedido del usuario — usar la ilustración del robot, liviana y animada, en
+sintonía con los textos de carga.
+
+**Cómo:**
+- La ilustración original es un PNG de 1,5 MB: se redibujó a mano en SVG por partes
+  (`Components/Layout/RobotIa.vue`, ~8 KB de fuente, sin archivos que descargar). Se
+  descartó vectorizarla automáticamente (cientos de KB, sin partes animables), un WebP
+  (solo se podría mover entero) y Lottie/Rive (dependencia nueva de 60-250 KB).
+- Animaciones solo de transform/opacity en CSS (`app.css`, "Asistente: mascota"); las
+  cabecitas de la conversación van quietas. Con "reducir movimiento" no se anima nada.
+- Ids de degradados únicos por instancia (`useId`): un id repetido apuntaría a la copia
+  del botón, que está oculta con display:none, y el navegador no lo pintaría.
+- Verificado en Edge contra la app (claro y oscuro): estados, asentir por etapa, sin errores.
+
+---
+
 ## 2026-10-12 — Asistente IA: espera con etapas, reloj y recuperación
 
 **Qué cambió:**

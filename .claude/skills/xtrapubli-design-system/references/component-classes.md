@@ -183,9 +183,12 @@ Pestañas `Pages/Reportes/Bi*.vue` y componentes `Components/Reporte/*`.
 
 El texto de la IA siempre va junto a la evidencia de la que sale.
 
-- Asistente (`Components/Layout/AsistenteBi.vue`): `.ia-marca` (+ `-xs`, `-lg`) es la seña del
-  asistente — disco con degradé azul → teal que se repite en lanzador, cabecera, estado vacío y cada
-  respuesta; úsala para todo lo que sea "esto es la IA". `.ia-lanzador` (botón flotante, + `-marca`,
+- Mascota del asistente (`Components/Layout/RobotIa.vue`): robot en SVG por partes, es la seña de
+  "esto es la IA". Props `animo` (`reposo` | `pensando` | `contento` | `apagado` | `quieto`), `variante`
+  (`completo` | `cabeza`, para 20-40 px) y `pulso` (asiente cuando cambia). CSS: `.robot-ia` +
+  `.is-{animo}`, `.is-asintiendo`; tamaños `.ia-robot-cabecera`, `-bienvenida`, `-espera`, `-autor`.
+  Las cabecitas de la conversación van `quieto` (no animar decenas a la vez).
+- Asistente (`Components/Layout/AsistenteBi.vue`): `.ia-lanzador` (botón flotante, + `-marca`,
   `-texto`, `-titulo`, `-sub`; en móvil queda solo el disco), `.ia-panel` (+ `-cabecera`, `-identidad`,
   `-titulo`, `-sub`, `-acciones`, `-cuerpo`, `-pie`), `.ia-estado` (+ `-ok`, `-off`), `.ia-vacio`
   `.ia-sugerencias-titulo` `.ia-sugerencias` `.ia-sugerencia` (+ `-icono`, `-texto`, `-flecha`),
@@ -198,9 +201,10 @@ El texto de la IA siempre va junto a la evidencia de la que sale.
   `-nota`, `-vacio`, `-error`, `-esqueleto`), `.ia-volver`, `.ia-fecha` + `.ia-fecha-input` (fecha nativa
   en caja con `:focus-within`), `.ia-filtro-quitar`, `.ia-esqueleto` (+ `-grupo`, `-dia`, `-fila`),
   `.ia-girando`. En la conversación: `.ia-separador-dia`, `.ia-pregunta-hora` y `.ia-turno.is-destacado`
-  (halo que se apaga solo al reabrir una consulta). Espera de la respuesta: `.ia-espera` (+ `-linea`,
-  `-etapa` (+ `.is-larga`), `-nota`, `-reloj` (chip con puntos + tiempo), `-puntos`) y la transición
-  `ia-etapa` (Vue `<Transition name="ia-etapa">`).
+  (halo que se apaga solo al reabrir una consulta). Espera de la respuesta: `.ia-pensamiento` (burbuja de
+  pensamiento con estela hacia el robot, + `-puntos`), `.ia-espera` (+ `-linea` (+ `.is-larga`), `-nota`,
+  `-reloj`). Texto letra por letra: `Components/TextoTecleado.vue` (`.texto-tecleado`, `-cursor`); es
+  solo visual, va `aria-hidden` con el texto completo al lado en `.sr-only`.
 - Resultado de herramienta (`Components/Reporte/ResultadoIa.vue`): `.ia-resultado` (+ `-titulo`,
   `-tabla`, `-pie`), `.ia-enlace`, `.ia-calculo` (+ `-parametros`, `-herramienta`) para "Cómo lo calculé".
 - Resumen semanal (`Pages/Reportes/BiResumen.vue`): `.resumen-cabecera-*`, `.resumen-titular`,
