@@ -341,6 +341,31 @@ test('no se puede abrir una consulta de otro usuario', function () {
         ->assertNotFound();
 });
 
+test('no se puede leer la conversación de otro usuario por su id', function () {
+    $this->global->givePermissionTo('reportes.asistente');
+    IaConsulta::factory()->for($this->local)->create(['conversacion_id' => 'conversacion-ajena', 'pregunta' => 'Secreto de otro']);
+
+    $this->actingAs($this->global)
+        ->getJson(route('reportes.bi.asistente.historial', ['conversacion_id' => 'conversacion-ajena']))
+        ->assertOk()
+        ->assertJsonCount(0, 'consultas');
+});
+
+test('cada usuario ve en el panel solo su propia última conversación', function () {
+    $this->global->givePermissionTo('reportes.asistente');
+    $this->local->givePermissionTo('reportes.asistente');
+    IaConsulta::factory()->for($this->global)->create(['conversacion_id' => 'conv-global', 'pregunta' => 'Del global']);
+    IaConsulta::factory()->for($this->local)->create(['conversacion_id' => 'conv-local', 'pregunta' => 'Del local']);
+
+    $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.historial'))
+        ->assertJsonCount(1, 'consultas')
+        ->assertJsonPath('consultas.0.pregunta', 'Del global');
+
+    $this->actingAs($this->local)->getJson(route('reportes.bi.asistente.historial'))
+        ->assertJsonCount(1, 'consultas')
+        ->assertJsonPath('consultas.0.pregunta', 'Del local');
+});
+
 test('el historial pide el permiso del asistente', function () {
     $this->actingAs(User::factory()->create())
         ->getJson(route('reportes.bi.asistente.consultas'))

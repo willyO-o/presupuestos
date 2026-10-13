@@ -244,6 +244,15 @@ async function retomarPendiente() {
         return;
     }
 
+    // La espera es de quien preguntó: si en esta pestaña se cerró sesión y
+    // entró otra persona, se descarta (el servidor igual solo le muestra sus
+    // propias consultas, pero vería una espera que no es suya).
+    if (pendiente.usuario !== (page.props.auth?.user?.id ?? null)) {
+        borrarPendiente();
+
+        return;
+    }
+
     if (Date.now() - pendiente.inicio > ESPERA_MAXIMA_MS) {
         borrarPendiente();
 
@@ -351,7 +360,7 @@ async function preguntar(texto = pregunta.value) {
     const pendiente = { id: `pendiente-${inicio}`, pregunta: limpia, pendiente: true, resultados: [], dia: hoy.value };
     consultas.value.push(pendiente);
     iniciarReloj(inicio);
-    guardarPendiente({ pregunta: limpia, inicio });
+    guardarPendiente({ pregunta: limpia, inicio, usuario: page.props.auth?.user?.id ?? null });
     bajar();
 
     try {
