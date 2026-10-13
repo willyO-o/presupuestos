@@ -3428,10 +3428,13 @@
     @apply flex flex-col gap-2 border-t px-4 py-3;
 }
 
+/* `.ia-respuesta.ia-respuesta-pendiente` y no solo la segunda clase: el
+   bloque también lleva `.ia-respuesta` (flex-col, definida más abajo), que
+   ganaba por orden y apilaba los puntos en vertical. */
 .ia-cargando,
-.ia-respuesta-pendiente {
+.ia-respuesta.ia-respuesta-pendiente {
     color: var(--text-muted);
-    @apply flex items-center gap-1.5 text-sm;
+    @apply flex flex-row items-center gap-1.5 text-sm;
 }
 
 .ia-cargando {
