@@ -112,7 +112,7 @@ class AsistenteBiController extends Controller
      * Fila del historial: sin el texto de la respuesta ni los datos de los
      * gráficos (se piden al abrir la consulta), solo cuántos trae.
      *
-     * @return array{id: int, conversacion_id: string|null, pregunta: string, estado: string, graficos: int, tablas: int, dia: string|null, hora: string|null}
+     * @return array{id: int, conversacion_id: string|null, pregunta: string, estado: string, graficos: int, tablas: int, fecha: string|null, dia: string|null, hora: string|null}
      */
     private function resumir(IaConsulta $consulta): array
     {
@@ -125,6 +125,7 @@ class AsistenteBiController extends Controller
             'estado' => $consulta->estado,
             'graficos' => $resultados->filter(fn (array $r) => filled($r['grafico'] ?? null))->count(),
             'tablas' => $resultados->filter(fn (array $r) => filled($r['tabla'] ?? null))->count(),
+            'fecha' => $consulta->created_at?->toIso8601String(),
             ...$this->momento($consulta),
         ];
     }

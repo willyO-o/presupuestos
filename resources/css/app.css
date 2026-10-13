@@ -3544,6 +3544,68 @@
     @apply mr-1;
 }
 
+/* --- Asistente: espera de la respuesta ---
+   Etapa por tiempo + reloj: la respuesta tarda 1-2 minutos y sin señales de
+   vida el usuario recarga. El reloj (tabular) es la prueba de que no se colgó. */
+.ia-respuesta.ia-respuesta-pendiente {
+    @apply items-start;
+}
+
+.ia-espera {
+    @apply flex min-w-0 flex-1 flex-col gap-0.5;
+}
+
+.ia-espera-linea {
+    color: var(--text-heading);
+    @apply m-0 text-sm font-medium leading-5;
+}
+
+.ia-espera-etapa.is-larga {
+    color: var(--text-body);
+}
+
+.ia-espera-puntos {
+    @apply inline-flex items-center gap-1;
+}
+
+.ia-espera-puntos .table-loading-dot {
+    @apply h-1 w-1;
+}
+
+.ia-espera-nota {
+    color: var(--text-muted);
+    @apply m-0 text-xs;
+}
+
+.ia-espera-reloj {
+    background-color: var(--c-secondary-soft);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-4;
+}
+
+.ia-etapa-enter-active,
+.ia-etapa-leave-active {
+    transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ia-etapa-enter-from {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+.ia-etapa-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ia-etapa-enter-active,
+    .ia-etapa-leave-active {
+        transition: none;
+    }
+}
+
 /* --- Asistente: estado vacío --- */
 .ia-vacio {
     @apply flex flex-col gap-2 py-2;

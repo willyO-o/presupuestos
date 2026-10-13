@@ -13,6 +13,33 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-12 — Asistente IA: espera con etapas, reloj y recuperación
+
+**Qué cambió:**
+- Mientras se espera la respuesta, el loader muestra qué está haciendo el asistente
+  ("Entendiendo tu pregunta" → "Buscando los datos" → … → "Redactando la respuesta"),
+  un reloj que avanza (`0:42`) y la nota "Suele tardar 1 a 2 minutos". Pasados los 100 s
+  avisa que tarda más de lo normal y pide no recargar.
+- Si se intenta recargar o cerrar la pestaña durante la espera, el navegador pide confirmar.
+- Si igual se cambia de página o se recarga, al volver a abrir el panel la espera se
+  retoma (con el tiempo real transcurrido) y la respuesta aparece sola cuando llega.
+- "Nueva conversación" queda deshabilitada mientras se espera.
+
+**Por qué:** pedido del usuario — las respuestas reales tardan ~2 minutos (116 y 146 s
+medidos en `ia_uso`) y sin señales de vida el usuario recargaba creyendo que se colgó.
+
+**Cómo:**
+- Etapas por tiempo transcurrido (`ETAPAS_ESPERA`), no un avance real: el servidor no lo
+  informa. A propósito sin "ya casi listo" ni porcentajes, que a los 2 minutos dejarían
+  de ser creíbles. Solo la etapa se anuncia al lector de pantalla, no el reloj.
+- La pregunta en curso se guarda en `sessionStorage`; al montar el panel se sondea
+  `reportes/bi/asistente/consultas` cada 4 s (máx. 5 min) hasta encontrarla por texto e
+  instante. Por eso el resumen del historial ahora incluye `fecha` (ISO, UTC).
+- Verificado en Edge reteniendo la petición en el navegador (sin llamar a Gemini):
+  etapas, reloj, aviso, bloqueo de "Nueva" y limpieza tras un corte de red.
+
+---
+
 ## 2026-10-12 — Asistente IA: historial de consultas por fecha y rediseño del panel
 
 **Qué cambió:**

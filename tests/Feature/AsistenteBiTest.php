@@ -288,7 +288,9 @@ test('el historial filtra por día en hora de la empresa, no en UTC', function (
         ->assertJsonCount(1, 'consultas')
         ->assertJsonPath('consultas.0.pregunta', 'Noche del 6')
         ->assertJsonPath('consultas.0.dia', '2026-10-06')
-        ->assertJsonPath('consultas.0.hora', '22:00');
+        ->assertJsonPath('consultas.0.hora', '22:00')
+        // Instante exacto (UTC): el panel lo usa para reconocer la respuesta de una espera retomada.
+        ->assertJsonPath('consultas.0.fecha', '2026-10-07T02:00:00+00:00');
 
     $this->actingAs($this->global)->getJson(route('reportes.bi.asistente.consultas', ['fecha' => '2999-01-01']))
         ->assertUnprocessable()

@@ -21,6 +21,13 @@ import { etiquetaDia } from '@/Utils/TimeAgo.js';
  * últimas consultas guardadas, por día, con filtro por fecha). Elegir una
  * consulta del historial reabre su conversación y la resalta; desde ahí se
  * puede seguir preguntando en ella.
+ *
+ * Espera: una respuesta tarda 1-2 minutos (el modelo encadena varias
+ * consultas). Para que no parezca colgada, el turno pendiente muestra la
+ * etapa probable según el tiempo transcurrido (ETAPAS_ESPERA) y un reloj; el
+ * navegador pide confirmación antes de recargar. Si igual se navega o se
+ * recarga, la pregunta queda en sessionStorage y al volver a montar el panel
+ * se retoma la espera consultando el historial hasta que la respuesta llegue.
  */
 const page = usePage();
 
@@ -40,6 +47,28 @@ const SUGERENCIAS = [
 ];
 
 const CLAVE_ABIERTO = 'asistente-bi-abierto';
+const CLAVE_PENDIENTE = 'asistente-bi-pendiente';
+
+/**
+ * Lo que el asistente hace, en el orden en que lo hace, con el segundo desde
+ * el que se muestra cada etapa. Es una estimación honesta por tiempo (el
+ * servidor no informa avance): nada de "ya casi listo" ni porcentajes, que
+ * a los 2 minutos dejarían de ser creíbles.
+ */
+const ETAPAS_ESPERA = [
+    { desde: 0, texto: 'Entendiendo tu pregunta' },
+    { desde: 5, texto: 'Buscando los datos en el sistema' },
+    { desde: 15, texto: 'Consultando ventas, pedidos y costos' },
+    { desde: 30, texto: 'Calculando los resultados' },
+    { desde: 50, texto: 'Preparando gráficos y tablas' },
+    { desde: 75, texto: 'Redactando la respuesta' },
+    { desde: 100, texto: 'Está tardando más de lo normal, pero sigue trabajando', larga: true },
+    { desde: 150, texto: 'Sigue en curso: las preguntas que comparan varios periodos tardan más', larga: true },
+];
+
+/** Pasado este tiempo una espera retomada se da por perdida (la respuesta, si llega, queda en el historial). */
+const ESPERA_MAXIMA_MS = 5 * 60 * 1000;
+const INTERVALO_SONDEO_MS = 4000;
 
 const abierto = ref(false);
 const cargado = ref(false);
@@ -68,6 +97,11 @@ const historial = ref({
 });
 const filtroFecha = ref('');
 
+const inicioEspera = ref(null);
+const ahora = ref(Date.now());
+let reloj = null;
+let montado = false;
+
 const disponible = computed(() => estado.value?.disponible !== false);
 
 function leerPreferencia() {
@@ -86,6 +120,167 @@ function guardarPreferencia(valor) {
     }
 }
 
+/* --- Espera de la respuesta --- */
+
+function leerPendiente() {
+    try {
+        return JSON.parse(window.sessionStorage.getItem(CLAVE_PENDIENTE) ?? 'null');
+    } catch {
+        return null;
+    }
+}
+
+function guardarPendiente(pendiente) {
+    try {
+        window.sessionStorage.setItem(CLAVE_PENDIENTE, JSON.stringify(pendiente));
+    } catch {
+        // Sin almacenamiento: la espera no se puede retomar tras recargar, nada más.
+    }
+}
+
+function borrarPendiente() {
+    try {
+        window.sessionStorage.removeItem(CLAVE_PENDIENTE);
+    } catch {
+        // Ídem.
+    }
+}
+
+function avisarAlSalir(evento) {
+    evento.preventDefault();
+    evento.returnValue = '';
+}
+
+/** El reloj cuenta desde `inicio` (no desde 0): una espera retomada sigue donde iba. */
+function iniciarReloj(inicio) {
+    window.clearInterval(reloj);
+    inicioEspera.value = inicio;
+    ahora.value = Date.now();
+    reloj = window.setInterval(() => {
+        ahora.value = Date.now();
+    }, 1000);
+    window.addEventListener('beforeunload', avisarAlSalir);
+}
+
+function detenerReloj() {
+    window.clearInterval(reloj);
+    reloj = null;
+    inicioEspera.value = null;
+    window.removeEventListener('beforeunload', avisarAlSalir);
+}
+
+const segundosEspera = computed(() => (
+    inicioEspera.value === null ? 0 : Math.max(0, Math.floor((ahora.value - inicioEspera.value) / 1000))
+));
+
+const etapaEspera = computed(() => ETAPAS_ESPERA.findLast((etapa) => segundosEspera.value >= etapa.desde));
+
+const relojEspera = computed(() => {
+    const segundos = segundosEspera.value;
+
+    return `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, '0')}`;
+});
+
+/**
+ * Al cambiar de etapa el turno puede crecer (los textos largos ocupan dos
+ * líneas y traen la nota de no recargar). Corre al terminar la transición,
+ * cuando el texto nuevo ya ocupa su lugar, y baja solo si el usuario ya
+ * estaba abajo: no le mueve la vista si está releyendo algo anterior.
+ */
+function seguirAbajo() {
+    const cuerpo = lista.value;
+
+    if (cuerpo && cuerpo.scrollHeight - cuerpo.scrollTop - cuerpo.clientHeight < 160) {
+        bajar();
+    }
+}
+
+/**
+ * Cambia el turno pendiente por la respuesta. Si mientras tanto se abrió otra
+ * conversación (Nueva o el Historial), el turno ya no está y no se toca nada:
+ * la respuesta queda igual en el historial.
+ */
+function reemplazarTurno(turno, nuevo = null) {
+    const indice = consultas.value.indexOf(turno);
+
+    if (indice === -1) {
+        return false;
+    }
+
+    if (nuevo) {
+        consultas.value.splice(indice, 1, nuevo);
+    } else {
+        consultas.value.splice(indice, 1);
+    }
+
+    return true;
+}
+
+/**
+ * Retoma una pregunta que quedó esperando cuando se cambió de página o se
+ * recargó: el servidor la sigue procesando, así que se consulta el historial
+ * hasta que aparezca. Se reconoce por el texto y por haber llegado después
+ * de enviarla (con 2 minutos de margen por si el reloj del equipo no coincide
+ * con el del servidor).
+ */
+async function retomarPendiente() {
+    const pendiente = leerPendiente();
+
+    if (!pendiente || enviando.value) {
+        return;
+    }
+
+    if (Date.now() - pendiente.inicio > ESPERA_MAXIMA_MS) {
+        borrarPendiente();
+
+        return;
+    }
+
+    enviando.value = true;
+    const turno = { id: `pendiente-${pendiente.inicio}`, pregunta: pendiente.pregunta, pendiente: true, resultados: [], dia: hoy.value };
+    consultas.value.push(turno);
+    iniciarReloj(pendiente.inicio);
+    bajar();
+
+    while (montado && Date.now() - pendiente.inicio < ESPERA_MAXIMA_MS) {
+        await new Promise((resolver) => window.setTimeout(resolver, INTERVALO_SONDEO_MS));
+
+        if (!montado) {
+            return;
+        }
+
+        try {
+            const { data } = await window.axios.get(route('reportes.bi.asistente.consultas'));
+            const llegada = data.consultas.find((c) => c.pregunta === pendiente.pregunta
+                && new Date(c.fecha).getTime() >= pendiente.inicio - 120_000);
+
+            if (llegada) {
+                detenerReloj();
+                borrarPendiente();
+                enviando.value = false;
+
+                if (reemplazarTurno(turno)) {
+                    await abrirConsulta(llegada);
+                }
+
+                return;
+            }
+        } catch {
+            // Un corte de red momentáneo: se reintenta en el próximo sondeo.
+        }
+    }
+
+    if (!montado) {
+        return;
+    }
+
+    detenerReloj();
+    borrarPendiente();
+    enviando.value = false;
+    reemplazarTurno(turno);
+    error.value = 'La respuesta está tardando demasiado. Cuando llegue la verás en el Historial.';
+}
+
 async function cargarHistorial() {
     try {
         const { data } = await window.axios.get(route('reportes.bi.asistente.historial'));
@@ -99,6 +294,8 @@ async function cargarHistorial() {
         cargado.value = true;
         bajar();
     }
+
+    retomarPendiente();
 }
 
 async function alternar(valor = !abierto.value) {
@@ -135,8 +332,11 @@ async function preguntar(texto = pregunta.value) {
     enviando.value = true;
     destacada.value = null;
     pregunta.value = '';
-    const pendiente = { id: `pendiente-${Date.now()}`, pregunta: limpia, pendiente: true, resultados: [], dia: hoy.value };
+    const inicio = Date.now();
+    const pendiente = { id: `pendiente-${inicio}`, pregunta: limpia, pendiente: true, resultados: [], dia: hoy.value };
     consultas.value.push(pendiente);
+    iniciarReloj(inicio);
+    guardarPendiente({ pregunta: limpia, inicio });
     bajar();
 
     try {
@@ -145,19 +345,31 @@ async function preguntar(texto = pregunta.value) {
             conversacion_id: conversacionId.value,
         });
 
-        consultas.value.splice(consultas.value.indexOf(pendiente), 1, data.consulta);
-        conversacionId.value = data.consulta.conversacion_id ?? conversacionId.value;
+        if (reemplazarTurno(pendiente, data.consulta)) {
+            conversacionId.value = data.consulta.conversacion_id ?? conversacionId.value;
+        }
         estado.value = data.estado;
     } catch (e) {
-        consultas.value.splice(consultas.value.indexOf(pendiente), 1);
+        // El servidor contestó con un error (límite por hora, validación): no
+        // hay respuesta que esperar, aunque el panel ya se haya desmontado.
+        if (e.response) {
+            borrarPendiente();
+        }
+        reemplazarTurno(pendiente);
         pregunta.value = limpia;
         error.value = e.response?.data?.message
             ?? e.response?.data?.errors?.pregunta?.[0]
             ?? 'No se pudo enviar la pregunta. Revisa tu conexión e intenta de nuevo.';
     } finally {
-        enviando.value = false;
-        bajar();
-        nextTick(() => campo.value?.focus());
+        // Si el panel se desmontó (se cambió de página), la instancia nueva
+        // retoma la espera con lo guardado en sessionStorage: no se borra.
+        if (montado) {
+            detenerReloj();
+            borrarPendiente();
+            enviando.value = false;
+            bajar();
+            nextTick(() => campo.value?.focus());
+        }
     }
 }
 
@@ -352,6 +564,7 @@ const estadoCabecera = computed(() => {
 });
 
 onMounted(() => {
+    montado = true;
     document.addEventListener('keydown', alEscape);
 
     if (puede.value && leerPreferencia() && window.innerWidth >= 1024) {
@@ -359,7 +572,12 @@ onMounted(() => {
     }
 });
 
-onBeforeUnmount(() => document.removeEventListener('keydown', alEscape));
+onBeforeUnmount(() => {
+    montado = false;
+    document.removeEventListener('keydown', alEscape);
+    window.clearInterval(reloj);
+    window.removeEventListener('beforeunload', avisarAlSalir);
+});
 
 // Textarea que crece con el texto, hasta 6 líneas.
 watch(pregunta, () => nextTick(() => {
@@ -401,7 +619,7 @@ watch(pregunta, () => nextTick(() => {
                         <i class="fa-solid fa-clock-rotate-left"></i>
                         <span class="chart-action-text">Historial</span>
                     </button>
-                    <button type="button" class="chart-action" :disabled="!consultas.length && vista === 'chat'" title="Nueva conversación"
+                    <button type="button" class="chart-action" :disabled="enviando || (!consultas.length && vista === 'chat')" title="Nueva conversación"
                         aria-label="Nueva conversación" @click="nuevaConversacion">
                         <i class="fa-solid fa-plus"></i>
                     </button>
@@ -541,10 +759,26 @@ watch(pregunta, () => nextTick(() => {
                             <p class="ia-pregunta">{{ c.pregunta }}</p>
                             <p v-if="c.hora" class="ia-pregunta-hora">{{ c.hora }}</p>
 
-                            <div v-if="c.pendiente" class="ia-respuesta ia-respuesta-pendiente" role="status">
+                            <div v-if="c.pendiente" class="ia-respuesta ia-respuesta-pendiente">
                                 <span class="ia-marca ia-marca-xs" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
-                                <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
-                                <span>Consultando los datos…</span>
+                                <div class="ia-espera">
+                                    <!-- Solo la etapa se anuncia al lector de pantalla; el reloj no (sería cada segundo). -->
+                                    <p class="ia-espera-linea" role="status">
+                                        <Transition name="ia-etapa" mode="out-in" @after-enter="seguirAbajo">
+                                            <span :key="etapaEspera.texto" class="ia-espera-etapa"
+                                                :class="{ 'is-larga': etapaEspera.larga }">{{ etapaEspera.texto }}</span>
+                                        </Transition>
+                                    </p>
+                                    <p class="ia-espera-nota">
+                                        {{ etapaEspera.larga ? 'No recargues la página: la respuesta llegará aquí.' : 'Suele tardar 1 a 2 minutos.' }}
+                                    </p>
+                                </div>
+                                <span class="ia-espera-reloj" aria-hidden="true">
+                                    <span class="ia-espera-puntos">
+                                        <span class="table-loading-dot"></span><span class="table-loading-dot"></span><span class="table-loading-dot"></span>
+                                    </span>
+                                    {{ relojEspera }}
+                                </span>
                             </div>
 
                             <div v-else class="ia-respuesta" :class="{ 'ia-respuesta-error': c.estado === 'ERROR' }">

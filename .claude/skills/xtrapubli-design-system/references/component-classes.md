@@ -198,7 +198,9 @@ El texto de la IA siempre va junto a la evidencia de la que sale.
   `-nota`, `-vacio`, `-error`, `-esqueleto`), `.ia-volver`, `.ia-fecha` + `.ia-fecha-input` (fecha nativa
   en caja con `:focus-within`), `.ia-filtro-quitar`, `.ia-esqueleto` (+ `-grupo`, `-dia`, `-fila`),
   `.ia-girando`. En la conversación: `.ia-separador-dia`, `.ia-pregunta-hora` y `.ia-turno.is-destacado`
-  (halo que se apaga solo al reabrir una consulta).
+  (halo que se apaga solo al reabrir una consulta). Espera de la respuesta: `.ia-espera` (+ `-linea`,
+  `-etapa` (+ `.is-larga`), `-nota`, `-reloj` (chip con puntos + tiempo), `-puntos`) y la transición
+  `ia-etapa` (Vue `<Transition name="ia-etapa">`).
 - Resultado de herramienta (`Components/Reporte/ResultadoIa.vue`): `.ia-resultado` (+ `-titulo`,
   `-tabla`, `-pie`), `.ia-enlace`, `.ia-calculo` (+ `-parametros`, `-herramienta`) para "Cómo lo calculé".
 - Resumen semanal (`Pages/Reportes/BiResumen.vue`): `.resumen-cabecera-*`, `.resumen-titular`,
