@@ -7,7 +7,13 @@
  * - `meses_proyeccion`: cuántos meses hacia adelante se prolonga cada
  *   tendencia. Más de 3 con una recta simple ya es adivinar.
  * - `meses_por_defecto`: periodo que se muestra cuando la pantalla se abre
- *   sin filtro de fechas.
+ *   sin filtro de fechas. Es la historia que usa la recta de cada
+ *   proyección (sin contar el mes en curso, que está incompleto).
+ * - `confianza`: nivel del intervalo de predicción que se dibuja como
+ *   "rango probable" (0,80 = 8 de cada 10 meses deberían caer adentro).
+ * - `demo_meses_historial`: meses que simula `HistorialComercialSeeder`
+ *   (datos de prueba). 12 alcanza para ver tendencias y validar; 24 deja
+ *   ver la estacionalidad de dos años.
  * - `alerta_aumento_costo`: fracción a partir de la cual el aumento del precio
  *   de un material (o del costo de un presupuesto pendiente, o el sobrecosto
  *   de un pedido) dispara una alerta. Al doble se considera alerta alta.
@@ -21,6 +27,8 @@
 return [
     'meses_proyeccion' => (int) env('BI_MESES_PROYECCION', 3),
     'meses_por_defecto' => (int) env('BI_MESES_POR_DEFECTO', 12),
+    'confianza' => (float) env('BI_CONFIANZA', 0.80),
+    'demo_meses_historial' => (int) env('BI_DEMO_MESES_HISTORIAL', 24),
     'alerta_aumento_costo' => (float) env('BI_ALERTA_AUMENTO_COSTO', 0.10),
     'alerta_tendencia_mensual' => (float) env('BI_ALERTA_TENDENCIA_MENSUAL', 0.02),
 

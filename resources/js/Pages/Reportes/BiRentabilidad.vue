@@ -5,6 +5,8 @@ import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import BiKpi from '@/Components/Reporte/BiKpi.vue';
+import MetodoPronostico from '@/Components/Reporte/MetodoPronostico.vue';
+import { seriesProyectadas } from '@/Utils/SerieProyectada.js';
 import { money, moneyCorto, numero, porcentaje } from '@/Utils/FormatoReporte.js';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -15,30 +17,6 @@ const props = defineProps({
 });
 
 const futuros = computed(() => props.datos.meses_proyeccion);
-
-/**
- * Serie histórica + proyección + rango probable sobre el mismo eje. La
- * proyección arranca en el último dato real (ver BiCostos.vue, mismo patrón).
- */
-function proyectada(historico, proyeccion, nombreProyeccion = 'Proyección') {
-    if (!proyeccion.length) {
-        return [];
-    }
-
-    const ultimoIndice = historico.findLastIndex((v) => v !== null && v !== undefined);
-    const ultimo = ultimoIndice >= 0 ? historico[ultimoIndice] : null;
-    const prefijo = historico.map((_, i) => (i === historico.length - 1 ? ultimo : null));
-
-    return [
-        { nombre: nombreProyeccion, punteada: true, datos: [...prefijo, ...proyeccion.map((p) => p.valor)] },
-        {
-            nombre: 'Rango probable',
-            tipo: 'banda',
-            inferior: [...prefijo, ...proyeccion.map((p) => p.inferior)],
-            superior: [...prefijo, ...proyeccion.map((p) => p.superior)],
-        },
-    ];
-}
 
 const vacioFuturo = computed(() => Array(futuros.value.length).fill(null));
 const labelsConFuturo = computed(() => [...props.datos.labels, ...futuros.value]);
@@ -53,7 +31,7 @@ const pronostico = computed(() => {
         series: [
             { nombre: 'Monto emitido', datos: [...p.monto_emitido, ...vacioFuturo.value], area: true },
             { nombre: 'Monto aprobado', datos: [...p.monto_aprobado, ...vacioFuturo.value] },
-            ...proyectada(p.monto_emitido, p.proyeccion_emitido, 'Proyección emitido'),
+            ...seriesProyectadas(p.monto_emitido, p.proyeccion_emitido, p.metodo, 'Proyección emitido'),
         ],
     };
 });
@@ -106,7 +84,7 @@ const rentabilidad = computed(() => {
         labels: labelsConFuturo.value,
         series: [
             { nombre: 'Rentabilidad', datos: [...r.porcentaje, ...vacioFuturo.value] },
-            ...proyectada(r.porcentaje, r.proyeccion_porcentaje),
+            ...seriesProyectadas(r.porcentaje, r.proyeccion_porcentaje, r.metodo),
         ],
         umbrales: [
             { valor: r.umbrales.verde, nombre: `Verde ${r.umbrales.verde} %` },
@@ -122,7 +100,7 @@ const utilidad = computed(() => {
         labels: labelsConFuturo.value,
         series: [
             { nombre: 'Utilidad real', tipo: 'bar', datos: [...r.utilidad, ...vacioFuturo.value] },
-            ...proyectada(r.utilidad, r.proyeccion_utilidad),
+            ...seriesProyectadas(r.utilidad, r.proyeccion_utilidad, r.metodo_utilidad),
         ],
     };
 });
@@ -192,9 +170,7 @@ function pct(value) {
                 <BaseChart titulo="Pronóstico de presupuestos" :labels="pronostico.labels" :series="pronostico.series"
                     :formato="moneyCorto" :alto="300" :inicio-proyeccion="inicioFuturo"
                     vacio="No hay presupuestos emitidos en el periodo." />
-                <p class="fs-xs text-muted mt-2 mb-0">
-                    El mes en curso cuenta parcial: si el periodo termina hoy, su valor (y la recta) todavía puede subir.
-                </p>
+                <MetodoPronostico :metodo="datos.pronostico.metodo" />
             </div>
         </div>
 
@@ -259,11 +235,13 @@ function pct(value) {
                         <BaseChart titulo="Rentabilidad por mes" :labels="rentabilidad.labels" :series="rentabilidad.series"
                             :formato="pct" :alto="280" :umbrales="rentabilidad.umbrales" :inicio-proyeccion="inicioFuturo"
                             unir-huecos vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
+                        <MetodoPronostico :metodo="datos.rentabilidad.metodo" />
                     </div>
                     <div class="col-lg-5">
                         <BaseChart titulo="Utilidad real por mes" :labels="utilidad.labels" :series="utilidad.series"
                             :formato="moneyCorto" :alto="280" :inicio-proyeccion="inicioFuturo"
                             vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
+                        <MetodoPronostico :metodo="datos.rentabilidad.metodo_utilidad" />
                     </div>
                 </div>
             </div>

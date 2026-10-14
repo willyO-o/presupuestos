@@ -1,8 +1,9 @@
 <script setup>
-import { reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import DateRangeFilter from '@/Components/DateRangeFilter.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
+import Modal from '@/Components/Modal.vue';
 
 /**
  * Encabezado común de las pestañas de Inteligencia de negocios: navegación
@@ -41,6 +42,37 @@ function aplicar() {
     router.get(route(route().current()), { ...rango }, { preserveState: true, preserveScroll: true });
 }
 
+/* ----- Informe de proyecciones (PDF / CSV) ------------------------------- */
+
+/**
+ * Secciones del informe: mismas claves que
+ * InformeProyeccionesService::SECCIONES (el servidor las valida).
+ */
+const SECCIONES_INFORME = [
+    { clave: 'demanda', texto: 'Demanda y ventas', detalle: 'Pedidos por mes' },
+    { clave: 'costos', texto: 'Costos y materiales', detalle: 'Índice de costo, consumo, precio por material' },
+    { clave: 'rentabilidad', texto: 'Presupuestos y rentabilidad', detalle: 'Montos emitido y vendido, rentabilidad, utilidad' },
+    { clave: 'alertas', texto: 'Alertas', detalle: 'Aumentos de costo, márgenes bajos, sobrecostos' },
+];
+
+const mostrarInforme = ref(false);
+const seccionesInforme = ref(SECCIONES_INFORME.map((s) => s.clave));
+
+/**
+ * El informe usa las fechas que se ven en el filtro (aunque todavía no se
+ * haya pulsado "Aplicar"): es lo que el usuario cree que está pidiendo.
+ */
+function urlInforme(formato, extra = {}) {
+    return route(`reportes.bi.informe.${formato}`, {
+        desde: rango.desde || undefined,
+        hasta: rango.hasta || undefined,
+        secciones: seccionesInforme.value,
+        ...extra,
+    });
+}
+
+const sinSecciones = computed(() => seccionesInforme.value.length === 0);
+
 function enlace(ruta) {
     // El resumen no usa el periodo: no se arrastran las fechas hacia ahí.
     return (props.filters.desde || props.filters.hasta) && ruta !== 'reportes.bi.resumen'
@@ -66,11 +98,58 @@ function enlace(ruta) {
                         label="Periodo analizado" />
                 </div>
                 <button type="submit" class="btn btn-primary">Aplicar</button>
+                <button type="button" class="btn btn-soft-primary" @click="mostrarInforme = true">
+                    <i class="fa-solid fa-file-lines"></i> Generar informe
+                </button>
                 <div class="bi-filtro-alcance">
                     <span class="fs-xs text-muted">{{ periodo.meses }} {{ periodo.meses === 1 ? 'mes' : 'meses' }}</span>
                     <EtiquetaAlcance />
                 </div>
             </form>
         </div>
+
+        <Modal :show="mostrarInforme" max-width="lg" @close="mostrarInforme = false">
+            <div class="card-header">
+                <span class="card-title">Informe de proyecciones</span>
+                <button type="button" class="modal-close" aria-label="Cerrar" @click="mostrarInforme = false">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="fs-xs text-muted mb-3">
+                    Periodo del filtro{{ rango.desde && rango.hasta ? `: ${rango.desde} al ${rango.hasta}` : '' }}.
+                    Incluye gráficos, tablas, lectura automática y anexo metodológico.
+                </p>
+                <div role="group" aria-labelledby="bi-informe-secciones">
+                    <p id="bi-informe-secciones" class="form-label">Secciones a incluir</p>
+                    <ul class="bi-informe-secciones">
+                        <li v-for="s in SECCIONES_INFORME" :key="s.clave">
+                            <label class="bi-informe-seccion">
+                                <input v-model="seccionesInforme" type="checkbox" :value="s.clave" />
+                                <span>
+                                    {{ s.texto }}
+                                    <small>{{ s.detalle }}</small>
+                                </span>
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+                <p class="fs-xs text-muted mt-3 mb-0">
+                    El PDF es para leer o presentar; el CSV abre en Excel con las series mes a mes, la ficha del método
+                    y las alertas, para reprocesarlas.
+                </p>
+            </div>
+            <div class="modal-footer bi-informe-acciones">
+                <span v-if="sinSecciones" class="fs-xs text-danger me-auto">Elegí al menos una sección.</span>
+                <a :href="sinSecciones ? null : urlInforme('csv')" class="btn btn-outline-primary"
+                    :class="{ disabled: sinSecciones }" :aria-disabled="sinSecciones">
+                    <i class="fa-solid fa-file-csv"></i> Descargar CSV
+                </a>
+                <a :href="sinSecciones ? null : urlInforme('pdf')" target="_blank" rel="noopener" class="btn btn-primary"
+                    :class="{ disabled: sinSecciones }" :aria-disabled="sinSecciones">
+                    <i class="fa-solid fa-file-pdf"></i> Ver PDF
+                </a>
+            </div>
+        </Modal>
     </div>
 </template>

@@ -2441,6 +2441,103 @@
     @apply mt-0.5;
 }
 
+/* --- Ficha "Cómo se calcula" de un pronóstico (Components/Reporte/MetodoPronostico.vue) --- */
+.bi-metodo {
+    border-top: 1px solid var(--border-subtle);
+    @apply mt-3 pt-2 text-xs;
+}
+
+.bi-metodo-resumen {
+    @apply flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 py-1;
+}
+
+.bi-metodo-resumen::-webkit-details-marker {
+    display: none;
+}
+
+.bi-metodo-titulo {
+    color: var(--c-primary);
+    @apply font-semibold;
+}
+
+.bi-metodo-titulo i {
+    @apply mr-1;
+}
+
+.bi-metodo-titulo::after {
+    content: '▾';
+    @apply ml-1 inline-block transition-transform;
+}
+
+.bi-metodo[open] .bi-metodo-titulo::after {
+    transform: rotate(180deg);
+}
+
+.bi-metodo-chips {
+    @apply flex flex-wrap gap-1.5;
+}
+
+.bi-metodo-chip {
+    background: var(--c-info-soft);
+    color: var(--text-body);
+    @apply rounded-full px-2 py-0.5;
+}
+
+.bi-metodo-chip-fuerte {
+    background: var(--c-success-soft);
+}
+
+.bi-metodo-chip-moderado {
+    background: var(--c-warning-soft);
+}
+
+.bi-metodo-chip-debil {
+    background: var(--c-danger-soft);
+}
+
+.bi-metodo-lista {
+    color: var(--text-body);
+    @apply m-0 mt-2 grid gap-x-4 gap-y-1.5 sm:grid-cols-[9rem_1fr];
+}
+
+.bi-metodo-lista dt {
+    color: var(--text-heading);
+    @apply font-semibold;
+}
+
+.bi-metodo-lista dd {
+    @apply m-0 leading-relaxed;
+}
+
+/* Botón "Generar informe" del encabezado del BI y su modal. */
+.bi-informe-secciones {
+    @apply m-0 grid list-none gap-2 p-0 sm:grid-cols-2;
+}
+
+.bi-informe-seccion {
+    border-color: var(--border-subtle);
+    @apply flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2;
+}
+
+.bi-informe-seccion input {
+    accent-color: var(--c-primary);
+    @apply mt-0.5;
+}
+
+.bi-informe-seccion small {
+    color: var(--text-muted);
+    @apply block;
+}
+
+.bi-informe-acciones {
+    @apply flex flex-wrap justify-end gap-2;
+}
+
+/* Enlace-botón sin secciones elegidas: un <a> no tiene `disabled`. */
+.bi-informe-acciones .btn.disabled {
+    @apply pointer-events-none opacity-50;
+}
+
 /* --- Alertas de costo y margen --- */
 .bi-alertas {
     @apply m-0 flex list-none flex-col gap-3 p-0;

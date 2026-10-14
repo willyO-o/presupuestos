@@ -13,6 +13,7 @@ use App\Http\Controllers\CotizadorPublicoController;
 use App\Http\Controllers\DocumentoPdfController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FormulaController;
+use App\Http\Controllers\InformeProyeccionesController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\NotaEntregaController;
 use App\Http\Controllers\NotificacionController;
@@ -503,6 +504,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/reportes/bi/resumen', [ReporteController::class, 'biResumen'])
         ->middleware('can:reportes.bi')
         ->name('reportes.bi.resumen');
+    // Informe de proyecciones (PDF y CSV) con el periodo y las secciones
+    // elegidas: el mismo permiso que las pestañas de las que sale.
+    Route::get('/reportes/bi/informe/pdf', [InformeProyeccionesController::class, 'pdf'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.informe.pdf');
+    Route::get('/reportes/bi/informe/csv', [InformeProyeccionesController::class, 'csv'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.informe.csv');
 
     // IA del BI: acciones manuales y asistente. Un solo permiso delegable
     // (`reportes.asistente`); el asistente vive en el layout, así que no

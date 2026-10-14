@@ -5,6 +5,8 @@ import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
+import MetodoPronostico from '@/Components/Reporte/MetodoPronostico.vue';
+import { seriesProyectadas } from '@/Utils/SerieProyectada.js';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -24,36 +26,26 @@ function pedidos(value) {
 /**
  * Demanda: histórico, media móvil y proyección sobre una sola línea de tiempo.
  *
- * La proyección arranca repitiendo el último dato real para que se vea de dónde
- * sale, y va punteada sobre una zona sombreada: es lo único del gráfico que
- * todavía no ocurrió, y esa distinción no puede depender solo del color. La
- * banda es su rango probable (± el error típico de la recta).
+ * La proyección va punteada sobre una zona sombreada: es lo único del gráfico
+ * que todavía no ocurrió, y esa distinción no puede depender solo del color.
+ * La banda es su intervalo de predicción. Ver Utils/SerieProyectada.js.
  */
 const demanda = computed(() => {
-    const historico = props.datos.demanda.serie;
+    const historico = props.datos.demanda.serie.map((s) => s.pedidos);
     const futuro = props.datos.demanda.proyeccion;
-
-    const relleno = Array(Math.max(historico.length - 1, 0)).fill(null);
-    const ultimoReal = historico.at(-1)?.pedidos ?? null;
     const sinFuturo = Array(futuro.length).fill(null);
 
     return {
-        labels: [...historico.map((s) => s.mes), ...futuro.map((p) => p.mes)],
+        labels: [...props.datos.demanda.serie.map((s) => s.mes), ...futuro.map((p) => p.mes)],
         inicio: futuro[0]?.mes ?? null,
         series: [
-            { nombre: 'Pedidos reales', datos: [...historico.map((s) => s.pedidos), ...sinFuturo], area: true },
+            { nombre: 'Pedidos reales', datos: [...historico, ...sinFuturo], area: true },
             { nombre: 'Media móvil 3m', datos: [...props.datos.demanda.media_movil.map((m) => m.valor), ...sinFuturo] },
-            {
-                nombre: 'Proyección',
-                punteada: true,
-                datos: futuro.length ? [...relleno, ultimoReal, ...futuro.map((p) => p.pedidos_estimados)] : [],
-            },
-            {
-                nombre: 'Rango probable',
-                tipo: 'banda',
-                inferior: futuro.length ? [...relleno, ultimoReal, ...futuro.map((p) => p.inferior)] : [],
-                superior: futuro.length ? [...relleno, ultimoReal, ...futuro.map((p) => p.superior)] : [],
-            },
+            ...seriesProyectadas(
+                historico,
+                futuro.map((p) => ({ valor: p.pedidos_estimados, inferior: p.inferior, superior: p.superior })),
+                props.datos.demanda.metodo,
+            ),
         ],
     };
 });
@@ -121,6 +113,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
                 <BaseChart titulo="Proyección de demanda" :labels="demanda.labels" :series="demanda.series"
                     :formato="pedidos" :alto="300" :inicio-proyeccion="demanda.inicio"
                     vacio="No hay pedidos registrados en el periodo." />
+                <MetodoPronostico :metodo="datos.demanda.metodo" />
             </div>
         </div>
 

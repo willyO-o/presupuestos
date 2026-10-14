@@ -12,6 +12,7 @@ use App\Services\Pdf\Documentos\CompraPdf;
 use App\Services\Pdf\Documentos\CotizacionPdf;
 use App\Services\Pdf\Documentos\CotizacionPublicaPdf;
 use App\Services\Pdf\Documentos\Documento;
+use App\Services\Pdf\Documentos\InformeProyeccionesPdf;
 use App\Services\Pdf\Documentos\NotaEntregaPdf;
 use App\Services\Pdf\Documentos\OrdenCompraClientePdf;
 use App\Services\Pdf\Documentos\PedidoPdf;
@@ -151,6 +152,30 @@ class GeneradorPdf
         return $this->entregar(
             new CompraPdf($compra, 'Orden de compra', $this->empresa(), now()),
             $this->nombre('compra', (string) $compra->id),
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reportes
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Informe de proyecciones del BI (InformeProyeccionesService::armar()).
+     *
+     * Documento INTERNO: trae costos, márgenes y utilidades. Lo protege el
+     * mismo permiso que las pantallas del BI (`reportes.bi`).
+     *
+     * @param  array<string, mixed>  $informe
+     */
+    public function informeProyecciones(array $informe): RespuestaPdf
+    {
+        $periodo = $informe['periodo'];
+
+        return $this->entregar(
+            new InformeProyeccionesPdf($informe, 'Informe de proyecciones', $this->empresa(), now()),
+            $this->nombre('informe-proyecciones', "{$periodo['desde']}-al-{$periodo['hasta']}"),
         );
     }
 

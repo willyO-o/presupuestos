@@ -170,6 +170,12 @@ Pestañas `Pages/Reportes/Bi*.vue` y componentes `Components/Reporte/*`.
   `-neutra`) — tarjeta `BiKpi.vue` sobre `.stat-card`. La flecha dice la dirección;
   el color, si es bueno o malo según `subirEsBueno`.
 - `.bi-aviso` — nota informativa (qué datos quedan fuera de un cálculo).
+- `.bi-metodo` `.bi-metodo-resumen` `.bi-metodo-titulo` `.bi-metodo-chips` `.bi-metodo-chip`
+  (+ `-fuerte` / `-moderado` / `-debil` / `-neutro`) `.bi-metodo-lista` — ficha plegable
+  "Cómo se calcula" bajo cada gráfico de proyección (`MetodoPronostico.vue`, un `<details>`).
+- `.bi-informe-secciones` `.bi-informe-seccion` `.bi-informe-acciones` — modal "Generar
+  informe" de `BiEncabezado.vue` (casillas de sección y botones PDF/CSV; un `<a>` sin
+  secciones lleva `.btn.disabled`).
 - `.bi-alertas` `.bi-alerta` (+ `.bi-alerta-alta` / `.bi-alerta-media`: solo tiñen el icono; sin
   borde lateral de color, la severidad la dicen el icono y la etiqueta)
   `.bi-alerta-icono` `.bi-alerta-cuerpo` `.bi-alerta-encabezado` `.bi-alerta-tipo`

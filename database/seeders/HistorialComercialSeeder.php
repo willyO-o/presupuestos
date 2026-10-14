@@ -31,8 +31,9 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Historial comercial de 24 meses, coherente de punta a punta, para que el
- * BI (y su IA) trabaje con datos con forma de negocio real.
+ * Historial comercial de 24 meses (configurable con
+ * `BI_DEMO_MESES_HISTORIAL`, ver config/bi.php), coherente de punta a punta,
+ * para que el BI (y su IA) trabaje con datos con forma de negocio real.
  *
  * Se simula mes a mes, en orden cronológico, con las MISMAS piezas que usa
  * el sistema: AprobarCompraService (precio de material + historial),
@@ -43,9 +44,10 @@ use Throwable;
  * Supuestos de negocio (los que un analista buscaría en los gráficos):
  * - Crecimiento ~1,2 % mensual; estacionalidad boliviana: carnaval (feb),
  *   fiestas patrias (ago), fin de año (nov-dic) altos; mar-abr y ene bajos.
- * - Santa Cruz abre en el mes 8 y tarda 3 meses en llegar a su ritmo.
+ * - Santa Cruz abre en el mes 8 (de 24; proporcional si se simulan menos) y
+ *   tarda 3 meses en llegar a su ritmo.
  * - Inflación de materiales: importados (lona, vinil, acrílico) ~1,2 %/mes
- *   con un salto cambiario de +9 % en el mes 14; metal ~0,9 %/mes y un salto
+ *   con un salto cambiario de +9 % 10 meses antes del final; metal ~0,9 %/mes y un salto
  *   de +24 % la semana pasada (alerta de costo y presupuestos pendientes
  *   desactualizados); madera ~0,6 %; químicos ~0,8 %. Mano de obra +5 % cada
  *   mayo (incremento salarial); impresión acompaña a la tinta importada.
@@ -69,13 +71,28 @@ class HistorialComercialSeeder extends Seeder
 {
     private const SEMILLA = 20241001;
 
+    /** Meses por defecto si `config('bi.demo_meses_historial')` no dice otro. */
     private const MESES = 24;
+
+    /** Rango aceptado: con menos de 3 no hay tendencia; con más de 60 tarda minutos. */
+    private const MESES_MINIMO = 3;
+
+    private const MESES_MAXIMO = 60;
+
+    /** El salto cambiario de los importados ocurre estos meses antes del final. */
+    private const MESES_DESDE_SALTO = 10;
 
     /**
      * Solo para tests: acota la simulación a menos meses (los 24 completos
-     * tardan ~30 s). null = MESES.
+     * tardan ~30 s). null = config('bi.demo_meses_historial').
      */
     public static ?int $mesesParaPruebas = null;
+
+    /** Mes (desde el inicio de la simulación) del salto cambiario. */
+    private int $mesSalto = 14;
+
+    /** Meses simulados en esta corrida. */
+    private int $meses = self::MESES;
 
     /** Cotizaciones por semana de las cuatro sucursales a ritmo pleno, al inicio. */
     private const VOLUMEN_SEMANAL = 26.0;
@@ -188,7 +205,13 @@ class HistorialComercialSeeder extends Seeder
 
         mt_srand(self::SEMILLA);
 
-        $meses = self::$mesesParaPruebas ?? self::MESES;
+        $meses = self::$mesesParaPruebas ?? max(self::MESES_MINIMO, min(
+            self::MESES_MAXIMO,
+            (int) config('bi.demo_meses_historial', self::MESES),
+        ));
+        $this->meses = $meses;
+        $this->mesSalto = max(1, $meses - self::MESES_DESDE_SALTO);
+        $this->command?->info("HistorialComercialSeeder: simulando {$meses} meses de historial.");
         $this->hoy = Carbon::now()->startOfDay();
         $this->inicio = $this->hoy->copy()->startOfMonth()->subMonths($meses);
         $this->precioSugerido = app(PrecioSugeridoService::class);
@@ -238,7 +261,9 @@ class HistorialComercialSeeder extends Seeder
 
         return Sucursal::query()->where('estado', 'ACTIVO')->get()->map(fn (Sucursal $s) => [
             'modelo' => $s,
-            'abre_mes' => $definidas[$s->nombre]['abre_mes'] ?? 0,
+            // `abre_mes` está pensado sobre 24 meses: se escala para que con
+            // un historial más corto la apertura siga cayendo a un tercio.
+            'abre_mes' => (int) round(($definidas[$s->nombre]['abre_mes'] ?? 0) * $this->meses / self::MESES),
             'peso' => $definidas[$s->nombre]['peso'] ?? 0.2,
             'ciudad' => $s->ciudad,
         ])->values();
@@ -409,7 +434,7 @@ class HistorialComercialSeeder extends Seeder
         $inflacion = (1 + (self::INFLACION[$categoria] ?? 0.008)) ** $mes;
 
         $importado = in_array($categoria, ['Gigantografía'], true) || str_starts_with($material->nombre, 'Acrílico');
-        $salto = $importado && $mes >= 14 ? 1.09 : 1.0;
+        $salto = $importado && $mes >= $this->mesSalto ? 1.09 : 1.0;
 
         return round($base * $inflacion * $salto * $this->aleatorio(0.985, 1.015), 2);
     }
@@ -744,12 +769,12 @@ class HistorialComercialSeeder extends Seeder
         return round(18 * 1.05 ** $mayos, 2);
     }
 
-    /** Impresión por m²: acompaña a la tinta importada (~1 %/mes + salto del mes 14). */
+    /** Impresión por m²: acompaña a la tinta importada (~1 %/mes + salto cambiario). */
     private function costoImpresion(Carbon $fecha): float
     {
         $mes = (int) $this->inicio->diffInMonths($fecha);
 
-        return round(12 * 1.01 ** $mes * ($mes >= 14 ? 1.06 : 1.0), 2);
+        return round(12 * 1.01 ** $mes * ($mes >= $this->mesSalto ? 1.06 : 1.0), 2);
     }
 
     private function inflacionGeneral(Carbon $fecha): float

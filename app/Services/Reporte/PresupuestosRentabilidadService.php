@@ -36,16 +36,15 @@ class PresupuestosRentabilidadService
 
         $porMes = $cotizaciones->groupBy(fn ($c) => $c->fecha->format('Y-m'));
         $claves = $periodo->meses()->keys();
-        $mesesProyeccion = config('bi.meses_proyeccion');
 
         return [
             'periodo' => $periodo->toArray(),
             'labels' => $periodo->meses()->values()->all(),
-            'meses_proyeccion' => $periodo->mesesSiguientes($mesesProyeccion),
+            'meses_proyeccion' => $periodo->mesesSiguientes(config('bi.meses_proyeccion')),
             'resumen' => $this->resumen($cotizaciones),
-            'pronostico' => $this->pronostico($porMes, $claves, $mesesProyeccion),
-            'tendencia' => $this->tendencia($porMes, $claves),
-            'rentabilidad' => $this->rentabilidad($cotizaciones, $porMes, $claves, $mesesProyeccion),
+            'pronostico' => $this->pronostico($porMes, $claves, $periodo),
+            'tendencia' => $this->tendencia($porMes, $claves, $periodo),
+            'rentabilidad' => $this->rentabilidad($cotizaciones, $porMes, $claves, $periodo),
         ];
     }
 
@@ -81,7 +80,7 @@ class PresupuestosRentabilidadService
      * @param  Collection<int, string>  $claves
      * @return array<string, mixed>
      */
-    private function pronostico(Collection $porMes, Collection $claves, int $mesesProyeccion): array
+    private function pronostico(Collection $porMes, Collection $claves, PeriodoReporte $periodo): array
     {
         $mes = fn (string $clave): Collection => $porMes->get($clave, collect());
 
@@ -92,16 +91,23 @@ class PresupuestosRentabilidadService
             fn ($c) => round((float) $mes($c)->whereIn('estado', self::VENDIDOS)->sum('total'), 2)
         )->all();
 
+        $emitido = $periodo->pronostico($montoEmitido);
+        $aprobado = $periodo->pronostico($montoAprobado);
+        $cantidad = $periodo->pronostico($emitidos);
+
         return [
             'emitidos' => $emitidos,
             'aprobados' => $aprobados,
             'monto_emitido' => $montoEmitido,
             'monto_aprobado' => $montoAprobado,
             'media_movil' => array_map(fn ($v) => $v === null ? null : round($v, 2), Pronostico::mediaMovil($montoEmitido)),
-            'proyeccion_emitido' => $this->redondearProyeccion(Pronostico::proyectar($montoEmitido, $mesesProyeccion)),
-            'proyeccion_aprobado' => $this->redondearProyeccion(Pronostico::proyectar($montoAprobado, $mesesProyeccion)),
-            'proyeccion_cantidad' => $this->redondearProyeccion(Pronostico::proyectar($emitidos, $mesesProyeccion), 1),
-            'variacion_mensual' => $this->redondear(Pronostico::variacionMensual($montoEmitido)),
+            'proyeccion_emitido' => $this->redondearProyeccion($emitido['proyeccion']),
+            'proyeccion_aprobado' => $this->redondearProyeccion($aprobado['proyeccion']),
+            'proyeccion_cantidad' => $this->redondearProyeccion($cantidad['proyeccion'], 1),
+            'variacion_mensual' => $this->redondear($emitido['variacion_mensual']),
+            'variacion_aprobado' => $this->redondear($aprobado['variacion_mensual']),
+            'metodo' => $emitido['metodo'],
+            'metodo_aprobado' => $aprobado['metodo'],
         ];
     }
 
@@ -117,7 +123,7 @@ class PresupuestosRentabilidadService
      * @param  Collection<int, string>  $claves
      * @return array<string, mixed>
      */
-    private function tendencia(Collection $porMes, Collection $claves): array
+    private function tendencia(Collection $porMes, Collection $claves, PeriodoReporte $periodo): array
     {
         $ticket = $claves->map(function (string $clave) use ($porMes): ?float {
             $mes = $porMes->get($clave, collect());
@@ -131,13 +137,12 @@ class PresupuestosRentabilidadService
             return $conCosto->isEmpty() ? null : round((float) $conCosto->avg('costo_ajustado'), 2);
         })->all();
 
-        $soloDatos = fn (array $serie): array => array_values(array_filter($serie, fn ($v) => $v !== null));
-
+        // Promedios: no dependen de cuántos días tiene el mes, entran enteros.
         return [
             'ticket' => $ticket,
             'costo' => $costo,
-            'variacion_ticket' => $this->redondear(Pronostico::variacionMensual($soloDatos($ticket))),
-            'variacion_costo' => $this->redondear(Pronostico::variacionMensual($soloDatos($costo))),
+            'variacion_ticket' => $this->redondear($periodo->pronostico($ticket, sumaDelMes: false)['variacion_mensual']),
+            'variacion_costo' => $this->redondear($periodo->pronostico($costo, sumaDelMes: false)['variacion_mensual']),
         ];
     }
 
@@ -150,7 +155,7 @@ class PresupuestosRentabilidadService
      * @param  Collection<int, string>  $claves
      * @return array<string, mixed>
      */
-    private function rentabilidad(Collection $cotizaciones, Collection $porMes, Collection $claves, int $mesesProyeccion): array
+    private function rentabilidad(Collection $cotizaciones, Collection $porMes, Collection $claves, PeriodoReporte $periodo): array
     {
         $conCosto = fn (Collection $grupo): Collection => $grupo
             ->whereIn('estado', self::VENDIDOS)
@@ -169,7 +174,12 @@ class PresupuestosRentabilidadService
             return $costo > 0 ? round((float) $grupo->sum('utilidad_real') / $costo * 100, 2) : null;
         })->all();
 
-        $soloDatos = fn (array $serie): array => array_values(array_filter($serie, fn ($v) => $v !== null));
+        // La rentabilidad (%) es una razón: el mes en curso vale entero. La
+        // utilidad es un total del mes: el mes en curso no entra a la recta.
+        // Las dos se proyectan sin piso: un margen sí puede ser negativo, y
+        // esconderlo sería justo lo que no tiene que pasar.
+        $analisisPorcentaje = $periodo->pronostico($porcentaje, piso: false, sumaDelMes: false);
+        $analisisUtilidad = $periodo->pronostico($utilidad, piso: false);
 
         $vendidas = $cotizaciones->whereIn('estado', self::VENDIDOS);
         $analizadas = $conCosto($cotizaciones);
@@ -180,15 +190,11 @@ class PresupuestosRentabilidadService
         return [
             'utilidad' => $utilidad,
             'porcentaje' => $porcentaje,
-            // La rentabilidad se proyecta sin piso: un margen sí puede ser
-            // negativo, y esconderlo sería justo lo que no tiene que pasar.
-            'proyeccion_porcentaje' => $this->redondearProyeccion(
-                Pronostico::proyectar($soloDatos($porcentaje), $mesesProyeccion, piso: false),
-            ),
-            'proyeccion_utilidad' => $this->redondearProyeccion(
-                Pronostico::proyectar($soloDatos($utilidad), $mesesProyeccion, piso: false),
-            ),
-            'variacion_mensual' => $this->redondear(Pronostico::variacionMensual($soloDatos($porcentaje))),
+            'proyeccion_porcentaje' => $this->redondearProyeccion($analisisPorcentaje['proyeccion']),
+            'proyeccion_utilidad' => $this->redondearProyeccion($analisisUtilidad['proyeccion']),
+            'variacion_mensual' => $this->redondear($analisisPorcentaje['variacion_mensual']),
+            'metodo' => $analisisPorcentaje['metodo'],
+            'metodo_utilidad' => $analisisUtilidad['metodo'],
             'utilidad_total' => round((float) $analizadas->sum('utilidad_real'), 2),
             'rentabilidad_promedio' => $costoTotal > 0
                 ? round((float) $analizadas->sum('utilidad_real') / $costoTotal * 100, 2)

@@ -6,6 +6,8 @@ import BaseChart from '@/Components/Chart/BaseChart.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import BiKpi from '@/Components/Reporte/BiKpi.vue';
+import MetodoPronostico from '@/Components/Reporte/MetodoPronostico.vue';
+import { seriesProyectadas } from '@/Utils/SerieProyectada.js';
 import { useChartTheme } from '@/Composables/UseChartTheme.js';
 import { money, moneyCorto, numero, porcentaje, variacion } from '@/Utils/FormatoReporte.js';
 
@@ -20,32 +22,19 @@ const { tema } = useChartTheme();
 
 /**
  * Une una serie histórica con su proyección sobre un mismo eje de tiempo.
- *
- * La proyección (y su banda) arranca en el último dato real para que se vea
- * de dónde sale; el histórico queda vacío en los meses futuros.
+ * La proyección y su banda las arma Utils/SerieProyectada.js; el histórico
+ * queda vacío en los meses futuros.
  */
-function conProyeccion(labels, historico, proyeccion, nombre, { area = false } = {}) {
+function conProyeccion(labels, historico, proyeccion, metodo, nombre, { area = false } = {}) {
     const futuros = props.datos.meses_proyeccion.slice(0, proyeccion.length);
-    const ultimoIndice = historico.findLastIndex((v) => v !== null && v !== undefined);
-    const ultimo = ultimoIndice >= 0 ? historico[ultimoIndice] : null;
-    const prefijo = historico.map((_, i) => (i === historico.length - 1 ? ultimo : null));
     const vacio = Array(futuros.length).fill(null);
-    const hay = proyeccion.length > 0;
 
     return {
         labels: [...labels, ...futuros],
         inicio: futuros[0] ?? null,
         series: [
             { nombre, datos: [...historico, ...vacio], area },
-            ...(hay ? [
-                { nombre: 'Proyección', punteada: true, datos: [...prefijo, ...proyeccion.map((p) => p.valor)] },
-                {
-                    nombre: 'Rango probable',
-                    tipo: 'banda',
-                    inferior: [...prefijo, ...proyeccion.map((p) => p.inferior)],
-                    superior: [...prefijo, ...proyeccion.map((p) => p.superior)],
-                },
-            ] : []),
+            ...seriesProyectadas(historico, proyeccion, metodo),
         ],
     };
 }
@@ -56,6 +45,7 @@ const indice = computed(() => conProyeccion(
     props.datos.indice.labels,
     props.datos.indice.serie,
     props.datos.indice.proyeccion,
+    props.datos.indice.metodo,
     'Índice de costo',
 ));
 
@@ -77,7 +67,7 @@ const materialElegido = ref(props.datos.materiales[0]?.id ?? null);
 const material = computed(() => props.datos.materiales.find((m) => m.id === materialElegido.value) ?? null);
 
 const materialGrafico = computed(() => (material.value
-    ? conProyeccion(props.datos.indice.labels, material.value.serie, material.value.proyeccion, 'Precio unitario')
+    ? conProyeccion(props.datos.indice.labels, material.value.serie, material.value.proyeccion, material.value.metodo, 'Precio unitario')
     : { labels: [], series: [], inicio: null }));
 
 const precioProyectado = computed(() => material.value?.proyeccion.at(-1)?.valor ?? null);
@@ -89,6 +79,7 @@ const consumoMensual = computed(() => {
         props.datos.consumo.labels,
         props.datos.consumo.serie,
         props.datos.consumo.proyeccion,
+        props.datos.consumo.metodo,
         'Costo consumido',
         { area: true },
     );
@@ -185,6 +176,7 @@ const impactoGrafico = computed(() => {
                     :formato="puntos" :alto="300" :inicio-proyeccion="indice.inicio" unir-huecos ajustar-escala
                     :umbrales="[{ valor: 100, nombre: 'Base 100' }]"
                     vacio="Se necesita más de un registro de precio por material (se genera al aprobar compras)." />
+                <MetodoPronostico :metodo="datos.indice.metodo" />
             </div>
         </div>
 
@@ -206,6 +198,7 @@ const impactoGrafico = computed(() => {
                             :series="materialGrafico.series" :formato="moneyCorto" :alto="260" unir-huecos ajustar-escala
                             :inicio-proyeccion="materialGrafico.inicio"
                             vacio="Ningún material tiene historial de precios suficiente." />
+                        <MetodoPronostico :metodo="material?.metodo" />
                     </div>
                 </div>
             </div>
@@ -230,7 +223,7 @@ const impactoGrafico = computed(() => {
                             </div>
                             <p class="fs-xs text-muted mb-0 mt-2">
                                 Precio por {{ unidad(material.unidad) || 'unidad' }}. La estimación prolonga la recta de los precios
-                                mensuales; el sombreado del gráfico es el rango probable.
+                                mensuales; el sombreado del gráfico es el intervalo de predicción.
                             </p>
                         </div>
                         <p v-else class="chart-empty">Sin materiales para analizar.</p>
@@ -254,6 +247,7 @@ const impactoGrafico = computed(() => {
                     :series="consumoMensual.series" :formato="moneyCorto" :alto="280"
                     :inicio-proyeccion="consumoMensual.inicio"
                     vacio="Producción no registró consumo de materiales en el periodo." />
+                <MetodoPronostico :metodo="datos.consumo.metodo" />
             </div>
         </div>
 

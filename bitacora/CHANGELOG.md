@@ -13,6 +13,54 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-13 — Pronósticos del BI: intervalo de predicción, validación e informe PDF/CSV
+
+**Qué cambió:**
+- **Método (Fase A):** el "rango probable" ahora es un **intervalo de predicción al 80 %** (t de
+  Student, se ensancha hacia el futuro) en vez de ±1 error típico. Cada pronóstico calcula **R²** y
+  una **validación retrospectiva**: oculta los últimos 3 meses reales y compara el error (MAPE) de la
+  recta contra **Holt** y la **media móvil**.
+- **El mes en curso ya no entra en la recta** de los totales (pedidos, montos, consumo, utilidad):
+  al día 13 de 31 se leía como una caída. Se sigue mostrando y se estima su cierre. Promedios,
+  porcentajes y precios lo usan entero. Ninguna fecha del filtro pasa de hoy.
+- Bajo cada gráfico de proyección, ficha plegable **"Cómo se calcula"**: método, meses usados,
+  R², intervalo y error de validación de ESE gráfico.
+- **Informe de proyecciones (Fase B):** botón "Generar informe" en el encabezado del BI → **PDF**
+  (conclusiones, resumen ejecutivo, gráfico + lectura en texto automático + tabla por indicador,
+  alertas y anexo metodológico) y **CSV** para Excel (series mes a mes, ficha del método, alertas).
+- **Datos de prueba configurables:** `BI_DEMO_MESES_HISTORIAL` (por defecto 24) en el seeder.
+- README: instalación paso a paso, datos de prueba de 12/24 meses, método estadístico, informe e
+  instalación del asistente de IA.
+
+**Por qué:** pedido del usuario. Su docente preguntó qué método estadístico usan los gráficos y
+cuántos meses de historia toman. Además, los resultados solo existían como imágenes y tablas en
+pantalla. Al revisarlo apareció el sesgo del mes en curso.
+
+**Cómo:**
+- `Pronostico::analizar()` devuelve la proyección, la variación y la ficha `metodo`. `proyectar()`
+  queda como atajo. `Estadistica::tStudentCuantil()` invierte la t de Student (beta incompleta +
+  bisección), sin tablas fijas. Holt elige α y β en una grilla de 0,1 a 0,9.
+- `PeriodoReporte::pronostico($serie, piso, sumaDelMes)` es el puente con el calendario: recorta los
+  meses incompletos de los bordes y agrega desde/hasta y `explicacion` (texto de
+  `RedaccionPronostico::ficha()`, el mismo que imprime el anexo del PDF).
+- Front: `Utils/SerieProyectada.js` (una sola función arma proyección y banda en las 3 pestañas; la
+  línea sale del último mes completo y pasa por el cierre estimado), `Components/Reporte/MetodoPronostico.vue`,
+  CSS `.bi-metodo-*` y `.bi-informe-*` (§26).
+- Informe: `InformeProyeccionesService` NO calcula nada propio: llama a los mismos servicios que
+  las pestañas (mismo alcance por sucursal). Texto automático = plantillas en `RedaccionPronostico`,
+  no IA. El PDF va por `GeneradorPdf::informeProyecciones()`, y los gráficos los dibuja FPDF
+  (trait `Documentos\DibujaGraficos`: polígono y punteado con operadores PDF a mano) en vez de
+  capturar ECharts: es determinista, no depende de tener la pestaña abierta y los tests lo leen.
+  Rutas `reportes.bi.informe.{pdf,csv}` bajo `can:reportes.bi`.
+- Trampa: los textos del PDF son cp1252. `−` (U+2212), `√`, `ŷ` y `x̄` no existen ahí y salen como
+  `?`: en el PDF se usa `-` y "raíz(...)".
+- Tests: `PronosticoTest` (24: tabla t, intervalo, R², Holt, MAPE, validación, mes en curso, tope
+  de fecha), `InformeProyeccionesTest` (9) y `HistorialComercialMesesTest` (1). Suite completa en
+  verde (663). Verificado en Edge contra una base demo SQLite de 12 meses (claro, oscuro y móvil,
+  sin errores de consola) y revisando el PDF renderizado página por página.
+
+---
+
 ## 2026-10-12 — Asistente IA: burbuja de pensamiento y texto que se escribe solo
 
 **Qué cambió:**

@@ -103,7 +103,7 @@ class InteligenciaNegociosService
     /**
      * Demanda mensual de pedidos en el periodo, media móvil de 3 meses y
      * proyección de los meses siguientes por regresión lineal simple, con su
-     * rango probable.
+     * intervalo de predicción y la ficha del método (`metodo`).
      *
      * @return array<string, mixed>
      */
@@ -130,34 +130,24 @@ class InteligenciaNegociosService
             ])
             ->all();
 
+        $analisis = $periodo->pronostico($valores);
+        $etiquetas = $periodo->mesesSiguientes(config('bi.meses_proyeccion'));
+
         return [
             'serie' => $serie->all(),
             'media_movil' => $mediaMovil,
-            'proyeccion' => $this->proyectar($valores, $periodo),
+            'proyeccion' => collect($analisis['proyeccion'])
+                ->map(fn (array $punto, int $i): array => [
+                    'mes' => $etiquetas[$i],
+                    'pedidos_estimados' => round($punto['valor'], 1),
+                    'inferior' => round($punto['inferior'], 1),
+                    'superior' => round($punto['superior'], 1),
+                ])
+                ->all(),
+            'variacion_mensual' => $analisis['variacion_mensual'] === null ? null : round($analisis['variacion_mensual'], 2),
+            'metodo' => $analisis['metodo'],
             'estacionalidad' => $this->estacionalidad($pedidos),
         ];
-    }
-
-    /**
-     * Prolonga la serie mensual de pedidos (nunca negativa) con su rango
-     * probable.
-     *
-     * @param  list<int>  $valores
-     * @return list<array{mes: string, pedidos_estimados: float, inferior: float, superior: float}>
-     */
-    private function proyectar(array $valores, PeriodoReporte $periodo): array
-    {
-        $meses = config('bi.meses_proyeccion');
-        $etiquetas = $periodo->mesesSiguientes($meses);
-
-        return collect(Pronostico::proyectar($valores, $meses))
-            ->map(fn (array $punto, int $i): array => [
-                'mes' => $etiquetas[$i],
-                'pedidos_estimados' => round($punto['valor'], 1),
-                'inferior' => round($punto['inferior'], 1),
-                'superior' => round($punto['superior'], 1),
-            ])
-            ->all();
     }
 
     /**

@@ -49,7 +49,7 @@ class CostosMaterialesService
             'periodo' => $periodo->toArray(),
             'meses_proyeccion' => $periodo->mesesSiguientes(config('bi.meses_proyeccion')),
             'indice' => $indice,
-            'materiales' => $this->proyeccionPorMaterial($precios, $consumoReal),
+            'materiales' => $this->proyeccionPorMaterial($precios, $consumoReal, $periodo),
             'consumo' => $this->consumo($consumoReal, $consumoPresupuestado, $periodo),
             'impacto' => $this->impacto($precios, $consumoReal),
         ];
@@ -154,14 +154,16 @@ class CostosMaterialesService
         }, array_keys($etiquetas));
 
         $conDato = array_values(array_filter($serie, fn ($v) => $v !== null));
+        // Un índice de precios es una foto al cierre de cada mes, no un total:
+        // el mes en curso vale entero (`sumaDelMes: false`).
+        $analisis = $periodo->pronostico($serie, sumaDelMes: false);
 
         return [
             'labels' => $etiquetas,
             'serie' => $serie,
-            'proyeccion' => $this->redondearProyeccion(
-                Pronostico::proyectar($conDato, config('bi.meses_proyeccion')),
-            ),
-            'variacion_mensual' => $this->redondear(Pronostico::variacionMensual($conDato)),
+            'proyeccion' => $this->redondearProyeccion($analisis['proyeccion']),
+            'variacion_mensual' => $this->redondear($analisis['variacion_mensual']),
+            'metodo' => $analisis['metodo'],
             'variacion_periodo' => count($conDato) >= 2
                 ? round(end($conDato) / $conDato[0] * 100 - 100, 2)
                 : null,
@@ -178,7 +180,7 @@ class CostosMaterialesService
      * @param  Collection<int, PedidoDetalleMaterial>  $consumoReal
      * @return list<array<string, mixed>>
      */
-    private function proyeccionPorMaterial(Collection $precios, Collection $consumoReal): array
+    private function proyeccionPorMaterial(Collection $precios, Collection $consumoReal, PeriodoReporte $periodo): array
     {
         $costoConsumido = $consumoReal->groupBy('material_id')->map(fn ($g) => (float) $g->sum('costo_real'));
 
@@ -188,8 +190,8 @@ class CostosMaterialesService
                 count(array_unique(array_filter($m['serie'], fn ($v) => $v !== null))),
             ])
             ->take(self::MATERIALES_PROYECTADOS)
-            ->map(function (array $m): array {
-                $conDato = array_values(array_filter($m['serie'], fn ($v) => $v !== null));
+            ->map(function (array $m) use ($periodo): array {
+                $analisis = $periodo->pronostico($m['serie'], sumaDelMes: false);
 
                 return [
                     'id' => $m['id'],
@@ -197,10 +199,9 @@ class CostosMaterialesService
                     'unidad' => $m['unidad'],
                     'serie' => $m['serie'],
                     'precio_actual' => $m['precio_fin'],
-                    'proyeccion' => $this->redondearProyeccion(
-                        Pronostico::proyectar($conDato, config('bi.meses_proyeccion')),
-                    ),
-                    'variacion_mensual' => $this->redondear(Pronostico::variacionMensual($conDato)),
+                    'proyeccion' => $this->redondearProyeccion($analisis['proyeccion']),
+                    'variacion_mensual' => $this->redondear($analisis['variacion_mensual']),
+                    'metodo' => $analisis['metodo'],
                 ];
             })
             ->values()
@@ -296,15 +297,16 @@ class CostosMaterialesService
             ->map(fn (string $clave) => round($porMes->get($clave, 0), 2))
             ->all();
 
+        $analisis = $periodo->pronostico($serie);
+
         return [
             'por_material' => $porMaterial->all(),
             'labels' => $periodo->meses()->values()->all(),
             'serie' => $serie,
             'media_movil' => array_map(fn ($v) => $this->redondear($v), Pronostico::mediaMovil($serie)),
-            'proyeccion' => $this->redondearProyeccion(
-                Pronostico::proyectar($serie, config('bi.meses_proyeccion')),
-            ),
-            'variacion_mensual' => $this->redondear(Pronostico::variacionMensual($serie)),
+            'proyeccion' => $this->redondearProyeccion($analisis['proyeccion']),
+            'variacion_mensual' => $this->redondear($analisis['variacion_mensual']),
+            'metodo' => $analisis['metodo'],
             'total' => round(array_sum($serie), 2),
             'materiales_distintos' => $realPorMaterial->count(),
             'tiene_presupuestado' => $presupuestado->isNotEmpty(),
