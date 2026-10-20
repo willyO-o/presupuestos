@@ -6,7 +6,10 @@
  * 3 niveles de profundidad (item -> children -> children.children).
  *
  * Separador de seccion (encabezado en mayusculas dentro del sidebar):
- *   { menutitle: string, permission: string|string[] }
+ *   { menutitle: string, permission: string|string[], icon?: string }
+ *   Con `icon`, la seccion se dibuja como acordeon (rotulo con icono + chevron
+ *   y sus enlaces con punto); sin `icon` (ej. "Principal") es un rotulo fijo
+ *   y sus enlaces llevan su propio icono.
  *
  * Item de menu (JSDoc solo como referencia, no se valida en runtime):
  *   @typedef {Object} MenuItem
@@ -49,6 +52,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Ventas',
+        icon: 'fa-solid fa-cart-shopping',
         permission: [
             'cotizaciones.ver',
             'solicitudes-web.ver',
@@ -113,6 +117,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Clientes',
+        icon: 'fa-regular fa-user',
         permission: 'clientes.ver',
     },
     {
@@ -126,6 +131,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Reportes',
+        icon: 'fa-solid fa-chart-simple',
         permission: ['reportes.financiero', 'reportes.produccion', 'reportes.bi'],
     },
     {
@@ -152,6 +158,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Catálogo de Productos',
+        icon: 'fa-solid fa-cube',
         permission: ['categorias-producto.ver', 'productos.ver', 'formulas.ver', 'tipos-proyecto.ver'],
     },
     {
@@ -187,6 +194,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Materiales e Insumos',
+        icon: 'fa-solid fa-boxes-stacked',
         permission: [
             'categorias-material.ver',
             'materiales.ver',
@@ -224,6 +232,7 @@ export const NAV_MENU = [
     },
     {
         menutitle: 'Organización',
+        icon: 'fa-solid fa-sitemap',
         permission: ['sucursales.ver', 'areas.ver', 'empleados.ver'],
     },
     {
@@ -250,6 +259,7 @@ export const NAV_MENU = [
 
     {
         menutitle: 'Administración',
+        icon: 'fa-solid fa-shield-halved',
         permission: ['usuarios.ver', 'roles.ver'],
     },
     {

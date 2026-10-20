@@ -4,9 +4,10 @@
 
 | Variable de marca | Valor | Origen |
 | --- | --- | --- |
-| `--brand-blue` | `#1c7fc4` | Azul de la palabra **"Publi"** del logotipo y del tono medio/oscuro del degradado del isotipo (la figura del nadador/delfín). |
+| `--brand-blue` | `#1b6fdc` | Azul de la palabra **"Publi"** del logotipo y del tono medio/oscuro del degradado del isotipo (la figura del nadador/delfín). |
 | `--brand-blue-light` | `#6fcbec` | Celeste del extremo claro del mismo degradado del isotipo. |
 | `--brand-teal` | `#0e8b94` | Turquesa usado como color de acento/CTA en xtrapubli.com (botones, enlaces destacados). Distinto del azul del logo a propósito: da variedad sin salirse de la familia fría de marca. |
+| `--brand-navy` | `#0b2454` | Azul marino del sidebar (tema "Cordillera", 2026-10-19). Fondo de marca para superficies oscuras de navegación. |
 | `--brand-dark` | `#14161a` | Negro/casi-negro de la palabra **"Xtra"** del logotipo. |
 
 Estas 4 son la **única fuente de verdad**. Viven al principio de `:root` en
@@ -28,15 +29,16 @@ Todo el resto del sistema usa estos tokens, nunca los `--brand-*` directamente (
 
 | Token | Base (light) | Uso previsto |
 | --- | --- | --- |
-| `primary` | `#1c7fc4` (= `--brand-blue`) | Color principal de marca: CTA primario, links, iconos activos, sidebar activo. |
+| `primary` | `#1b6fdc` (= `--brand-blue`) | Color principal de marca: CTA primario, links, iconos activos, sidebar activo. |
 | `secondary` | `#64748b` | Acciones secundarias / menos prominentes, gris neutro (no compite con el azul de marca). |
-| `success` | `#17a673` | Confirmaciones, estados "aprobado", cifras positivas. |
+| `success` | `#15a371` | Confirmaciones, estados "aprobado", cifras positivas. |
 | `info` | `#0e8b94` (= `--brand-teal`) | Acento de marca alterno (turquesa del sitio web), notificaciones informativas. |
-| `warning` | `#f7b84b` | Alertas medias, "atención", límites cerca de superarse. |
+| `warning` | `#f5a524` | Alertas medias, "atención", límites cerca de superarse. |
 | `danger` | `#e5484d` | Errores, "rechazado", sobreconsumo. |
 | `dark` | `#14161a` (= `--brand-dark`) | Texto/fondos fuertes que deben leer como "marca", botones dark, sidebar. |
-| `light` | `#f3f3f9` | Fondos neutros, botones sutiles sobre superficies oscuras. |
+| `light` | `#f3f6fb` | Fondos neutros, botones sutiles sobre superficies oscuras. |
 | `pink` | `#ee6a9f` | Color bonus fuera de la paleta core, para variedad en gráficos/listas (no es de marca). |
+| `cyan` / `violet` | `#12a9cf` / `#5b6cf0` | Solo para el cuadro de icono de los KPI (`.stat-icon-cyan`, `.stat-icon-violet`); sin botón ni badge porque no cargan significado. |
 
 ## Modo oscuro
 

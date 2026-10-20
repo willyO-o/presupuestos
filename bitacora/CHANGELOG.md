@@ -13,6 +13,39 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-19 — Tema "Cordillera": nuevo look del panel (sidebar, topbar, encabezado y dashboard)
+
+**Qué cambió:**
+- **Tema visual** nuevo según la referencia: sidebar azul marino con degradado y silueta de montañas,
+  secciones del menú como acordeón con icono (enlaces con punto, página actual en pastilla azul sólida),
+  topbar blanco con buscador en píldora, banda de encabezado celeste con la cordillera y la fecha en
+  TODAS las pantallas. Fuente **Plus Jakarta Sans**. Tarjetas con borde fino y radio 14px, iconos de KPI
+  sólidos con degradado, tablas con encabezado en franja, badges en píldora. Modo oscuro re-tonado a
+  azul marino.
+- **Dashboard rehecho**: 5 KPIs con variación contra el mes anterior, ventas por mes del año contra el
+  anterior, actividad reciente (notificaciones), pedidos recientes, pedidos por etapa, productos más
+  vendidos y una banda con conversión y entregas a tiempo. Saludo "¡Hola, {nombre}!".
+- **Buscador del topbar funcional** (antes era decorativo): salta a cualquier pantalla del menú a la que
+  el usuario tiene permiso, con Ctrl+K y flechas. Nuevo menú de **accesos rápidos**.
+
+**Por qué:**
+- Pedido del usuario: llevar el tema principal al diseño de la captura de referencia, con aspecto
+  profesional.
+- Los KPIs comparan contra el **mismo corte** del mes anterior (del 1 al mismo día): comparar contra el
+  mes completo daría siempre una caída falsa a principio de mes.
+
+**Cómo:**
+- Tokens en `:root`/`.dark` de `app.css` (nuevo `--brand-navy`, `--card-border`, `--hero-bg-*`,
+  `--input-*`, `--table-head-bg`, `--c-cyan`, `--c-violet`); §1-3 reescritas y §34 nueva para el panel.
+  Montañas como SVG propios en `public/img/banner/`.
+- `ResumenDashboardService` suma `ventas_mes(_anterior)`, `cotizaciones_mes_anterior`,
+  `ingresos_mes_anterior`, `pedidos_recientes`, `productos_mas_vendidos` y `ventas_por_mes` pasa a 12
+  meses del año con el año anterior (`null` en meses futuros). Todo sigue acotado por sucursal.
+- `MainDashboardLayout` acepta `pageSubtitle`; `Directives/Can.js` exporta `userCan()`;
+  `Dropdown.vue` acepta `bare`. Tests nuevos en `ReporteControllerTest`.
+
+---
+
 ## 2026-10-13 — Pronósticos del BI: intervalo de predicción, validación e informe PDF/CSV
 
 **Qué cambió:**

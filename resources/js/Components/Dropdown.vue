@@ -14,6 +14,14 @@ const props = defineProps({
         type: String,
         default: 'py-1 bg-white dark:bg-gray-700',
     },
+    /**
+     * Sin sombra, borde ni redondeo propios: el contenido del slot trae su
+     * propia superficie (ej. `.card`, `.topbar-menu`, `.quick-access`).
+     */
+    bare: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const closeOnEscape = (e) => {
@@ -67,14 +75,13 @@ const open = ref(false);
         >
             <div
                 v-show="open"
-                class="absolute z-50 mt-2 rounded-md shadow-lg"
-                :class="[widthClass, alignmentClasses]"
+                class="absolute z-50 mt-2"
+                :class="[widthClass, alignmentClasses, { 'rounded-md shadow-lg': !bare }]"
                 style="display: none"
                 @click="open = false"
             >
                 <div
-                    class="rounded-md ring-1 ring-black ring-opacity-5"
-                    :class="contentClasses"
+                    :class="[contentClasses, { 'rounded-md ring-1 ring-black ring-opacity-5': !bare }]"
                 >
                     <slot name="content" />
                 </div>

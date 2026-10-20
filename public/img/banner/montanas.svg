@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">
+  <!-- Cordillera de fondo -->
+  <path d="M0 200V150l60-30 50 18 60-42 45 22 45-34 40 26 40-18 40 20 40-42 50 30 50-40 50 32 70-18v126Z" fill="#dce9fb"/>
+  <!-- Pico izquierdo -->
+  <path d="M220 200 330 88l70 72 20 40Z" fill="#a6c8f2"/>
+  <path d="M330 88 420 200h-70l-6-60Z" fill="#7caaea"/>
+  <path d="m330 88 14 16-8-2-6 8-8-10-6 4Z" fill="#fff"/>
+  <!-- Pico principal -->
+  <path d="M300 200 398 64l32-46 22 32 18 22 50 58 80 70Z" fill="#6ba3ea"/>
+  <path d="M430 18 600 200H455l-7-90-10-48Z" fill="#3b78d0"/>
+  <path d="m430 18 22 32-12-4-8 14-10-12-12 8Z" fill="#fff"/>
+  <path d="m430 18 22 32-8-3-6 15Z" fill="#e1edfc"/>
+  <!-- Pico derecho -->
+  <path d="m470 200 70-138 100 108v30Z" fill="#8ebbf0"/>
+  <path d="m540 62 100 108v30h-80l-8-80Z" fill="#5a93e0"/>
+  <path d="m540 62 16 22-8-2-6 10-8-12-6 6Z" fill="#fff"/>
+  <!-- Colinas al frente -->
+  <path d="M180 200c80-24 150-30 220-18s160-14 240-6v24Z" fill="#c9def8"/>
+</svg>

@@ -28,8 +28,12 @@ class ReporteController extends Controller
             return redirect()->route('portal.cotizaciones');
         }
 
+        $primerNombre = strtok(trim($request->user()->name), ' ') ?: $request->user()->name;
+
         return inertia('Dashboard', [
             'resumen' => $resumen->resumen($request->user()),
+            'pageTitle' => "¡Hola, {$primerNombre}!",
+            'pageSubtitle' => 'Aquí tienes un resumen general de la actividad de tu negocio.',
         ]);
     }
 

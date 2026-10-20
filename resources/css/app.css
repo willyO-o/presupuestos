@@ -23,74 +23,100 @@
    Clases con nomenclatura estilo Bootstrap (card, btn, badge, d-flex, ...)
    construidas sobre Tailwind. Edita las variables de :root / .dark para
    cambiar la paleta global; el resto de clases heredan de ahi.
+
+   Tema "Cordillera" (2026-10-19): sidebar azul marino profundo con la
+   silueta de montañas, superficies blancas con borde fino, azul real como
+   acento y una banda de encabezado celeste con la cordillera a la derecha.
+   La montaña es el guiño a El Alto; el azul, el del isotipo.
    ========================================================================== */
 
 :root {
     /* ------------------------------------------------------------------
        MARCA XTRAPUBLI — unica fuente de verdad del color de marca.
-       Si la empresa actualiza su identidad, solo hay que tocar estas 4
+       Si la empresa actualiza su identidad, solo hay que tocar estas
        variables; el resto del archivo (tokens semanticos y componentes)
        las hereda automaticamente.
-       - --brand-blue        -> azul del isotipo y de la palabra "Publi"
+       - --brand-blue        -> azul real del isotipo y de la palabra "Publi"
        - --brand-blue-light  -> celeste del degradado del nadador/isotipo
        - --brand-teal        -> turquesa usado en CTAs de xtrapubli.com
+       - --brand-navy        -> azul marino del sidebar (fondo de marca)
        - --brand-dark        -> negro de la palabra "Xtra"
        ------------------------------------------------------------------ */
-    --brand-blue: #1c7fc4;
+    --brand-blue: #1b6fdc;
     --brand-blue-light: #6fcbec;
     --brand-teal: #0e8b94;
+    --brand-navy: #0b2454;
     --brand-dark: #14161a;
 
-    --page-bg: #f3f3f9;
-    --sidebar-bg: #101a2c;
-    --sidebar-bg-hover: rgba(255, 255, 255, 0.06);
-    --sidebar-bg-active: rgba(28, 127, 196, 0.22);
-    --sidebar-text: #8ea3c2;
+    --page-bg: #f3f6fb;
+
+    --sidebar-bg: var(--brand-navy);
+    --sidebar-bg-top: #0e2d66;
+    --sidebar-bg-deep: #071a3d;
+    --sidebar-bg-hover: rgba(255, 255, 255, 0.07);
+    --sidebar-bg-active: var(--c-primary);
+    --sidebar-text: #c3d0e6;
+    --sidebar-text-muted: #8195b8;
     --sidebar-text-active: #ffffff;
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.18);
     --sidebar-scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
-    --sidebar-width: 260px;
+    --sidebar-width: 264px;
     --sidebar-width-collapsed: 80px;
+
     --topbar-bg: #ffffff;
-    --topbar-border: #eef0f5;
+    --topbar-border: #e6ecf5;
+    --topbar-height: 72px;
+
+    /* Banda de encabezado de cada pantalla (titulo + cordillera). */
+    --hero-bg-from: #f8fbff;
+    --hero-bg-to: #e4effd;
+
     --card-bg: #ffffff;
-    --card-shadow: 0 2px 4px rgba(20, 22, 26, 0.06), 0 8px 16px rgba(20, 22, 26, 0.04);
-    --text-body: #495057;
-    --text-heading: #343a40;
-    --text-muted: #878a99;
-    --border-subtle: #eef0f5;
+    --card-border: #e6ecf5;
+    --card-radius: 14px;
+    --card-shadow: 0 1px 2px rgba(15, 35, 75, 0.04), 0 6px 18px -6px rgba(15, 35, 75, 0.08);
+    --card-shadow-hover: 0 2px 4px rgba(15, 35, 75, 0.05), 0 14px 28px -10px rgba(15, 35, 75, 0.16);
+
+    --input-bg: #ffffff;
+    --input-border: #dce4f0;
+    --table-head-bg: #f5f8fd;
+
+    --text-body: #3f4b63;
+    --text-heading: #0f1f3d;
+    --text-muted: #66748e;
+    --border-subtle: #e9eef6;
 
     /* ------------------------------------------------------------------
        TOKENS SEMANTICOS (estilo Bootstrap) — derivados de la marca.
        Formato por color: base / -dark (hover, active) / -soft (fondo tenue).
        ------------------------------------------------------------------ */
     --c-primary: var(--brand-blue);
-    --c-primary-dark: #145f97;
-    --c-primary-soft: #e3f1fa;
+    --c-primary-dark: #1257bd;
+    --c-primary-soft: #e8f1fd;
 
     --c-secondary: #64748b;
     --c-secondary-dark: #4b5768;
-    --c-secondary-soft: #eef1f4;
+    --c-secondary-soft: #eef1f5;
 
-    --c-success: #17a673;
-    --c-success-dark: #128257;
-    --c-success-soft: #e3f7ee;
+    --c-success: #15a371;
+    --c-success-dark: #0f8059;
+    --c-success-soft: #e2f6ee;
 
     --c-info: var(--brand-teal);
     --c-info-dark: #0b6e75;
     --c-info-soft: #e1f3f4;
 
-    --c-warning: #f7b84b;
-    --c-warning-dark: #e2a233;
-    --c-warning-soft: #fef4e4;
+    --c-warning: #f5a524;
+    --c-warning-dark: #d98a0b;
+    --c-warning-soft: #fef3e0;
 
     --c-danger: #e5484d;
     --c-danger-dark: #c93a3f;
     --c-danger-soft: #fdecec;
 
-    --c-light: #f3f3f9;
-    --c-light-dark: #e2e4ee;
+    --c-light: #f3f6fb;
+    --c-light-dark: #e3e9f3;
 
     --c-dark: var(--brand-dark);
     --c-dark-dark: #000000;
@@ -99,6 +125,16 @@
     --c-pink: #ee6a9f;
     --c-pink-dark: #d94f87;
     --c-pink-soft: #fce9f1;
+
+    /* Violeta y cian: solo para iconos de KPI (tarjetas del panel), no
+       tienen variante de boton/badge porque no cargan significado semantico. */
+    --c-cyan: #12a9cf;
+    --c-cyan-dark: #0b85a6;
+    --c-cyan-soft: #e0f5fa;
+
+    --c-violet: #5b6cf0;
+    --c-violet-dark: #4150d4;
+    --c-violet-soft: #eceefe;
 
     /* ------------------------------------------------------------------
        PALETA DE SERIES (gráficos) — NO son los tokens semánticos.
@@ -128,29 +164,45 @@
 
     /* La superficie de dibujo es --card-bg (contra la que se validó el 3:1);
        Composables/UseChartTheme.js la lee de ahí, no se duplica acá. */
-    --chart-grid: #eef0f5;
-    --chart-axis: #878a99;
+    --chart-grid: #edf1f7;
+    --chart-axis: #66748e;
 }
 
 .dark {
-    --page-bg: #1b1e2e;
-    --sidebar-bg: #0b1220;
-    --sidebar-bg-hover: rgba(255, 255, 255, 0.05);
-    --sidebar-bg-active: rgba(28, 127, 196, 0.24);
-    --sidebar-text: #8ea3c2;
-    --sidebar-text-active: #ffffff;
+    --page-bg: #0a1325;
+
+    --sidebar-bg: #081630;
+    --sidebar-bg-top: #0b1d3f;
+    --sidebar-bg-deep: #050f22;
+    --sidebar-bg-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-text: #b4c2dc;
+    --sidebar-text-muted: #6f83a8;
     --sidebar-border: rgba(255, 255, 255, 0.06);
-    --topbar-bg: #262a3d;
-    --topbar-border: rgba(255, 255, 255, 0.06);
-    --card-bg: #262a3d;
-    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.16);
-    --text-body: #c3c9e6;
-    --text-heading: #e9ecef;
-    --text-muted: #8f97b8;
-    --border-subtle: rgba(255, 255, 255, 0.08);
+
+    --topbar-bg: #0f1a30;
+    --topbar-border: rgba(255, 255, 255, 0.07);
+
+    --hero-bg-from: #0d1830;
+    --hero-bg-to: #10254b;
+
+    --card-bg: #111d35;
+    --card-border: rgba(255, 255, 255, 0.06);
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 20px -8px rgba(0, 0, 0, 0.35);
+    --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.3), 0 16px 30px -10px rgba(0, 0, 0, 0.45);
+
+    --input-bg: #0d182d;
+    --input-border: rgba(255, 255, 255, 0.1);
+    --table-head-bg: rgba(255, 255, 255, 0.03);
+
+    --text-body: #c2cde3;
+    --text-heading: #eef2fa;
+    --text-muted: #8b99b8;
+    --border-subtle: rgba(255, 255, 255, 0.07);
 
     /* La paleta de series NO se invierte automáticamente: es su propio juego
-       de pasos, validado contra el fondo oscuro de la tarjeta (#262a3d). */
+       de pasos, validado contra el fondo oscuro de la tarjeta. Se validó
+       contra #262a3d; la tarjeta actual (#111d35) es MÁS oscura, así que el
+       contraste 3:1 solo mejora y los demás checks no dependen del fondo. */
     --chart-1: #0899f0;
     --chart-2: #c08600;
     --chart-3: #0da6b0;
@@ -158,29 +210,67 @@
     --chart-5: #9776fb;
     --chart-6: #03ad76;
 
-    --chart-grid: rgba(255, 255, 255, 0.10);
-    --chart-axis: #8f97b8;
+    --chart-grid: rgba(255, 255, 255, 0.08);
+    --chart-axis: #8b99b8;
 
-    --c-primary-soft: rgba(28, 127, 196, 0.16);
+    --c-primary-soft: rgba(27, 111, 220, 0.18);
     --c-secondary-soft: rgba(100, 116, 139, 0.18);
-    --c-success-soft: rgba(23, 166, 115, 0.15);
+    --c-success-soft: rgba(21, 163, 113, 0.16);
     --c-info-soft: rgba(14, 139, 148, 0.18);
-    --c-warning-soft: rgba(247, 184, 75, 0.15);
+    --c-warning-soft: rgba(245, 165, 36, 0.15);
     --c-danger-soft: rgba(229, 72, 77, 0.16);
+    --c-light: rgba(255, 255, 255, 0.05);
     --c-light-dark: rgba(255, 255, 255, 0.08);
     --c-dark-soft: rgba(255, 255, 255, 0.08);
     --c-pink-soft: rgba(238, 106, 159, 0.15);
+    --c-cyan-soft: rgba(18, 169, 207, 0.16);
+    --c-violet-soft: rgba(91, 108, 240, 0.18);
 }
 
 @layer base {
     body {
         background-color: var(--page-bg);
         color: var(--text-body);
+        caret-color: var(--c-primary);
+        font-feature-settings: 'cv11', 'ss01';
+    }
+
+    ::selection {
+        background-color: color-mix(in srgb, var(--c-primary) 22%, transparent);
+        color: var(--text-heading);
+    }
+
+    :focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--c-primary) 70%, transparent);
+        outline-offset: 2px;
+    }
+
+    /* Scrollbar de la pagina (Chrome/Edge/Safari + Firefox): fina y con el
+       tono del tema, en vez de la barra gris del sistema. */
+    html {
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--text-muted) 45%, transparent) transparent;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+        background-clip: content-box;
+        border: 3px solid transparent;
+        border-radius: 999px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
     }
 }
 
 /* ==========================================================================
-   1. LAYOUT: shell, sidebar, topbar
+   1. LAYOUT: shell, sidebar, topbar, banda de encabezado
    ========================================================================== */
 
 .app-shell {
@@ -193,27 +283,23 @@
    pantalla: el sidebar se oculta con translateX salvo que tenga .is-open,
    sin importar el breakpoint. En desktop ademas se le quita al contenido el
    margen reservado para el sidebar (ver .main-wrapper.sidebar-open) para
-   que el contenido aproveche el ancho completo cuando esta oculto. */
-/* Foto (public/img/banner/img-1.jpg) con el color del sidebar encima,
-   semitransparente (color-mix), para que el menu siga siendo legible sobre
-   la imagen. `background-attachment: fixed` ademas de ignorar el scroll
-   interno de .sidebar-body, queda anclada al viewport durante la animacion
-   de apertura/cierre (transform en .sidebar): al deslizar el sidebar la
-   imagen no "viaja" con el panel, solo el panel revela/oculta la imagen. */
+   que el contenido aproveche el ancho completo cuando esta oculto.
+
+   Fondo: degradado vertical de azul marino con la cordillera
+   (public/img/banner/montanas-sidebar.svg) apoyada en el borde inferior.
+   Las montañas van en el fondo del <aside>, no dentro de .sidebar-body, para
+   que el menu se desplace por encima sin arrastrarlas. */
 .sidebar {
     width: var(--sidebar-width);
     background-color: var(--sidebar-bg);
-    background-image: linear-gradient(
-            color-mix(in srgb, var(--sidebar-bg) 88%, transparent),
-            color-mix(in srgb, var(--sidebar-bg) 88%, transparent)
-        ),
-        url('/img/banner/img-1.jpg');
-    background-size: cover;
-    background-position: center;
+    background-image: url('/img/banner/montanas-sidebar.svg'),
+        linear-gradient(180deg, var(--sidebar-bg-top) 0%, var(--sidebar-bg) 42%, var(--sidebar-bg-deep) 100%);
+    background-size: 100% auto, cover;
+    background-position: bottom center, center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
     transform: translateX(-100%);
-    @apply fixed inset-y-0 start-0 z-40 flex flex-col transition-transform duration-200 ease-in-out;
+    box-shadow: 1px 0 0 var(--sidebar-border);
+    @apply fixed inset-y-0 start-0 z-40 flex flex-col transition-transform duration-300 ease-out;
 }
 
 .sidebar.is-open {
@@ -221,23 +307,22 @@
 }
 
 .sidebar-brand {
-    height: 70px;
-    border-color: var(--sidebar-border);
-    @apply flex shrink-0 items-center justify-center gap-2 border-b px-6;
+    height: var(--topbar-height);
+    @apply flex shrink-0 items-center px-6;
 }
 
-/* Chip blanco detras del logotipo: el logo tiene la palabra "Xtra" en negro,
-   invisible directo sobre el fondo oscuro del sidebar (--sidebar-bg). */
+/* El logo del sidebar es la version blanca (logo-blanco.png): el logo a
+   color tiene la palabra "Xtra" en negro, invisible sobre el azul marino. */
 .sidebar-brand-logo {
-    @apply inline-flex items-center rounded-lg  px-1 py-1 transition-opacity duration-150 hover:opacity-90;
+    @apply inline-flex items-center rounded-lg transition-opacity duration-150 hover:opacity-90;
 }
 
 .sidebar-brand-logo img {
-    @apply h-12 w-auto;
+    @apply h-11 w-auto;
 }
 
 .sidebar-body {
-    @apply flex-1 overflow-y-auto px-4 py-4;
+    @apply flex-1 overflow-y-auto px-3 pb-40 pt-2;
     scrollbar-width: thin;
     scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
 }
@@ -256,6 +341,7 @@
 
 .sidebar-body::-webkit-scrollbar-thumb {
     background-color: transparent;
+    border: 0;
     border-radius: 999px;
     transition: background-color 150ms ease-in-out;
 }
@@ -268,22 +354,60 @@
     background-color: var(--sidebar-scrollbar-thumb-hover);
 }
 
+/* Rotulo de una seccion SIN acordeon (ej. "Principal"). */
 .sidebar-menu-label {
-    color: var(--sidebar-text);
-    @apply mb-2 mt-5 px-2 text-xs font-semibold uppercase tracking-wider opacity-60;
+    color: var(--sidebar-text-muted);
+    @apply mb-2 mt-6 px-3 text-[0.6875rem] font-bold uppercase tracking-[0.08em];
 }
 
 .sidebar-menu-label:first-child {
-    @apply mt-0;
+    @apply mt-1;
+}
+
+/* Seccion con acordeon (Ventas, Clientes, Reportes, ...): el rotulo es un
+   boton con icono + chevron, y sus enlaces van con punto en vez de icono. */
+.nav-section {
+    @apply mt-3;
+}
+
+.nav-section-toggle {
+    color: #dbe4f3;
+    @apply flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-start text-[0.71875rem] font-bold uppercase tracking-[0.06em] transition-colors duration-150;
+}
+
+.nav-section-toggle:hover {
+    background-color: var(--sidebar-bg-hover);
+    color: var(--sidebar-text-active);
+}
+
+.nav-section-toggle .nav-icon-i {
+    color: var(--sidebar-text);
+    @apply flex h-5 w-5 shrink-0 items-center justify-center text-[1.0625rem] leading-none;
+}
+
+.nav-section-toggle .nav-text {
+    @apply flex-1 truncate;
+}
+
+.nav-section-toggle .nav-chevron {
+    @apply h-4 w-4 shrink-0 opacity-70 transition-transform duration-200;
+}
+
+.nav-section.is-expanded > .nav-section-toggle .nav-chevron {
+    @apply rotate-180;
+}
+
+.nav-section-list {
+    @apply mt-0.5 flex flex-col gap-0.5;
 }
 
 .nav-sidebar {
-    @apply flex flex-col gap-1;
+    @apply flex flex-col gap-0.5;
 }
 
 .nav-sidebar-link {
     color: var(--sidebar-text);
-    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150;
+    @apply flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-[background-color,color,box-shadow] duration-150;
 }
 
 .nav-sidebar-link:hover {
@@ -291,9 +415,13 @@
     color: var(--sidebar-text-active);
 }
 
+/* Pagina actual: pastilla solida del azul de marca con sombra desplazada
+   hacia abajo, como en la referencia del tema. */
 .nav-sidebar-link.active {
     background-color: var(--sidebar-bg-active);
     color: var(--sidebar-text-active);
+    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--c-primary) 85%, transparent);
+    @apply font-semibold;
 }
 
 .nav-sidebar-link .nav-icon {
@@ -304,7 +432,24 @@
    controla por font-size, no por width/height, por eso necesita su propia
    clase en lugar de reusar .nav-icon (pensada para <svg>). */
 .nav-sidebar-link .nav-icon-i {
-    @apply flex h-[18px] w-[18px] shrink-0 items-center justify-center text-base leading-none;
+    @apply flex h-5 w-5 shrink-0 items-center justify-center text-[1.0625rem] leading-none;
+}
+
+/* Punto de los enlaces dentro de una seccion con acordeon: ocupa el mismo
+   ancho que el icono del rotulo, asi el texto queda alineado con el de la
+   seccion. */
+.nav-sidebar-link .nav-dot {
+    @apply flex h-5 w-5 shrink-0 items-center justify-center;
+}
+
+.nav-sidebar-link .nav-dot::before {
+    content: '';
+    background-color: currentColor;
+    @apply h-[5px] w-[5px] rounded-full opacity-70;
+}
+
+.nav-sidebar-link.active .nav-dot::before {
+    @apply opacity-100;
 }
 
 .nav-sidebar-link .nav-text {
@@ -336,7 +481,7 @@
 
 /* --- Main column / topbar --- */
 .main-wrapper {
-    @apply flex min-h-screen flex-col transition-[margin-inline-start] duration-200 ease-in-out;
+    @apply flex min-h-screen min-w-0 flex-col transition-[margin-inline-start] duration-300 ease-out;
 }
 
 @media (min-width: 1024px) {
@@ -346,71 +491,136 @@
 }
 
 .topbar {
-    height: 70px;
+    height: var(--topbar-height);
     background-color: var(--topbar-bg);
     border-color: var(--topbar-border);
-    @apply sticky top-0 z-30 flex items-center justify-between gap-3 border-b px-4 sm:px-6;
+    @apply sticky top-0 z-30 flex items-center justify-between gap-3 border-b px-4 sm:px-6 lg:px-7;
+}
+
+.topbar-start {
+    @apply flex min-w-0 flex-1 items-center gap-3 sm:gap-5;
 }
 
 .topbar-search {
-    @apply relative hidden w-full max-w-xs sm:block;
+    @apply relative hidden w-full max-w-[420px] sm:block;
 }
 
 .topbar-search input {
     background-color: var(--page-bg);
+    border-color: var(--topbar-border);
     color: var(--text-body);
-    @apply w-full rounded-lg border-0 py-2.5 ps-10 pe-3 text-sm ring-0 placeholder:text-slate-400 focus:outline-none;
+    @apply w-full rounded-full border py-2.5 pe-4 ps-11 text-sm ring-0 transition-[border-color,box-shadow,background-color] duration-150 focus:outline-none;
+}
+
+.topbar-search input::placeholder {
+    color: var(--text-muted);
 }
 
 /* Foco fino + sombra suave, igual que .form-control (ver seccion 18). */
 .topbar-search input:focus {
+    background-color: var(--card-bg);
+    border-color: var(--c-primary);
     box-shadow:
         0 0 0 3px color-mix(in srgb, var(--c-primary) 15%, transparent),
         0 1px 2px color-mix(in srgb, var(--c-primary) 25%, transparent);
 }
 
-.dark .topbar-search input {
-    background-color: var(--page-bg);
-}
-
 .topbar-search .topbar-search-icon {
     color: var(--text-muted);
-    @apply pointer-events-none absolute inset-y-0 start-3 flex items-center;
+    @apply pointer-events-none absolute inset-y-0 start-4 flex items-center;
 }
 
 .topbar-search-icon svg {
     @apply h-4 w-4;
 }
 
+.topbar-search-kbd {
+    color: var(--text-muted);
+    border-color: var(--input-border);
+    @apply pointer-events-none absolute end-3 top-1/2 hidden -translate-y-1/2 rounded-md border px-1.5 py-0.5 font-sans text-[0.6875rem] font-semibold leading-none md:block;
+}
+
+/* Resultados del buscador del topbar: busca en el menu (Data/Sidebar/Nav.js)
+   las pantallas a las que el usuario tiene acceso. */
+.topbar-search-results {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    box-shadow: var(--card-shadow-hover);
+    @apply absolute inset-x-0 top-[calc(100%+8px)] z-50 max-h-[360px] overflow-y-auto rounded-[14px] border p-1.5;
+}
+
+.topbar-search-result {
+    color: var(--text-body);
+    @apply flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-start text-sm transition-colors duration-100;
+}
+
+.topbar-search-result.is-active,
+.topbar-search-result:hover {
+    background-color: var(--c-primary-soft);
+    color: var(--text-heading);
+}
+
+.topbar-search-result-icon {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm;
+}
+
+.topbar-search-result-section {
+    color: var(--text-muted);
+    @apply ms-auto shrink-0 text-xs;
+}
+
+.topbar-search-empty {
+    color: var(--text-muted);
+    @apply px-3 py-6 text-center text-sm;
+}
+
 .topbar-actions {
-    @apply flex items-center gap-1 sm:gap-2;
+    @apply flex shrink-0 items-center gap-1 sm:gap-1.5;
 }
 
 .topbar-icon-btn {
     color: var(--text-body);
-    @apply relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-black/5;
+    @apply relative flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150;
 }
 
-.dark .topbar-icon-btn:hover {
-    @apply bg-white/5;
+.topbar-icon-btn:hover {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+}
+
+/* Solo desde tablet (pantalla completa). Va como clase propia porque
+   `.topbar-icon-btn` fija `display: flex` y pisaria un `hidden` utilitario. */
+.topbar-icon-btn-desktop {
+    @apply hidden md:flex;
 }
 
 .topbar-icon-btn svg {
-    @apply h-5 w-5;
+    @apply h-[22px] w-[22px];
 }
 
 .topbar-icon-btn .badge-dot {
-    @apply absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2;
+    @apply absolute right-2 top-2 h-2.5 w-2.5 rounded-full ring-2;
     background-color: var(--c-danger);
     --tw-ring-color: var(--topbar-bg);
 }
 
-.topbar-user {
-    @apply flex items-center gap-3 rounded-lg py-1.5 ps-2 pe-1 transition-colors duration-150 hover:bg-black/5;
+.topbar-divider {
+    background-color: var(--topbar-border);
+    @apply mx-2 hidden h-8 w-px sm:block;
 }
 
-.dark .topbar-user:hover {
-    @apply bg-white/5;
+.topbar-user {
+    @apply flex items-center gap-3 rounded-full py-1 pe-2 ps-1 transition-colors duration-150;
+}
+
+.topbar-user:hover {
+    background-color: var(--c-light);
+}
+
+.topbar-user .avatar {
+    box-shadow: 0 0 0 2px var(--topbar-bg), 0 0 0 3px var(--topbar-border);
 }
 
 .topbar-user-name {
@@ -423,27 +633,138 @@
     @apply text-xs leading-tight;
 }
 
+/* Menu desplegable del usuario (Topbar). */
+.topbar-menu {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    box-shadow: var(--card-shadow-hover);
+    @apply overflow-hidden rounded-[14px] border p-1.5;
+}
+
+.topbar-menu-item {
+    color: var(--text-body);
+    @apply flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-start text-sm font-medium transition-colors duration-100;
+}
+
+.topbar-menu-item i {
+    color: var(--text-muted);
+    @apply w-4 text-center;
+}
+
+.topbar-menu-item:hover {
+    background-color: var(--c-primary-soft);
+    color: var(--text-heading);
+}
+
+.topbar-menu-item:hover i {
+    color: var(--c-primary);
+}
+
+/* Accesos rapidos (icono de cuadricula del Topbar). */
+.quick-access {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    box-shadow: var(--card-shadow-hover);
+    width: 300px;
+    @apply rounded-[14px] border p-4;
+}
+
+.quick-access-title {
+    color: var(--text-heading);
+    @apply mb-3 text-sm font-bold;
+}
+
+.quick-access-grid {
+    @apply grid grid-cols-3 gap-2;
+}
+
+.quick-access-item {
+    color: var(--text-body);
+    @apply flex flex-col items-center gap-2 rounded-xl px-1 py-3 text-center text-xs font-medium leading-tight transition-colors duration-100;
+}
+
+.quick-access-item:hover {
+    background-color: var(--c-light);
+    color: var(--text-heading);
+}
+
+.quick-access-item .stat-icon {
+    @apply h-10 w-10 rounded-xl;
+}
+
+.quick-access-item .stat-icon i {
+    @apply text-base;
+}
+
 .sidebar-overlay {
-    @apply fixed inset-0 z-30 bg-slate-900/50 lg:hidden;
+    @apply fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-[2px] lg:hidden;
 }
 
-/* --- Page content --- */
-.page-content {
-    @apply flex-1 p-4 sm:p-6;
+/* --- Banda de encabezado (titulo de la pantalla) ---
+   Degradado celeste de ancho completo, pegado al topbar, con la cordillera
+   (public/img/banner/montanas.svg) apoyada abajo a la derecha. El titulo,
+   el subtitulo/breadcrumb y la fecha van por encima (z-10). En modo oscuro
+   las montañas bajan de opacidad para no encender la banda. */
+.page-hero {
+    background-image: linear-gradient(100deg, var(--hero-bg-from) 0%, var(--hero-bg-from) 38%, var(--hero-bg-to) 100%);
+    border-color: var(--topbar-border);
+    @apply relative isolate overflow-hidden border-b px-4 pb-8 pt-7 sm:px-6 lg:px-7;
 }
 
-.page-title-box {
-    @apply mb-6 flex flex-wrap items-center justify-between gap-2;
+.page-hero::after {
+    content: '';
+    background: url('/img/banner/montanas.svg') right bottom / contain no-repeat;
+    width: min(560px, 62%);
+    @apply pointer-events-none absolute bottom-0 end-0 top-2 -z-10;
+}
+
+.dark .page-hero::after {
+    opacity: 0.16;
+}
+
+/* En movil la banda es angosta y el texto llega hasta las montañas. */
+@media (max-width: 639px) {
+    .page-hero::after {
+        opacity: 0.35;
+        width: 70%;
+    }
+}
+
+.page-hero-inner {
+    @apply flex flex-wrap items-start justify-between gap-4;
 }
 
 .page-title {
     color: var(--text-heading);
-    @apply text-lg font-semibold uppercase tracking-wide;
+    @apply text-[1.5rem] font-bold leading-tight tracking-[-0.02em] sm:text-[1.75rem];
+    text-wrap: balance;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    @apply mt-1.5 max-w-[60ch] text-[0.9375rem];
+}
+
+.page-hero-date {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+    color: var(--text-heading);
+    box-shadow: var(--card-shadow);
+    @apply hidden items-center gap-2.5 rounded-xl border px-4 py-2.5 text-[0.8125rem] font-semibold sm:inline-flex;
+}
+
+.page-hero-date i {
+    color: var(--c-primary);
+}
+
+/* --- Page content --- */
+.page-content {
+    @apply flex-1 px-4 py-6 sm:px-6 lg:px-7;
 }
 
 .breadcrumb {
     color: var(--text-muted);
-    @apply flex items-center gap-2 text-sm;
+    @apply mt-1.5 flex flex-wrap items-center gap-2 text-sm;
 }
 
 .breadcrumb .breadcrumb-item.active {
@@ -454,7 +775,7 @@
 .app-footer {
     border-color: var(--border-subtle);
     color: var(--text-muted);
-    @apply flex flex-wrap items-center justify-between gap-2 border-t px-4 py-4 text-xs sm:px-6;
+    @apply flex flex-wrap items-center justify-between gap-2 border-t px-4 py-4 text-xs sm:px-6 lg:px-7;
 }
 
 /* ==========================================================================
@@ -463,8 +784,9 @@
 
 .card {
     background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
     box-shadow: var(--card-shadow);
-    @apply rounded-md border-0;
 }
 
 .card-header {
@@ -478,7 +800,13 @@
 
 .card-title {
     color: var(--text-heading);
-    @apply text-base font-semibold;
+    @apply flex items-center gap-2.5 text-[0.9875rem] font-bold;
+}
+
+/* Icono opcional delante del titulo: <span class="card-title"><i ...></i> Ventas</span> */
+.card-title > i {
+    color: var(--c-primary);
+    @apply text-base;
 }
 
 .card-subtitle {
@@ -493,7 +821,8 @@
 
 .card-link {
     color: var(--c-primary);
-    @apply text-sm font-semibold;
+    @apply text-[0.8125rem] font-semibold transition-colors duration-150 hover:underline;
+    text-underline-offset: 3px;
 }
 
 /* ==========================================================================
@@ -504,47 +833,80 @@
     @apply flex items-center gap-4 p-5;
 }
 
+/* Cuadro del icono: solido con un degradado leve del color hacia su tono
+   -dark e icono blanco, con una sombra desplazada del mismo color. */
 .stat-icon {
-    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl;
+    --stat-color: var(--c-primary);
+    --stat-color-dark: var(--c-primary-dark);
+    background-image: linear-gradient(140deg, color-mix(in srgb, var(--stat-color) 88%, #ffffff), var(--stat-color-dark));
+    box-shadow: 0 8px 16px -8px color-mix(in srgb, var(--stat-color) 75%, transparent);
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white;
 }
 
 .stat-icon svg {
     @apply h-6 w-6;
 }
 
+.stat-icon i {
+    @apply text-xl leading-none;
+}
+
 .stat-icon-primary {
-    background-color: var(--c-primary-soft);
-    color: var(--c-primary);
+    --stat-color: var(--c-primary);
+    --stat-color-dark: var(--c-primary-dark);
 }
 
 .stat-icon-success {
-    background-color: var(--c-success-soft);
-    color: var(--c-success);
+    --stat-color: var(--c-success);
+    --stat-color-dark: var(--c-success-dark);
 }
 
 .stat-icon-warning {
-    background-color: var(--c-warning-soft);
-    color: var(--c-warning);
+    --stat-color: var(--c-warning);
+    --stat-color-dark: var(--c-warning-dark);
 }
 
 .stat-icon-danger {
-    background-color: var(--c-danger-soft);
-    color: var(--c-danger);
+    --stat-color: var(--c-danger);
+    --stat-color-dark: var(--c-danger-dark);
 }
 
 .stat-icon-info {
-    background-color: var(--c-info-soft);
-    color: var(--c-info);
+    --stat-color: var(--c-info);
+    --stat-color-dark: var(--c-info-dark);
 }
 
 .stat-icon-pink {
-    background-color: var(--c-pink-soft);
-    color: var(--c-pink);
+    --stat-color: var(--c-pink);
+    --stat-color-dark: var(--c-pink-dark);
+}
+
+.stat-icon-cyan {
+    --stat-color: var(--c-cyan);
+    --stat-color-dark: var(--c-cyan-dark);
+}
+
+.stat-icon-violet {
+    --stat-color: var(--c-violet);
+    --stat-color-dark: var(--c-violet-dark);
+}
+
+.stat-icon-navy {
+    --stat-color: #1d4fa8;
+    --stat-color-dark: var(--brand-navy);
+}
+
+/* Los .stat-icon-* tambien tiñen los .list-icon (notificaciones): mismo
+   cuadro solido, mas chico. */
+.list-icon[class*='stat-icon-'] {
+    background-image: linear-gradient(140deg, color-mix(in srgb, var(--stat-color) 88%, #ffffff), var(--stat-color-dark));
+    @apply text-white;
 }
 
 .stat-value {
     color: var(--text-heading);
-    @apply text-xl font-bold leading-tight;
+    font-variant-numeric: tabular-nums;
+    @apply text-xl font-bold leading-tight tracking-[-0.01em];
 }
 
 .stat-label {
@@ -631,15 +993,26 @@
     @apply w-full min-w-[640px] border-collapse text-sm;
 }
 
+/* Encabezado en franja celeste (sin bordes) con las puntas redondeadas,
+   y numeros de ancho fijo en las celdas para que los montos se alineen. */
 .table-dashboard thead th {
-    color: var(--text-muted);
-    border-color: var(--border-subtle);
-    @apply border-b px-3 py-3 text-start text-xs font-semibold uppercase tracking-wide;
+    color: var(--text-heading);
+    background-color: var(--table-head-bg);
+    @apply px-3 py-3 text-start text-xs font-semibold;
+}
+
+.table-dashboard thead th:first-child {
+    @apply rounded-s-[10px];
+}
+
+.table-dashboard thead th:last-child {
+    @apply rounded-e-[10px];
 }
 
 .table-dashboard tbody td {
     border-color: var(--border-subtle);
-    @apply border-b px-3 py-3 align-middle;
+    font-variant-numeric: tabular-nums;
+    @apply border-b px-3 py-3.5 align-middle;
 }
 
 .table-dashboard tbody tr:last-child td {
@@ -651,7 +1024,7 @@
 }
 
 .table-dashboard tbody tr:hover {
-    background-color: rgba(0, 0, 0, 0.025);
+    background-color: color-mix(in srgb, var(--c-primary) 3.5%, transparent);
 }
 
 .dark .table-dashboard tbody tr:hover {
@@ -682,7 +1055,13 @@
    ========================================================================== */
 
 .badge {
-    @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold leading-none;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.71875rem] font-semibold leading-none;
+}
+
+/* Los tenues llevan un filete del mismo color: sobre fondo blanco el pastel
+   solo se pierde. */
+.badge[class*='badge-soft-'] {
+    border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
 }
 
 .badge-pill {
@@ -773,7 +1152,11 @@
    ========================================================================== */
 
 .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2 text-sm font-semibold transition-[background-color,color,box-shadow,opacity] duration-150 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.btn:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 28%, transparent);
 }
 
 .btn-sm {
@@ -803,7 +1186,11 @@
 /* --- Botones solidos --- */
 .btn-primary {
     background-color: var(--c-primary);
-    @apply text-white hover:opacity-90;
+    box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--c-primary) 80%, transparent);
+    @apply text-white;
+}
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--c-primary-dark);
 }
 .btn-secondary {
     background-color: var(--c-secondary);
@@ -1693,9 +2080,14 @@
 /* Sirve para <input>, <textarea> y <select> por igual. */
 .form-control {
     color: var(--text-body);
-    background-color: var(--card-bg);
-    border-color: var(--border-subtle);
-    @apply w-full rounded-lg border px-3 py-2 text-sm transition-all duration-150 placeholder:text-slate-400 focus:outline-none;
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    @apply w-full rounded-[10px] border px-3 py-2 text-sm transition-all duration-150 focus:outline-none;
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+    opacity: 0.8;
 }
 
 /* Foco: borde fino (1px, no un anillo grueso) + sombra suave del mismo
@@ -4922,6 +5314,331 @@
     }
 
     .ia-lanzador:hover {
+        transform: none;
+    }
+}
+
+/* ==========================================================================
+   34. PANEL PRINCIPAL (Pages/Dashboard.vue)
+   --------------------------------------------------------------------------
+   Fila de 5 KPIs, columna principal (ventas, pedidos recientes + etapas,
+   banda de impulso) y columna lateral (actividad, productos más vendidos).
+   Las barras de etapas/productos son medidores (`.dashboard-meter-*`), no
+   gráficos: una sola magnitud contra un tope, un solo color.
+   ========================================================================== */
+
+.dashboard-scope {
+    @apply -mb-2 flex justify-end sm:-mb-3;
+}
+
+/* 5 KPIs: 1 col en movil, 2 en tablet, 3+2 en laptop (6 columnas: las 3
+   primeras ocupan 2, las 2 ultimas 3, asi la segunda fila tambien llena el
+   ancho) y 5 en una fila desde 1280px. */
+.kpi-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-6 xl:grid-cols-5;
+}
+
+.kpi-grid > .kpi-card {
+    @apply lg:col-span-2 xl:col-span-1;
+}
+
+.kpi-grid > .kpi-card:nth-child(4) {
+    @apply lg:col-span-3 xl:col-span-1;
+}
+
+.kpi-grid > .kpi-card:last-child {
+    @apply sm:col-span-2 lg:col-span-3 xl:col-span-1;
+}
+
+.kpi-card {
+    @apply flex items-start gap-4 p-5 transition-[box-shadow,transform] duration-200 ease-out;
+}
+
+.kpi-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-1px);
+}
+
+/* Con las 5 en fila y menos de 1800 px, cada tarjeta queda angosta: el
+   icono sube sobre el texto para que el monto no se corte. */
+@media (min-width: 1280px) and (max-width: 1799px) {
+    .kpi-card {
+        @apply flex-col gap-3;
+    }
+}
+
+.kpi-label {
+    color: var(--text-heading);
+    @apply truncate text-[0.8125rem] font-semibold;
+}
+
+.kpi-value {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply mt-1.5 truncate text-[1.5rem] font-bold leading-none tracking-[-0.02em];
+}
+
+.kpi-delta,
+.kpi-note {
+    color: var(--text-muted);
+    @apply mt-2.5 flex flex-wrap items-center gap-x-1.5 text-xs;
+}
+
+.kpi-delta-up,
+.kpi-delta-down {
+    @apply inline-flex items-center gap-1 font-bold;
+}
+
+.kpi-delta-up {
+    color: var(--c-success);
+}
+
+.kpi-delta-down {
+    color: var(--c-danger);
+}
+
+.kpi-delta i {
+    @apply text-[0.6875rem];
+}
+
+.kpi-card .stat-global {
+    @apply mt-2.5;
+}
+
+/* Dos columnas desde 1280px: principal (8/12) y lateral (4/12), cada una
+   apila sus tarjetas con el mismo ritmo que .page-stack. */
+.dashboard-grid {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-12;
+}
+
+.dashboard-main {
+    @apply flex min-w-0 flex-col gap-4 sm:gap-6 xl:col-span-8;
+}
+
+.dashboard-aside {
+    @apply flex min-w-0 flex-col gap-4 sm:gap-6 xl:col-span-4;
+}
+
+/* Pedidos recientes + etapas lado a lado solo en tablet (sin columna
+   lateral todavia); con la columna lateral la tabla necesita todo el ancho
+   de la principal y se apilan. */
+.dashboard-split {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] xl:grid-cols-1;
+}
+
+.dashboard-table {
+    @apply min-w-0;
+}
+
+.dashboard-table thead th,
+.dashboard-table tbody td {
+    @apply whitespace-nowrap px-2.5 text-[0.8125rem];
+}
+
+.dashboard-table-link {
+    color: var(--c-primary);
+    @apply whitespace-nowrap font-semibold hover:underline;
+    text-underline-offset: 3px;
+}
+
+.dashboard-table-cliente {
+    color: var(--text-body);
+    @apply max-w-[14rem] truncate;
+}
+
+.dashboard-empty {
+    color: var(--text-muted);
+    @apply py-8 text-center text-sm;
+}
+
+/* --- Medidores (etapas y productos) --- */
+.dashboard-total {
+    @apply mb-4 flex items-baseline gap-2;
+}
+
+.dashboard-total-value {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply text-[1.75rem] font-bold leading-none tracking-[-0.02em];
+}
+
+.dashboard-total-label {
+    color: var(--text-muted);
+    @apply text-sm;
+}
+
+.dashboard-meters {
+    @apply flex flex-col gap-3.5;
+}
+
+.dashboard-meter-head {
+    color: var(--text-body);
+    @apply mb-1.5 flex items-baseline justify-between gap-2 text-[0.8125rem] font-medium;
+}
+
+.dashboard-meter-value {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply font-semibold;
+}
+
+.dashboard-meter-value small {
+    color: var(--text-muted);
+    @apply text-xs font-medium;
+}
+
+.dashboard-meter-track {
+    background-color: var(--c-primary-soft);
+    @apply h-1.5 overflow-hidden rounded-full;
+}
+
+.dashboard-meter-bar {
+    background-image: linear-gradient(90deg, color-mix(in srgb, var(--c-primary) 75%, #ffffff), var(--c-primary));
+    @apply h-full rounded-full transition-[width] duration-700 ease-out;
+}
+
+.dashboard-footnote {
+    border-color: var(--border-subtle);
+    color: var(--text-muted);
+    @apply mt-5 flex items-center gap-2 border-t pt-4 text-xs;
+}
+
+.dashboard-footnote i {
+    color: var(--c-success);
+}
+
+/* --- Actividad reciente (notificaciones) --- */
+.activity-list {
+    @apply flex flex-col;
+}
+
+.activity-list > li + li {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.activity-item {
+    color: inherit;
+    @apply -mx-2 flex items-start gap-3 rounded-[10px] px-2 py-3 transition-colors duration-150;
+}
+
+.activity-item:hover {
+    background-color: var(--c-light);
+}
+
+.activity-icon {
+    @apply h-10 w-10 rounded-full;
+}
+
+.activity-icon i {
+    @apply text-[0.9375rem];
+}
+
+.activity-title {
+    color: var(--text-heading);
+    @apply block truncate text-sm font-semibold;
+}
+
+.activity-text {
+    color: var(--text-muted);
+    @apply mt-0.5 block truncate text-xs;
+}
+
+.activity-time {
+    color: var(--text-muted);
+    @apply shrink-0 whitespace-nowrap pt-0.5 text-[0.6875rem];
+}
+
+/* --- Productos mas vendidos --- */
+.ranking-list {
+    @apply flex flex-col gap-4;
+}
+
+.ranking-item {
+    @apply flex items-center gap-3;
+}
+
+.ranking-position {
+    background-color: var(--c-light);
+    border-color: var(--card-border);
+    color: var(--text-heading);
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold;
+}
+
+.ranking-head {
+    @apply mb-1.5 flex items-baseline gap-3 text-[0.8125rem];
+}
+
+.ranking-name {
+    color: var(--c-primary);
+    @apply min-w-0 flex-1 truncate font-semibold;
+}
+
+.ranking-qty {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply shrink-0 text-xs;
+}
+
+.ranking-share {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply w-10 shrink-0 text-end text-xs font-bold;
+}
+
+/* --- Banda de impulso (conversion + entregas, enlace a reportes) --- */
+.dashboard-cta {
+    background-image: linear-gradient(100deg, var(--hero-bg-from), var(--hero-bg-to));
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    @apply relative isolate flex flex-col items-start gap-4 overflow-hidden p-5 sm:flex-row sm:items-center sm:px-6;
+}
+
+.dashboard-cta::after {
+    content: '';
+    background: url('/img/banner/montanas.svg') right bottom / contain no-repeat;
+    @apply pointer-events-none absolute bottom-0 end-0 top-0 -z-10 w-[260px] opacity-40;
+}
+
+.dark .dashboard-cta::after {
+    opacity: 0.1;
+}
+
+.dashboard-cta-icon {
+    background-color: var(--card-bg);
+    color: var(--c-primary);
+    box-shadow: var(--card-shadow);
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl;
+}
+
+.dashboard-cta-title {
+    color: var(--text-heading);
+    @apply text-base font-bold;
+}
+
+.dashboard-cta-title span {
+    color: var(--c-primary);
+}
+
+.dashboard-cta-text {
+    color: var(--text-body);
+    @apply mt-1 text-sm;
+}
+
+.dashboard-cta-text strong {
+    color: var(--text-heading);
+}
+
+.dashboard-cta-btn {
+    @apply shrink-0 rounded-full px-5 py-2.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kpi-card,
+    .dashboard-meter-bar {
+        transition: none;
+    }
+
+    .kpi-card:hover {
         transform: none;
     }
 }

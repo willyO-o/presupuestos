@@ -340,6 +340,31 @@ Dropdown de la campanita en `Components/Layout/Topbar.vue` + listado completo en
 No reinventa colores: reusa `.stat-icon-{color}` (`primary/success/warning/danger/info`) para
 el ícono según el campo `color` que manda cada `App\Notifications\*::toArray()`.
 
+## Tema "Cordillera": layout, encabezado y panel (app.css §1-3 y §34)
+
+- **Sidebar**: `.sidebar` (degradado azul marino + `public/img/banner/montanas-sidebar.svg` abajo).
+  Secciones con `icon` en `Data/Sidebar/Nav.js` → acordeón: `.nav-section` / `.nav-section-toggle` /
+  `.nav-section-list`, enlaces con `.nav-dot` en vez de icono. Sin `icon` → `.sidebar-menu-label` fijo.
+  Página actual: `.nav-sidebar-link.active` (pastilla sólida `--c-primary`). El logo es `logo-blanco.png`.
+- **Topbar**: `.topbar-search` (+ `.topbar-search-results` / `.topbar-search-result`, busca pantallas del
+  menú con `userCan()` de `Directives/Can.js`, Ctrl+K), `.topbar-icon-btn` (redondo),
+  `.topbar-icon-btn-desktop` (solo desde md), `.topbar-divider`, `.topbar-menu` / `.topbar-menu-item`
+  (menú de usuario), `.quick-access*` (accesos rápidos). `Dropdown.vue` con `bare` cuando el contenido trae
+  su propia superficie.
+- **Banda de encabezado** (todas las pantallas, la dibuja `MainDashboardLayout`): `.page-hero`,
+  `.page-hero-inner`, `.page-title`, `.page-subtitle` (prop `pageSubtitle`; si viene, reemplaza al
+  breadcrumb), `.page-hero-date`. Montañas: `public/img/banner/montanas.svg`.
+- **Cards**: `.card` ahora con borde fino (`--card-border`) + `--card-radius` (14px). `.card-title > i`
+  pinta el icono del título en primario.
+- **Iconos de KPI**: `.stat-icon` es un cuadro SÓLIDO con degradado y glifo blanco. Tonos:
+  `primary success warning danger info pink cyan violet navy`. Un `.list-icon.stat-icon-*` usa el mismo
+  sólido (notificaciones, actividad).
+- **Panel principal** (§34): `.kpi-grid` / `.kpi-card` / `.kpi-label` / `.kpi-value` / `.kpi-delta`
+  (`-up`/`-down`) / `.kpi-note`; `.dashboard-grid` / `-main` / `-aside` / `-split`; medidores
+  `.dashboard-meter*`; `.activity-*`; `.ranking-*`; banda `.dashboard-cta*`.
+- **Tablas**: encabezado en franja (`--table-head-bg`, sin mayúsculas) y números tabulares.
+- **Badges**: píldora; los `badge-soft-*` llevan filete del mismo color.
+
 ## Al agregar una clase nueva
 
 Sigue el patrón de color de tres variables (`--c-{nombre}` / `-dark` / `-soft`) y añade la

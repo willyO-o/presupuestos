@@ -23,7 +23,18 @@ const can = {
 const page = usePage();
 
 function updateVisibility(element, binding) {
-    const requiredPermissions = normalizePermissions(binding.value);
+    element.hidden = !userCan(binding.value, binding.modifiers.all === true);
+}
+
+/**
+ * Misma regla que la directiva, para usarla desde código (ej. filtrar los
+ * resultados del buscador del Topbar sin montar un elemento por permiso).
+ *
+ * @param {string|string[]} value Permiso o permisos (OR, salvo `requiresAll`).
+ * @param {boolean} requiresAll Exige todos los permisos (AND).
+ * @returns {boolean}
+ */
+export function userCan(value, requiresAll = false) {
     const auth = page.props?.auth ?? {};
     const isSuperAdmin = auth.is_super_admin === true
         || (Array.isArray(auth.roles) && auth.roles.includes('super-admin'));
@@ -31,19 +42,20 @@ function updateVisibility(element, binding) {
     // El super-admin no requiere permisos individuales, incluso cuando el
     // elemento de navegación todavía no declara una propiedad permission.
     if (isSuperAdmin) {
-        element.hidden = false;
-        return;
+        return true;
     }
 
+    const requiredPermissions = normalizePermissions(value);
     const currentPermissions = getCurrentPermissions();
-    const requiresAll = binding.modifiers.all === true;
-
-    const isAuthorized = isSuperAdmin || (requiresAll
-        ? requiredPermissions.every((permission) => currentPermissions.includes(permission))
-        : requiredPermissions.some((permission) => currentPermissions.includes(permission)));
 
     // Un valor vacío o inválido nunca concede acceso por accidente.
-    element.hidden = requiredPermissions.length === 0 || !isAuthorized;
+    if (requiredPermissions.length === 0) {
+        return false;
+    }
+
+    return requiresAll
+        ? requiredPermissions.every((permission) => currentPermissions.includes(permission))
+        : requiredPermissions.some((permission) => currentPermissions.includes(permission));
 }
 
 function normalizePermissions(value) {

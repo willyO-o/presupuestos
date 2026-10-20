@@ -41,7 +41,15 @@ defineProps({
         type: Array,
         default: () => ['Dashboards', 'Dashboard'],
     },
+    /** Frase bajo el titulo; si viene, reemplaza al breadcrumb (ej. el saludo del Dashboard). */
+    pageSubtitle: {
+        type: String,
+        default: null,
+    },
 });
+
+/* Fecha de hoy en la banda de encabezado ("19 de octubre de 2026"). */
+const today = new Date().toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' });
 
 /* Visibilidad del sidebar: vive aqui porque el boton que la dispara esta en
    el Topbar y el panel que la consume esta en el Sidebar. El boton esta
@@ -58,29 +66,37 @@ const isSidebarOpen = ref(window.innerWidth >= 1024);
         <div class="main-wrapper" :class="{ 'sidebar-open': isSidebarOpen }">
             <Topbar @toggle-sidebar="isSidebarOpen = !isSidebarOpen" />
 
-            <main class="page-content">
-                <div class="page-title-box">
-                    <h1 class="page-title">{{ pageTitle }}</h1>
-                    <nav class="breadcrumb">
-                        <span
-                            v-for="(crumb, index) in breadcrumbs"
-                            :key="index"
-                            class="d-flex align-items-center gap-2"
-                        >
+            <header class="page-hero">
+                <div class="page-hero-inner">
+                    <div class="min-w-0">
+                        <h1 class="page-title">{{ pageTitle }}</h1>
+                        <p v-if="pageSubtitle" class="page-subtitle">{{ pageSubtitle }}</p>
+                        <nav v-else class="breadcrumb" aria-label="Ruta de navegación">
                             <span
-                                class="breadcrumb-item"
-                                :class="{
-                                    active: index === breadcrumbs.length - 1,
-                                }"
-                                >{{ crumb }}</span
+                                v-for="(crumb, index) in breadcrumbs"
+                                :key="index"
+                                class="d-flex align-items-center gap-2"
                             >
-                            <span v-if="index < breadcrumbs.length - 1"
-                                >/</span
-                            >
-                        </span>
-                    </nav>
-                </div>
+                                <span
+                                    class="breadcrumb-item"
+                                    :class="{
+                                        active: index === breadcrumbs.length - 1,
+                                    }"
+                                    >{{ crumb }}</span
+                                >
+                                <span v-if="index < breadcrumbs.length - 1" aria-hidden="true">/</span>
+                            </span>
+                        </nav>
+                    </div>
 
+                    <p class="page-hero-date">
+                        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                        <span>{{ today }}</span>
+                    </p>
+                </div>
+            </header>
+
+            <main class="page-content">
                 <p v-if="sinAlcance" class="alcance-aviso alcance-aviso-warning mb-4">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     Tu cuenta <strong>no alcanza ninguna sucursal</strong>, así que los listados de
