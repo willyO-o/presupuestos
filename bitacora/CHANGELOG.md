@@ -13,6 +13,35 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-20 — Estacionalidad por gestión, con promedio y sobre toda la historia
+
+**Qué cambió:**
+- El gráfico de Estacionalidad (BI → Demanda y ventas) pasa de barras con la suma de los meses a
+  **una línea por gestión** sobre el eje Ene–Dic más una línea **Promedio** (con relleno). La
+  leyenda prende y apaga cada año, así que funciona como selector sin perder la comparación.
+- Usa **toda la historia** y no el filtro de fechas (rotulado en la tarjeta). Los meses sin datos
+  posibles —antes del primer pedido o que todavía no llegaron— quedan vacíos, no en cero. El
+  subtítulo avisa qué mes está en curso.
+
+**Por qué:** pedido del usuario (un selector por gestión con opción "Todo"); se propuso esta
+variante y la aceptó. Dos problemas de antes: con los 12 meses por defecto cada mes aparecía una vez
+y no se comparaba nada, y una "suma de todos los años" infla los meses que tienen un año más de
+historia.
+
+**Cómo:**
+- `InteligenciaNegociosService::estacionalidad()` sale de `demanda` a una clave propia
+  (`datos.estacionalidad`): `meses`, `gestiones` (año, 12 valores con `null`, total), `promedio`,
+  `desde`, `mes_en_curso` y `gestiones_ocultas`. Sigue acotada por sucursal.
+- El promedio es por gestión disponible (no suma) y no cuenta el mes en curso. Se grafican el
+  promedio y las 5 gestiones más recientes (la paleta tiene 6 colores y no se cicla); con una sola
+  gestión el promedio se omite (sería la misma línea) y el subtítulo lo explica.
+- `PeriodoReporte::nombreMes()` da el nombre corto del mes. Ayuda "i" actualizada.
+- Tests: `EstacionalidadTest` (5) y los dos tests que leían la forma vieja. Verificado contra la
+  base demo de 24 meses con un servidor temporal: julio y agosto salen como temporada alta en ambas
+  gestiones.
+
+---
+
 ## 2026-10-20 — Ayuda "i" también en indicadores, tablas y listas de Reportes y BI
 
 **Qué cambió:**

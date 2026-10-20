@@ -51,6 +51,7 @@ class InteligenciaNegociosService
             // empresa). La pantalla lo rotula como dato global.
             'evolucion_costos' => $this->evolucionCostos($periodo),
             'demanda' => $this->demanda($usuario, $periodo),
+            'estacionalidad' => $this->estacionalidad($usuario),
         ];
     }
 
@@ -146,26 +147,85 @@ class InteligenciaNegociosService
                 ->all(),
             'variacion_mensual' => $analisis['variacion_mensual'] === null ? null : round($analisis['variacion_mensual'], 2),
             'metodo' => $analisis['metodo'],
-            'estacionalidad' => $this->estacionalidad($pedidos),
         ];
     }
 
     /**
-     * Total de pedidos por mes calendario dentro del periodo (todos los años
-     * juntos), para ver en qué meses la empresa tiene más movimiento.
+     * Estacionalidad: pedidos de cada mes calendario (Ene–Dic), una serie por
+     * gestión y el promedio de todas.
      *
-     * @param  Collection<int, Pedido>  $pedidos
-     * @return list<array{mes: string, pedidos: int}>
+     * Usa TODA la historia y no el filtro de fechas de la pantalla: con los
+     * 12 meses por defecto cada mes aparecía una sola vez y el gráfico no
+     * comparaba nada. Respeta igual el alcance por sucursal.
+     *
+     * Dos cuidados para que el gráfico no engañe:
+     * - Un mes sin datos posibles va en `null`, no en 0: los meses antes del
+     *   primer pedido registrado y los que todavía no llegaron. Un 0 ahí se
+     *   leería como "ese mes no vendimos nada".
+     * - El promedio es por gestión disponible, no una suma: sumando, los meses
+     *   que tienen un año más de historia parecerían temporada alta. Tampoco
+     *   cuenta el mes en curso, que todavía no terminó.
+     *
+     * @return array{
+     *     meses: list<string>,
+     *     gestiones: list<array{anio: int, pedidos: list<int|null>, total: int}>,
+     *     promedio: list<float|null>,
+     *     desde: string|null,
+     *     mes_en_curso: string|null,
+     *     gestiones_ocultas: int,
+     * }
      */
-    private function estacionalidad(Collection $pedidos): array
+    private function estacionalidad(User $usuario): array
     {
-        $porMesDelAnio = $pedidos
-            ->groupBy(fn ($p) => $p->fecha_pedido->month)
-            ->map->count();
+        $fechas = Pedido::query()
+            ->visiblePara($usuario)
+            ->pluck('fecha_pedido')
+            ->map(fn ($fecha) => Carbon::parse($fecha));
 
-        return collect(range(1, 12))->map(fn (int $m): array => [
-            'mes' => Carbon::create(null, $m, 1)->translatedFormat('M'),
-            'pedidos' => $porMesDelAnio->get($m, 0),
-        ])->all();
+        $meses = array_map(PeriodoReporte::nombreMes(...), range(1, 12));
+
+        if ($fechas->isEmpty()) {
+            return ['meses' => $meses, 'gestiones' => [], 'promedio' => array_fill(0, 12, null), 'desde' => null, 'mes_en_curso' => null, 'gestiones_ocultas' => 0];
+        }
+
+        $primerMes = $fechas->sortBy(fn (Carbon $fecha) => $fecha->timestamp)->first()->copy()->startOfMonth();
+        $mesActual = today()->startOfMonth();
+        $conteo = $fechas->countBy(fn (Carbon $fecha) => $fecha->format('Y-n'));
+
+        $gestiones = collect(range($primerMes->year, $mesActual->year))
+            ->map(function (int $anio) use ($primerMes, $mesActual, $conteo): array {
+                $pedidos = array_map(function (int $mes) use ($anio, $primerMes, $mesActual, $conteo): ?int {
+                    $fecha = Carbon::create($anio, $mes, 1);
+
+                    return $fecha->lessThan($primerMes) || $fecha->greaterThan($mesActual)
+                        ? null
+                        : (int) $conteo->get("{$anio}-{$mes}", 0);
+                }, range(1, 12));
+
+                return ['anio' => $anio, 'pedidos' => $pedidos, 'total' => (int) array_sum($pedidos)];
+            });
+
+        $promedio = array_map(function (int $mes) use ($gestiones, $mesActual): ?float {
+            $valores = $gestiones
+                ->reject(fn (array $g): bool => $g['anio'] === $mesActual->year && $mes === $mesActual->month)
+                ->map(fn (array $g) => $g['pedidos'][$mes - 1])
+                ->filter(fn ($valor) => $valor !== null);
+
+            return $valores->isEmpty() ? null : round($valores->avg(), 1);
+        }, range(1, 12));
+
+        // La paleta del gráfico tiene 6 colores y no se cicla: el promedio
+        // más las 5 gestiones más recientes.
+        $maximo = 5;
+
+        return [
+            'meses' => $meses,
+            'gestiones' => $gestiones->slice(-$maximo)->values()->all(),
+            'promedio' => $promedio,
+            'desde' => PeriodoReporte::etiquetaMes($primerMes),
+            // La pantalla lo rotula: un mes a medias se lee como una caída.
+            'mes_en_curso' => PeriodoReporte::etiquetaMes($mesActual),
+            'gestiones_ocultas' => max($gestiones->count() - $maximo, 0),
+        ];
     }
 }

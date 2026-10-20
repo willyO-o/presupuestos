@@ -244,7 +244,7 @@ test('BI acota los productos vendidos y la demanda, pero no el costo de material
 
     expect($bastidor['monto'])->toBe(300.0) // sin acotar serían 5.300
         ->and(collect($datos['demanda']['serie'])->sum('pedidos'))->toBe(1)
-        ->and(collect($datos['demanda']['estacionalidad'])->sum('pedidos'))->toBe(1);
+        ->and(collect($datos['estacionalidad']['gestiones'])->sum('total'))->toBe(1);
 
     // Y el historial de precios NO se acota: cuelga de `material`, que no tiene
     // sucursal. La pantalla lo rotula "Inventario · toda la empresa".

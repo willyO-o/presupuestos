@@ -71,8 +71,7 @@ test('the demand projection returns three non-negative months', function () {
 
     expect($demanda['serie'])->toHaveCount(12)
         ->and($demanda['proyeccion'])->toHaveCount(3)
-        ->and(collect($demanda['proyeccion'])->every(fn ($p) => $p['pedidos_estimados'] >= 0))->toBeTrue()
-        ->and($demanda['estacionalidad'])->toHaveCount(12);
+        ->and(collect($demanda['proyeccion'])->every(fn ($p) => $p['pedidos_estimados'] >= 0))->toBeTrue();
 });
 
 test('el filtro de fechas acota los productos vendidos y la demanda', function () {

@@ -198,12 +198,14 @@ export const AYUDAS = {
     },
     'bi.estacionalidad': {
         titulo: 'Estacionalidad',
-        que: 'Suma los pedidos de cada mes del año juntando todos los años del periodo: enero con enero, febrero con febrero, y así.',
+        que: 'Cuántos pedidos tenemos en cada mes del año, con una línea por gestión (2024, 2025, 2026…) y el promedio de todas. Usa toda la historia, no las fechas del filtro de arriba.',
         leer: [
-            'Las barras altas son la temporada fuerte; las bajas, los meses tranquilos.',
-            'Si el patrón se repite año tras año, se puede planificar con tiempo.',
+            'La línea con relleno es el promedio: los meses donde sube son la temporada fuerte; donde baja, los meses tranquilos.',
+            'Cada gestión tiene su línea: si un mes es alto en todos los años, es temporada de verdad; si es alto en uno solo, fue algo puntual.',
+            'Toca un año en la leyenda para ocultarlo o mostrarlo, y así comparar solo las gestiones que quieras.',
+            'Los meses que todavía no llegaron, o de antes del primer pedido registrado, quedan vacíos, no en cero.',
         ],
-        ojo: 'Sirve para prepararse: comprar material y tener gente lista antes de la temporada alta.',
+        ojo: 'El promedio aparece cuando hay al menos dos gestiones, y no cuenta el mes en curso porque todavía no termina. Sirve para prepararse: comprar material y tener gente lista antes de la temporada alta.',
     },
 
     /* ------------------------------------------------------------------

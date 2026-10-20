@@ -64,7 +64,16 @@ final readonly class PeriodoReporte
      */
     public static function etiquetaMes(CarbonInterface $mes): string
     {
-        return self::MESES[$mes->month - 1].'-'.$mes->year;
+        return self::nombreMes($mes->month).'-'.$mes->year;
+    }
+
+    /**
+     * Nombre corto de un mes sin año (`Ene`), para los ejes que juntan varios
+     * años en el mismo mes calendario (estacionalidad).
+     */
+    public static function nombreMes(int $mes): string
+    {
+        return self::MESES[$mes - 1];
     }
 
     /**

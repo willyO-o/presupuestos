@@ -87,10 +87,24 @@ const costos = computed(() => {
     };
 });
 
-const estacionalidad = computed(() => ({
-    labels: props.datos.demanda.estacionalidad.map((m) => m.mes),
-    series: [{ nombre: 'Pedidos', datos: props.datos.demanda.estacionalidad.map((m) => m.pedidos) }],
-}));
+/**
+ * Estacionalidad: el promedio y una línea por gestión sobre el mismo eje
+ * Ene–Dic, para ver si un mes es fuerte siempre o solo lo fue un año. La
+ * leyenda prende y apaga cada gestión (hace de selector sin perder la
+ * comparación). Los `null` (meses sin historia o que todavía no llegaron)
+ * cortan la línea en vez de bajarla a cero.
+ */
+const estacionalidad = computed(() => {
+    const e = props.datos.estacionalidad;
+
+    // Con una sola gestión el promedio es esa misma línea encimada: se omite.
+    const promedio = e.gestiones.length > 1 ? [{ nombre: 'Promedio', datos: e.promedio, area: true }] : [];
+
+    return {
+        labels: e.meses,
+        series: [...promedio, ...e.gestiones.map((g) => ({ nombre: String(g.anio), datos: g.pedidos }))],
+    };
+});
 
 const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.length - 4, 0));
 </script>
@@ -177,12 +191,22 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
             <div class="card-header">
                 <div>
                     <span class="card-title">Estacionalidad <AyudaInfo clave="bi.estacionalidad" /></span>
-                    <p class="card-subtitle">Pedidos del periodo acumulados por mes calendario (todos los años juntos)</p>
+                    <span class="badge badge-soft-secondary">Toda la historia · no usa el filtro de fechas</span>
+                    <p class="card-subtitle">
+                        <template v-if="datos.estacionalidad.gestiones.length === 1">
+                            Pedidos de cada mes de {{ datos.estacionalidad.gestiones[0].anio }} · con una segunda gestión
+                            aparecen la comparación entre años y el promedio
+                        </template>
+                        <template v-else>Pedidos de cada mes, una línea por gestión y el promedio</template>
+                        <span v-if="datos.estacionalidad.desde"> · datos desde {{ datos.estacionalidad.desde }}</span>
+                        <span v-if="datos.estacionalidad.mes_en_curso"> · {{ datos.estacionalidad.mes_en_curso }} todavía no termina</span>
+                        <span v-if="datos.estacionalidad.gestiones_ocultas"> · se grafican las 5 gestiones más recientes</span>
+                    </p>
                 </div>
             </div>
             <div class="card-body">
-                <BaseChart titulo="Estacionalidad de pedidos" tipo="bar" :labels="estacionalidad.labels"
-                    :series="estacionalidad.series" :formato="pedidos" :alto="240" enteros
+                <BaseChart titulo="Estacionalidad de pedidos" :labels="estacionalidad.labels"
+                    :series="estacionalidad.series" :formato="pedidos" :alto="280"
                     vacio="Todavía no hay pedidos registrados." />
             </div>
         </div>
