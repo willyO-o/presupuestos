@@ -32,7 +32,7 @@ class ReporteFinancieroService
         $pedidos = Pedido::query()
             ->visiblePara($usuario)
             ->whereIn('estado', ['ACABADO', 'ENTREGADO'])
-            ->with(['cotizacion:id,codigo_verificacion', 'detalles.materialesUsados', 'pagos'])
+            ->with(['cotizacion:id,codigo_verificacion,cliente_id', 'cotizacion.cliente:id,razon_social', 'detalles.materialesUsados', 'pagos'])
             ->get();
 
         return [
@@ -57,6 +57,7 @@ class ReporteFinancieroService
                 return [
                     'pedido' => $pedido->numero_pedido,
                     'cotizacion' => $pedido->cotizacion?->codigo_verificacion,
+                    'cliente' => $pedido->cotizacion?->cliente?->razon_social,
                     'ingreso' => $ingreso,
                     'costo_real' => $costoReal,
                     'margen' => round($ingreso - $costoReal, 2),
@@ -75,10 +76,15 @@ class ReporteFinancieroService
         $pedidos = Pedido::query()
             ->visiblePara($usuario)
             ->where('estado', '!=', 'CANCELADO')
-            ->with('pagos')
+            ->with(['pagos', 'cotizacion:id,cliente_id', 'cotizacion.cliente:id,razon_social'])
+            ->orderBy('fecha_pedido')
             ->get()
             ->map(fn (Pedido $p) => [
                 'pedido' => $p->numero_pedido,
+                'cliente' => $p->cotizacion?->cliente?->razon_social,
+                'fecha_pedido' => $p->fecha_pedido->toDateString(),
+                // Antigüedad de la deuda: lo primero que mira quien cobra.
+                'dias' => (int) $p->fecha_pedido->diffInDays(today()),
                 'total' => (float) $p->total,
                 'pagado' => $p->totalPagado(),
                 'saldo' => $p->saldo(),

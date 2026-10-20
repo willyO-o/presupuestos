@@ -3,8 +3,9 @@
 namespace App\Services\Pdf\Documentos;
 
 /**
- * Gráfico de líneas dibujado con FPDF, para los documentos que muestran
- * series en el tiempo (el informe de proyecciones).
+ * Gráficos dibujados con FPDF: líneas para las series en el tiempo (el
+ * informe de proyecciones, las ventas por mes) y barras horizontales para
+ * comparar categorías (los reportes financiero y de producción).
  *
  * **Por qué dibujarlo y no capturar el de la pantalla**: el gráfico de
  * ECharts es un canvas en el navegador; llevarlo al PDF obligaría a tener la
@@ -13,7 +14,7 @@ namespace App\Services\Pdf\Documentos;
  * las tablas del documento, igual en cualquier servidor, y los tests lo
  * pueden leer.
  *
- * Solo líneas y bandas, a propósito: es lo que necesita un pronóstico
+ * Las líneas llevan solo bandas como extra, a propósito: es lo que necesita un pronóstico
  * (histórico, media móvil, proyección punteada y su rango probable), y la
  * paleta repite la de la pantalla —azul para lo real, gris para la media
  * móvil, azul oscuro punteado para lo proyectado—.
@@ -121,6 +122,102 @@ trait DibujaGraficos
 
         $this->etiquetasEjeX($labels, $x, $paso, $y0 + $altoArea + 1);
         $this->leyenda($grafico['series'], $y0 + $alto - 2);
+    }
+
+    /**
+     * Barras horizontales con el rótulo a la izquierda y el valor escrito al
+     * final de cada barra: comparar categorías (sucursales, áreas, etapas)
+     * con el número a la vista, sin tener que leer un eje.
+     *
+     * Admite valores negativos (el margen de un pedido que perdió plata): la
+     * barra crece hacia la izquierda de un eje en cero, así que el signo se
+     * ve por el lado y no solo por el color.
+     *
+     * @param  array{
+     *     barras: list<array{etiqueta: string, valor: float|int, color?: array<int, int>}>,
+     *     formato: callable(float): string,
+     *     color?: array<int, int>,
+     *     ancho_etiqueta?: float,
+     * }  $grafico
+     */
+    protected function graficoBarras(array $grafico): void
+    {
+        $barras = array_values($grafico['barras']);
+
+        if ($barras === []) {
+            $this->fuente(8, '', self::TENUE);
+            $this->SetX(self::MARGEN_LATERAL);
+            $this->Cell($this->anchoUtil(), 8, $this->t('Sin datos para graficar.'), 0, 2, 'C');
+
+            return;
+        }
+
+        $altoBarra = 4.0;
+        $fila = $altoBarra + 2.4;
+        $anchoEtiqueta = $grafico['ancho_etiqueta'] ?? 48.0;
+        $anchoValor = 26.0;
+
+        $valores = array_map(fn (array $b): float => (float) $b['valor'], $barras);
+        $minimo = min(0.0, min($valores));
+        $maximo = max(0.0, max($valores));
+        $hayNegativos = $minimo < 0;
+
+        if ($maximo - $minimo < 1e-9) {
+            $maximo = $minimo + 1;
+        }
+
+        // Lugar para el número a la derecha y, si hay negativos, también a la
+        // izquierda del eje.
+        $x0 = self::MARGEN_LATERAL + $anchoEtiqueta + 2 + ($hayNegativos ? $anchoValor : 0);
+        $ancho = $this->anchoUtil() - $anchoEtiqueta - 2 - $anchoValor * ($hayNegativos ? 2 : 1);
+        $escala = $ancho / ($maximo - $minimo);
+        $xCero = $x0 - $minimo * $escala;
+
+        $this->asegurarEspacio(count($barras) * $fila + 4);
+        $yInicio = $this->GetY() + 1;
+        $y = $yInicio;
+
+        foreach ($barras as $barra) {
+            $valor = (float) $barra['valor'];
+            $color = $barra['color'] ?? $grafico['color'] ?? self::AZUL;
+
+            $this->SetXY(self::MARGEN_LATERAL, $y);
+            $this->fuente(7, '', self::TEXTO);
+            $this->Cell($anchoEtiqueta, $fila, $this->t($this->recortar($barra['etiqueta'], $anchoEtiqueta)), 0, 0, 'L');
+
+            // Riel claro de fondo: deja ver cuánto le falta a cada barra para
+            // la más grande.
+            $this->setRelleno(self::FONDO);
+            $this->Rect($x0, $y + ($fila - $altoBarra) / 2, $ancho, $altoBarra, 'F');
+
+            $largo = max(abs($valor) * $escala, 0.4);
+            $xBarra = $valor < 0 ? $xCero - $largo : $xCero;
+
+            $this->setRelleno($color);
+            $this->Rect($xBarra, $y + ($fila - $altoBarra) / 2, $largo, $altoBarra, 'F');
+
+            $this->fuente(6.8, 'B', $valor < 0 ? self::ROJO : self::OSCURO);
+            $texto = $this->t(($grafico['formato'])($valor));
+
+            if ($valor < 0) {
+                $this->SetXY($xBarra - $anchoValor - 1.2, $y);
+                $this->Cell($anchoValor, $fila, $texto, 0, 0, 'R');
+            } else {
+                $this->SetXY($xBarra + $largo + 1.2, $y);
+                $this->Cell($anchoValor, $fila, $texto, 0, 0, 'L');
+            }
+
+            $y += $fila;
+        }
+
+        if ($hayNegativos) {
+            $this->setTrazo(self::TENUE);
+            $this->SetLineWidth(0.25);
+            $this->Line($xCero, $yInicio, $xCero, $y);
+            $this->SetLineWidth(0.2);
+        }
+
+        $this->SetXY(self::MARGEN_LATERAL, $y + 2);
     }
 
     /**

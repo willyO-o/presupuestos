@@ -43,6 +43,19 @@ class ReporteProduccionService
                     ? round($aTiempo->count() / $entregados->count() * 100, 1)
                     : null,
             ],
+            // Los entregados tarde, del atraso mayor al menor: el "por qué"
+            // detrás del porcentaje de cumplimiento.
+            'atrasos' => $entregados
+                ->reject(fn ($p) => $p->fecha_entrega_real->lessThanOrEqualTo($p->fecha_entrega_estimada))
+                ->map(fn ($p) => [
+                    'pedido' => $p->numero_pedido,
+                    'estimada' => $p->fecha_entrega_estimada->toDateString(),
+                    'real' => $p->fecha_entrega_real->toDateString(),
+                    'dias' => (int) $p->fecha_entrega_estimada->diffInDays($p->fecha_entrega_real),
+                ])
+                ->sortByDesc('dias')
+                ->values()
+                ->all(),
             'duracion_por_etapa' => collect(PedidoSeguimiento::ETAPAS)
                 ->map(function (string $etapa) use ($seguimientosCerrados): array {
                     $grupo = $seguimientosCerrados->where('etapa', $etapa);

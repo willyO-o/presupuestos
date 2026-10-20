@@ -26,6 +26,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\RolController;
+use App\Http\Controllers\SeguimientoPedidoController;
 use App\Http\Controllers\SeguimientoPostventaController;
 use App\Http\Controllers\SitioPublicoController;
 use App\Http\Controllers\SolicitudWebController;
@@ -64,6 +65,18 @@ Route::get('/cotizador/{codigo}', [CotizadorPublicoController::class, 'show'])
     ->where('codigo', 'WEB-[0-9]{8}-[A-Za-z0-9]{5}')
     ->middleware('throttle:cotizador-consultar')
     ->name('cotizador.show');
+
+// Seguimiento de pedido (sin login): número de pedido + últimos 4 dígitos del
+// teléfono o NIT del cliente. Solo el POST verifica y lleva rate limiter; la
+// página del pedido exige que esta sesión lo haya verificado antes.
+Route::get('/seguimiento', [SeguimientoPedidoController::class, 'index'])->name('seguimiento');
+Route::post('/seguimiento', [SeguimientoPedidoController::class, 'buscar'])
+    ->middleware('throttle:seguimiento-buscar')
+    ->name('seguimiento.buscar');
+Route::post('/seguimiento/cerrar', [SeguimientoPedidoController::class, 'cerrar'])->name('seguimiento.cerrar');
+Route::get('/seguimiento/{numero}', [SeguimientoPedidoController::class, 'show'])
+    ->where('numero', 'PED-[0-9]{8}-[A-Za-z0-9]{5}')
+    ->name('seguimiento.show');
 
 Route::get('/dashboard', [ReporteController::class, 'dashboard'])
     ->middleware(['auth', 'verified'])
@@ -486,6 +499,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/reportes/produccion', [ReporteController::class, 'produccion'])
         ->middleware('can:reportes.produccion')
         ->name('reportes.produccion');
+    // PDF de cada reporte: exige poder VERLO y además EXPORTARLO (el papel
+    // sale de la empresa con márgenes, saldos y clientes).
+    Route::get('/reportes/financiero/pdf', [ReporteController::class, 'financieroPdf'])
+        ->middleware(['can:reportes.financiero', 'can:reportes.exportar_financiero'])
+        ->name('reportes.financiero.pdf');
+    Route::get('/reportes/produccion/pdf', [ReporteController::class, 'produccionPdf'])
+        ->middleware(['can:reportes.produccion', 'can:reportes.exportar_produccion'])
+        ->name('reportes.produccion.pdf');
     Route::get('/reportes/bi', [ReporteController::class, 'bi'])
         ->middleware('can:reportes.bi')
         ->name('reportes.bi');

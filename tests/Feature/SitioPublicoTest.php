@@ -187,9 +187,10 @@ test('el sitio publico no carga el bundle del panel', function () {
 });
 
 test('el sitemap es XML valido y lista solo las paginas canonicas', function () {
-    // Las tres páginas públicas y nada más: las vistas filtradas de la galería
-    // apuntan su canonical a /proyectos y las estimaciones ya emitidas no son
-    // contenido público (ver CotizadorPublicoTest).
+    // Las cuatro páginas públicas y nada más: las vistas filtradas de la
+    // galería apuntan su canonical a /proyectos, y las estimaciones emitidas y
+    // los pedidos consultados no son contenido público (ver
+    // CotizadorPublicoTest y SeguimientoPedidoTest).
     $respuesta = $this->get('/sitemap.xml')
         ->assertOk()
         ->assertHeader('Content-Type', 'application/xml; charset=UTF-8');
@@ -197,10 +198,11 @@ test('el sitemap es XML valido y lista solo las paginas canonicas', function () 
     $xml = simplexml_load_string($respuesta->getContent());
 
     expect($xml)->not->toBeFalse('El sitemap tiene que ser XML válido')
-        ->and($xml->url)->toHaveCount(3)
+        ->and($xml->url)->toHaveCount(4)
         ->and((string) $xml->url[0]->loc)->toBe(route('inicio'))
         ->and((string) $xml->url[1]->loc)->toBe(route('proyectos'))
-        ->and((string) $xml->url[2]->loc)->toBe(route('cotizador'));
+        ->and((string) $xml->url[2]->loc)->toBe(route('cotizador'))
+        ->and((string) $xml->url[3]->loc)->toBe(route('seguimiento'));
 });
 
 test('robots.txt bloquea el rastreo fuera de produccion', function () {

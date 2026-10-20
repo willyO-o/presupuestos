@@ -33,6 +33,24 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn ($user, string $ability) => $user->hasRole('super-admin') ? true : null);
 
         $this->registrarLimitesCotizadorPublico();
+        $this->registrarLimiteSeguimientoPedido();
+    }
+
+    /**
+     * Rate limiter de la consulta pública de pedidos (`/seguimiento`).
+     *
+     * El que importa es el límite POR PEDIDO: los 4 dígitos son 10.000
+     * combinaciones y un límite solo por IP no frena un ataque repartido entre
+     * muchas direcciones contra un mismo número. El de IP frena al que prueba
+     * números de pedido al azar. Ver `config/seguimiento.php`.
+     */
+    private function registrarLimiteSeguimientoPedido(): void
+    {
+        RateLimiter::for('seguimiento-buscar', fn (Request $request) => [
+            Limit::perMinute(config('seguimiento.throttle.por_minuto'))->by('ip:'.$request->ip()),
+            Limit::perHour(config('seguimiento.throttle.por_pedido_hora'))
+                ->by('pedido:'.mb_strtoupper(preg_replace('/\s+/', '', (string) $request->input('numero')))),
+        ]);
     }
 
     /**

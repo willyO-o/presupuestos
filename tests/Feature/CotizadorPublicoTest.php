@@ -457,7 +457,9 @@ test('el sitemap publica el cotizador y robots.txt bloquea las estimaciones', fu
     app()->detectEnvironment(fn () => 'production');
 
     $xml = simplexml_load_string($this->get('/sitemap.xml')->assertOk()->getContent());
-    $urls = array_map(fn ($url): string => (string) $url->loc, iterator_to_array($xml->url));
+    // `false`: SimpleXML repite la clave "url" en cada vuelta y, conservando
+    // claves, solo sobreviviría la última.
+    $urls = array_map(fn ($url): string => (string) $url->loc, iterator_to_array($xml->url, false));
 
     expect($urls)->toContain(route('cotizador'));
 

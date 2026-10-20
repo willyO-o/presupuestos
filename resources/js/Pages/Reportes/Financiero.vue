@@ -6,8 +6,13 @@ import BaseChart from '@/Components/Chart/BaseChart.vue';
 import DateRangeFilter from '@/Components/DateRangeFilter.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import { useChartTheme } from '@/Composables/UseChartTheme.js';
+import { userCan } from '@/Directives/Can.js';
 
 defineOptions({ layout: MainDashboardLayout });
+
+// `v-can` oculta un elemento con `hidden` y no aplica a un <template>; acá
+// son dos enlaces, así que se decide una vez y con v-if.
+const puedeExportar = userCan('reportes.exportar_financiero');
 
 const props = defineProps({
     datos: { type: Object, required: true },
@@ -23,6 +28,14 @@ const rango = reactive({
 
 function aplicar() {
     router.get(route('reportes.financiero'), { ...rango }, { preserveState: true, preserveScroll: true });
+}
+
+/**
+ * El PDF sale con las fechas que se ven en el filtro, aunque todavía no se
+ * haya pulsado "Aplicar" (mismo criterio que el informe del BI).
+ */
+function urlPdf(descargar = false) {
+    return route('reportes.financiero.pdf', { ...rango, ...(descargar ? { descargar: 1 } : {}) });
 }
 
 function money(value) {
@@ -87,8 +100,20 @@ const margenes = computed(() => ({
                             default-range="Este año"
                         />
                     </div>
-                    <div class="col-lg-3 flex items-end">
+                    <div class="col-lg-7 flex flex-wrap items-end gap-2">
                         <button type="submit" class="btn btn-primary">Aplicar</button>
+                        <!-- Vista previa en pestaña nueva; el botón de al lado
+                             baja el archivo (App\Services\Pdf\GeneradorPdf). -->
+                        <template v-if="puedeExportar">
+                            <a :href="urlPdf()" target="_blank" rel="noopener" class="btn btn-soft-primary">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                Ver PDF
+                            </a>
+                            <a :href="urlPdf(true)" class="btn btn-soft-secondary btn-icon"
+                                aria-label="Descargar el reporte financiero en PDF" title="Descargar PDF">
+                                <i class="fa-solid fa-download"></i>
+                            </a>
+                        </template>
                     </div>
                 </form>
             </div>

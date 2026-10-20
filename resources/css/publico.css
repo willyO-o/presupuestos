@@ -50,6 +50,10 @@
         @apply font-titulo;
     }
 
+    ::selection {
+        background-color: rgba(28, 127, 196, 0.2);
+    }
+
     /* Foco visible y consistente para navegación con teclado. */
     :where(a, button, [tabindex]):focus-visible {
         @apply outline-none ring-2 ring-marca-azul ring-offset-2;
@@ -88,6 +92,49 @@
        con un pseudo-elemento que `list-none` no alcanza. */
     summary::-webkit-details-marker {
         display: none;
+    }
+
+    /* Seguimiento de pedido: la etapa en curso de la línea de tiempo late
+       despacio, como un "está pasando ahora". Es la única animación de la
+       página; con movimiento reducido el anillo queda quieto. */
+    .seguimiento-pulso::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 9999px;
+        border: 2px solid theme('colors.marca.azul');
+        animation: seguimiento-pulso 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+        pointer-events: none;
+    }
+
+    @keyframes seguimiento-pulso {
+        0% {
+            transform: scale(1);
+            opacity: 0.55;
+        }
+
+        100% {
+            transform: scale(1.5);
+            opacity: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .seguimiento-pulso::after {
+            animation: none;
+            opacity: 0;
+        }
+    }
+
+    /* Tramo en curso de la barra de etapas: rayado, "en obra", para que no se
+       confunda con un tramo terminado (azul liso) ni con uno pendiente. */
+    .seguimiento-barra-actual {
+        background-color: theme('colors.marca.celeste');
+        background-image: repeating-linear-gradient(
+            -45deg,
+            rgba(28, 127, 196, 0.55) 0 4px,
+            transparent 4px 8px
+        );
     }
 
     /* Enlace que solo aparece al tabular: primer stop para lectores de pantalla. */

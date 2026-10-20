@@ -100,6 +100,7 @@ class SitioPublicoController extends Controller
                     // genera: esas son de una sola persona y van bloqueadas
                     // en robots.txt.
                     ['loc' => route('cotizador'), 'prioridad' => '0.9', 'frecuencia' => 'monthly'],
+                    ['loc' => route('seguimiento'), 'prioridad' => '0.5', 'frecuencia' => 'yearly'],
                 ],
                 'actualizado' => $actualizado,
             ])
@@ -130,6 +131,9 @@ class SitioPublicoController extends Controller
                 // estimaciones ya emitidas, que llevan el contacto y el
                 // presupuesto de una persona concreta.
                 'Disallow: /cotizador/',
+                // Igual que el cotizador: el formulario se indexa, el
+                // pedido de cada cliente no.
+                'Disallow: /seguimiento/',
                 '',
                 'Sitemap: '.route('sitemap'),
             ]

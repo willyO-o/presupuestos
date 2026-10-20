@@ -16,6 +16,7 @@
         ['url' => route('inicio').'#como-lo-hacemos', 'texto' => '¿Cómo lo hacemos?', 'activo' => false],
         ['url' => route('proyectos'), 'texto' => 'Proyectos', 'activo' => request()->routeIs('proyectos')],
         ['url' => route('cotizador'), 'texto' => 'Cotizador', 'activo' => request()->routeIs('cotizador*')],
+        ['url' => route('seguimiento'), 'texto' => 'Mi pedido', 'activo' => request()->routeIs('seguimiento*')],
         ['url' => route('inicio').'#contacto', 'texto' => 'Contáctanos', 'activo' => false],
     ];
 @endphp
@@ -33,7 +34,7 @@
             >
         </a>
 
-        <nav class="hidden items-center gap-6 text-xs font-semibold uppercase tracking-wide text-slate-600 lg:flex lg:text-sm" aria-label="Navegación principal">
+        <nav class="hidden items-center gap-4 whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-slate-600 lg:flex xl:gap-6 xl:text-sm" aria-label="Navegación principal">
             @foreach ($enlaces as $enlace)
                 <a
                     href="{{ $enlace['url'] }}"

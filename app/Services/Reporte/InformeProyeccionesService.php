@@ -2,7 +2,6 @@
 
 namespace App\Services\Reporte;
 
-use App\Models\Sucursal;
 use App\Models\User;
 
 /**
@@ -74,7 +73,7 @@ class InformeProyeccionesService
             ],
             'meses_proyeccion' => $periodo->mesesSiguientes(config('bi.meses_proyeccion')),
             'confianza' => (int) round(config('bi.confianza') * 100),
-            'alcance' => $this->alcance($usuario),
+            'alcance' => AlcanceReporte::rotulo($usuario),
             'secciones' => $armadas,
             'conclusiones' => RedaccionPronostico::conclusiones($indicadores, $armadas),
         ];
@@ -294,22 +293,5 @@ class InformeProyeccionesService
         $promedio = $metodo['intercepto'] + $metodo['pendiente'] * ($metodo['n'] - 1) / 2;
 
         return $promedio == 0 ? null : round($metodo['pendiente'] / abs($promedio) * 100, 2);
-    }
-
-    /**
-     * Rótulo de qué datos cubre el informe: un total de una sola sucursal leído
-     * como el de la empresa es el error que más daño hace (ver reporte.md).
-     */
-    private function alcance(User $usuario): string
-    {
-        $visibles = $usuario->sucursalesVisibles();
-
-        if ($visibles === null) {
-            return 'Toda la empresa';
-        }
-
-        $nombres = Sucursal::query()->whereIn('id', $visibles)->orderBy('nombre')->pluck('nombre');
-
-        return $nombres->isEmpty() ? 'Ninguna sucursal asignada' : 'Sucursales: '.$nombres->implode(', ');
     }
 }

@@ -15,6 +15,7 @@ use App\Models\PedidoDetalle;
 use App\Models\User;
 use App\Services\Pdf\GeneradorPdf;
 use App\Services\Pdf\RespuestaPdf;
+use App\Services\Reporte\InformeReportesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -356,6 +357,8 @@ test('todos los documentos comparten formato, pie numerado y membrete', function
         generador()->compra(Compra::factory()->create()),
         generador()->pedido(Pedido::factory()->create()),
         generador()->ordenCompraCliente(OrdenCompraCliente::factory()->create()),
+        generador()->reporteFinanciero(app(InformeReportesService::class)->financiero(User::factory()->todasLasSucursales()->create())),
+        generador()->reporteProduccion(app(InformeReportesService::class)->produccion(User::factory()->todasLasSucursales()->create())),
     ];
 
     foreach ($documentos as $pdf) {
@@ -365,8 +368,9 @@ test('todos los documentos comparten formato, pie numerado y membrete', function
         expect($texto)
             ->toContain(config('sitio.empresa.nombre'))
             ->toContain(config('sitio.empresa.telefono_visible'))
-            // Pie con numeración de páginas en todos.
-            ->toContain('Página 1 de 1');
+            // Pie con numeración de páginas en todos (los reportes pueden
+            // ocupar más de una hoja).
+            ->toMatch('/Página 1 de \d+/');
 
         // Membrete con el logo de la empresa y hoja tamaño carta (612 × 792 pt).
         expect($contenido)

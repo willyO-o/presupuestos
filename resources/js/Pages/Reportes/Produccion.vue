@@ -4,8 +4,12 @@ import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
+import { userCan } from '@/Directives/Can.js';
 
 defineOptions({ layout: MainDashboardLayout });
+
+// Dos enlaces (ver y descargar) bajo el mismo permiso: se decide una vez.
+const puedeExportar = userCan('reportes.exportar_produccion');
 
 const props = defineProps({
     datos: { type: Object, required: true },
@@ -42,8 +46,19 @@ const carga = computed(() => ({
 <template>
     <Head title="Reporte de producción" />
 
-    <div class="d-flex justify-content-end mb-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-3">
         <EtiquetaAlcance />
+        <!-- Vista previa en pestaña nueva; el botón de al lado baja el archivo. -->
+        <template v-if="puedeExportar">
+            <a :href="route('reportes.produccion.pdf')" target="_blank" rel="noopener" class="btn btn-soft-primary btn-sm">
+                <i class="fa-solid fa-file-pdf"></i>
+                Ver PDF
+            </a>
+            <a :href="route('reportes.produccion.pdf', { descargar: 1 })" class="btn btn-soft-secondary btn-sm btn-icon"
+                aria-label="Descargar el reporte de producción en PDF" title="Descargar PDF">
+                <i class="fa-solid fa-download"></i>
+            </a>
+        </template>
     </div>
 
     <div class="page-stack">

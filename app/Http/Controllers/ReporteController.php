@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Ai\ServicioIa;
+use App\Http\Requests\Reporte\ReportePdfRequest;
 use App\Models\BiAnomalia;
 use App\Models\BiResumen;
+use App\Services\Pdf\GeneradorPdf;
+use App\Services\Pdf\RespuestaPdf;
 use App\Services\Reporte\AlertasNegocioService;
 use App\Services\Reporte\CostosMaterialesService;
+use App\Services\Reporte\InformeReportesService;
 use App\Services\Reporte\InteligenciaNegociosService;
 use App\Services\Reporte\PeriodoReporte;
 use App\Services\Reporte\PresupuestosRentabilidadService;
@@ -58,6 +62,27 @@ class ReporteController extends Controller
             'pageTitle' => 'Reporte de producción',
             'breadcrumbs' => ['Reportes', 'Producción'],
         ]);
+    }
+
+    /**
+     * El reporte financiero en PDF, con el mismo periodo que se ve en
+     * pantalla. Como los demás PDFs del panel sale como VISTA PREVIA;
+     * `?descargar=1` lo baja al disco.
+     */
+    public function financieroPdf(ReportePdfRequest $request, InformeReportesService $informes, GeneradorPdf $generador): RespuestaPdf
+    {
+        $pdf = $generador->reporteFinanciero(
+            $informes->financiero($request->user(), $request->validated('desde'), $request->validated('hasta')),
+        );
+
+        return $request->boolean('descargar') ? $pdf : $generador->previsualizar($pdf);
+    }
+
+    public function produccionPdf(ReportePdfRequest $request, InformeReportesService $informes, GeneradorPdf $generador): RespuestaPdf
+    {
+        $pdf = $generador->reporteProduccion($informes->produccion($request->user()));
+
+        return $request->boolean('descargar') ? $pdf : $generador->previsualizar($pdf);
     }
 
     /**

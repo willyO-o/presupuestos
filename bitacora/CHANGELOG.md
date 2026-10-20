@@ -13,6 +13,84 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-20 — PDF del reporte financiero y del reporte de producción
+
+**Qué cambió:**
+- Botones **"Ver PDF"** (vista previa en pestaña nueva) y **descargar** en Reportes → Financiero (usa
+  las fechas del filtro) y Reportes → Producción.
+- **Financiero:** cuatro indicadores (total vendido, margen real, pedidos con pérdida, por cobrar),
+  "Puntos clave" en texto, ventas por mes (gráfico + tabla), ventas por sucursal con participación,
+  margen por pedido (barras rojo/verde, los 10 peores) con el detalle por cliente, y el **detalle de
+  cuentas por cobrar** con antigüedad (en pantalla solo se ve el total).
+- **Producción:** indicadores, puntos clave, entregas a tiempo/tarde con la lista de **pedidos
+  atrasados**, tiempo promedio por etapa, ítems abiertos por área y pedidos en curso por etapa.
+- **Permisos nuevos:** `reportes.exportar_financiero` y `reportes.exportar_produccion` (administrador
+  y gerente: los dos; contador: financiero; jefe de producción: producción).
+
+**Por qué:** pedido del usuario. Exportar es un permiso aparte de ver: el papel sale de la empresa
+con márgenes, saldos y nombres de clientes.
+
+**Cómo:**
+- `InformeReportesService` arma los dos informes llamando a los MISMOS servicios de pantalla (mismo
+  alcance por sucursal) y agrega meses en cero, participaciones y puntos clave con plantillas (no IA).
+  `ReporteFinancieroService` suma `cliente` a rentabilidad y `cliente`/`fecha_pedido`/`dias` a cuentas
+  por cobrar; `ReporteProduccionService` suma `atrasos`. Las pantallas no cambian.
+- Los pedidos terminados **sin consumo de material registrado** (costo 0, "margen" 100 %) se listan
+  pero quedan fuera del margen y se avisa, igual que el BI con las cotizaciones sin hoja de costos.
+- PDF por `GeneradorPdf::reporteFinanciero()/reporteProduccion()` (FPDF, carta, membrete común).
+  `Documento` gana `tituloSeccion`, `parrafo` (movidos desde el informe del BI), `subtitulo`,
+  `indicadores`, `recortar` y color por celda en `tabla()`; `DibujaGraficos` gana `graficoBarras()`
+  (barras horizontales con valor, admite negativos). `AlcanceReporte::rotulo()` reemplaza la copia
+  privada de `InformeProyeccionesService`.
+- Rutas `reportes.{financiero,produccion}.pdf` con `can:` de ver Y de exportar; `ReportePdfRequest`
+  valida las fechas (la pantalla las pasa a `Carbon::parse` sin validar).
+- **Hay que correr `php artisan db:seed --class=RolesAndPermissionsSeeder`** para crear los permisos
+  en una base existente (el super-admin no lo necesita).
+- Tests: `ReportesPdfTest` (14) y los dos reportes sumados a "todos los documentos comparten formato".
+  Revisados los PDF renderizados contra la base local y los botones en el panel.
+
+---
+
+## 2026-10-20 — Seguimiento público de pedidos (`/seguimiento`)
+
+**Qué cambió:**
+- Sección nueva del sitio público, **"Mi pedido"** en el menú y en el pie: el cliente escribe su
+  número de pedido y los **últimos 4 dígitos de su teléfono o NIT** y ve el estado del pedido sin
+  iniciar sesión.
+- La página del pedido muestra la etapa actual con una barra de etapas, las fechas (pedido, entrega
+  estimada con días restantes o aviso si la fecha ya pasó, entrega real), cada trabajo con medidas,
+  cantidad y su propia etapa, las notas de entrega y los pagos (total, pagado, saldo).
+- **Sidebar derecho con la línea de tiempo**: Pedido confirmado → Diseño → Elaboración → Acabado →
+  Control de calidad → Entregado, con pasos completos (fecha), el actual (pulso, "desde", "2 de 3
+  trabajos ya pasaron esta etapa") y pendientes. Un pedido cancelado muestra dónde se detuvo. En el
+  teléfono la línea de tiempo va primero.
+- `/seguimiento?pedido=PED-...` llega con el número ya escrito: es el enlace que el vendedor le
+  puede pasar al cliente.
+
+**Por qué:** pedido del usuario. El número solo no alcanza para abrir el pedido (decisión del
+usuario): viaja en capturas y WhatsApp reenviados, y el detalle lleva montos y el nombre del cliente.
+
+**Cómo:**
+- `SeguimientoPedidoController` (index/buscar/show/cerrar) + `BuscarPedidoRequest` +
+  `Services/Pedido/SeguimientoPublicoService` (verifica con `hash_equals` sobre los dígitos, y arma
+  la vista: no recalcula nada, traduce `pedido.estado` y las fechas de `pedido_seguimiento`). Vistas
+  Blade `publico/seguimiento{,-pedido}.blade.php`, sin JavaScript.
+- Al verificar, el id del pedido queda en la **sesión**; `/seguimiento/{numero}` sin esa sesión
+  vuelve al formulario. Mismo mensaje para número inexistente y dígitos equivocados. Rate limiter
+  `seguimiento-buscar` con límite **por número de pedido** (20/h) además del de IP (10/min):
+  4 dígitos son 10.000 combinaciones. Config en `config/seguimiento.php`.
+- No sale nada interno: ni observaciones del taller, áreas, empleados, teléfono ni NIT. La página
+  del pedido es `noindex`, `Cache-Control: no-store` y `Disallow: /seguimiento/` en robots;
+  `/seguimiento` entra al sitemap. Botón "Cerrar consulta en este dispositivo".
+- Iconos nuevos en `x-publico.icono` (pincel, brillo, camion, buscar, candado, billete, cancelado);
+  CSS `.seguimiento-pulso`/`.seguimiento-barra-actual` en `publico.css`. El menú del header no
+  parte palabras a 1024 px (ahora tiene 7 enlaces).
+- Tests: `SeguimientoPedidoTest` (21). Se corrigió un test del cotizador que leía el sitemap con
+  `iterator_to_array` conservando claves (solo veía la última URL). Suite completa en verde (687).
+  Verificado con Playwright en escritorio y móvil (en curso, entregado, error), sin errores de consola.
+
+---
+
 ## 2026-10-19 — Tema "Cordillera": nuevo look del panel (sidebar, topbar, encabezado y dashboard)
 
 **Qué cambió:**

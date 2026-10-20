@@ -404,7 +404,7 @@ abstract class Documento extends FPDF
      * veinte líneas parte una fila por la mitad entre dos páginas.
      *
      * @param  list<array{titulo: string, ancho: float, alineacion?: string}>  $columnas  `ancho` en % del área útil.
-     * @param  list<list<string|array{texto?: string, nota?: ?string, negrita?: bool, imagen?: ?string}>>  $filas
+     * @param  list<list<string|array{texto?: string, nota?: ?string, negrita?: bool, imagen?: ?string, color?: array<int, int>}>>  $filas
      */
     protected function tabla(array $columnas, array $filas): void
     {
@@ -573,6 +573,132 @@ abstract class Documento extends FPDF
         $this->SetXY(self::MARGEN_LATERAL, $this->GetY() + 2.5);
         $this->fuente(7.5, '', self::SUAVE);
         $this->flujo($ancho, $trozos, $this->altoLinea(7.5));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ladrillos de los informes (reportes y BI)
+    |--------------------------------------------------------------------------
+    */
+
+    /** Título de una sección de informe, con una regla fina debajo. */
+    protected function tituloSeccion(string $texto): void
+    {
+        $this->asegurarEspacio(24);
+        $this->fuente(13, 'B', self::AZUL_OSCURO);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->Cell($this->anchoUtil(), $this->altoLinea(13), $this->t($texto), 0, 2);
+
+        $y = $this->GetY() + 0.5;
+        $this->setTrazo(self::BORDE);
+        $this->Line(self::MARGEN_LATERAL, $y, $this->w - self::MARGEN_LATERAL, $y);
+        $this->SetXY(self::MARGEN_LATERAL, $y + 2);
+    }
+
+    /** Párrafo de texto corrido que no se parte entre páginas. */
+    protected function parrafo(string $texto): void
+    {
+        $this->fuente(8.5, '', self::TEXTO);
+        $alto = $this->flujo($this->anchoUtil(), [['texto' => $texto]], $this->altoLinea(8.5), dibujar: false);
+
+        $this->asegurarEspacio($alto + 2);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->flujo($this->anchoUtil(), [['texto' => $texto]], $this->altoLinea(8.5), 'L');
+        $this->espacio(1.5);
+    }
+
+    /**
+     * Subtítulo de un bloque dentro de una sección (gráfico o tabla), con una
+     * línea de explicación debajo: de dónde sale el número.
+     */
+    protected function subtitulo(string $titulo, ?string $explicacion = null): void
+    {
+        $this->asegurarEspacio(30);
+        $this->espacio(3);
+
+        $this->fuente(10, 'B', self::OSCURO);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->Cell($this->anchoUtil(), $this->altoLinea(10), $this->t($titulo), 0, 2);
+
+        if ($explicacion !== null) {
+            $this->fuente(7.5, '', self::SUAVE);
+            $this->SetX(self::MARGEN_LATERAL);
+            $this->flujo($this->anchoUtil(), [['texto' => $explicacion]], $this->altoLinea(7.5));
+        }
+
+        $this->espacio(1);
+    }
+
+    /**
+     * Fila de indicadores: las cifras que se leen primero, cada una en su
+     * tarjeta con un filete de color arriba. El tono `peligro` también pinta
+     * la cifra (una pérdida tiene que verse sin leer el rótulo).
+     *
+     * @param  list<array{rotulo: string, valor: string, nota?: ?string, tono?: string}>  $indicadores
+     */
+    protected function indicadores(array $indicadores): void
+    {
+        $separacion = 3.0;
+        $cantidad = max(count($indicadores), 1);
+        $ancho = ($this->anchoUtil() - $separacion * ($cantidad - 1)) / $cantidad;
+        $alto = 21.0;
+
+        $this->asegurarEspacio($alto + 4);
+        $y = $this->GetY() + 1;
+
+        foreach (array_values($indicadores) as $indice => $indicador) {
+            $x = self::MARGEN_LATERAL + $indice * ($ancho + $separacion);
+            $tono = $indicador['tono'] ?? 'info';
+            $acento = match ($tono) {
+                'exito' => self::VERDE,
+                'aviso' => self::AMBAR,
+                'peligro' => self::ROJO,
+                default => self::AZUL,
+            };
+
+            $this->setRelleno(self::FONDO);
+            $this->setTrazo(self::BORDE);
+            $this->Rect($x, $y, $ancho, $alto, 'FD');
+            $this->setRelleno($acento);
+            $this->Rect($x, $y, $ancho, 0.9, 'F');
+
+            $interno = $ancho - 6;
+
+            $this->SetXY($x + 3, $y + 3.2);
+            $this->fuente(6.5, 'B', self::TENUE);
+            $this->Cell($interno, $this->altoLinea(6.5), $this->t($this->recortar(mb_strtoupper($indicador['rotulo'], 'UTF-8'), $interno)), 0, 2);
+
+            $this->SetX($x + 3);
+            $this->fuente(13.5, 'B', $tono === 'peligro' ? self::ROJO : self::OSCURO);
+            $this->Cell($interno, $this->altoLinea(13.5) + 0.6, $this->t($this->recortar($indicador['valor'], $interno)), 0, 2);
+
+            if (! empty($indicador['nota'])) {
+                $this->SetX($x + 3);
+                $this->fuente(7, '', self::SUAVE);
+                $this->Cell($interno, $this->altoLinea(7), $this->t($this->recortar($indicador['nota'], $interno)), 0, 2);
+            }
+        }
+
+        $this->SetXY(self::MARGEN_LATERAL, $y + $alto + 2);
+    }
+
+    /**
+     * Acorta un texto con "..." hasta que entre en `$ancho` mm con la fuente
+     * ACTIVA. Se mide ya convertido a cp1252, que es lo que se dibuja.
+     */
+    protected function recortar(string $texto, float $ancho): string
+    {
+        if ($this->GetStringWidth($this->t($texto)) <= $ancho) {
+            return $texto;
+        }
+
+        $corto = $texto;
+
+        while (mb_strlen($corto) > 1 && $this->GetStringWidth($this->t($corto.'...')) > $ancho) {
+            $corto = mb_substr($corto, 0, -1);
+        }
+
+        return rtrim($corto).'...';
     }
 
     /*
@@ -844,12 +970,12 @@ abstract class Documento extends FPDF
 
     /**
      * @param  string|array<string, mixed>  $celda
-     * @return array{texto: string, nota: ?string, negrita: bool, imagen: ?string}
+     * @return array{texto: string, nota: ?string, negrita: bool, imagen: ?string, color: ?array<int, int>}
      */
     private function normalizarCelda(string|array $celda): array
     {
         if (is_string($celda)) {
-            return ['texto' => $celda, 'nota' => null, 'negrita' => false, 'imagen' => null];
+            return ['texto' => $celda, 'nota' => null, 'negrita' => false, 'imagen' => null, 'color' => null];
         }
 
         return [
@@ -857,6 +983,8 @@ abstract class Documento extends FPDF
             'nota' => $celda['nota'] ?? null,
             'negrita' => (bool) ($celda['negrita'] ?? false),
             'imagen' => $celda['imagen'] ?? null,
+            // Solo para cifras con signo de estado (una pérdida en rojo).
+            'color' => $celda['color'] ?? null,
         ];
     }
 
@@ -924,7 +1052,7 @@ abstract class Documento extends FPDF
             }
 
             $this->SetXY($x + self::RESPIRO, $y + self::RESPIRO);
-            $this->fuente(8.5, $celda['negrita'] ? 'B' : '', $celda['negrita'] ? self::OSCURO : self::TEXTO);
+            $this->fuente(8.5, $celda['negrita'] ? 'B' : '', $celda['color'] ?? ($celda['negrita'] ? self::OSCURO : self::TEXTO));
             $this->flujo($ancho - 2 * self::RESPIRO, [['texto' => $celda['texto']]], $this->altoLinea(8.5), $alineacion);
 
             if ($celda['nota']) {

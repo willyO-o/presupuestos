@@ -266,6 +266,10 @@ return [
             'permissions' => [
                 'reportes.financiero' => 'Ver reportes financieros',
                 'reportes.produccion' => 'Ver reportes de producción',
+                // Exportar es aparte de ver: el PDF sale de la empresa (se reenvía,
+                // se imprime) y lleva márgenes, saldos y nombres de clientes.
+                'reportes.exportar_financiero' => 'Exportar el reporte financiero en PDF',
+                'reportes.exportar_produccion' => 'Exportar el reporte de producción en PDF',
                 'reportes.bi' => 'Ver inteligencia de negocios (BI)',
                 // Delegable: gerencia y administración lo traen de fábrica, y
                 // se puede asignar a cualquier otro rol desde Roles y permisos.
@@ -345,7 +349,7 @@ return [
                 'notas-entrega.ver', 'notas-entrega.crear',
                 'seguimientos-postventa.ver', 'seguimientos-postventa.registrar',
                 'pagos.ver', 'pagos.registrar',
-                'reportes.financiero', 'reportes.produccion', 'reportes.bi', 'reportes.asistente',
+                'reportes.financiero', 'reportes.produccion', 'reportes.exportar_financiero', 'reportes.exportar_produccion', 'reportes.bi', 'reportes.asistente',
                 'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
                 'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
             ],
@@ -373,7 +377,7 @@ return [
                 'notas-entrega.ver',
                 'seguimientos-postventa.ver',
                 'pagos.ver',
-                'reportes.financiero', 'reportes.produccion', 'reportes.bi', 'reportes.asistente',
+                'reportes.financiero', 'reportes.produccion', 'reportes.exportar_financiero', 'reportes.exportar_produccion', 'reportes.bi', 'reportes.asistente',
             ],
         ],
 
@@ -414,7 +418,7 @@ return [
                 'productos.ver',
                 'pedidos.ver', 'pedidos.asignar_area', 'pedidos.actualizar_estado',
                 'notas-entrega.ver', 'notas-entrega.crear',
-                'reportes.produccion',
+                'reportes.produccion', 'reportes.exportar_produccion',
             ],
         ],
 
@@ -435,7 +439,7 @@ return [
                 'proveedores.ver',
                 'compras.ver', 'compras.crear', 'compras.editar', 'compras.eliminar', 'compras.aprobar',
                 'pagos.ver', 'pagos.registrar',
-                'reportes.financiero', 'reportes.bi',
+                'reportes.financiero', 'reportes.exportar_financiero', 'reportes.bi',
             ],
         ],
 

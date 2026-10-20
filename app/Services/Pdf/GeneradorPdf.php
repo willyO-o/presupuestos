@@ -16,6 +16,8 @@ use App\Services\Pdf\Documentos\InformeProyeccionesPdf;
 use App\Services\Pdf\Documentos\NotaEntregaPdf;
 use App\Services\Pdf\Documentos\OrdenCompraClientePdf;
 use App\Services\Pdf\Documentos\PedidoPdf;
+use App\Services\Pdf\Documentos\ReporteFinancieroPdf;
+use App\Services\Pdf\Documentos\ReporteProduccionPdf;
 use Illuminate\Support\Str;
 
 /**
@@ -176,6 +178,38 @@ class GeneradorPdf
         return $this->entregar(
             new InformeProyeccionesPdf($informe, 'Informe de proyecciones', $this->empresa(), now()),
             $this->nombre('informe-proyecciones', "{$periodo['desde']}-al-{$periodo['hasta']}"),
+        );
+    }
+
+    /**
+     * Reporte financiero (InformeReportesService::financiero()).
+     *
+     * Documento INTERNO: márgenes, saldos y nombres de clientes. Lo protegen
+     * `reportes.financiero` y `reportes.exportar_financiero`.
+     *
+     * @param  array<string, mixed>  $informe
+     */
+    public function reporteFinanciero(array $informe): RespuestaPdf
+    {
+        $periodo = $informe['periodo'];
+
+        return $this->entregar(
+            new ReporteFinancieroPdf($informe, 'Reporte financiero', $this->empresa(), now()),
+            $this->nombre('reporte-financiero', "{$periodo['desde']}-al-{$periodo['hasta']}"),
+        );
+    }
+
+    /**
+     * Reporte de producción (InformeReportesService::produccion()). Es una
+     * foto del día: el archivo lleva la fecha en que se generó.
+     *
+     * @param  array<string, mixed>  $informe
+     */
+    public function reporteProduccion(array $informe): RespuestaPdf
+    {
+        return $this->entregar(
+            new ReporteProduccionPdf($informe, 'Reporte de producción', $this->empresa(), now()),
+            $this->nombre('reporte-produccion', now()->toDateString()),
         );
     }
 

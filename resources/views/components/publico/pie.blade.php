@@ -51,9 +51,10 @@
     <div class="border-t border-white/15">
         <div class="mx-auto flex max-w-contenido flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-white/80 sm:flex-row sm:px-6">
             <p>&copy; {{ date('Y') }} {{ $empresa['nombre'] }}. Todos los derechos reservados.</p>
-            <nav class="flex items-center gap-4" aria-label="Enlaces del pie">
+            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1" aria-label="Enlaces del pie">
                 <a href="{{ $empresa['web'] }}" rel="noopener" class="hover:underline">{{ str_replace('https://', '', $empresa['web']) }}</a>
                 <a href="{{ route('proyectos') }}" class="hover:underline">Proyectos</a>
+                <a href="{{ route('seguimiento') }}" class="hover:underline">Seguimiento de pedido</a>
                 <a href="{{ route('login') }}" class="hover:underline">Acceso al sistema</a>
             </nav>
         </div>

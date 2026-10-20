@@ -413,29 +413,6 @@ class InformeProyeccionesPdf extends Documento
      * Utilidades
      * -------------------------------------------------------------- */
 
-    private function tituloSeccion(string $texto): void
-    {
-        $this->fuente(13, 'B', self::AZUL_OSCURO);
-        $this->SetX(self::MARGEN_LATERAL);
-        $this->Cell($this->anchoUtil(), $this->altoLinea(13), $this->t($texto), 0, 2);
-
-        $y = $this->GetY() + 0.5;
-        $this->setTrazo(self::BORDE);
-        $this->Line(self::MARGEN_LATERAL, $y, $this->w - self::MARGEN_LATERAL, $y);
-        $this->SetXY(self::MARGEN_LATERAL, $y + 2);
-    }
-
-    private function parrafo(string $texto): void
-    {
-        $this->fuente(8.5, '', self::TEXTO);
-        $alto = $this->flujo($this->anchoUtil(), [['texto' => $texto]], $this->altoLinea(8.5), dibujar: false);
-
-        $this->asegurarEspacio($alto + 2);
-        $this->SetX(self::MARGEN_LATERAL);
-        $this->flujo($this->anchoUtil(), [['texto' => $texto]], $this->altoLinea(8.5), 'L');
-        $this->espacio(1.5);
-    }
-
     /**
      * Valor compacto para el eje Y: "Bs 120 mil" en vez de "Bs 120.000",
      * si no las etiquetas no entran en el margen.
