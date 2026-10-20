@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Ai\Tools\Concerns\FiltrosDeVentas;
 use App\Services\Reporte\ConsultaVentasService;
+use App\Services\Reporte\PeriodoReporte;
 use App\Services\Reporte\Pronostico;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Carbon;
@@ -61,7 +62,7 @@ class ConsultarPronostico extends HerramientaBi
         $valores = array_map(fn ($f) => (float) $f['valor'], $serie);
 
         $proyeccion = Pronostico::proyectar($valores, (int) $datos['meses']);
-        $futuros = collect(range(1, (int) $datos['meses']))->map(fn ($k) => $hasta->copy()->startOfMonth()->addMonths($k)->translatedFormat('M Y'))->all();
+        $futuros = collect(range(1, (int) $datos['meses']))->map(fn ($k) => PeriodoReporte::etiquetaMes($hasta->copy()->startOfMonth()->addMonths($k)))->all();
 
         $filas = [
             ...array_map(fn ($f) => ['mes' => $f['grupo'], 'valor' => $f['valor'], 'tipo' => 'real', 'inferior' => null, 'superior' => null], $serie),

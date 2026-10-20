@@ -155,7 +155,7 @@ async function anular(orden) {
                 <template #cell-numero_oc="{ item }">
                     <a v-if="item.archivo_url" :href="item.archivo_url" target="_blank" rel="noopener"
                         class="fw-semibold text-primary">
-                        {{ item.numero_oc }} <i class="fa-solid fa-file-pdf"></i>
+                        {{ item.numero_oc }} <i class="fa-solid fa-file-pdf text-pdf"></i>
                     </a>
                     <span v-else class="fw-semibold">{{ item.numero_oc }}</span>
                 </template>
@@ -185,7 +185,7 @@ async function anular(orden) {
                              caben dos iconos, y desde el visor del navegador se
                              guarda igual. -->
                         <a :href="route('ordenes-compra-cliente.pdf', item.id)" target="_blank" rel="noopener"
-                            class="btn btn-sm btn-icon btn-soft-secondary" aria-label="Ver acuse en PDF"
+                            class="btn btn-sm btn-icon btn-pdf" aria-label="Ver acuse en PDF"
                             title="Ver acuse en PDF">
                             <i class="fa-solid fa-file-pdf"></i>
                         </a>

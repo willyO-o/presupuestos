@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import BiKpi from '@/Components/Reporte/BiKpi.vue';
@@ -138,23 +139,23 @@ const impactoGrafico = computed(() => {
 
         <div class="row">
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Índice de costo (fin del periodo)" icono="fa-solid fa-gauge-high" tono="warning"
+                <BiKpi etiqueta="Índice de costo (fin del periodo)" ayuda="bi-costos.kpi-indice" icono="fa-solid fa-gauge-high" tono="warning"
                     :valor="datos.indice.variacion_periodo === null ? '—' : variacion(datos.indice.variacion_periodo)"
                     :variacion="datos.indice.variacion_mensual" :subir-es-bueno="false"
                     nota="Frente al primer precio del periodo" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Material consumido" icono="fa-solid fa-boxes-stacked" tono="primary"
+                <BiKpi etiqueta="Material consumido" ayuda="bi-costos.kpi-consumido" icono="fa-solid fa-boxes-stacked" tono="primary"
                     :valor="money(datos.consumo.total)" :variacion="datos.consumo.variacion_mensual"
                     :subir-es-bueno="false" :nota="`${datos.consumo.materiales_distintos} materiales distintos`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Impacto de las variaciones" icono="fa-solid fa-scale-unbalanced"
+                <BiKpi etiqueta="Impacto de las variaciones" ayuda="bi-costos.kpi-impacto" icono="fa-solid fa-scale-unbalanced"
                     :tono="datos.impacto.total > 0 ? 'danger' : 'success'" :valor="money(datos.impacto.total)"
                     :nota="`${datos.impacto.suben} suben · ${datos.impacto.bajan} bajan`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Materiales con historial" icono="fa-solid fa-clock-rotate-left" tono="info"
+                <BiKpi etiqueta="Materiales con historial" ayuda="bi-costos.kpi-historial" icono="fa-solid fa-clock-rotate-left" tono="info"
                     :valor="String(datos.indice.materiales)" nota="Con 2 o más precios registrados" />
             </div>
         </div>
@@ -163,7 +164,7 @@ const impactoGrafico = computed(() => {
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Proyección de costos futuros</span>
+                    <span class="card-title">Proyección de costos futuros <AyudaInfo clave="bi-costos.indice" /></span>
                     <EtiquetaAlcance global texto="Precios" />
                     <p class="card-subtitle">
                         Índice de costo de materiales (100 = primer precio del periodo) y su tendencia lineal
@@ -185,7 +186,7 @@ const impactoGrafico = computed(() => {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Proyección por material</span>
+                            <span class="card-title">Proyección por material <AyudaInfo clave="bi-costos.material" /></span>
                             <p class="card-subtitle">Precio unitario vigente cada mes y hacia dónde va</p>
                         </div>
                         <select v-if="datos.materiales.length" v-model="materialElegido" class="form-control bi-select"
@@ -204,7 +205,7 @@ const impactoGrafico = computed(() => {
             </div>
             <div class="col-lg-5">
                 <div class="card">
-                    <div class="card-header"><span class="card-title">Lectura del material</span></div>
+                    <div class="card-header"><span class="card-title">Lectura del material <AyudaInfo clave="bi-costos.lectura" /></span></div>
                     <div class="card-body">
                         <div v-if="material" class="margen-panel">
                             <div class="margen-row">
@@ -236,7 +237,7 @@ const impactoGrafico = computed(() => {
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Consumo de materiales</span>
+                    <span class="card-title">Consumo de materiales <AyudaInfo clave="bi-costos.consumo" /></span>
                     <p class="card-subtitle">
                         Costo del material que producción registró en los pedidos, por mes, con su proyección
                     </p>
@@ -256,7 +257,7 @@ const impactoGrafico = computed(() => {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Materiales más consumidos</span>
+                            <span class="card-title">Materiales más consumidos <AyudaInfo clave="bi-costos.mas-consumidos" /></span>
                             <p class="card-subtitle">
                                 Top 10 por costo
                                 <span v-if="datos.consumo.tiene_presupuestado">· real contra lo presupuestado en las hojas de costo</span>
@@ -274,7 +275,7 @@ const impactoGrafico = computed(() => {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Impacto de las variaciones de precio</span>
+                            <span class="card-title">Impacto de las variaciones de precio <AyudaInfo clave="bi-costos.variacion" /></span>
                             <EtiquetaAlcance global texto="Precios" />
                             <p class="card-subtitle">Cambio de precio en el periodo · rojo = subió, verde = bajó</p>
                         </div>
@@ -292,7 +293,7 @@ const impactoGrafico = computed(() => {
         <div v-if="datos.impacto.materiales.length" class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Detalle del impacto en costos</span>
+                    <span class="card-title">Detalle del impacto en costos <AyudaInfo clave="bi-costos.detalle-impacto" /></span>
                     <p class="card-subtitle">
                         Impacto = (precio final − precio inicial) × cantidad consumida en el periodo
                     </p>

@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import BiKpi from '@/Components/Reporte/BiKpi.vue';
 import MetodoPronostico from '@/Components/Reporte/MetodoPronostico.vue';
@@ -133,23 +134,23 @@ function pct(value) {
 
         <div class="row">
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Presupuestos emitidos" icono="fa-solid fa-file-invoice" tono="primary"
+                <BiKpi etiqueta="Presupuestos emitidos" ayuda="bi-rentabilidad.kpi-emitidos" icono="fa-solid fa-file-invoice" tono="primary"
                     :valor="String(datos.resumen.emitidos)" :variacion="datos.pronostico.variacion_mensual"
                     :nota="`${money(datos.resumen.monto_emitido)} en total`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Tasa de aprobación" icono="fa-solid fa-handshake" tono="success"
+                <BiKpi etiqueta="Tasa de aprobación" ayuda="bi-rentabilidad.kpi-aprobacion" icono="fa-solid fa-handshake" tono="success"
                     :valor="porcentaje(datos.resumen.tasa_conversion)"
                     :nota="`${datos.resumen.aprobados} aprobados · ${datos.resumen.pendientes} pendientes (no cuentan)`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Rentabilidad sobre costo" icono="fa-solid fa-percent" :tono="tonoRentabilidad"
+                <BiKpi etiqueta="Rentabilidad sobre costo" ayuda="bi-rentabilidad.kpi-rentabilidad" icono="fa-solid fa-percent" :tono="tonoRentabilidad"
                     :valor="porcentaje(datos.rentabilidad.rentabilidad_promedio)"
                     :variacion="datos.rentabilidad.variacion_mensual"
                     :nota="`Utilidad real ${money(datos.rentabilidad.utilidad_total)}`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Rentabilidad proyectada" icono="fa-solid fa-binoculars" tono="info"
+                <BiKpi etiqueta="Rentabilidad proyectada" ayuda="bi-rentabilidad.kpi-proyectada" icono="fa-solid fa-binoculars" tono="info"
                     :valor="porcentaje(rentabilidadProyectada)"
                     :nota="rentabilidadProyectada === null ? 'Faltan meses con datos' : `Estimada para ${futuros.at(-1)}`" />
             </div>
@@ -159,7 +160,7 @@ function pct(value) {
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Pronóstico de presupuestos</span>
+                    <span class="card-title">Pronóstico de presupuestos <AyudaInfo clave="bi-rentabilidad.pronostico" /></span>
                     <p class="card-subtitle">
                         Monto emitido y aprobado por mes, con la tendencia del monto emitido a {{ futuros.length }} meses
                         <span v-if="!datos.pronostico.proyeccion_emitido.length">· se necesitan al menos 3 meses en el periodo para proyectar</span>
@@ -179,7 +180,7 @@ function pct(value) {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Presupuestos por mes</span>
+                            <span class="card-title">Presupuestos por mes <AyudaInfo clave="bi-rentabilidad.cantidades" /></span>
                             <p class="card-subtitle">Cantidad emitida y aprobada</p>
                         </div>
                     </div>
@@ -194,7 +195,7 @@ function pct(value) {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Tendencia: ticket vs. costo</span>
+                            <span class="card-title">Tendencia: ticket vs. costo <AyudaInfo clave="bi-rentabilidad.tendencia" /></span>
                             <p class="card-subtitle">Monto promedio por presupuesto contra su costo ajustado promedio</p>
                         </div>
                     </div>
@@ -232,12 +233,14 @@ function pct(value) {
                 </p>
                 <div class="row">
                     <div class="col-lg-7">
+                        <p class="chart-heading">Rentabilidad por mes <AyudaInfo clave="bi-rentabilidad.rentabilidad" /></p>
                         <BaseChart titulo="Rentabilidad por mes" :labels="rentabilidad.labels" :series="rentabilidad.series"
                             :formato="pct" :alto="280" :umbrales="rentabilidad.umbrales" :inicio-proyeccion="inicioFuturo"
                             unir-huecos vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
                         <MetodoPronostico :metodo="datos.rentabilidad.metodo" />
                     </div>
                     <div class="col-lg-5">
+                        <p class="chart-heading">Utilidad real por mes <AyudaInfo clave="bi-rentabilidad.utilidad" /></p>
                         <BaseChart titulo="Utilidad real por mes" :labels="utilidad.labels" :series="utilidad.series"
                             :formato="moneyCorto" :alto="280" :inicio-proyeccion="inicioFuturo"
                             vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
@@ -250,7 +253,7 @@ function pct(value) {
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Semáforo de los presupuestos del periodo</span>
+                    <span class="card-title">Semáforo de los presupuestos del periodo <AyudaInfo clave="bi-rentabilidad.semaforo" /></span>
                     <p class="card-subtitle">Cómo salieron todos los presupuestos emitidos según el motor de margen</p>
                 </div>
             </div>

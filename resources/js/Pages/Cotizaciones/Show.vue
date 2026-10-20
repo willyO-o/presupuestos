@@ -101,7 +101,7 @@ async function eliminar() {
             </Link>
 
             <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-soft-secondary btn-sm" @click="imprimir">
+                <button type="button" class="btn btn-pdf btn-sm" @click="imprimir">
                     <i class="fa-solid fa-print"></i>
                     Imprimir
                 </button>
@@ -112,12 +112,12 @@ async function eliminar() {
                      revisa la cotizacion antes de enviarla sin perder esta
                      pantalla ni llenar el disco de PDFs. -->
                 <a :href="route('cotizaciones.pdf', cotizacion.id)" target="_blank" rel="noopener"
-                    class="btn btn-soft-primary btn-sm">
+                    class="btn btn-pdf btn-sm">
                     <i class="fa-solid fa-file-pdf"></i>
                     Ver PDF
                 </a>
                 <a :href="route('cotizaciones.pdf', { cotizacion: cotizacion.id, descargar: 1 })"
-                    class="btn btn-soft-secondary btn-sm btn-icon" aria-label="Descargar la cotizacion en PDF"
+                    class="btn btn-pdf btn-sm btn-icon" aria-label="Descargar la cotizacion en PDF"
                     title="Descargar PDF">
                     <i class="fa-solid fa-download"></i>
                 </a>

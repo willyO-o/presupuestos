@@ -13,6 +13,94 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-20 — Ayuda "i" también en indicadores, tablas y listas de Reportes y BI
+
+**Qué cambió:**
+- Además de los gráficos, ahora llevan el ícono **"i"** los 31 cuadros de información que no son
+  gráficos en Reportes (financiero y producción) y en las seis pestañas del BI: las tarjetas de
+  indicador, las tablas (rentabilidad real, detalle del impacto), las listas (anomalías, alertas
+  de costo y margen), la lectura del material, el semáforo, los tres paneles del simulador y los
+  cuadros del resumen semanal.
+- En los indicadores del BI el ícono va en la esquina superior derecha de la tarjeta; en las
+  tarjetas de Reportes, al lado de la etiqueta.
+
+**Por qué:** pedido del usuario: que también se entiendan los cuadros que no son gráficos.
+
+**Cómo:**
+- El componente se generalizó y renombró: `Components/AyudaInfo.vue` (antes
+  `Chart/AyudaGrafico.vue`) y los textos en `Data/Ayudas.js` (antes `AyudaGraficos.js`); clases CSS
+  `.ayuda-*`. `BiKpi` ganó la prop `ayuda` (clave del texto).
+- Los textos siguen el mismo criterio: castellano boliviano de todos los días, "dinero" o
+  "ingresos" y nunca "plata", y cada uno revisado contra lo que el cuadro calcula de verdad (por
+  ejemplo, la tasa de aprobación no cuenta los pendientes; las cuentas por cobrar no dependen del
+  filtro de fechas).
+- Única tarjeta sin ícono, a propósito: "Proyección de rentabilidad", que agrupa dos gráficos que ya
+  traen el suyo.
+- `AyudasTest` (reemplaza a `GraficosConAyudaTest`): además de los gráficos, exige ícono en cada
+  tarjeta con título y cada indicador de `Pages/Reportes`. Verificado en el navegador (escritorio y
+  celular, sin errores de consola).
+
+---
+
+## 2026-10-20 — Encabezados alineados, meses en mes-año y botones de PDF en rojo
+
+**Qué cambió:**
+- **Tablas:** cada encabezado se alinea como sus valores (montos a la derecha, estados y fechas al
+  centro) en todas las tablas del panel, incluida la vista "Tabla" de los gráficos.
+- **Meses:** las etiquetas de periodo mensual de gráficos, tablas, PDFs y respuestas del asistente
+  salen como **mes-año: `Ene-2026`** (antes `2026-01` o `ene. 2026`). Las fechas de un día puntual
+  (la de un pedido, una entrega) no cambian. Quedan solo con el mes, a propósito, la estacionalidad
+  (junta todos los años) y el gráfico de ventas del Dashboard (cada serie ya es un año).
+- **PDF e impresión:** los 18 botones de ver, descargar o imprimir PDF del panel, el "Ver PDF" del
+  informe del BI y la descarga del cotizador público van en un **rojo propio** (`--c-pdf`), más
+  oscuro que el rojo de "peligro" para no confundirse con "Cancelar pedido".
+
+**Por qué:** pedidos del usuario: leer mejor tablas y periodos, y encontrar los PDF de un vistazo.
+
+**Cómo:**
+- La causa del desalineado era una sola regla: `.table-dashboard thead th` forzaba `text-start` con
+  más especificidad que la utilidad `text-end` del `<th>`. Ahora el valor por defecto va en
+  `:where()` (especificidad cero). Las tablas ya declaraban la misma alineación en encabezado y
+  celda; se verificó midiendo la alineación calculada en 14 pantallas.
+- `PeriodoReporte::etiquetaMes()` es el único formato de mes del servidor (nombres fijos, sin el
+  punto ni el "sept." de Carbon) y `mesAnio()` en `Utils/FormatoReporte.js` es su espejo. El
+  asistente ordena por la clave `Y-m` y rotula después, para que abril no quede antes que enero.
+- Clases `.btn-pdf` (suave), `.btn-pdf-solid` y `.text-pdf` en app.css §8; color `marca.pdf` en
+  `tailwind.publico.config.js`.
+- Tests: `EtiquetaMesTest` y `BotonesPdfTest` (todo `<a>`/`<button>` que abre un PDF o imprime
+  lleva la clase roja). Verificado en el navegador (claro y oscuro).
+
+---
+
+## 2026-10-20 — Ayuda "i" en todos los gráficos del panel
+
+**Qué cambió:**
+- Cada gráfico del Dashboard, de los reportes Financiero y de Producción y de las cuatro pestañas
+  del BI con gráficos (25 en total) tiene un ícono **"i"** al lado del título. Al tocarlo se abre
+  un popup con qué muestra el gráfico, "¿Cómo se lee?" (2 a 4 pistas) y un "Ojo" con la advertencia
+  o el consejo práctico de ese gráfico.
+- Los textos están en castellano boliviano de todos los días ("harto", "nomás", "caseros",
+  "chamba", "trancadera"), sin términos de estadística. Para los montos se dice **"dinero" o
+  "ingresos", nunca "plata"** (pedido del usuario).
+
+**Por qué:** pedido del usuario: que cualquiera entienda a qué se refiere cada gráfico.
+
+**Cómo:**
+- `Components/Chart/AyudaGrafico.vue` (prop `clave`) y todos los textos en `Data/AyudaGraficos.js`:
+  un solo lugar para corregirlos. El popup va con Teleport al `<body>` en `position: fixed` (las
+  tarjetas recortan lo que sobresale), se acomoda abajo o arriba según el espacio, con flechita al
+  ícono. Se abre con clic (en el celular no hay hover), se cierra con Escape, la X o tocando afuera;
+  abrir uno cierra el otro. Foco al popup al abrir y de vuelta al ícono al cerrar con teclado.
+- CSS §35 en `app.css` (`.ayuda-grafico-*`, `.chart-heading`), claro y oscuro con los tokens.
+  Los dos gráficos que comparten la tarjeta "Proyección de rentabilidad" ganaron título propio.
+- Quedan fuera los gráficos del asistente de IA: los arma la IA en cada respuesta y ya traen su
+  "Cómo lo calculé".
+- Test `GraficosConAyudaTest`: cada pantalla con `<BaseChart>` tiene sus íconos, toda clave existe,
+  ninguna se repite ni sobra, cada texto trae qué muestra y cómo leerlo, y ninguno dice "plata".
+  Verificado con Playwright en escritorio (claro y oscuro) y en celular, sin errores de consola.
+
+---
+
 ## 2026-10-20 — PDF del reporte financiero y del reporte de producción
 
 **Qué cambió:**

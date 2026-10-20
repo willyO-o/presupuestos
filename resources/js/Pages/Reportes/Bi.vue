@@ -3,10 +3,12 @@ import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import MetodoPronostico from '@/Components/Reporte/MetodoPronostico.vue';
 import { seriesProyectadas } from '@/Utils/SerieProyectada.js';
+import { mesAnio } from '@/Utils/FormatoReporte.js';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -76,7 +78,7 @@ const costos = computed(() => {
     const fechas = [...new Set(materiales.flatMap((m) => m.puntos.map((p) => p.fecha)))].sort();
 
     return {
-        labels: fechas.map((f) => f.slice(0, 7)),
+        labels: fechas.map((f) => mesAnio(f)),
         series: materiales.map((m) => {
             const porFecha = Object.fromEntries(m.puntos.map((p) => [p.fecha, p.precio]));
 
@@ -102,7 +104,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Proyección de demanda</span>
+                    <span class="card-title">Proyección de demanda <AyudaInfo clave="bi.proyeccion-demanda" /></span>
                     <p class="card-subtitle">
                         Pedidos por mes, media móvil de 3 meses y tendencia lineal a {{ datos.demanda.proyeccion.length || 3 }} meses
                         <span v-if="!datos.demanda.proyeccion.length">· se necesitan al menos 3 meses en el periodo para proyectar</span>
@@ -122,7 +124,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Productos más vendidos</span>
+                            <span class="card-title">Productos más vendidos <AyudaInfo clave="bi.productos-mas-vendidos" /></span>
                             <p class="card-subtitle">Top 10 por monto aprobado en el periodo</p>
                         </div>
                     </div>
@@ -139,7 +141,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Categorías más vendidas</span>
+                            <span class="card-title">Categorías más vendidas <AyudaInfo clave="bi.categorias-mas-vendidas" /></span>
                             <p class="card-subtitle">Top 10 por monto aprobado en el periodo</p>
                         </div>
                     </div>
@@ -155,7 +157,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Evolución del costo de materiales</span>
+                    <span class="card-title">Evolución del costo de materiales <AyudaInfo clave="bi.evolucion-costos" /></span>
                     <EtiquetaAlcance global texto="Inventario" />
                     <p class="card-subtitle">
                         Precio unitario según el historial que deja cada compra aprobada
@@ -174,7 +176,7 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Estacionalidad</span>
+                    <span class="card-title">Estacionalidad <AyudaInfo clave="bi.estacionalidad" /></span>
                     <p class="card-subtitle">Pedidos del periodo acumulados por mes calendario (todos los años juntos)</p>
                 </div>
             </div>

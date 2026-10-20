@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import { variacion as formatoVariacion } from '@/Utils/FormatoReporte.js';
 
 /**
@@ -23,6 +24,8 @@ const props = defineProps({
     subirEsBueno: { type: Boolean, default: true },
     /** Texto chico bajo el número (contexto o aclaración). */
     nota: { type: String, default: '' },
+    /** Clave de `Data/Ayudas.js`: pone el ícono "i" al lado de la etiqueta. */
+    ayuda: { type: String, default: null },
 });
 
 /** Por debajo de ±0,5 %/mes se considera estable: es ruido, no tendencia. */
@@ -56,7 +59,10 @@ const iconoTendencia = computed(() => ({
 </script>
 
 <template>
-    <div class="card stat-card bi-kpi">
+    <div class="card stat-card bi-kpi" :class="{ 'con-ayuda': ayuda }">
+        <!-- En la esquina, siempre en el mismo lugar: al lado de una etiqueta
+             de dos renglones el ícono quedaría suelto en un renglón propio. -->
+        <AyudaInfo v-if="ayuda" :clave="ayuda" class="bi-kpi-ayuda" />
         <div class="stat-icon" :class="`stat-icon-${tono}`"><i :class="icono"></i></div>
         <div class="bi-kpi-cuerpo">
             <p class="stat-label mb-0">{{ etiqueta }}</p>

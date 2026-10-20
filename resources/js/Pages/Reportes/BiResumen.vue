@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import { money, numero, porcentaje, variacion } from '@/Utils/FormatoReporte.js';
 
@@ -128,6 +129,7 @@ const generadoTexto = computed(() => {
                         <div class="resumen-cabecera-texto">
                             <p class="resumen-semana">
                                 {{ resumen.semana?.etiqueta }} · <strong>{{ resumen.alcance }}</strong>
+                                <AyudaInfo clave="bi-resumen.semana" />
                             </p>
                             <h2 class="resumen-titular">{{ resumen.contenido.titular }}</h2>
                             <p class="resumen-origen">
@@ -162,7 +164,7 @@ const generadoTexto = computed(() => {
             <div class="resumen-cuerpo">
                 <div class="resumen-lectura">
                     <section class="card">
-                        <div class="card-header"><span class="card-title">Lo más destacado</span></div>
+                        <div class="card-header"><span class="card-title">Lo más destacado <AyudaInfo clave="bi-resumen.destacados" /></span></div>
                         <ul class="card-body resumen-puntos">
                             <li v-for="(d, i) in resumen.contenido.destacados" :key="i" class="resumen-punto" tabindex="0"
                                 @mouseenter="activar(d.kpis)" @mouseleave="activar([])" @focus="activar(d.kpis)" @blur="activar([])">
@@ -174,7 +176,7 @@ const generadoTexto = computed(() => {
                     </section>
 
                     <section class="card">
-                        <div class="card-header"><span class="card-title">Riesgos</span></div>
+                        <div class="card-header"><span class="card-title">Riesgos <AyudaInfo clave="bi-resumen.riesgos" /></span></div>
                         <ul class="card-body resumen-puntos">
                             <li v-for="(r, i) in resumen.contenido.riesgos" :key="i" class="resumen-punto" tabindex="0"
                                 @mouseenter="activar(r.kpis)" @mouseleave="activar([])" @focus="activar(r.kpis)" @blur="activar([])">
@@ -193,7 +195,7 @@ const generadoTexto = computed(() => {
                     </section>
 
                     <section class="card">
-                        <div class="card-header"><span class="card-title">Recomendaciones para esta semana</span></div>
+                        <div class="card-header"><span class="card-title">Recomendaciones para esta semana <AyudaInfo clave="bi-resumen.recomendaciones" /></span></div>
                         <ul class="card-body resumen-puntos">
                             <li v-for="(r, i) in resumen.contenido.recomendaciones" :key="i" class="resumen-punto">
                                 <span class="resumen-punto-icono resumen-punto-accion"><i class="fa-solid fa-check"></i></span>
@@ -210,7 +212,7 @@ const generadoTexto = computed(() => {
                     <section class="card">
                         <div class="card-header">
                             <div>
-                                <span class="card-title">Indicadores de la semana</span>
+                                <span class="card-title">Indicadores de la semana <AyudaInfo clave="bi-resumen.indicadores" /></span>
                                 <p class="card-subtitle">Los números de los que sale el texto</p>
                             </div>
                         </div>
@@ -244,7 +246,7 @@ const generadoTexto = computed(() => {
                     </section>
 
                     <section class="card">
-                        <div class="card-header"><span class="card-title">Contexto</span></div>
+                        <div class="card-header"><span class="card-title">Contexto <AyudaInfo clave="bi-resumen.contexto" /></span></div>
                         <div class="card-body resumen-contexto">
                             <div v-if="resumen.contexto.familias_mas_cotizadas?.length">
                                 <p class="resumen-contexto-titulo">Familias más cotizadas</p>
@@ -271,7 +273,7 @@ const generadoTexto = computed(() => {
             </div>
 
             <section v-if="historial.length > 1" class="card">
-                <div class="card-header"><span class="card-title">Semanas anteriores</span></div>
+                <div class="card-header"><span class="card-title">Semanas anteriores <AyudaInfo clave="bi-resumen.historial" /></span></div>
                 <ul class="card-body resumen-historial">
                     <li v-for="g in historial" :key="g.semana">
                         <button type="button" class="resumen-historial-item" :class="{ 'is-active': g.semana === resumen.semana?.etiqueta }"

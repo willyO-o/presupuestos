@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import { userCan } from '@/Directives/Can.js';
 
@@ -50,11 +51,11 @@ const carga = computed(() => ({
         <EtiquetaAlcance />
         <!-- Vista previa en pestaña nueva; el botón de al lado baja el archivo. -->
         <template v-if="puedeExportar">
-            <a :href="route('reportes.produccion.pdf')" target="_blank" rel="noopener" class="btn btn-soft-primary btn-sm">
+            <a :href="route('reportes.produccion.pdf')" target="_blank" rel="noopener" class="btn btn-pdf btn-sm">
                 <i class="fa-solid fa-file-pdf"></i>
                 Ver PDF
             </a>
-            <a :href="route('reportes.produccion.pdf', { descargar: 1 })" class="btn btn-soft-secondary btn-sm btn-icon"
+            <a :href="route('reportes.produccion.pdf', { descargar: 1 })" class="btn btn-pdf btn-sm btn-icon"
                 aria-label="Descargar el reporte de producción en PDF" title="Descargar PDF">
                 <i class="fa-solid fa-download"></i>
             </a>
@@ -67,7 +68,7 @@ const carga = computed(() => ({
                 <div class="stat-card card">
                     <div class="stat-icon stat-icon-success"><i class="fa-solid fa-calendar-check"></i></div>
                     <div>
-                        <p class="text-muted fs-sm mb-0">Cumplimiento de entregas</p>
+                        <p class="text-muted fs-sm mb-0 etiqueta-con-ayuda"><span>Cumplimiento de entregas</span> <AyudaInfo clave="produccion.cumplimiento" /></p>
                         <p class="fs-xl fw-bold mb-0">
                             {{ datos.cumplimiento.cumplimiento_pct === null ? '—' : `${datos.cumplimiento.cumplimiento_pct}%` }}
                         </p>
@@ -84,7 +85,7 @@ const carga = computed(() => ({
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Duración promedio por etapa</span>
+                            <span class="card-title">Duración promedio por etapa <AyudaInfo clave="produccion.duracion-por-etapa" /></span>
                             <p class="card-subtitle">
                                 Días entre el ingreso a una etapa y la siguiente
                                 <span v-if="sinMuestras">· {{ sinMuestras }} etapa(s) todavía sin muestras</span>
@@ -102,7 +103,7 @@ const carga = computed(() => ({
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Carga de trabajo por área</span>
+                            <span class="card-title">Carga de trabajo por área <AyudaInfo clave="produccion.carga-por-area" /></span>
                             <p class="card-subtitle">Ítems abiertos ahora mismo en cada área</p>
                         </div>
                     </div>
@@ -115,7 +116,7 @@ const carga = computed(() => ({
         </div>
 
         <div class="card">
-            <div class="card-header"><span class="card-title">Pedidos activos por etapa</span></div>
+            <div class="card-header"><span class="card-title">Pedidos activos por etapa <AyudaInfo clave="produccion.pedidos-activos" /></span></div>
             <div class="card-body">
                 <!-- Un puñado de números sueltos: fila de KPIs, no un gráfico. -->
                 <div class="row">

@@ -3,10 +3,12 @@ import { computed, reactive } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import DateRangeFilter from '@/Components/DateRangeFilter.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import { useChartTheme } from '@/Composables/UseChartTheme.js';
 import { userCan } from '@/Directives/Can.js';
+import { mesAnio } from '@/Utils/FormatoReporte.js';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -48,7 +50,7 @@ function moneyCorto(value) {
 }
 
 const ventas = computed(() => ({
-    labels: props.datos.ventas_por_mes.map((m) => m.mes),
+    labels: props.datos.ventas_por_mes.map((m) => mesAnio(m.mes)),
     series: [{ nombre: 'Ventas', datos: props.datos.ventas_por_mes.map((m) => m.total), area: true }],
 }));
 
@@ -105,11 +107,11 @@ const margenes = computed(() => ({
                         <!-- Vista previa en pestaña nueva; el botón de al lado
                              baja el archivo (App\Services\Pdf\GeneradorPdf). -->
                         <template v-if="puedeExportar">
-                            <a :href="urlPdf()" target="_blank" rel="noopener" class="btn btn-soft-primary">
+                            <a :href="urlPdf()" target="_blank" rel="noopener" class="btn btn-pdf">
                                 <i class="fa-solid fa-file-pdf"></i>
                                 Ver PDF
                             </a>
-                            <a :href="urlPdf(true)" class="btn btn-soft-secondary btn-icon"
+                            <a :href="urlPdf(true)" class="btn btn-pdf btn-icon"
                                 aria-label="Descargar el reporte financiero en PDF" title="Descargar PDF">
                                 <i class="fa-solid fa-download"></i>
                             </a>
@@ -124,7 +126,7 @@ const margenes = computed(() => ({
                 <div class="stat-card card">
                     <div class="stat-icon stat-icon-success"><i class="fa-solid fa-sack-dollar"></i></div>
                     <div>
-                        <p class="text-muted fs-sm mb-0">Total vendido en el periodo</p>
+                        <p class="text-muted fs-sm mb-0 etiqueta-con-ayuda"><span>Total vendido en el periodo</span> <AyudaInfo clave="financiero.total-vendido" /></p>
                         <p class="fs-xl fw-bold mb-0">{{ money(datos.total_vendido) }}</p>
                     </div>
                 </div>
@@ -133,7 +135,7 @@ const margenes = computed(() => ({
                 <div class="stat-card card">
                     <div class="stat-icon stat-icon-warning"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                     <div>
-                        <p class="text-muted fs-sm mb-0">Cuentas por cobrar</p>
+                        <p class="text-muted fs-sm mb-0 etiqueta-con-ayuda"><span>Cuentas por cobrar</span> <AyudaInfo clave="financiero.por-cobrar" /></p>
                         <p class="fs-xl fw-bold mb-0">{{ money(datos.cuentas_por_cobrar.total) }}</p>
                     </div>
                 </div>
@@ -143,7 +145,7 @@ const margenes = computed(() => ({
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Ventas por mes</span>
+                    <span class="card-title">Ventas por mes <AyudaInfo clave="financiero.ventas-por-mes" /></span>
                     <p class="card-subtitle">Cotizaciones aprobadas y convertidas dentro del periodo</p>
                 </div>
             </div>
@@ -156,7 +158,7 @@ const margenes = computed(() => ({
         <div class="row">
             <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header"><span class="card-title">Ventas por sucursal</span></div>
+                    <div class="card-header"><span class="card-title">Ventas por sucursal <AyudaInfo clave="financiero.ventas-por-sucursal" /></span></div>
                     <div class="card-body">
                         <BaseChart titulo="Ventas por sucursal" tipo="bar" horizontal :labels="sucursales.labels"
                             :series="sucursales.series" :formato="moneyCorto" :alto="260"
@@ -168,7 +170,7 @@ const margenes = computed(() => ({
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Margen real por pedido</span>
+                            <span class="card-title">Margen real por pedido <AyudaInfo clave="financiero.margen-por-pedido" /></span>
                             <p class="card-subtitle">De peor a mejor · rojo = el pedido costó más de lo que dejó</p>
                         </div>
                     </div>
@@ -184,7 +186,7 @@ const margenes = computed(() => ({
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Rentabilidad real por pedido</span>
+                    <span class="card-title">Rentabilidad real por pedido <AyudaInfo clave="financiero.rentabilidad-tabla" /></span>
                     <p class="card-subtitle">Ingreso cobrado contra el costo de material realmente consumido</p>
                 </div>
             </div>

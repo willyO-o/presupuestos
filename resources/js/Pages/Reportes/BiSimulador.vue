@@ -3,6 +3,7 @@ import { computed, reactive } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import { CLASES_SEMAFORO, evaluarMargen } from '@/Utils/MotorMargen';
 import { money, moneyCorto, numero, porcentaje, variacion } from '@/Utils/FormatoReporte.js';
@@ -243,7 +244,7 @@ function pct(value) {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Escenario base</span>
+                            <span class="card-title">Escenario base <AyudaInfo clave="bi-simulador.base" /></span>
                             <p class="card-subtitle">
                                 <template v-if="datos.base.desde_datos">
                                     Presupuesto promedio de {{ datos.base.presupuestos }} aprobado(s) con hoja de costos en el periodo
@@ -284,7 +285,7 @@ function pct(value) {
 
                 <div class="card">
                     <div class="card-header">
-                        <span class="card-title">¿Qué pasa si…?</span>
+                        <span class="card-title">¿Qué pasa si…? <AyudaInfo clave="bi-simulador.palancas" /></span>
                         <button type="button" class="btn btn-sm btn-outline-primary" @click="restablecer">
                             <i class="fa-solid fa-rotate-left"></i> Restablecer
                         </button>
@@ -335,7 +336,7 @@ function pct(value) {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Resultado del escenario</span>
+                            <span class="card-title">Resultado del escenario <AyudaInfo clave="bi-simulador.resultado" /></span>
                             <p class="card-subtitle">Calculado con el mismo motor de margen que las cotizaciones</p>
                         </div>
                         <span :class="CLASES_SEMAFORO[resultado.estado]">
@@ -399,7 +400,7 @@ function pct(value) {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Sensibilidad al costo de materiales</span>
+                            <span class="card-title">Sensibilidad al costo de materiales <AyudaInfo clave="bi-simulador.sensibilidad" /></span>
                             <p class="card-subtitle">Rentabilidad si el costo varía, con los ajustes de precio y descuento del escenario</p>
                         </div>
                     </div>
@@ -413,7 +414,7 @@ function pct(value) {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">A dónde va el precio</span>
+                            <span class="card-title">A dónde va el precio <AyudaInfo clave="bi-simulador.composicion" /></span>
                             <p class="card-subtitle">Costo, impuestos y utilidad por presupuesto: base contra escenario</p>
                         </div>
                     </div>

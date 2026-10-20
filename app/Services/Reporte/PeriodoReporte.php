@@ -2,6 +2,7 @@
 
 namespace App\Services\Reporte;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Throwable;
@@ -48,8 +49,27 @@ final readonly class PeriodoReporte
     }
 
     /**
+     * Nombre corto de cada mes, en orden. Fijo y no `translatedFormat('M')`:
+     * Carbon devuelve "ene." con punto y "sept." para septiembre, y la
+     * etiqueta tiene que medir siempre lo mismo en ejes, tablas y PDFs.
+     */
+    private const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    /**
+     * Etiqueta mes-año de un mes: `Ene-2026`.
+     *
+     * Es el ÚNICO formato de mes de los reportes (pedido del usuario): en
+     * gráficos, tablas, PDFs y respuestas del asistente. Su espejo en el
+     * navegador es `mesAnio()` de `resources/js/Utils/FormatoReporte.js`.
+     */
+    public static function etiquetaMes(CarbonInterface $mes): string
+    {
+        return self::MESES[$mes->month - 1].'-'.$mes->year;
+    }
+
+    /**
      * Meses calendario que toca el periodo, en orden: clave `Y-m` → etiqueta
-     * corta (`ago 2026`).
+     * mes-año (`Ago-2026`).
      *
      * @return Collection<string, string>
      */
@@ -59,7 +79,7 @@ final readonly class PeriodoReporte
         $mes = $this->desde->copy()->startOfMonth();
 
         while ($mes->lessThanOrEqualTo($this->hasta)) {
-            $meses->put($mes->format('Y-m'), $mes->translatedFormat('M Y'));
+            $meses->put($mes->format('Y-m'), self::etiquetaMes($mes));
             $mes->addMonth();
         }
 
@@ -77,7 +97,7 @@ final readonly class PeriodoReporte
         $ultimo = $this->hasta->copy()->startOfMonth();
 
         return array_map(
-            fn (int $k): string => $ultimo->copy()->addMonths($k)->translatedFormat('M Y'),
+            fn (int $k): string => self::etiquetaMes($ultimo->copy()->addMonths($k)),
             range(1, $cantidad),
         );
     }

@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import { money, moneyCorto, numero, porcentaje } from '@/Utils/FormatoReporte';
 import { tiempoRelativo } from '@/Utils/TimeAgo';
@@ -181,7 +182,7 @@ function fecha(value) {
                 <section class="card">
                     <div class="card-header">
                         <div>
-                            <h2 class="card-title"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Ventas por mes</h2>
+                            <h2 class="card-title"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Ventas por mes <AyudaInfo clave="dashboard.ventas-por-mes" /></h2>
                             <p class="card-subtitle mt-1">Total de cotizaciones aprobadas, {{ anioActual }} contra {{ anioActual - 1 }}</p>
                         </div>
                     </div>
@@ -239,7 +240,7 @@ function fecha(value) {
 
                     <section class="card">
                         <div class="card-header">
-                            <h2 class="card-title"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Pedidos por etapa</h2>
+                            <h2 class="card-title"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Pedidos por etapa <AyudaInfo clave="dashboard.pedidos-por-etapa" /></h2>
                         </div>
                         <div class="card-body">
                             <p class="dashboard-total">
@@ -309,7 +310,7 @@ function fecha(value) {
                 <section class="card">
                     <div class="card-header">
                         <div>
-                            <h2 class="card-title"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> Productos más vendidos</h2>
+                            <h2 class="card-title"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> Productos más vendidos <AyudaInfo clave="dashboard.productos-mas-vendidos" /></h2>
                             <p class="card-subtitle mt-1">Últimos 12 meses · % del total vendido</p>
                         </div>
                         <Link v-can="'reportes.bi'" :href="route('reportes.bi')" class="card-link">Ver todos</Link>

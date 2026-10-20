@@ -166,7 +166,7 @@ class ConsultaVentasService
         if ($agrupacion === 'mes') {
             $cursor = $desde->copy()->startOfMonth();
             while ($cursor->lessThanOrEqualTo($hasta)) {
-                $periodos->put($cursor->format('Y-m'), $cursor->translatedFormat('M Y'));
+                $periodos->put($cursor->format('Y-m'), PeriodoReporte::etiquetaMes($cursor));
                 $cursor->addMonth();
             }
 

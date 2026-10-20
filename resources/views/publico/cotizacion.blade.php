@@ -169,7 +169,7 @@
 
                     <a
                         href="{{ route('cotizador.documento', $cotizacion->codigo) }}"
-                        class="inline-flex items-center gap-2 rounded-xl bg-marca-azul px-6 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-marca-azul-oscuro"
+                        class="inline-flex items-center gap-2 rounded-xl bg-marca-pdf px-6 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-marca-pdf-oscuro"
                     >
                         <x-publico.icono nombre="documento" class="h-5 w-5" />
                         Descargar cotización en PDF
@@ -191,7 +191,7 @@
                             ¿Se te cerró sin guardar?
                             <a
                                 href="{{ route('cotizador.documento', $cotizacion->codigo) }}"
-                                class="font-semibold text-marca-azul hover:underline"
+                                class="font-semibold text-marca-pdf hover:underline"
                             >Ábrelo de nuevo</a>.
                         @else
                             Si perdiste el archivo, escríbenos por WhatsApp con tu código

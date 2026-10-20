@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
+import AyudaInfo from '@/Components/AyudaInfo.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import BiKpi from '@/Components/Reporte/BiKpi.vue';
 import { porcentaje } from '@/Utils/FormatoReporte.js';
@@ -105,7 +106,7 @@ const ultimaDeteccion = computed(() => {
         <section id="anomalias" class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Anomalías detectadas</span>
+                    <span class="card-title">Anomalías detectadas <AyudaInfo clave="bi-alertas.anomalias" /></span>
                     <p class="card-subtitle">
                         Detección estadística diaria: caídas de cotizaciones, ventas con margen muy bajo, vendedores sin
                         actividad y clientes grandes que dejaron de comprar.
@@ -181,15 +182,15 @@ const ultimaDeteccion = computed(() => {
 
         <div class="row">
             <div class="col-lg-4 col-md-6">
-                <BiKpi etiqueta="Alertas activas" icono="fa-solid fa-bell" tono="primary"
+                <BiKpi etiqueta="Alertas activas" ayuda="bi-alertas.kpi-activas" icono="fa-solid fa-bell" tono="primary"
                     :valor="String(datos.resumen.total)" nota="En el periodo seleccionado" />
             </div>
             <div class="col-lg-4 col-md-6">
-                <BiKpi etiqueta="Prioridad alta" icono="fa-solid fa-circle-exclamation" tono="danger"
+                <BiKpi etiqueta="Prioridad alta" ayuda="bi-alertas.kpi-alta" icono="fa-solid fa-circle-exclamation" tono="danger"
                     :valor="String(datos.resumen.alta)" nota="Requieren acción ya" />
             </div>
             <div class="col-lg-4 col-md-6">
-                <BiKpi etiqueta="Prioridad media" icono="fa-solid fa-triangle-exclamation" tono="warning"
+                <BiKpi etiqueta="Prioridad media" ayuda="bi-alertas.kpi-media" icono="fa-solid fa-triangle-exclamation" tono="warning"
                     :valor="String(datos.resumen.media)" nota="Revisar esta semana" />
             </div>
         </div>
@@ -197,7 +198,7 @@ const ultimaDeteccion = computed(() => {
         <div class="card">
             <div class="card-header">
                 <div>
-                    <span class="card-title">Alertas de costo y margen</span>
+                    <span class="card-title">Alertas de costo y margen <AyudaInfo clave="bi-alertas.costo-margen" /></span>
                     <p class="card-subtitle">
                         Aumentos de costo ≥ {{ porcentaje(datos.umbrales.aumento_costo) }} · margen por debajo de
                         {{ porcentaje(datos.umbrales.margen_verde) }} del costo (semáforo) · tendencia ≥

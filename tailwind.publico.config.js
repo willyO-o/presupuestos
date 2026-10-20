@@ -47,6 +47,11 @@ export default {
                     ambar: '#f7b84b', // --c-warning
                     verde: '#17a673', // --c-success
 
+                    // Rojo de los botones de PDF (--c-pdf del panel): el mismo
+                    // color identifica "esto es un PDF" en todo el sistema.
+                    pdf: '#c62828',
+                    'pdf-oscuro': '#a11d1d',
+
                     // Verde oficial de WhatsApp: no es de marca, es del canal.
                     whatsapp: '#25d366',
                     'whatsapp-oscuro': '#1eb757',

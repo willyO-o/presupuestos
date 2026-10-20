@@ -43,6 +43,26 @@ export function variacion(value, decimales = 1) {
     return `${signo}${Math.abs(Number(value)).toLocaleString(LOCALE, { maximumFractionDigits: decimales })} %`;
 }
 
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+/**
+ * Mes de un periodo como mes-año: '2026-01' o '2026-01-15' → 'Ene-2026'.
+ *
+ * Es el único formato de mes de gráficos y tablas de reportes (pedido del
+ * usuario). Espejo de `PeriodoReporte::etiquetaMes()` en el servidor: los
+ * meses que ya llegan rotulados desde allá se ven igual que los que se
+ * rotulan acá. Lo que no tenga forma de fecha se devuelve tal cual.
+ */
+export function mesAnio(valor) {
+    const partes = /^(\d{4})-(\d{2})/.exec(String(valor ?? ''));
+
+    if (!partes) {
+        return valor;
+    }
+
+    return `${MESES[Number(partes[2]) - 1] ?? partes[2]}-${partes[1]}`;
+}
+
 /**
  * Formateador por nombre, para datos que llegan del servidor con su formato
  * declarado (resultados de las herramientas del asistente, indicadores del

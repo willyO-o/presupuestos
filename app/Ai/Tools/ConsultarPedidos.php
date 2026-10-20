@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\Pedido;
+use App\Services\Reporte\PeriodoReporte;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -76,9 +77,15 @@ class ConsultarPedidos extends HerramientaBi
             default => fn () => 'Total',
         };
 
+        // Por mes se ordena con la clave `Y-m` (cronológica) y recién después
+        // se rotula `Ago-2026`: ordenar por la etiqueta pondría abril antes
+        // que enero.
+        $porMes = $datos['agrupar_por'] === 'mes';
+
         $filas = $pedidos->groupBy($clave)
             ->map(fn ($g, $grupo) => ['grupo' => (string) $grupo, ...$metricas($g)])
-            ->sortBy($datos['agrupar_por'] === 'mes' ? 'grupo' : fn ($f) => -$f['pedidos'])
+            ->sortBy($porMes ? 'grupo' : fn ($f) => -$f['pedidos'])
+            ->map(fn ($f) => $porMes ? [...$f, 'grupo' => PeriodoReporte::etiquetaMes(Carbon::createFromFormat('!Y-m', $f['grupo']))] : $f)
             ->values()
             ->all();
 

@@ -362,7 +362,7 @@ class InformeReportesService
             $clave = $mes->format('Y-m');
             $meses[] = [
                 'mes' => $clave,
-                'etiqueta' => $this->mayuscula($mes->translatedFormat('M Y')),
+                'etiqueta' => PeriodoReporte::etiquetaMes($mes),
                 'total' => (float) ($porMes[$clave] ?? 0),
             ];
         }
@@ -399,10 +399,5 @@ class InformeReportesService
     private function pedidos(int $cantidad): string
     {
         return $cantidad === 1 ? '1 pedido' : "{$cantidad} pedidos";
-    }
-
-    private function mayuscula(string $texto): string
-    {
-        return mb_strtoupper(mb_substr($texto, 0, 1)).mb_substr($texto, 1);
     }
 }

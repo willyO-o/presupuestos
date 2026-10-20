@@ -145,7 +145,7 @@ function enlace(ruta) {
                     :class="{ disabled: sinSecciones }" :aria-disabled="sinSecciones">
                     <i class="fa-solid fa-file-csv"></i> Descargar CSV
                 </a>
-                <a :href="sinSecciones ? null : urlInforme('pdf')" target="_blank" rel="noopener" class="btn btn-primary"
+                <a :href="sinSecciones ? null : urlInforme('pdf')" target="_blank" rel="noopener" class="btn btn-pdf-solid"
                     :class="{ disabled: sinSecciones }" :aria-disabled="sinSecciones">
                     <i class="fa-solid fa-file-pdf"></i> Ver PDF
                 </a>

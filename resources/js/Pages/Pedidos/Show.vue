@@ -175,12 +175,12 @@ async function cancelarPedido() {
                      Se abre en pestaña nueva como vista previa; el boton de al
                      lado baja el archivo para imprimirlo en el galpon. -->
                 <a :href="route('pedidos.pdf', pedido.id)" target="_blank" rel="noopener"
-                    class="btn btn-soft-secondary btn-sm">
+                    class="btn btn-pdf btn-sm">
                     <i class="fa-solid fa-file-pdf"></i>
                     Ver orden de trabajo
                 </a>
                 <a :href="route('pedidos.pdf', { pedido: pedido.id, descargar: 1 })"
-                    class="btn btn-soft-secondary btn-sm btn-icon" aria-label="Descargar la orden de trabajo en PDF"
+                    class="btn btn-pdf btn-sm btn-icon" aria-label="Descargar la orden de trabajo en PDF"
                     title="Descargar PDF">
                     <i class="fa-solid fa-download"></i>
                 </a>
@@ -236,7 +236,7 @@ async function cancelarPedido() {
                         {{ pedido.orden_compra.estado }}
                     </span>
                     <a v-if="pedido.orden_compra.archivo_url" :href="pedido.orden_compra.archivo_url" target="_blank"
-                        rel="noopener" class="text-primary"> · PDF</a>
+                        rel="noopener" class="text-pdf fw-semibold"> · <i class="fa-solid fa-file-pdf"></i> PDF</a>
                 </template>
                 <template v-else>
                     <span class="text-muted">sin registrar</span>

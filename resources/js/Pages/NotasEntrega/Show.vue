@@ -35,20 +35,20 @@ function imprimir() {
                     <i class="fa-solid fa-dolly"></i> Ver pedido
                 </Link>
                 <a v-if="nota.archivo_url" :href="nota.archivo_url" target="_blank" rel="noopener"
-                    class="btn btn-soft-secondary btn-sm">
+                    class="btn btn-pdf btn-sm">
                     <i class="fa-solid fa-file-pdf"></i> PDF firmado
                 </a>
-                <button type="button" class="btn btn-soft-secondary btn-sm" @click="imprimir">
+                <button type="button" class="btn btn-pdf btn-sm" @click="imprimir">
                     <i class="fa-solid fa-print"></i> Imprimir
                 </button>
                 <!-- Vista previa en pestaña nueva (el servidor responde inline);
                      el boton de al lado baja el archivo. -->
                 <a :href="route('notas-entrega.pdf', nota.id)" target="_blank" rel="noopener"
-                    class="btn btn-soft-primary btn-sm">
+                    class="btn btn-pdf btn-sm">
                     <i class="fa-solid fa-file-pdf"></i> Ver PDF
                 </a>
                 <a :href="route('notas-entrega.pdf', { notaEntrega: nota.id, descargar: 1 })"
-                    class="btn btn-soft-secondary btn-sm btn-icon" aria-label="Descargar la nota de entrega en PDF"
+                    class="btn btn-pdf btn-sm btn-icon" aria-label="Descargar la nota de entrega en PDF"
                     title="Descargar PDF">
                     <i class="fa-solid fa-download"></i>
                 </a>
