@@ -62,6 +62,12 @@ const props = defineProps({
     alto: { type: Number, default: 260 },
     /** Barras horizontales: úsalo cuando las categorías tienen nombres largos. */
     horizontal: { type: Boolean, default: false },
+    /**
+     * Etiquetas del eje X en diagonal y recortadas, para muchas categorías
+     * con nombre largo en barras verticales (el Pareto de clientes). El
+     * nombre completo sigue en el tooltip y en la vista de tabla.
+     */
+    etiquetasInclinadas: { type: Boolean, default: false },
     /** Apila las series (parte-de-un-todo). */
     apilado: { type: Boolean, default: false },
     /**
@@ -301,6 +307,7 @@ function ejeCategoria() {
             margin: 8,
             hideOverlap: true,
             ...(props.horizontal ? { width: 140, overflow: 'truncate' } : {}),
+            ...(props.etiquetasInclinadas && !props.horizontal ? { rotate: 40, width: 96, overflow: 'truncate' } : {}),
         },
     };
 }

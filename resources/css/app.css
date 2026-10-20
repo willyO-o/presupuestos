@@ -3479,6 +3479,77 @@
     @apply rounded;
 }
 
+/* --- Franja "Desde [mes][año] → Hasta [mes][año]" del rango personalizado.
+   Va arriba de la lista de atajos y los dos calendarios, a todo el ancho:
+   es la forma rápida de saltar de año sin avanzar mes a mes con las
+   flechas. Se ve como parte del calendario (mismo fondo de la cabecera de
+   tabla), no como un formulario aparte. --- */
+.date-range-meses {
+    background-color: var(--table-head-bg);
+    border-bottom: 1px solid var(--border-subtle);
+    @apply flex flex-wrap items-center gap-x-3 gap-y-2 rounded-t-lg px-3 py-2.5 text-sm leading-normal;
+}
+
+.date-range-meses-campo {
+    @apply flex items-center gap-1.5;
+}
+
+.date-range-meses-etiqueta {
+    color: var(--text-muted);
+    @apply w-11 shrink-0 text-xs font-semibold;
+}
+
+.date-range-meses-select {
+    color: var(--text-heading);
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    background-position: right 0.4rem center;
+    @apply h-8 cursor-pointer rounded-lg py-0 pl-2.5 pr-7 text-[0.8125rem] font-medium transition-colors duration-150;
+}
+
+.date-range-meses-select:hover {
+    border-color: color-mix(in srgb, var(--c-primary) 45%, var(--input-border));
+}
+
+.date-range-meses-select:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 15%, transparent);
+}
+
+/* El año siempre tiene 4 cifras: ancho fijo y cifras tabulares, para que
+   los dos selects no "bailen" al cambiar de año. */
+.date-range-meses-anio {
+    font-variant-numeric: tabular-nums;
+    @apply w-[5.25rem];
+}
+
+.date-range-meses-flecha {
+    color: var(--text-muted);
+    @apply text-base;
+}
+
+.date-range-meses-nota {
+    color: var(--text-muted);
+    @apply m-0 w-full text-[0.6875rem] leading-snug;
+}
+
+/* Con poco ancho (celular) los dos campos van uno debajo del otro y la
+   flecha sobra: "Desde" y "Hasta" ya dicen el orden. */
+@media (max-width: 540px) {
+    .date-range-meses-flecha {
+        display: none;
+    }
+
+    .date-range-meses-campo {
+        @apply w-full;
+    }
+
+    .date-range-meses-select:not(.date-range-meses-anio) {
+        @apply flex-1;
+    }
+}
+
 /* --- Pie con botones (oculto con auto-apply, temado por si se usa sin él) --- */
 .daterangepicker .drp-buttons {
     border-color: var(--border-subtle);
@@ -5886,4 +5957,153 @@
 
 .bi-kpi.con-ayuda .stat-label {
     padding-inline-end: 1.25rem;
+}
+
+/* ==========================================================================
+   36. CLIENTES: AVATAR CON LOGO Y RANKING DEL BI
+   (Components/Cliente/ClienteAvatar.vue, Pages/Reportes/Bi.vue)
+   --------------------------------------------------------------------------
+   El logo llega convertido a JPG (fondo blanco aplanado), así que siempre va
+   sobre una plaquita blanca con borde: en modo oscuro se ve como la tarjeta
+   de un cliente, no como un recorte blanco suelto. Sin logo, las iniciales
+   toman uno de 6 tonos fijos por nombre (los tonos de icono del panel).
+   ========================================================================== */
+
+.cliente-avatar {
+    @apply inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-xl font-bold leading-none;
+}
+
+.cliente-avatar-sm {
+    @apply h-8 w-8 rounded-lg text-[0.6875rem];
+}
+
+.cliente-avatar-md {
+    @apply h-11 w-11 text-[0.8125rem];
+}
+
+.cliente-avatar-logo {
+    background-color: #ffffff;
+    border: 1px solid var(--card-border);
+    @apply p-1;
+}
+
+.cliente-avatar-logo img {
+    @apply h-full w-full object-contain;
+}
+
+.cliente-avatar-tono-0 { background-color: var(--c-primary-soft); color: var(--c-primary); }
+.cliente-avatar-tono-1 { background-color: var(--c-info-soft); color: var(--c-info); }
+.cliente-avatar-tono-2 { background-color: var(--c-violet-soft); color: var(--c-violet); }
+.cliente-avatar-tono-3 { background-color: var(--c-cyan-soft); color: var(--c-cyan-dark); }
+.cliente-avatar-tono-4 { background-color: var(--c-pink-soft); color: var(--c-pink-dark); }
+.cliente-avatar-tono-5 { background-color: var(--c-warning-soft); color: var(--c-warning-dark); }
+
+.cliente-avatar-otros {
+    background-color: var(--c-light);
+    color: var(--text-muted);
+    border: 1px dashed var(--card-border);
+}
+
+/* Nombre del cliente con su avatar en el listado de Clientes. */
+.cliente-celda {
+    @apply flex items-center gap-2.5;
+}
+
+/* --- Ranking "Clientes que más compran" --- */
+.bi-clientes-concentracion {
+    color: var(--text-body);
+    background-color: var(--c-primary-soft);
+    @apply m-0 rounded-full px-3 py-1 text-xs;
+}
+
+.bi-clientes-concentracion strong {
+    color: var(--c-primary);
+}
+
+.bi-clientes {
+    @apply m-0 grid list-none gap-x-8 gap-y-4 p-0 lg:grid-cols-2;
+}
+
+.bi-cliente {
+    @apply flex min-w-0 items-center gap-3;
+}
+
+.bi-cliente-puesto {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply w-5 shrink-0 text-end text-xs font-bold;
+}
+
+.bi-cliente-cuerpo {
+    @apply min-w-0 flex-1;
+}
+
+.bi-cliente-fila {
+    @apply flex items-baseline gap-3;
+}
+
+.bi-cliente-nombre {
+    color: var(--text-heading);
+    @apply min-w-0 flex-1 truncate text-[0.8125rem] font-semibold;
+}
+
+.bi-cliente-monto {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply shrink-0 text-[0.8125rem] font-bold;
+}
+
+.bi-cliente-barra {
+    background-color: var(--c-primary-soft);
+    @apply my-1.5 h-1.5 overflow-hidden rounded-full;
+}
+
+.bi-cliente-barra span {
+    background-image: linear-gradient(90deg, color-mix(in srgb, var(--c-primary) 75%, #ffffff), var(--c-primary));
+    @apply block h-full rounded-full;
+}
+
+.bi-cliente-meta {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.6875rem];
+}
+
+/* Un cliente grande que hace mucho no compra: el mismo aviso que la
+   detección de anomalías, a la vista en el ranking. */
+.bi-cliente-meta .is-alerta {
+    color: var(--c-warning-dark);
+    @apply font-semibold;
+}
+
+.bi-cliente-parte {
+    @apply ms-auto;
+}
+
+.bi-cliente-variacion {
+    @apply inline-flex items-center gap-1 rounded-full px-1.5 py-px font-semibold;
+}
+
+.bi-cliente-variacion.is-sube {
+    background-color: var(--c-success-soft);
+    color: var(--c-success-dark);
+}
+
+.bi-cliente-variacion.is-baja {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger-dark);
+}
+
+.bi-cliente-variacion.is-nuevo {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+}
+
+.dark .bi-cliente-variacion.is-sube { color: var(--c-success); }
+.dark .bi-cliente-variacion.is-baja { color: var(--c-danger); }
+.dark .bi-cliente-meta .is-alerta { color: var(--c-warning); }
+
+.bi-cliente-otros .bi-cliente-nombre,
+.bi-cliente-otros .bi-cliente-monto {
+    color: var(--text-muted);
 }

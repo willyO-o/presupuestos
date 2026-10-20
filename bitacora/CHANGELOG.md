@@ -13,6 +13,67 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-20 — Clientes que más compran (con logo) y Pareto de clientes en el BI
+
+**Qué cambió:**
+- **Logo opcional del cliente**: se sube desde Clientes (crear/editar) y se ve en el listado al lado
+  del nombre. Sin logo, las iniciales con un color fijo por cliente.
+- BI → Demanda y ventas, cuadro nuevo **"Clientes que más compran"**: los 10 primeros por monto
+  aprobado en el periodo, con logo o iniciales, monto, % del total, cantidad de compras, variación
+  contra un periodo anterior de la misma duración ("Nuevo" si antes no compró) y hace cuánto fue la
+  última compra (en amarillo si pasan 60 días). Arriba, cuánto suman los 10; abajo, "Otros".
+- Gráfico nuevo **"Concentración de ventas por cliente"** (Pareto): todos los clientes de mayor a
+  menor con el % acumulado y la línea del 80 %, más "N de M clientes hacen el 80 % de las ventas".
+  Desde el puesto 31 la cola va en una sola barra.
+- Los dos con su ícono "i".
+
+**Por qué:** pedido del usuario. Se descartó meter clientes en la proyección de demanda (mezcla
+"cuántos pedidos" con "quiénes") y el pastel (con 40 clientes o más las porciones no se distinguen).
+En la base demo los 10 primeros concentran el 78 % y uno de ellos lleva 147 días sin comprar.
+
+**Cómo:**
+- Migración `add_logo_to_cliente_table` (`cliente.logo` nullable, también en `schema.json`). El logo
+  pasa por `ConvierteImagenAJpgService` como toda imagen subida (JPG, sin SVG); se borra el anterior
+  al reemplazarlo y al borrar el cliente. Accesor `logo_url`. El alta rápida (JSON) no lleva logo.
+- `InteligenciaNegociosService::clientesQueMasCompran()` → `datos.clientes_top` (con `pareto`).
+  Monto = total de cotizaciones APROBADA/CONVERTIDA, acotado por sucursal y por el filtro de fechas;
+  la última compra sale de toda la historia. El corte del 80 % se cuenta sobre la lista completa.
+- Front: `Components/Cliente/ClienteAvatar.vue` (logo sobre plaquita blanca —el JPG pierde la
+  transparencia— o iniciales); ranking en HTML (los logos en el canvas de ECharts serían frágiles);
+  `BaseChart` gana `etiquetas-inclinadas` para muchos nombres en el eje X. CSS §36.
+- Tests: `ClientesTopTest` (9) y 6 de logo en `ClienteControllerTest`. Verificado con la base demo
+  (escritorio, oscuro y celular) con un logo temporal que se revirtió.
+- **Ojo**: se migró `presupuesto` y `presupuesto_demo` (columna nueva, sin tocar datos).
+
+---
+
+## 2026-10-20 — Filtro de fechas: "Últimos 3 meses" y salto por mes y año
+
+**Qué cambió:**
+- Nuevo atajo **"Últimos 3 meses"** (entre "Este mes" y "Últimos 6 meses") en el filtro de fechas,
+  así que aparece en todas las pantallas que lo usan: Reporte financiero y las pestañas del BI.
+- En **Rango personalizado**, una franja arriba de los calendarios: **Desde [mes][año] → Hasta
+  [mes][año]**. Elegir mes y año fija el rango por meses completos (del 1 del mes de inicio al
+  último día del mes final; si es el mes en curso, hasta hoy) y lleva el calendario a ese mes. Los
+  días se siguen afinando con clic. En el celular los dos campos van uno debajo del otro.
+
+**Por qué:** pedido del usuario: llegar a un año anterior obligaba a retroceder de a un mes con las
+flechas (el calendario además abre en el mes final del rango).
+
+**Cómo:**
+- Todo en `Components/DateRangeFilter.vue`, sin tocar el paquete `daterange-picker-vue3`: la franja
+  va en su ranura `header`, se muestra solo con los calendarios abiertos (`showCalendars`) y mueve
+  la vista con sus propios `changeLeftMonth`/`changeRightMonth`, por la referencia al componente.
+  El rango nunca queda al revés: si "Desde" pasa a "Hasta" (o al revés), el rango es ese mes
+  completo. Respeta `minDate`/`maxDate`; sin topes, ofrece los últimos 10 años.
+- Selects nativos (en el celular abren la rueda del sistema), con `aria-label` propio cada uno.
+  CSS en app.css §29 (`.date-range-meses*`), claro y oscuro con los tokens.
+- Test `FiltroFechasTest` (sobre el código fuente). Verificado en el navegador: atajo, salto a
+  Mar-2024 y Jun-2025, rango invertido, mes en curso, "Aplicar" con `?desde=&hasta=`, BI y modo
+  oscuro, escritorio y celular, sin errores de consola.
+
+---
+
 ## 2026-10-20 — Estacionalidad por gestión, con promedio y sobre toda la historia
 
 **Qué cambió:**

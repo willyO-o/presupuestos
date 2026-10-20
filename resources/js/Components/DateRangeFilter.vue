@@ -5,8 +5,13 @@
  * `daterange-picker-vue3` con:
  *
  *  - Presets en español (Hoy, Ayer, Últimos 3/7 días, Esta semana desde el
- *    lunes, Este mes, Últimos 6 meses, Este año, Año pasado) + rango
+ *    lunes, Este mes, Últimos 3/6 meses, Este año, Año pasado) + rango
  *    personalizado.
+ *  - En el rango personalizado, una franja "Desde [mes][año] · Hasta
+ *    [mes][año]" sobre los calendarios: el paquete solo avanza de a un mes
+ *    con las flechas, y llegar a un año anterior costaba decenas de clics.
+ *    Elegir mes y año fija el rango por meses completos y mueve el
+ *    calendario ahí; los días se siguen afinando con clic.
  *  - Dos v-model en formato 'YYYY-MM-DD' (sólo fecha, sin horas) — el mismo
  *    formato que esperan los filtros whereDate/whereBetween del backend.
  *  - Botón opcional de "limpiar" para las páginas de listado.
@@ -160,6 +165,7 @@ const ranges = {
     'Últimos 7 días': [inicioDelDia(sumarDias(hoy, -6)), finHoy],
     'Esta semana': [inicioSemanaLunes(hoy), finHoy],
     'Este mes': [inicioDelDia(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), finHoy],
+    'Últimos 3 meses': [inicioDelDia(sumarMeses(hoy, -3)), finHoy],
     'Últimos 6 meses': [inicioDelDia(sumarMeses(hoy, -6)), finHoy],
     'Este año': [inicioDelDia(new Date(hoy.getFullYear(), 0, 1)), finHoy],
     'Año pasado': [
@@ -229,6 +235,86 @@ function limpiar() {
     emit('update:fechaHasta', '')
 }
 
+/* ------------------------------------------------------------------ */
+/*  Saltar por mes y año (franja "Desde / Hasta" del rango             */
+/*  personalizado)                                                     */
+/* ------------------------------------------------------------------ */
+// Instancia del picker del paquete: expone `showCalendars` (si el rango
+// personalizado está abierto) y `changeLeftMonth`/`changeRightMonth`, que
+// son los mismos que usan sus flechas.
+const picker = ref(null)
+
+const nombresMes = localeEs.monthNames
+
+// Años del selector, del más reciente al más antiguo (lo que más se busca
+// arriba). Sin minDate/maxDate: los últimos 10 años hasta el actual. Si el
+// rango vigente cae fuera, su año se agrega igual para que el select no
+// quede en blanco.
+const anios = computed(() => {
+    const maximo = props.maxDate ? Number(props.maxDate.slice(0, 4)) : hoy.getFullYear()
+    const minimo = props.minDate ? Number(props.minDate.slice(0, 4)) : hoy.getFullYear() - 10
+    const lista = new Set()
+    for (let anio = maximo; anio >= minimo; anio--) lista.add(anio)
+    lista.add(desde.value.anio)
+    lista.add(hasta.value.anio)
+    return [...lista].sort((a, b) => b - a)
+})
+
+function mesAnioDe(fecha) {
+    const d = fecha ? new Date(fecha) : hoy
+    return { anio: d.getFullYear(), mes: d.getMonth() }
+}
+
+const desde = computed(() => mesAnioDe(rango.value.startDate))
+const hasta = computed(() => mesAnioDe(rango.value.endDate ?? rango.value.startDate))
+
+// Último instante que puede tener el "hasta" de un mes: su último día, sin
+// pasar de maxDate ni de hoy si es el mes en curso (igual que los presets
+// "Este mes" o "Este año", que terminan hoy y no a fin de mes).
+function finDelMes(anio, mes) {
+    let fin = finDelDia(new Date(anio, mes + 1, 0))
+    const maximo = desdeYmd(props.maxDate, true)
+    if (anio === hoy.getFullYear() && mes === hoy.getMonth() && fin > finHoy) fin = finHoy
+    if (maximo && fin > maximo) fin = maximo
+    return fin
+}
+
+function inicioDelMes(anio, mes) {
+    const inicio = inicioDelDia(new Date(anio, mes, 1))
+    const minimo = desdeYmd(props.minDate)
+    return minimo && inicio < minimo ? minimo : inicio
+}
+
+function fijarRango(inicio, fin) {
+    rango.value = { startDate: inicio, endDate: fin }
+    // Si había un clic de "inicio" a medio camino en el calendario, se
+    // descarta: el rango ya quedó completo con los selects.
+    if (picker.value) picker.value.in_selection = false
+    emit('update:fechaDesde', aYmd(inicio))
+    emit('update:fechaHasta', aYmd(fin))
+}
+
+// Cambiar "Desde" deja el fin donde estaba, salvo que quede antes del
+// nuevo inicio: ahí el rango pasa a ser ese mes completo. "Hasta" es el
+// espejo. Nunca queda un rango al revés.
+function cambiarDesde(cambio) {
+    const { anio, mes } = { ...desde.value, ...cambio }
+    const inicio = inicioDelMes(anio, mes)
+    let fin = rango.value.endDate ? finDelDia(rango.value.endDate) : finDelMes(anio, mes)
+    if (fin < inicio) fin = finDelMes(anio, mes)
+    fijarRango(inicio, fin)
+    picker.value?.changeLeftMonth({ year: anio, month: mes + 1 })
+}
+
+function cambiarHasta(cambio) {
+    const { anio, mes } = { ...hasta.value, ...cambio }
+    const fin = finDelMes(anio, mes)
+    let inicio = rango.value.startDate ? inicioDelDia(rango.value.startDate) : inicioDelMes(anio, mes)
+    if (inicio > fin) inicio = inicioDelMes(anio, mes)
+    fijarRango(inicio, fin)
+    picker.value?.changeRightMonth({ year: anio, month: mes + 1 })
+}
+
 onMounted(async () => {
     // Si se preseleccionó defaultRange, se avisa al padre (v-model) para que
     // su propio filtro (y la petición al backend) queden en sincro con lo
@@ -258,6 +344,7 @@ const tieneValor = computed(() => Boolean(props.fechaDesde || props.fechaHasta))
         <component
             :is="DateRangePicker"
             v-if="DateRangePicker"
+            ref="picker"
             v-model="rango"
             :locale-data="localeEs"
             :ranges="ranges"
@@ -271,6 +358,45 @@ const tieneValor = computed(() => Boolean(props.fechaDesde || props.fechaHasta))
             control-container-class="form-control date-range-filter-input"
             @update="onUpdate"
         >
+            <!-- Solo con el rango personalizado abierto: con la lista de
+                 atajos sola no hay calendario que mover. -->
+            <template #header>
+                <div v-if="picker?.showCalendars" class="date-range-meses" role="group"
+                    aria-label="Elegir el rango por mes y año">
+                    <div class="date-range-meses-campo">
+                        <span class="date-range-meses-etiqueta" aria-hidden="true">Desde</span>
+                        <select class="date-range-meses-select" :value="desde.mes"
+                            aria-label="Mes de inicio"
+                            @change="cambiarDesde({ mes: Number($event.target.value) })">
+                            <option v-for="(nombre, i) in nombresMes" :key="nombre" :value="i">{{ nombre }}</option>
+                        </select>
+                        <select class="date-range-meses-select date-range-meses-anio" :value="desde.anio"
+                            aria-label="Año de inicio"
+                            @change="cambiarDesde({ anio: Number($event.target.value) })">
+                            <option v-for="anio in anios" :key="anio" :value="anio">{{ anio }}</option>
+                        </select>
+                    </div>
+
+                    <i class="ri-arrow-right-line date-range-meses-flecha" aria-hidden="true"></i>
+
+                    <div class="date-range-meses-campo">
+                        <span class="date-range-meses-etiqueta" aria-hidden="true">Hasta</span>
+                        <select class="date-range-meses-select" :value="hasta.mes"
+                            aria-label="Mes final"
+                            @change="cambiarHasta({ mes: Number($event.target.value) })">
+                            <option v-for="(nombre, i) in nombresMes" :key="nombre" :value="i">{{ nombre }}</option>
+                        </select>
+                        <select class="date-range-meses-select date-range-meses-anio" :value="hasta.anio"
+                            aria-label="Año final"
+                            @change="cambiarHasta({ anio: Number($event.target.value) })">
+                            <option v-for="anio in anios" :key="anio" :value="anio">{{ anio }}</option>
+                        </select>
+                    </div>
+
+                    <p class="date-range-meses-nota">Toma meses completos; para elegir días exactos, haz clic en el calendario.</p>
+                </div>
+            </template>
+
             <template #input>
                 <span :class="{ 'text-muted': !textoRango }">{{ textoRango || placeholder }}</span>
                 <button

@@ -5,6 +5,7 @@ import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
 import ClienteFormFields from '@/Components/Cliente/ClienteFormFields.vue';
+import ClienteAvatar from '@/Components/Cliente/ClienteAvatar.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -57,7 +58,10 @@ const editingCliente = ref(null);
 // con un objeto plano form.reset() dejaba de volver a los campos vacios
 // despues de crear/editar (volvia a los ultimos datos enviados). Con una
 // funcion, reset() siempre re-evalua estos valores desde cero.
+// `_method` + POST siempre (nunca form.put): con un logo el payload viaja
+// como multipart y PHP no parsea un PUT multipart (ver .ai/rules/js.md).
 const form = useForm(() => ({
+    _method: 'post',
     tipo: 'JURIDICO',
     razon_social: '',
     nit: '',
@@ -67,12 +71,14 @@ const form = useForm(() => ({
     direccion: '',
     ciudad: '',
     estado: 'ACTIVO',
+    logo: null,
 }));
 
 function openCreate() {
     editingCliente.value = null;
     form.clearErrors();
     form.reset();
+    form._method = 'post';
     showFormModal.value = true;
 }
 
@@ -88,6 +94,8 @@ function openEdit(cliente) {
     form.direccion = cliente.direccion;
     form.ciudad = cliente.ciudad;
     form.estado = cliente.estado;
+    form._method = 'put';
+    form.logo = null;
     showFormModal.value = true;
 }
 
@@ -102,7 +110,7 @@ function submitForm() {
     };
 
     if (editingCliente.value) {
-        form.put(route('clientes.update', editingCliente.value.id), options);
+        form.post(route('clientes.update', editingCliente.value.id), options);
     } else {
         form.post(route('clientes.store'), options);
     }
@@ -178,6 +186,12 @@ async function confirmDelete(cliente) {
         <div class="card-body">
             <DataTable :headers="headers" :items="clientes.data" :paginator="clientes" :loading="table.loading"
                 empty-text="No hay clientes registrados." @page-change="table.changePage">
+                <template #cell-razon_social="{ item }">
+                    <span class="cliente-celda">
+                        <ClienteAvatar :nombre="item.razon_social" :logo-url="item.logo_url" tamano="sm" />
+                        <span>{{ item.razon_social }}</span>
+                    </span>
+                </template>
                 <template #cell-tipo="{ value }">
                     <span class="badge badge-soft-secondary">
                         {{ value === 'NATURAL' ? 'Natural' : 'Jurídico' }}
@@ -234,7 +248,8 @@ async function confirmDelete(cliente) {
 
         <form @submit.prevent="submitForm">
             <div class="card-body">
-                <ClienteFormFields :form="form" :errors="form.errors" />
+                <ClienteFormFields :form="form" :errors="form.errors" con-logo
+                    :logo-actual="editingCliente?.logo_url" />
             </div>
 
             <div class="modal-footer">

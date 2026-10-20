@@ -10,9 +10,19 @@
  * forma que expone `form.errors` en Inertia, así que desde ese lado alcanza
  * con pasar `:errors="form.errors"`.
  */
+import FileDropzone from '@/Components/FileDropzone.vue';
+
 defineProps({
     form: { type: Object, required: true },
     errors: { type: Object, default: () => ({}) },
+    /**
+     * Muestra el campo de logo. Solo en el CRUD de Clientes: el alta rápida
+     * (ClienteQuickCreateModal) guarda por JSON, no multipart, y el logo se
+     * agrega después desde acá.
+     */
+    conLogo: { type: Boolean, default: false },
+    /** URL del logo ya guardado, para la vista previa al editar. */
+    logoActual: { type: String, default: null },
 });
 </script>
 
@@ -96,6 +106,16 @@ defineProps({
                 <p v-if="errors.ciudad" class="form-error">{{ errors.ciudad }}</p>
             </div>
         </div>
+    </div>
+
+    <div v-if="conLogo" class="form-group">
+        <label class="form-label">Logo <span class="text-muted fw-normal">(opcional)</span></label>
+        <FileDropzone v-model="form.logo" :preview="logoActual" accept="image/png,image/jpeg,image/webp"
+            :invalid="!!errors.logo" />
+        <p v-if="errors.logo" class="form-error">{{ errors.logo }}</p>
+        <p v-else class="fs-xs text-muted mb-0 mt-1">
+            PNG, JPG o WebP. Se muestra en el ranking de clientes del BI; sin logo, van las iniciales.
+        </p>
     </div>
 
     <div class="form-group mb-0">

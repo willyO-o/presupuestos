@@ -186,6 +186,28 @@ export const AYUDAS = {
             'La barra más larga es la categoría que más vende.',
         ],
     },
+    'bi.clientes-top': {
+        titulo: 'Clientes que más compran',
+        que: 'Los 10 clientes que más dinero nos dejaron en el periodo, sumando sus cotizaciones aprobadas, y todos los demás juntos en "Otros".',
+        leer: [
+            'Arriba a la derecha: cuánto suman los 10 primeros. Si es harto (más de la mitad), dependemos de pocos caseros y perder uno se siente fuerte.',
+            'Cada cliente muestra cuánto compró, cuántas veces, qué parte del total es y si compró más o menos que en un periodo igual de largo justo antes. "Nuevo" quiere decir que antes no había comprado.',
+            'En amarillo, los que hace más de 60 días que no compran: son los primeros a los que conviene llamar.',
+            'Si el cliente tiene logo cargado se ve el logo; si no, sus iniciales. El logo se sube desde Clientes.',
+        ],
+        ojo: 'Respeta las fechas del filtro y las sucursales que ves. Una variación muy alta puede ser solo porque en el periodo anterior todavía no había datos.',
+    },
+    'bi.clientes-pareto': {
+        titulo: 'Concentración de ventas por cliente',
+        que: 'Todos los clientes que compraron en el periodo, del que más al que menos, con una línea que va sumando qué parte de las ventas llevamos.',
+        leer: [
+            'Cada barra es lo que compró un cliente (su nombre completo sale al pasar el mouse).',
+            'La línea es el % acumulado: en el cliente 5, por ejemplo, dice cuánto suman los 5 primeros juntos.',
+            'La raya punteada marca el 80 %. Arriba a la derecha ves cuántos clientes hacen falta para llegar ahí.',
+            'Si hay muchos clientes, a partir del puesto 30 van juntos en una sola barra.',
+        ],
+        ojo: 'Si pocos clientes hacen el 80 %, dependemos harto de ellos: hay que cuidarlos y, a la vez, buscar más caseros para no quedar colgados de unos pocos.',
+    },
     'bi.evolucion-costos': {
         titulo: 'Evolución del costo de materiales',
         que: 'Cómo fue cambiando el precio de los materiales cada vez que se aprobó una compra.',

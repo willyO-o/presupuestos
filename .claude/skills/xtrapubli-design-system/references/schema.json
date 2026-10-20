@@ -430,6 +430,12 @@
           "nullable": true
         },
         {
+          "name": "logo",
+          "type": "string",
+          "nullable": true,
+          "comment": "ruta en el disco public del logo (JPG, via ConvierteImagenAJpgService); sin logo se muestran las iniciales"
+        },
+        {
           "name": "estado",
           "type": "enum",
           "values": [

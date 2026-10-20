@@ -2,6 +2,8 @@
 
 use App\Models\Cliente;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -276,4 +278,92 @@ test('quick-creating a cliente validates the same rules as the full form', funct
         'nit' => '1234567',
         'estado' => 'ACTIVO',
     ])->assertJsonValidationErrors('nit');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Logo (opcional): pasa por ConvierteImagenAJpgService como toda imagen
+| subida al sistema, y se muestra en el ranking de clientes del BI.
+|--------------------------------------------------------------------------
+*/
+
+function datosCliente(array $extra = []): array
+{
+    return [
+        'tipo' => 'JURIDICO',
+        'razon_social' => 'Distribuidora Illimani S.R.L.',
+        'nit' => '1020304050',
+        'estado' => 'ACTIVO',
+        ...$extra,
+    ];
+}
+
+test('el logo se sube convertido a jpg y queda su url publica', function () {
+    Storage::fake('public');
+    $user = userWithClientePermissions('clientes.ver', 'clientes.crear');
+
+    $this->actingAs($user)
+        ->post(route('clientes.store'), datosCliente(['logo' => UploadedFile::fake()->image('logo.png', 400, 200)]))
+        ->assertRedirect(route('clientes.index'));
+
+    $cliente = Cliente::where('nit', '1020304050')->firstOrFail();
+
+    expect($cliente->logo)->toStartWith('clientes/')->toEndWith('.jpg')
+        ->and($cliente->logo_url)->toContain($cliente->logo);
+    Storage::disk('public')->assertExists($cliente->logo);
+});
+
+test('el logo es opcional', function () {
+    $user = userWithClientePermissions('clientes.ver', 'clientes.crear');
+
+    $this->actingAs($user)->post(route('clientes.store'), datosCliente())->assertRedirect(route('clientes.index'));
+
+    expect(Cliente::where('nit', '1020304050')->value('logo'))->toBeNull();
+});
+
+test('un logo nuevo reemplaza al anterior y borra su archivo', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('clientes/viejo.jpg', 'contenido');
+    $cliente = Cliente::factory()->create(['logo' => 'clientes/viejo.jpg']);
+    $user = userWithClientePermissions('clientes.ver', 'clientes.editar');
+
+    // POST + _method, como lo manda la pantalla (un PUT multipart no se parsea).
+    $this->actingAs($user)->post(route('clientes.update', $cliente), [
+        '_method' => 'put',
+        ...datosCliente(['nit' => $cliente->nit, 'logo' => UploadedFile::fake()->image('nuevo.png')]),
+    ])->assertRedirect(route('clientes.index'));
+
+    Storage::disk('public')->assertMissing('clientes/viejo.jpg');
+    expect($cliente->fresh()->logo)->not->toBe('clientes/viejo.jpg');
+});
+
+test('editar sin mandar logo conserva el que tenia', function () {
+    $cliente = Cliente::factory()->create(['logo' => 'clientes/actual.jpg']);
+    $user = userWithClientePermissions('clientes.ver', 'clientes.editar');
+
+    $this->actingAs($user)->put(route('clientes.update', $cliente), datosCliente(['nit' => $cliente->nit]))
+        ->assertRedirect(route('clientes.index'));
+
+    expect($cliente->fresh()->logo)->toBe('clientes/actual.jpg');
+});
+
+test('no acepta un svg como logo', function () {
+    $user = userWithClientePermissions('clientes.ver', 'clientes.crear');
+    $svg = UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+
+    $this->actingAs($user)->post(route('clientes.store'), datosCliente(['logo' => $svg]))
+        ->assertSessionHasErrors('logo');
+
+    $this->assertDatabaseCount('cliente', 0);
+});
+
+test('borrar un cliente borra su logo del disco', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('clientes/logo.jpg', 'contenido');
+    $cliente = Cliente::factory()->create(['logo' => 'clientes/logo.jpg']);
+    $user = userWithClientePermissions('clientes.ver', 'clientes.eliminar');
+
+    $this->actingAs($user)->delete(route('clientes.destroy', $cliente))->assertRedirect(route('clientes.index'));
+
+    Storage::disk('public')->assertMissing('clientes/logo.jpg');
 });

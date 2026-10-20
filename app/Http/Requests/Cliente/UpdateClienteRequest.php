@@ -37,6 +37,10 @@ class UpdateClienteRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'ciudad' => ['nullable', 'string', 'max:255'],
+            // Logo opcional. `mimes` explícito y no `image` a secas: `image`
+            // acepta SVG, que GD no rasteriza y puede traer código adentro
+            // (ver ConvierteImagenAJpgService).
+            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp,bmp', 'max:4096'],
             'estado' => ['required', Rule::in(['ACTIVO', 'INACTIVO'])],
         ];
     }

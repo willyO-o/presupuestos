@@ -8,7 +8,8 @@ import EtiquetaAlcance from '@/Components/EtiquetaAlcance.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import MetodoPronostico from '@/Components/Reporte/MetodoPronostico.vue';
 import { seriesProyectadas } from '@/Utils/SerieProyectada.js';
-import { mesAnio } from '@/Utils/FormatoReporte.js';
+import { mesAnio, porcentaje, variacion } from '@/Utils/FormatoReporte.js';
+import ClienteAvatar from '@/Components/Cliente/ClienteAvatar.vue';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -107,6 +108,52 @@ const estacionalidad = computed(() => {
 });
 
 const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.length - 4, 0));
+
+/* ----- Clientes que más compran ----------------------------------------- */
+
+const clientesTop = computed(() => props.datos.clientes_top);
+
+/** Las barras se miden contra el primero: el ranking ya viene ordenado. */
+const montoMaximo = computed(() => clientesTop.value.clientes[0]?.monto || 1);
+
+const periodoAnterior = computed(() => {
+    const { desde, hasta } = clientesTop.value.periodo_anterior;
+    const corto = (ymd) => ymd.split('-').reverse().join('/');
+
+    return `${corto(desde)} al ${corto(hasta)}`;
+});
+
+/**
+ * Pareto de clientes: barras de mayor a menor y el % acumulado en el eje
+ * derecho, con la línea del corte (80 %). Mejor que un pastel: con 40
+ * clientes (o 200 mañana) las porciones no se distinguen; acá cada barra
+ * se compara contra la de al lado y la curva dice cuántos hacen el grueso.
+ */
+const paretoClientes = computed(() => {
+    const p = clientesTop.value.pareto;
+
+    return {
+        labels: p.labels,
+        series: p.labels.length
+            ? [
+                { nombre: 'Monto aprobado', tipo: 'bar', datos: p.montos },
+                { nombre: '% acumulado', datos: p.acumulado, eje: 'derecho' },
+            ]
+            : [],
+        umbrales: [{ valor: p.corte, nombre: `${p.corte} % de las ventas`, eje: 'derecho' }],
+    };
+});
+
+function pct(value) {
+    return porcentaje(value, 0);
+}
+
+/** "hoy", "ayer" o "hace N días": el número exacto pesa más que "hace meses". */
+function haceTanto(dias) {
+    if (dias === 0) return 'hoy';
+    if (dias === 1) return 'ayer';
+    return `hace ${dias} días`;
+}
 </script>
 
 <template>
@@ -165,6 +212,105 @@ const materialesOcultos = computed(() => Math.max(props.datos.evolucion_costos.l
                             vacio="Sin cotizaciones aprobadas todavía." />
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Lista con ranking y no un gráfico: los logos van como <img> en
+             HTML (nítidos, accesibles); en el canvas de ECharts serían
+             frágiles y no saldrían en la vista de tabla. -->
+        <section class="card">
+            <div class="card-header">
+                <div>
+                    <span class="card-title">Clientes que más compran <AyudaInfo clave="bi.clientes-top" /></span>
+                    <p class="card-subtitle">
+                        Monto aprobado en el periodo
+                        <span v-if="clientesTop.total_clientes"> · {{ clientesTop.total_clientes }}
+                            {{ clientesTop.total_clientes === 1 ? 'cliente compró' : 'clientes compraron' }}</span>
+                    </p>
+                </div>
+                <p v-if="clientesTop.otros.clientes" class="bi-clientes-concentracion">
+                    Los {{ clientesTop.clientes.length }} primeros suman
+                    <strong>{{ porcentaje(clientesTop.concentracion) }}</strong> de las ventas
+                </p>
+            </div>
+            <div class="card-body">
+                <ol v-if="clientesTop.clientes.length" class="bi-clientes">
+                    <li v-for="(c, i) in clientesTop.clientes" :key="c.id" class="bi-cliente">
+                        <span class="bi-cliente-puesto">{{ i + 1 }}</span>
+                        <ClienteAvatar :nombre="c.nombre" :logo-url="c.logo_url" />
+                        <div class="bi-cliente-cuerpo">
+                            <div class="bi-cliente-fila">
+                                <span class="bi-cliente-nombre" :title="c.nombre">{{ c.nombre }}</span>
+                                <span class="bi-cliente-monto">{{ money(c.monto) }}</span>
+                            </div>
+                            <div class="bi-cliente-barra" aria-hidden="true">
+                                <span :style="{ width: `${(c.monto / montoMaximo) * 100}%` }"></span>
+                            </div>
+                            <div class="bi-cliente-meta">
+                                <span>{{ c.compras }} {{ c.compras === 1 ? 'compra' : 'compras' }}</span>
+                                <span v-if="c.dias_sin_comprar !== null"
+                                    :class="{ 'is-alerta': c.dias_sin_comprar > clientesTop.dias_sin_comprar }">
+                                    <i v-if="c.dias_sin_comprar > clientesTop.dias_sin_comprar"
+                                        class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                                    última {{ haceTanto(c.dias_sin_comprar) }}
+                                </span>
+                                <span class="bi-cliente-parte">{{ porcentaje(c.participacion) }} del total</span>
+                                <span class="bi-cliente-variacion"
+                                    :class="c.variacion === null ? 'is-nuevo' : c.variacion >= 0 ? 'is-sube' : 'is-baja'"
+                                    :title="`Frente al periodo anterior (${periodoAnterior})`">
+                                    <template v-if="c.variacion === null">Nuevo</template>
+                                    <template v-else>
+                                        <i :class="c.variacion >= 0 ? 'fa-solid fa-arrow-trend-up' : 'fa-solid fa-arrow-trend-down'"
+                                            aria-hidden="true"></i>
+                                        {{ variacion(c.variacion) }}
+                                    </template>
+                                </span>
+                            </div>
+                        </div>
+                    </li>
+                    <li v-if="clientesTop.otros.clientes" class="bi-cliente bi-cliente-otros">
+                        <span class="bi-cliente-puesto"></span>
+                        <span class="cliente-avatar cliente-avatar-md cliente-avatar-otros" aria-hidden="true">
+                            +{{ clientesTop.otros.clientes }}
+                        </span>
+                        <div class="bi-cliente-cuerpo">
+                            <div class="bi-cliente-fila">
+                                <span class="bi-cliente-nombre">
+                                    Otros {{ clientesTop.otros.clientes }}
+                                    {{ clientesTop.otros.clientes === 1 ? 'cliente' : 'clientes' }}
+                                </span>
+                                <span class="bi-cliente-monto">{{ money(clientesTop.otros.monto) }}</span>
+                            </div>
+                            <div class="bi-cliente-meta">
+                                <span class="bi-cliente-parte">{{ porcentaje(clientesTop.otros.participacion) }} del total</span>
+                            </div>
+                        </div>
+                    </li>
+                </ol>
+                <p v-else class="chart-empty">Sin cotizaciones aprobadas en el periodo.</p>
+            </div>
+        </section>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <span class="card-title">Concentración de ventas por cliente <AyudaInfo clave="bi.clientes-pareto" /></span>
+                    <p class="card-subtitle">
+                        Todos los clientes del periodo, de mayor a menor, con el % acumulado
+                        <span v-if="clientesTop.pareto.agrupados"> · desde el puesto
+                            {{ clientesTop.pareto.labels.length }} van juntos</span>
+                    </p>
+                </div>
+                <p v-if="clientesTop.pareto.clientes_corte" class="bi-clientes-concentracion">
+                    <strong>{{ clientesTop.pareto.clientes_corte }} de {{ clientesTop.total_clientes }}</strong>
+                    clientes hacen el {{ clientesTop.pareto.corte }} % de las ventas
+                </p>
+            </div>
+            <div class="card-body">
+                <BaseChart titulo="Concentración de ventas por cliente" :labels="paretoClientes.labels"
+                    :series="paretoClientes.series" :formato="money" :formato-derecho="pct"
+                    :umbrales="paretoClientes.umbrales" :alto="340" etiquetas-inclinadas
+                    vacio="Sin cotizaciones aprobadas en el periodo." />
             </div>
         </div>
 

@@ -6,10 +6,12 @@ use Database\Factories\ClienteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'user_id',
@@ -21,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'email',
     'direccion',
     'ciudad',
+    'logo',
     'estado',
 ])]
 
@@ -37,11 +40,28 @@ class Cliente extends Model
     protected $table = 'cliente';
 
     /**
+     * @var list<string>
+     */
+    protected $appends = ['logo_url'];
+
+    /**
      * Cuenta de acceso al portal (opcional, `cliente.user_id`).
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * URL pública del logo (disco `public`, ya convertido a JPG por
+     * App\Services\Imagen\ConvierteImagenAJpgService). Null sin logo: la
+     * pantalla muestra las iniciales.
+     */
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->logo ? Storage::disk('public')->url($this->logo) : null,
+        );
     }
 
     /**
