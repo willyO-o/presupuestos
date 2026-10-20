@@ -36,8 +36,8 @@ class ProductoMaterialController extends Controller
             // Solo para el modal de alta rápida "Nuevo material" embebido en
             // el formulario — ver Components/QuickCreateModal.vue.
             'categoriasMaterial' => CategoriaMaterial::query()->estado('ACTIVO')->orderBy('nombre')->get(['id', 'nombre']),
-            'pageTitle' => "Receta — {$producto->nombre}",
-            'breadcrumbs' => ['Catálogo de Productos', 'Productos', 'Receta'],
+            'pageTitle' => "Materiales — {$producto->nombre}",
+            'breadcrumbs' => ['Catálogo de Productos', 'Productos', 'Materiales'],
         ]);
     }
 
@@ -46,7 +46,7 @@ class ProductoMaterialController extends Controller
         $producto->productoMateriales()->create($request->validated());
 
         return redirect()->route('productos.materiales.index', $producto)
-            ->with('success', 'Material agregado a la receta correctamente.');
+            ->with('success', 'Material agregado al producto correctamente.');
     }
 
     public function update(UpdateProductoMaterialRequest $request, Producto $producto, ProductoMaterial $productoMaterial): RedirectResponse
@@ -56,7 +56,7 @@ class ProductoMaterialController extends Controller
         $productoMaterial->update($request->validated());
 
         return redirect()->route('productos.materiales.index', $producto)
-            ->with('success', 'Línea de receta actualizada correctamente.');
+            ->with('success', 'Material actualizado correctamente.');
     }
 
     public function destroy(Producto $producto, ProductoMaterial $productoMaterial): RedirectResponse
@@ -66,7 +66,7 @@ class ProductoMaterialController extends Controller
         $productoMaterial->delete();
 
         return redirect()->route('productos.materiales.index', $producto)
-            ->with('success', 'Material quitado de la receta correctamente.');
+            ->with('success', 'Material quitado del producto correctamente.');
     }
 
     /**

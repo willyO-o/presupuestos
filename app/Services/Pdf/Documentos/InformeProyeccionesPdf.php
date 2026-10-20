@@ -2,6 +2,7 @@
 
 namespace App\Services\Pdf\Documentos;
 
+use App\Services\Reporte\PreguntasNegocioService;
 use App\Services\Reporte\RedaccionPronostico;
 use Illuminate\Support\Carbon;
 
@@ -59,6 +60,10 @@ class InformeProyeccionesPdf extends Documento
         foreach ($this->informe['secciones'] as $seccion) {
             $this->AddPage();
             $this->tituloSeccion($seccion['titulo']);
+
+            if (isset($seccion['preguntas'])) {
+                $this->preguntas($seccion['preguntas']);
+            }
 
             foreach ($seccion['indicadores'] ?? [] as $indicador) {
                 $this->indicador($indicador);
@@ -369,6 +374,113 @@ class InformeProyeccionesPdf extends Documento
             ['texto' => $a['titulo'], 'negrita' => true],
             $a['detalle'],
         ], $alertas));
+    }
+
+    /**
+     * Preguntas para decidir: cada una con su respuesta destacada, la tabla
+     * corta, qué hacer y con qué datos se respondió.
+     *
+     * @param  list<array<string, mixed>>  $preguntas  PreguntasNegocioService::datos()['preguntas'].
+     */
+    private function preguntas(array $preguntas): void
+    {
+        $this->fuente(7.5, '', self::SUAVE);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->flujo($this->anchoUtil(), [[
+            'texto' => 'Cada respuesta sale de los datos registrados en el periodo y repite su cifra. Las acciones de la última pregunta salen de las anteriores.',
+        ]], $this->altoLinea(7.5));
+
+        $grupo = null;
+
+        foreach ($preguntas as $indice => $pregunta) {
+            if ($pregunta['grupo'] !== $grupo) {
+                $grupo = $pregunta['grupo'];
+                $this->asegurarEspacio(50);
+                $this->espacio(3);
+                $this->rotulo(PreguntasNegocioService::GRUPOS[$grupo] ?? $grupo);
+            }
+
+            $this->pregunta($indice + 1, $pregunta);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $pregunta
+     */
+    private function pregunta(int $numero, array $pregunta): void
+    {
+        $this->subtitulo("{$numero}. {$pregunta['pregunta']}");
+        $this->recuadro([['tipo' => 'nota', 'texto' => $pregunta['respuesta']]], tono: 'destacado');
+
+        $columnas = $pregunta['tabla']['columnas'];
+
+        if ($pregunta['tabla']['filas'] !== []) {
+            $this->espacio(2);
+            $this->tabla(
+                array_map(fn (array $c, int $i): array => [
+                    'titulo' => $c['titulo'],
+                    'ancho' => $this->anchoColumna($i, count($columnas)),
+                    'alineacion' => $c['formato'] === 'texto' ? 'L' : 'R',
+                ], $columnas, array_keys($columnas)),
+                array_map(fn (array $fila): array => array_map(
+                    fn (mixed $valor, int $i): array|string => $i === 0
+                        ? ['texto' => (string) $valor, 'negrita' => true]
+                        : $this->celda($valor, $columnas[$i]['formato']),
+                    $fila,
+                    array_keys($fila),
+                ), $pregunta['tabla']['filas']),
+            );
+        }
+
+        $acciones = array_column($pregunta['acciones'], 'texto');
+
+        if ($acciones !== [] && $pregunta['clave'] !== 'decisiones') {
+            $this->recuadro([
+                ['tipo' => 'titulo', 'texto' => 'Qué hacer'],
+                ['tipo' => 'lista', 'items' => $acciones],
+            ]);
+        }
+
+        foreach (array_filter([$pregunta['aviso'] ? "Ojo: {$pregunta['aviso']}" : null, $pregunta['base'] ? "Con qué datos: {$pregunta['base']}" : null]) as $nota) {
+            $this->fuente(7, '', self::SUAVE);
+            $this->SetX(self::MARGEN_LATERAL);
+            $this->flujo($this->anchoUtil(), [['texto' => $nota]], $this->altoLinea(7));
+        }
+
+        $this->espacio(3);
+    }
+
+    /**
+     * Ancho (en % del área útil) de cada columna: la primera es el nombre o
+     * la acción y se lleva más; el resto se reparte.
+     */
+    private function anchoColumna(int $indice, int $total): float
+    {
+        $primera = match (true) {
+            $total <= 3 => 60.0,
+            $total <= 5 => 32.0,
+            default => 26.0,
+        };
+
+        return $indice === 0 ? $primera : (100 - $primera) / max($total - 1, 1);
+    }
+
+    /**
+     * Valor de una celda con el formato de su columna (los mismos nombres que
+     * `Utils/FormatoReporte.js::formateador()`).
+     */
+    private function celda(mixed $valor, string $formato): string
+    {
+        if ($valor === null) {
+            return '—';
+        }
+
+        return match ($formato) {
+            'texto' => (string) $valor,
+            'cantidad' => RedaccionPronostico::numero((float) $valor, 0),
+            'variacion' => RedaccionPronostico::variacion((float) $valor),
+            default => RedaccionPronostico::formatear((float) $valor, $formato),
+        };
     }
 
     private function anexoMetodologico(): void

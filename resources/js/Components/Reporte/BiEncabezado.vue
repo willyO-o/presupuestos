@@ -25,6 +25,8 @@ const props = defineProps({
 });
 
 const pestanas = [
+    { ruta: 'reportes.bi.panorama', texto: 'Panorama', icono: 'fa-solid fa-gauge-high' },
+    { ruta: 'reportes.bi.preguntas', texto: 'Preguntas', icono: 'fa-solid fa-circle-question' },
     { ruta: 'reportes.bi.resumen', texto: 'Resumen semanal', icono: 'fa-solid fa-newspaper' },
     { ruta: 'reportes.bi', texto: 'Demanda y ventas', icono: 'fa-solid fa-chart-line' },
     { ruta: 'reportes.bi.costos', texto: 'Costos y materiales', icono: 'fa-solid fa-boxes-stacked' },
@@ -49,6 +51,7 @@ function aplicar() {
  * InformeProyeccionesService::SECCIONES (el servidor las valida).
  */
 const SECCIONES_INFORME = [
+    { clave: 'preguntas', texto: 'Preguntas para decidir', detalle: 'Costo real, desvíos, rentabilidad, escenarios, cobranza y qué hacer' },
     { clave: 'demanda', texto: 'Demanda y ventas', detalle: 'Pedidos por mes' },
     { clave: 'costos', texto: 'Costos y materiales', detalle: 'Índice de costo, consumo, precio por material' },
     { clave: 'rentabilidad', texto: 'Presupuestos y rentabilidad', detalle: 'Montos emitido y vendido, rentabilidad, utilidad' },

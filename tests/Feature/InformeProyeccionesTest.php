@@ -7,11 +7,11 @@ use App\Models\Pedido;
 use App\Models\Sucursal;
 use App\Models\User;
 use App\Services\Pdf\GeneradorPdf;
-use App\Services\Pdf\RespuestaPdf;
 use App\Services\Reporte\InformeProyeccionesCsv;
 use App\Services\Reporte\InformeProyeccionesService;
 use App\Services\Reporte\InteligenciaNegociosService;
 use App\Services\Reporte\PeriodoReporte;
+use App\Services\Reporte\RedaccionPronostico;
 use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Permission;
 
@@ -49,26 +49,6 @@ function pedidosDelMes(int $cantidad, string $fecha): void
         ->count($cantidad)
         ->recycle([$sucursal, $area, $empleado, $cliente])
         ->create(['fecha_pedido' => $fecha]);
-}
-
-/** Texto visible del PDF (mismo criterio que `textoDelPdf()` de GeneradorPdfTest). */
-function textoDelInforme(RespuestaPdf $pdf): string
-{
-    preg_match_all('/BT [\d.-]+ ([\d.-]+) Td \((.*?)\) Tj ET/s', $pdf->sinComprimir()->contenido(), $marcas, PREG_SET_ORDER);
-
-    $texto = '';
-    $renglon = null;
-
-    foreach ($marcas as $marca) {
-        if ($renglon !== null && $marca[1] !== $renglon) {
-            $texto .= ' ';
-        }
-
-        $renglon = $marca[1];
-        $texto .= preg_replace('/\\\\([()\\\\])/', '$1', $marca[2]);
-    }
-
-    return mb_convert_encoding($texto, 'UTF-8', 'Windows-1252');
 }
 
 function usuarioConBi(): User
@@ -177,8 +157,11 @@ test('el informe con todas las secciones se genera aunque falten datos de costos
     $informe = app(InformeProyeccionesService::class)->armar($this->usuario, $this->periodo);
     $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
 
-    expect(array_column($informe['secciones'], 'clave'))->toBe(['demanda', 'costos', 'rentabilidad', 'alertas'])
+    // Las preguntas van primero; sin ventas ni consumo, cada una lo dice.
+    expect(array_column($informe['secciones'], 'clave'))->toBe(['preguntas', 'demanda', 'costos', 'rentabilidad', 'alertas'])
         ->and($texto)->toContain('Se necesitan al menos 3 meses')
+        ->and($texto)->toContain('Preguntas para decidir')
+        ->and($texto)->toContain('No hay consumo de material registrado en el periodo.')
         ->and(InformeProyeccionesCsv::generar($informe))->toContain('Costos y materiales');
 });
 
@@ -205,4 +188,14 @@ test('la demanda deja fuera de la recta el mes en curso y estima su cierre', fun
         ->toContain('no entra en la recta porque está incompleto (8 de 31 días)');
 
     Carbon::setTestNow();
+});
+
+test('la conclusion de precio contra costo no dice crece cuando los dos bajan', function () {
+    $conclusiones = fn (float $precio, float $costo): array => RedaccionPronostico::conclusiones([], [
+        ['clave' => 'rentabilidad', 'tendencia' => ['ticket' => $precio, 'costo' => $costo]],
+    ]);
+
+    // Los dos bajan, pero el precio más: el margen se achica.
+    expect($conclusiones(-0.5, -0.3))->toBe(['El precio promedio por presupuesto va por detrás del costo (-0,5 % contra -0,3 % por mes): el margen se está achicando.'])
+        ->and($conclusiones(2.0, 1.0))->toBe(['El precio promedio por presupuesto acompaña al costo o le gana (+2,0 % contra +1,0 % por mes): el margen se sostiene.']);
 });

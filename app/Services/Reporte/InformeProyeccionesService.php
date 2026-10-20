@@ -19,6 +19,7 @@ class InformeProyeccionesService
 {
     /** Secciones que se pueden pedir, en el orden en que salen. */
     public const SECCIONES = [
+        'preguntas' => 'Preguntas para decidir',
         'demanda' => 'Demanda y ventas',
         'costos' => 'Costos y materiales',
         'rentabilidad' => 'Presupuestos y rentabilidad',
@@ -30,6 +31,7 @@ class InformeProyeccionesService
         private readonly CostosMaterialesService $costos,
         private readonly PresupuestosRentabilidadService $rentabilidad,
         private readonly AlertasNegocioService $alertas,
+        private readonly PreguntasNegocioService $preguntas,
     ) {}
 
     /**
@@ -45,6 +47,7 @@ class InformeProyeccionesService
             'clave' => $clave,
             'titulo' => self::SECCIONES[$clave],
             ...match ($clave) {
+                'preguntas' => ['preguntas' => $this->preguntas->datos($usuario, $periodo)['preguntas']],
                 'demanda' => $this->seccionDemanda($usuario, $periodo),
                 'costos' => $this->seccionCostos($usuario, $periodo),
                 'rentabilidad' => $this->seccionRentabilidad($usuario, $periodo),

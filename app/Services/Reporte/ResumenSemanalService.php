@@ -158,7 +158,7 @@ class ResumenSemanalService
             'monto_emitido' => ['Monto presupuestado', 'bs', 'sube'],
             'ventas_cerradas' => ['Ventas cerradas (pedidos)', 'cantidad', 'sube'],
             'monto_vendido' => ['Monto vendido', 'bs', 'sube'],
-            'ticket_promedio' => ['Ticket promedio por presupuesto', 'bs', 'sube'],
+            'ticket_promedio' => ['Monto promedio por presupuesto', 'bs', 'sube'],
             'rentabilidad_pct' => ['Rentabilidad presupuestada sobre costo', 'porcentaje', 'sube'],
             'cobranza' => ['Cobranza', 'bs', 'sube'],
             'entregas' => ['Pedidos entregados', 'cantidad', 'sube'],
@@ -465,10 +465,10 @@ class ResumenSemanalService
 
         $recomendacionPorIndicador = [
             'presupuestos_emitidos' => ['Reactivar la prospección y el seguimiento de cotizaciones pendientes.', 'Se emitieron menos presupuestos que en las semanas anteriores.'],
-            'monto_emitido' => ['Priorizar oportunidades de mayor ticket (letreros, exhibidores, campañas completas).', 'El monto presupuestado cayó.'],
+            'monto_emitido' => ['Priorizar oportunidades de mayor monto (letreros, exhibidores, campañas completas).', 'El monto presupuestado cayó.'],
             'ventas_cerradas' => ['Revisar las cotizaciones aprobadas que todavía no pasaron a pedido.', 'Se cerraron menos ventas.'],
             'monto_vendido' => ['Revisar las cotizaciones aprobadas que todavía no pasaron a pedido.', 'El monto vendido cayó.'],
-            'ticket_promedio' => ['Ofrecer instalación y complementos en los presupuestos chicos.', 'El ticket promedio bajó.'],
+            'ticket_promedio' => ['Ofrecer instalación y complementos en los presupuestos chicos.', 'El monto promedio por presupuesto bajó.'],
             'rentabilidad_pct' => ['Revisar descuentos y el nivel de complejidad elegido en las hojas de costo.', 'La rentabilidad presupuestada bajó.'],
             'cobranza' => ['Revisar las cuentas por cobrar con saldo vencido.', 'Se cobró menos que en las semanas anteriores.'],
             'entregas' => ['Revisar la carga de producción por área.', 'Se entregaron menos pedidos.'],

@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Pdf\RespuestaPdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +48,27 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Texto visible del informe de BI en PDF (mismo criterio que `textoDelPdf()`
+ * de GeneradorPdfTest). Lo usan InformeProyeccionesTest y PreguntasNegocioTest.
+ */
+function textoDelInforme(RespuestaPdf $pdf): string
+{
+    preg_match_all('/BT [\d.-]+ ([\d.-]+) Td \((.*?)\) Tj ET/s', $pdf->sinComprimir()->contenido(), $marcas, PREG_SET_ORDER);
+
+    $texto = '';
+    $renglon = null;
+
+    foreach ($marcas as $marca) {
+        if ($renglon !== null && $marca[1] !== $renglon) {
+            $texto .= ' ';
+        }
+
+        $renglon = $marca[1];
+        $texto .= preg_replace('/\\\\([()\\\\])/', '$1', $marca[2]);
+    }
+
+    return mb_convert_encoding($texto, 'UTF-8', 'Windows-1252');
 }

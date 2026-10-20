@@ -758,10 +758,10 @@ function submit() {
                             <div class="d-flex flex-wrap gap-2">
                                 <button type="button" class="btn btn-sm btn-soft-info"
                                     :disabled="!linea.producto_id || costeo[index].cargando"
-                                    title="Trae los materiales de la receta del producto para estas medidas"
+                                    title="Trae los materiales del producto para estas medidas"
                                     @click="traerInsumos(index)">
                                     <i v-if="costeo[index].cargando" class="fa-solid fa-spinner fa-spin"></i>
-                                    <i v-else class="fa-solid fa-flask"></i>
+                                    <i v-else class="fa-solid fa-boxes-stacked"></i>
                                     Traer insumos del producto
                                 </button>
                                 <button type="button" class="btn btn-sm btn-soft-primary" @click="agregarItem(index)">
@@ -780,7 +780,7 @@ function submit() {
 
                         <p v-if="!linea.items.length" class="hoja-costos-vacia">
                             Sin insumos cargados: el precio de este ítem se escribe a mano.
-                            Traé la receta del producto o agregá insumos para que el sistema calcule el precio y la
+                            Traé los insumos del producto o agregá otros para que el sistema calcule el precio y la
                             rentabilidad.
                         </p>
 

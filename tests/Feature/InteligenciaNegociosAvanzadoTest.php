@@ -189,6 +189,27 @@ test('la rentabilidad deja afuera los presupuestos sin hoja de costos', function
         ->and($datos['pronostico']['proyeccion_emitido'])->toHaveCount(3);
 });
 
+test('la tendencia compara precio y costo de los mismos presupuestos y sin IVA', function () {
+    // Febrero: 1.000 − 100 de descuento = 900 sin IVA (el total con IVA es
+    // 1.044), costo 600. El de 2.000 no tiene hoja de costos: no entra en
+    // ninguna de las dos líneas.
+    Cotizacion::factory()->create([
+        'fecha' => '2026-02-10', 'subtotal' => 1000, 'descuento' => 100, 'total' => 1044, 'costo_ajustado' => 600,
+    ]);
+    Cotizacion::factory()->create([
+        'fecha' => '2026-02-20', 'subtotal' => 2000, 'descuento' => 0, 'total' => 2260, 'costo_ajustado' => 0,
+    ]);
+    Cotizacion::factory()->rechazada()->create([
+        'fecha' => '2026-03-05', 'subtotal' => 1500, 'descuento' => 0, 'total' => 1695, 'costo_ajustado' => 900,
+    ]);
+
+    $tendencia = app(PresupuestosRentabilidadService::class)->datos($this->usuario, $this->periodo)['tendencia'];
+
+    // Antes: febrero salía (1.044 + 2.260) / 2 = 1.652 contra un costo de 600.
+    expect($tendencia['ticket'])->toBe([null, 900.0, 1500.0, null])
+        ->and($tendencia['costo'])->toBe([null, 600.0, 900.0, null]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Alertas

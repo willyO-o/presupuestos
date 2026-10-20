@@ -67,4 +67,22 @@ return [
         'cliente_minimo_compras' => 3,
         'cliente_pareto' => 0.8,
     ],
+
+    // Preguntas para decidir (App\Services\Reporte\PreguntasNegocioService).
+    'preguntas' => [
+        // Un trabajo "se pasó" del presupuesto si gastó en material más de
+        // este margen sobre lo que decía su hoja de costos (redondeos, cortes).
+        'tolerancia_desvio' => 0.05,
+        // Subidas de materia prima que se simulan, en %.
+        'escenarios_materia_prima' => [5, 10, 20],
+        // Ventas mínimas para que un producto o cliente entre a "mejor
+        // margen": con una sola venta el porcentaje es anecdótico.
+        'minimo_ventas' => 3,
+        // Corte de los materiales que "se llevan" el gasto (Pareto).
+        'pareto' => 0.8,
+        // Antigüedad de la deuda, en días desde el pedido.
+        'tramos_cobranza' => [30, 60, 90],
+        // Rebaja que se supone negociable en los materiales que más pesan.
+        'ahorro_negociable' => 0.05,
+    ],
 ];

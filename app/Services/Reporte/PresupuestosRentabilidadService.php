@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 
 /**
  * Presupuestos y rentabilidad: pronóstico de presupuestos emitidos y
- * aprobados, tendencia del ticket y del costo promedio, y proyección de la
+ * aprobados, tendencia del precio y del costo promedio, y proyección de la
  * rentabilidad que calcula el motor de margen.
  *
  * **Qué presupuestos entran a la rentabilidad**: solo los que tienen hoja de
@@ -112,11 +112,17 @@ class PresupuestosRentabilidadService
     }
 
     /**
-     * Ticket promedio (monto por presupuesto emitido) y costo ajustado
-     * promedio (solo presupuestos con hoja de costos) mes a mes, con la
-     * pendiente de cada uno expresada en % por mes.
+     * Precio promedio por presupuesto y costo ajustado promedio, mes a mes,
+     * con la pendiente de cada uno expresada en % por mes. En el código se
+     * sigue llamando `ticket`; en pantalla es "Precio promedio".
      *
-     * Si el costo crece más rápido que el ticket, el margen se está
+     * Las dos líneas salen de los MISMOS presupuestos (los que tienen hoja de
+     * costos) y en la misma base: el precio es el que mira el motor de
+     * margen (subtotal − descuento), sin IVA ni instalación, que el costo no
+     * incluye. Antes el precio era el total con IVA de todos los emitidos y
+     * el espacio entre las líneas exageraba lo que se gana.
+     *
+     * Si el precio va por detrás del costo, el margen se está
      * comiendo: es la lectura que esta tarjeta tiene que permitir.
      *
      * @param  Collection<string, Collection<int, Cotizacion>>  $porMes
@@ -125,16 +131,19 @@ class PresupuestosRentabilidadService
      */
     private function tendencia(Collection $porMes, Collection $claves, PeriodoReporte $periodo): array
     {
-        $ticket = $claves->map(function (string $clave) use ($porMes): ?float {
-            $mes = $porMes->get($clave, collect());
+        $conCosto = fn (string $clave): Collection => $porMes->get($clave, collect())
+            ->filter(fn ($c) => (float) $c->costo_ajustado > 0);
 
-            return $mes->isEmpty() ? null : round((float) $mes->avg('total'), 2);
+        $ticket = $claves->map(function (string $clave) use ($conCosto): ?float {
+            $mes = $conCosto($clave);
+
+            return $mes->isEmpty() ? null : round((float) $mes->avg(fn ($c) => (float) $c->subtotal - (float) $c->descuento), 2);
         })->all();
 
-        $costo = $claves->map(function (string $clave) use ($porMes): ?float {
-            $conCosto = $porMes->get($clave, collect())->filter(fn ($c) => (float) $c->costo_ajustado > 0);
+        $costo = $claves->map(function (string $clave) use ($conCosto): ?float {
+            $mes = $conCosto($clave);
 
-            return $conCosto->isEmpty() ? null : round((float) $conCosto->avg('costo_ajustado'), 2);
+            return $mes->isEmpty() ? null : round((float) $mes->avg('costo_ajustado'), 2);
         })->all();
 
         // Promedios: no dependen de cuántos días tiene el mes, entran enteros.

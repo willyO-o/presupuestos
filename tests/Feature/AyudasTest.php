@@ -58,21 +58,32 @@ function vistasDe(string $carpeta, ?string $debeContener = null): array
     return $vistas;
 }
 
-/** Claves usadas en las pantallas: `<AyudaInfo clave="...">` y `<BiKpi ayuda="...">`. */
+/**
+ * Claves usadas en las pantallas: `<AyudaInfo clave="...">`, `<BiKpi ayuda="...">`,
+ * `<ChartCard ayuda="...">` y las de los indicadores del Panorama, que se
+ * declaran en el script (`ayuda: '...'`) porque se arman con v-for.
+ */
 function clavesUsadas(): Collection
 {
     return collect(File::allFiles(resource_path('js/Pages')))
         ->flatMap(function ($archivo): array {
-            preg_match_all('/<AyudaInfo clave="([^"]+)"|<BiKpi[^>]*\sayuda="([^"]+)"/s', $archivo->getContents(), $claves);
+            preg_match_all(
+                "/<AyudaInfo clave=\"([^\"]+)\"|<(?:BiKpi|ChartCard)[^>]*\sayuda=\"([^\"]+)\"|\bayuda: '([^']+)'/s",
+                $archivo->getContents(),
+                $claves,
+            );
 
-            return array_values(array_filter([...$claves[1], ...$claves[2]]));
+            return array_values(array_filter([...$claves[1], ...$claves[2], ...$claves[3]]));
         });
 }
 
 test('cada grafico de la pantalla tiene su icono de ayuda', function (string $ruta) {
     $fuente = File::get($ruta);
 
-    expect(substr_count($fuente, '<AyudaInfo'))->toBeGreaterThanOrEqual(substr_count($fuente, '<BaseChart'));
+    // `ChartCard` trae el ícono adentro: cuenta como uno.
+    $iconos = substr_count($fuente, '<AyudaInfo') + preg_match_all('/<ChartCard[^>]*\s:?ayuda="/s', $fuente);
+
+    expect($iconos)->toBeGreaterThanOrEqual(substr_count($fuente, '<BaseChart'));
 })->with(vistasDe('Pages', '<BaseChart'));
 
 test('en reportes y BI cada tarjeta con titulo tiene su icono de ayuda', function (string $ruta) {
@@ -95,6 +106,27 @@ test('en reportes y BI cada indicador tiene su icono de ayuda', function (string
 
     foreach ($kpis[0] as $kpi) {
         expect($kpi)->toMatch('/\sayuda="[^"]+"/');
+    }
+
+    // Los del Panorama (KpiCard) reciben la clave por binding desde el script.
+    preg_match_all('/<KpiCard\s[^>]*>/s', $fuente, $comparados);
+
+    foreach ($comparados[0] as $kpi) {
+        expect($kpi)->toMatch('/\s:ayuda="[^"]+"/');
+    }
+
+    // Y cada ChartCard trae la suya: escrita (Panorama) o por binding desde
+    // el script cuando las tarjetas salen de un v-for (Preguntas).
+    preg_match_all('/<ChartCard\s[^>]*>/s', $fuente, $tarjetas);
+
+    // Si el Panorama usa estos componentes, las comprobaciones de arriba
+    // tienen que haber encontrado algo (si no, no estarían probando nada).
+    if (str_contains($fuente, '<KpiCard')) {
+        expect($comparados[0])->not->toBeEmpty()->and($tarjetas[0])->not->toBeEmpty();
+    }
+
+    foreach ($tarjetas[0] as $tarjeta) {
+        expect($tarjeta)->toMatch('/\s:?ayuda="[^"]+"/');
     }
 
     // Las tarjetas de indicador escritas a mano (reportes financiero y de

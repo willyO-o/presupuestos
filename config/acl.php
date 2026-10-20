@@ -158,7 +158,7 @@ return [
             'permissions' => [
                 'productos.ver' => 'Ver productos',
                 'productos.crear' => 'Crear productos',
-                'productos.editar' => 'Editar productos (incluye receta/BOM)',
+                'productos.editar' => 'Editar productos (incluye sus materiales)',
                 'productos.eliminar' => 'Eliminar productos',
             ],
         ],

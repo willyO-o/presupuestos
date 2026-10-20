@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { colorSerie, conAlfa, useChartTheme } from '@/Composables/UseChartTheme.js';
 
 /**
@@ -105,7 +105,24 @@ const props = defineProps({
     ajustarEscala: { type: Boolean, default: false },
     /** Texto cuando no hay nada que graficar. */
     vacio: { type: String, default: 'Sin datos para este periodo.' },
+    /**
+     * Formato del tooltip y de la tabla, cuando el eje usa uno compacto
+     * ("Bs 574 mil" en el eje, "Bs 573.908" al pasar el mouse). Sin él,
+     * se usa `formato`.
+     */
+    formatoTooltip: { type: Function, default: null },
 });
+
+/**
+ * `seleccionar` ({ indice, etiqueta }) al hacer clic en un punto o barra:
+ * el drill-down del Panorama. Solo si la página lo escucha el cursor cambia
+ * a "mano"; en el resto de los gráficos un clic no hace nada.
+ */
+const emit = defineEmits(['seleccionar']);
+// La instancia se toma acá, en el setup: dentro del computed (que se evalúa
+// más tarde, al armar las opciones) `getCurrentInstance()` ya es null.
+const instancia = getCurrentInstance();
+const escuchaSeleccion = computed(() => Boolean(instancia?.vnode.props?.onSeleccionar));
 
 const contenedor = ref(null);
 const verTabla = ref(false);
@@ -139,6 +156,14 @@ const coloresSerie = computed(() => {
             return;
         }
 
+        // Referencia (el periodo anterior, el total de fondo): gris, para que
+        // el color fuerte quede solo en lo que se quiere mirar.
+        if (serie.neutra) {
+            colores.push(conAlfa(tema.value?.eje ?? '#878a99', 0.55));
+
+            return;
+        }
+
         colores.push(colorSerie(tema.value, siguiente));
         siguiente++;
     });
@@ -150,6 +175,11 @@ const hayEjeDerecho = computed(() => props.series.some((s) => s.eje === 'derecho
 
 function formatoDe(serie) {
     return serie?.eje === 'derecho' && props.formatoDerecho ? props.formatoDerecho : props.formato;
+}
+
+/** Tooltip y tabla: el detalle (`formatoTooltip`) en las series del eje izquierdo. */
+function formatoDetalle(serie) {
+    return serie?.eje !== 'derecho' && props.formatoTooltip ? props.formatoTooltip : formatoDe(serie);
 }
 
 function alternar(nombre) {
@@ -170,6 +200,48 @@ function escapar(texto) {
 /* -------------------------------------------------------------------------
  * Construcción de la opción de ECharts
  * ---------------------------------------------------------------------- */
+
+/**
+ * Barra destacada (`serie.destacar`, un índice): esa en el color de la
+ * serie y el resto en gris. Es para el dato clave (el mejor mes, el tipo que
+ * más vende); NO para codificar el valor en el color, que ya lo dice el largo.
+ */
+function colorBarra(serie, indice, color) {
+    if (serie.destacar === undefined || serie.destacar === null || serie.destacar === indice) {
+        return color;
+    }
+
+    return conAlfa(tema.value?.eje ?? '#878a99', 0.28);
+}
+
+/**
+ * Etiquetas de datos (`serie.etiquetas`): `true` en todos los puntos,
+ * `'destacada'` solo en el destacado (con muchas barras, todas las cifras
+ * juntas se pisan). Con el formato del eje, que es el corto.
+ */
+function etiquetaDe(serie, tipo) {
+    if (!serie.etiquetas) {
+        return undefined;
+    }
+
+    return {
+        show: serie.etiquetas === true,
+        position: tipo === 'bar' ? (props.horizontal ? 'right' : 'top') : 'top',
+        distance: 6,
+        color: tema.value?.texto,
+        fontSize: 11,
+        fontWeight: 600,
+        formatter: (p) => (p.value === null || p.value === undefined ? '' : formatoDe(serie)(p.value)),
+    };
+}
+
+function etiquetaPunto(serie, indice) {
+    if (serie.etiquetas !== 'destacada' || serie.destacar !== indice) {
+        return null;
+    }
+
+    return { label: { show: true } };
+}
 
 /**
  * Las medidas de las marcas salen de acá y de ningún otro lado.
@@ -232,10 +304,12 @@ function seriesDe(serie, indice) {
             stack: props.apilado ? 'total' : undefined,
             barMaxWidth: 24,
             meta,
+            label: etiquetaDe(serie, tipo),
             data: (serie.datos ?? []).map((v, i) => ({
                 value: v,
+                ...(etiquetaPunto(serie, i) ?? {}),
                 itemStyle: {
-                    color: serie.colores?.[i] ?? color,
+                    color: serie.colores?.[i] ?? colorBarra(serie, i, color),
                     borderRadius: redondeo(v),
                     // El separador entre segmentos apilados es un hueco del
                     // color de la superficie, no un borde de otro color.
@@ -264,6 +338,7 @@ function seriesDe(serie, indice) {
         lineStyle: { width: 2, color, type: serie.punteada ? [5, 4] : 'solid' },
         itemStyle: { color, borderColor: superficie, borderWidth: 2 },
         emphasis: { scale: 1.3, focus: 'none' },
+        label: etiquetaDe(serie, 'line'),
         // El área es un lavado del mismo tono, nunca un bloque saturado.
         areaStyle: serie.area ? { color: conAlfa(color, 0.1) } : undefined,
     }];
@@ -367,7 +442,7 @@ function contenidoTooltip(puntos) {
         .map((p) => {
             const indice = Number.parseInt(p.seriesId, 10);
             const serie = props.series[indice];
-            const formato = formatoDe(serie);
+            const formato = formatoDetalle(serie);
             let valor;
 
             if (serie.tipo === 'banda') {
@@ -409,7 +484,11 @@ function opcion() {
         : [valor, ...(hayEjeDerecho.value ? [ejeValor(props.formatoDerecho ?? props.formato, true)] : [])];
 
     return {
-        animationDuration: 400,
+        // Entrada suave, una sola vez; con "reducir movimiento" no se anima.
+        animation: !reduceMovimiento(),
+        animationDuration: 650,
+        animationEasing: 'cubicOut',
+        animationDurationUpdate: 300,
         textStyle: { fontFamily: tema.value?.fuente },
         aria: { enabled: true, label: { description: props.titulo } },
         grid: {
@@ -437,8 +516,12 @@ function opcion() {
             extraCssText: 'border-radius:6px;box-shadow:none;',
             formatter: contenidoTooltip,
         },
-        series: listas.map(({ meta, ...resto }) => resto),
+        series: listas.map(({ meta, ...resto }) => ({ ...resto, cursor: escuchaSeleccion.value ? 'pointer' : 'default' })),
     };
+}
+
+function reduceMovimiento() {
+    return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
 /* -------------------------------------------------------------------------
@@ -459,6 +542,11 @@ async function montar() {
 
     grafico = echarts.init(contenedor.value, null, { renderer: 'canvas' });
     grafico.setOption(opcion());
+    grafico.on('click', (p) => {
+        if (escuchaSeleccion.value && Number.isInteger(p.dataIndex)) {
+            emit('seleccionar', { indice: p.dataIndex, etiqueta: props.labels[p.dataIndex] });
+        }
+    });
 
     // ECharts no sigue solo el tamaño de su caja: el sidebar plegado, el
     // cambio de tabla a gráfico o un giro de pantalla lo dejarían cortado.
@@ -517,7 +605,7 @@ function exportarPng() {
 
 /** Celda de la tabla gemela. */
 function celda(serie, fila) {
-    const formato = formatoDe(serie);
+    const formato = formatoDetalle(serie);
 
     if (serie.tipo === 'banda') {
         const inf = serie.inferior?.[fila];

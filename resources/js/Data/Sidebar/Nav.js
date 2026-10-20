@@ -152,7 +152,10 @@ export const NAV_MENU = [
         title: 'Inteligencia de Negocios',
         icon: 'fa-solid fa-chart-line',
         type: 'link',
-        path: '/reportes/bi',
+        // Abre en el Panorama, pero queda marcado en todas las pestañas del
+        // BI (`match`: el prefijo que cuenta como "estoy acá").
+        path: '/reportes/bi/panorama',
+        match: '/reportes/bi',
         permission: 'reportes.bi',
     },
 

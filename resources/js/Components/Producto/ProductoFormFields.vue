@@ -105,7 +105,7 @@ const unidadesMedida = [
                     <option value="SI">Sí, publicarlo</option>
                 </select>
                 <p class="fs-sm text-muted mt-1 mb-0">
-                    Aparece en /cotizador solo si además tiene receta (BOM) cargada.
+                    Aparece en /cotizador solo si además tiene sus materiales cargados.
                 </p>
             </div>
         </div>

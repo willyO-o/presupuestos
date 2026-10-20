@@ -6107,3 +6107,552 @@
 .bi-cliente-otros .bi-cliente-monto {
     color: var(--text-muted);
 }
+
+/* ==========================================================================
+   37. PANORAMA DEL BI (Pages/Reportes/BiPanorama.vue,
+       Components/Reporte/{KpiCard,ChartCard}.vue)
+   --------------------------------------------------------------------------
+   La pantalla para decidir de un vistazo. Mismo sistema que el resto del
+   panel (tarjetas, tokens, paleta de series); lo propio es: KPIs comparados
+   contra el periodo anterior, el hallazgo bajo cada título y el embudo.
+   ========================================================================== */
+
+/* --- Filtros globales --- */
+.panorama-filtros-campos {
+    @apply flex flex-wrap items-end gap-3;
+}
+
+.panorama-filtro {
+    flex: 1 1 11rem;
+    @apply min-w-0;
+}
+
+.panorama-filtro-fechas {
+    flex: 1.4 1 15rem;
+}
+
+/* El buscador de clientes necesita aire: angosto, el "Todos los clientes"
+   se partía en dos renglones y desalineaba la fila. */
+.panorama-filtro-cliente {
+    flex: 1.4 1 14rem;
+}
+
+.panorama-filtros-acciones {
+    @apply flex shrink-0 gap-2;
+}
+
+.panorama-filtros-pie {
+    @apply mt-3 flex flex-wrap items-center justify-between gap-2;
+}
+
+.panorama-filtros-nota {
+    color: var(--text-muted);
+    @apply m-0 text-xs;
+}
+
+.panorama-chips {
+    @apply m-0 flex list-none flex-wrap gap-1.5 p-0;
+}
+
+.panorama-chip {
+    color: var(--c-primary);
+    background-color: var(--c-primary-soft);
+    @apply inline-flex items-center gap-1.5 rounded-full py-1 pl-3 pr-1 text-xs font-semibold;
+}
+
+.panorama-chip button {
+    @apply inline-flex h-5 w-5 items-center justify-center rounded-full text-[0.625rem] transition-colors;
+}
+
+.panorama-chip button:hover {
+    background-color: color-mix(in srgb, var(--c-primary) 20%, transparent);
+}
+
+/* --- Estado "recalculando" (cambio de filtro o drill-down) --- */
+.panorama-kpis,
+.chart-card {
+    transition: opacity 180ms ease-out;
+}
+
+.panorama-kpis.is-cargando,
+.chart-card.is-cargando {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: progress;
+}
+
+/* --- KPIs comparados --- */
+/* En el teléfono van de a dos (uno por fila obligaba a bajar mucho antes del
+   primer gráfico); el quinto, solo en su fila, ocupa el ancho entero. */
+.panorama-kpis {
+    @apply grid gap-3 sm:gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+}
+
+@media (max-width: 639px) {
+    .panorama-kpis > :last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+}
+
+.kpi-comparado {
+    @apply relative flex flex-col gap-1 p-4;
+}
+
+.kpi-comparado-ayuda {
+    @apply absolute right-3 top-3;
+}
+
+.kpi-comparado-cabecera {
+    @apply mb-1 flex items-center gap-3;
+}
+
+.kpi-comparado-cabecera .stat-icon {
+    @apply h-10 w-10 rounded-lg text-sm;
+}
+
+.kpi-comparado-etiqueta {
+    color: var(--text-muted);
+    @apply m-0 pr-6 text-[0.8125rem] font-medium leading-tight;
+}
+
+/* De a dos en el teléfono no entra "Cotizaciones" al lado del ícono y de la
+   "i": el ícono queda arriba (a la altura de la "i") y la etiqueta debajo. */
+@media (max-width: 639px) {
+    .kpi-comparado-cabecera {
+        @apply flex-col items-start gap-2;
+    }
+
+    .kpi-comparado-etiqueta {
+        @apply pr-0;
+    }
+}
+
+.kpi-comparado-valor {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply m-0 text-2xl font-extrabold tracking-tight;
+}
+
+.kpi-comparado-pie {
+    @apply m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs;
+}
+
+.kpi-comparado-variacion {
+    font-variant-numeric: tabular-nums;
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold;
+}
+
+.kpi-comparado-variacion.is-buena {
+    color: var(--c-success-dark);
+    background-color: var(--c-success-soft);
+}
+
+.kpi-comparado-variacion.is-mala {
+    color: var(--c-danger-dark);
+    background-color: var(--c-danger-soft);
+}
+
+.kpi-comparado-variacion.is-neutra {
+    color: var(--c-secondary);
+    background-color: var(--c-secondary-soft);
+}
+
+.dark .kpi-comparado-variacion.is-buena { color: var(--c-success); }
+.dark .kpi-comparado-variacion.is-mala { color: var(--c-danger); }
+
+.kpi-comparado-anterior {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.kpi-comparado-nota {
+    color: var(--text-muted);
+    @apply m-0 text-[0.6875rem];
+}
+
+/* --- Tarjeta de cuadro con hallazgo --- */
+.chart-card-cabecera {
+    @apply items-start;
+}
+
+.chart-card-hallazgo {
+    color: var(--text-heading);
+    @apply m-0 mt-1.5 flex max-w-[68ch] gap-2 text-[0.8125rem] font-medium leading-snug;
+}
+
+.chart-card-hallazgo i {
+    color: var(--c-warning);
+    @apply mt-[0.2em] shrink-0 text-xs;
+}
+
+/* --- Filas de cuadros --- */
+.panorama-fila {
+    @apply grid gap-6 lg:grid-cols-2;
+}
+
+.panorama-fila-8-4 {
+    @apply lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)];
+}
+
+.panorama-fila > * {
+    @apply min-w-0;
+}
+
+.panorama-pista {
+    color: var(--text-muted);
+    @apply mb-0 mt-2 flex items-center gap-1.5 text-[0.6875rem];
+}
+
+/* --- Migas del drill-down por tipo de producto --- */
+.panorama-migas {
+    @apply mb-3 flex flex-wrap items-center gap-1.5 text-xs;
+}
+
+.panorama-miga {
+    color: var(--c-primary);
+    @apply rounded font-semibold underline-offset-2 hover:underline;
+}
+
+.panorama-miga.is-actual {
+    color: var(--text-heading);
+}
+
+.panorama-miga-sep {
+    color: var(--text-muted);
+    @apply text-[0.5625rem];
+}
+
+/* --- Embudo de ventas: barras centradas que se angostan, con el % que
+   pasa entre etapas. La peor caída se marca: es donde hay que mirar. --- */
+.embudo {
+    @apply m-0 flex list-none flex-col p-0;
+}
+
+.embudo-fila {
+    @apply flex justify-center;
+}
+
+.embudo-barra {
+    background-color: var(--c-primary);
+    font-variant-numeric: tabular-nums;
+    @apply flex h-10 min-w-[3rem] items-center justify-center rounded-lg text-sm font-extrabold text-white transition-[width] duration-700 ease-out;
+}
+
+.embudo-barra-1 { background-color: color-mix(in srgb, var(--c-primary) 84%, var(--card-bg)); }
+.embudo-barra-2 { background-color: color-mix(in srgb, var(--c-primary) 68%, var(--card-bg)); }
+.embudo-barra-3 { background-color: color-mix(in srgb, var(--c-primary) 54%, var(--card-bg)); color: var(--text-heading); }
+
+.embudo-texto {
+    @apply m-0 mt-1 flex items-baseline justify-center gap-2 text-center text-xs;
+}
+
+.embudo-texto strong {
+    color: var(--text-heading);
+}
+
+.embudo-texto span {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.embudo-paso {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply my-1.5 flex items-center justify-center gap-1.5 text-[0.6875rem] font-semibold;
+}
+
+.embudo-paso.is-peor {
+    color: var(--c-danger-dark);
+}
+
+.dark .embudo-paso.is-peor {
+    color: var(--c-danger);
+}
+
+/* --- Top 5 clientes / productos --- */
+.panorama-top {
+    @apply m-0 flex list-none flex-col gap-1 p-0;
+}
+
+.panorama-top-item {
+    @apply flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors;
+}
+
+button.panorama-top-item:hover {
+    background-color: var(--c-primary-soft);
+}
+
+.panorama-top-puesto {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply w-4 shrink-0 text-end text-xs font-bold;
+}
+
+.panorama-top-imagen {
+    background-color: #ffffff;
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    @apply flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl;
+}
+
+.panorama-top-imagen img {
+    @apply h-full w-full object-cover;
+}
+
+.dark .panorama-top-imagen {
+    background-color: var(--c-light);
+}
+
+.panorama-top-cuerpo {
+    @apply min-w-0 flex-1;
+}
+
+.panorama-top-fila {
+    @apply flex items-baseline gap-3;
+}
+
+.panorama-top-nombre {
+    color: var(--text-heading);
+    @apply min-w-0 flex-1 truncate text-[0.8125rem] font-semibold;
+}
+
+.panorama-top-monto {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply shrink-0 text-[0.8125rem] font-bold;
+}
+
+.panorama-top-barra {
+    background-color: var(--c-primary-soft);
+    @apply my-1.5 block h-1.5 overflow-hidden rounded-full;
+}
+
+.panorama-top-barra span {
+    background-color: var(--c-primary);
+    @apply block h-full rounded-full;
+}
+
+.panorama-top-meta {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply flex flex-wrap gap-x-3 text-[0.6875rem];
+}
+
+.panorama-margen {
+    color: var(--text-body);
+    @apply font-semibold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .embudo-barra,
+    .panorama-kpis,
+    .chart-card {
+        transition: none;
+    }
+}
+
+/* ==========================================================================
+   38. PREGUNTAS PARA DECIDIR (Pages/Reportes/BiPreguntas.vue)
+   Índice fijo a la izquierda en escritorio; en el celular el índice se
+   esconde y queda el atajo a las decisiones. Cada pregunta es un ChartCard.
+   ========================================================================== */
+.preguntas-layout {
+    @apply grid items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)];
+}
+
+.preguntas-indice {
+    top: calc(var(--topbar-height) + 1rem);
+    max-height: calc(100vh - var(--topbar-height) - 2rem);
+    @apply hidden overflow-y-auto lg:sticky lg:block;
+}
+
+.preguntas-indice-titulo {
+    color: var(--text-heading);
+    @apply mb-3 text-sm font-semibold;
+}
+
+.preguntas-indice-grupo + .preguntas-indice-grupo {
+    @apply mt-4;
+}
+
+.preguntas-indice-rotulo {
+    color: var(--text-muted);
+    @apply mb-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide;
+}
+
+.preguntas-indice ol {
+    @apply m-0 flex list-none flex-col gap-0.5 p-0;
+}
+
+.preguntas-indice a {
+    color: var(--text-body);
+    @apply flex gap-2 rounded-md px-2 py-1.5 text-[0.8125rem] leading-snug no-underline transition-colors;
+}
+
+.preguntas-indice a:hover,
+.preguntas-indice a:focus-visible {
+    color: var(--c-primary);
+    background-color: var(--c-primary-soft);
+}
+
+.preguntas-indice-numero {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply w-4 shrink-0 text-right font-semibold;
+}
+
+.preguntas-contenido {
+    @apply flex min-w-0 flex-col gap-6;
+}
+
+/* Atajo a la última pregunta: la que junta qué hacer. */
+.preguntas-atajo {
+    color: var(--text-body);
+    background-color: var(--c-primary-soft);
+    border-color: color-mix(in srgb, var(--c-primary) 22%, transparent);
+    @apply flex items-start gap-3 rounded-xl border px-4 py-3 text-[0.8125rem] leading-snug no-underline transition-colors;
+}
+
+.preguntas-atajo strong {
+    color: var(--text-heading);
+    @apply block font-semibold;
+}
+
+.preguntas-atajo > i:first-child {
+    color: var(--c-primary);
+    @apply mt-0.5 text-base;
+}
+
+.preguntas-atajo-flecha {
+    color: var(--c-primary);
+    @apply ml-auto mt-1 text-xs;
+}
+
+.preguntas-atajo:hover {
+    border-color: var(--c-primary);
+}
+
+.preguntas-grupo {
+    @apply flex flex-col gap-6;
+}
+
+.preguntas-grupo-titulo {
+    color: var(--text-muted);
+    @apply -mb-2 mt-2 text-xs font-semibold uppercase tracking-wide;
+}
+
+/* El ancla deja la pregunta debajo de la barra superior, no tapada. */
+.pregunta {
+    scroll-margin-top: calc(var(--topbar-height) + 1rem);
+}
+
+.pregunta-tabla td {
+    @apply align-top;
+}
+
+.pregunta-vacia {
+    color: var(--text-muted);
+    @apply m-0 text-sm;
+}
+
+.pregunta-acciones {
+    background-color: var(--table-head-bg);
+    @apply mt-4 rounded-lg px-4 py-3;
+}
+
+.pregunta-acciones-titulo {
+    color: var(--text-heading);
+    @apply mb-1.5 text-[0.8125rem] font-semibold;
+}
+
+.pregunta-acciones ul {
+    @apply m-0 flex list-none flex-col gap-1.5 p-0;
+}
+
+.pregunta-acciones li {
+    color: var(--text-body);
+    @apply flex max-w-[78ch] gap-2 text-[0.8125rem] leading-snug;
+}
+
+.pregunta-acciones li i {
+    color: var(--c-primary);
+    @apply mt-[0.3em] shrink-0 text-[0.625rem];
+}
+
+.pregunta-nota {
+    color: var(--text-muted);
+    @apply m-0 mt-3 flex max-w-[90ch] gap-2 text-[0.6875rem] leading-snug;
+}
+
+.pregunta-nota + .pregunta-nota {
+    @apply mt-1.5;
+}
+
+.pregunta-nota i {
+    @apply mt-[0.25em] shrink-0;
+}
+
+.pregunta-nota.is-aviso i {
+    color: var(--c-warning);
+}
+
+/* --- Decisiones: lista ordenada por el dinero que mueve cada acción --- */
+.pregunta.is-decisiones {
+    border-color: color-mix(in srgb, var(--c-primary) 30%, var(--card-border));
+}
+
+.decisiones-lista {
+    @apply m-0 flex list-none flex-col p-0;
+}
+
+.decision {
+    border-color: var(--card-border);
+    @apply flex items-start gap-3 border-b py-3 first:pt-0 last:border-b-0 last:pb-0;
+}
+
+.decision-orden {
+    color: var(--c-primary);
+    background-color: var(--c-primary-soft);
+    font-variant-numeric: tabular-nums;
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold;
+}
+
+.decision-cuerpo {
+    @apply min-w-0 flex-1;
+}
+
+.decision-texto {
+    color: var(--text-heading);
+    @apply m-0 max-w-[75ch] text-sm leading-snug;
+}
+
+.decision-origen {
+    color: var(--text-muted);
+    @apply mt-1 inline-flex items-center gap-1.5 text-[0.6875rem] no-underline;
+}
+
+.decision-origen:hover {
+    color: var(--c-primary);
+}
+
+.decision-monto {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply flex shrink-0 flex-col items-end text-sm font-semibold;
+}
+
+.decision-monto small {
+    color: var(--text-muted);
+    @apply text-[0.625rem] font-medium uppercase tracking-wide;
+}
+
+@media (max-width: 639px) {
+    .decision {
+        @apply flex-wrap;
+    }
+
+    .decision-monto {
+        @apply w-full flex-row items-baseline gap-2 pl-10;
+    }
+}

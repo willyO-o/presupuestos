@@ -18,6 +18,26 @@ export function moneyCorto(value) {
     return `Bs ${Number(value ?? 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })}`;
 }
 
+/**
+ * Importe corto para ejes y etiquetas sobre las barras: "Bs 574 mil",
+ * "Bs 1,2 M". Con el número completo, las etiquetas se pisan; el detalle
+ * exacto va en el tooltip (`money`).
+ */
+export function moneyCompacto(value) {
+    const v = Number(value ?? 0);
+    const abs = Math.abs(v);
+
+    if (abs >= 1_000_000) {
+        return `Bs ${(v / 1_000_000).toLocaleString(LOCALE, { maximumFractionDigits: 1 })} M`;
+    }
+
+    if (abs >= 1_000) {
+        return `Bs ${(v / 1_000).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} mil`;
+    }
+
+    return `Bs ${v.toLocaleString(LOCALE, { maximumFractionDigits: 0 })}`;
+}
+
 /** Cantidad con hasta `decimales` decimales. */
 export function numero(value, decimales = 1) {
     return Number(value ?? 0).toLocaleString(LOCALE, { maximumFractionDigits: decimales });

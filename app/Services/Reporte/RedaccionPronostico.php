@@ -296,10 +296,12 @@ final class RedaccionPronostico
 
         $rentabilidad = collect($secciones)->firstWhere('clave', 'rentabilidad');
         if ($rentabilidad && $rentabilidad['tendencia']['ticket'] !== null && $rentabilidad['tendencia']['costo'] !== null) {
-            ['ticket' => $ticket, 'costo' => $costo] = $rentabilidad['tendencia'];
-            $conclusiones[] = $costo > $ticket
-                ? sprintf('El costo promedio por presupuesto crece más rápido que el ticket (%s contra %s por mes): el margen se está achicando aunque se venda más.', self::variacion($costo), self::variacion($ticket))
-                : sprintf('El ticket promedio crece al menos al ritmo del costo (%s contra %s por mes): el margen se sostiene.', self::variacion($ticket), self::variacion($costo));
+            ['ticket' => $precio, 'costo' => $costo] = $rentabilidad['tendencia'];
+            // "Va por detrás" y no "crece más lento": las dos pendientes
+            // pueden ser negativas (precio −0,5 % y costo −0,3 % por mes).
+            $conclusiones[] = $costo > $precio
+                ? sprintf('El precio promedio por presupuesto va por detrás del costo (%s contra %s por mes): el margen se está achicando.', self::variacion($precio), self::variacion($costo))
+                : sprintf('El precio promedio por presupuesto acompaña al costo o le gana (%s contra %s por mes): el margen se sostiene.', self::variacion($precio), self::variacion($costo));
         }
 
         if ($porClave->has('indice_costo') && ($ritmo = $porClave['indice_costo']['variacion_mensual']) !== null) {

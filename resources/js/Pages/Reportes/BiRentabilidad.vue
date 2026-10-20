@@ -50,30 +50,32 @@ const cantidades = computed(() => {
     };
 });
 
-/* ----- Tendencia ticket vs costo ----------------------------------------- */
+/* ----- Tendencia precio vs costo ----------------------------------------- */
 
 const tendencia = computed(() => ({
     labels: props.datos.labels,
     series: [
-        { nombre: 'Ticket promedio', datos: props.datos.tendencia.ticket },
+        // La clave del servidor sigue siendo `ticket`; en pantalla es el precio.
+        { nombre: 'Precio promedio', datos: props.datos.tendencia.ticket },
         { nombre: 'Costo promedio', datos: props.datos.tendencia.costo },
     ],
 }));
 
 /**
- * Lectura en una frase de las dos pendientes: si el costo crece más rápido
- * que el ticket, el margen se achica aunque se venda más.
+ * Lectura en una frase de las dos pendientes: si el precio va por detrás del
+ * costo, el margen se achica aunque se venda más.
  */
 const lecturaTendencia = computed(() => {
-    const { variacion_ticket: ticket, variacion_costo: costo } = props.datos.tendencia;
+    const { variacion_ticket: precio, variacion_costo: costo } = props.datos.tendencia;
 
-    if (ticket === null || costo === null) {
+    if (precio === null || costo === null) {
         return 'Se necesitan al menos 3 meses con presupuestos (y con hoja de costos) para comparar tendencias.';
     }
 
-    return costo > ticket
-        ? 'El costo promedio crece más rápido que el ticket: el margen se está achicando. Revisar precios o márgenes por tipo de proyecto.'
-        : 'El ticket promedio crece al menos al ritmo del costo: el margen se sostiene.';
+    // "Va por detrás", no "crece más lento": las dos pendientes pueden ser negativas.
+    return costo > precio
+        ? 'El precio promedio va por detrás del costo: el margen se está achicando. Revisar precios o márgenes por tipo de proyecto.'
+        : 'El precio promedio acompaña al costo o le gana: el margen se sostiene.';
 });
 
 /* ----- Rentabilidad ------------------------------------------------------- */
@@ -195,12 +197,12 @@ function pct(value) {
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Tendencia: ticket vs. costo <AyudaInfo clave="bi-rentabilidad.tendencia" /></span>
-                            <p class="card-subtitle">Monto promedio por presupuesto contra su costo ajustado promedio</p>
+                            <span class="card-title">Tendencia: precio vs. costo <AyudaInfo clave="bi-rentabilidad.tendencia" /></span>
+                            <p class="card-subtitle">Precio promedio por presupuesto (sin IVA) contra su costo ajustado promedio</p>
                         </div>
                     </div>
                     <div class="card-body">
-                        <BaseChart titulo="Tendencia de ticket y costo promedio" :labels="tendencia.labels"
+                        <BaseChart titulo="Tendencia de precio y costo promedio" :labels="tendencia.labels"
                             :series="tendencia.series" :formato="moneyCorto" :alto="220"
                             vacio="No hay presupuestos emitidos en el periodo." />
                         <p class="bi-aviso mt-3 mb-0">

@@ -148,3 +148,30 @@ test('cada usuario ve los resúmenes de su alcance y recibe el aviso que le toca
     Notification::assertSentToTimes($gerencia, ResumenSemanalDisponible::class, 1);
     Notification::assertSentToTimes($local, ResumenSemanalDisponible::class, 1);
 });
+
+test('los resumenes ya generados dejan de decir ticket', function () {
+    // Como los guardaba la plantilla vieja; la cifra y las claves no cambian.
+    $resumen = BiResumen::query()->create([
+        'semana_inicio' => '2026-10-12',
+        'semana_fin' => '2026-10-18',
+        'hechos' => ['kpis' => [['clave' => 'ticket_promedio', 'nombre' => 'Ticket promedio por presupuesto', 'actual' => 1234.5]]],
+        'contenido' => ['recomendaciones' => [
+            ['accion' => 'Priorizar oportunidades de mayor ticket (letreros, exhibidores, campañas completas).', 'motivo' => 'El monto presupuestado cayó.'],
+            ['accion' => 'Ofrecer instalación y complementos en los presupuestos chicos.', 'motivo' => 'El ticket promedio bajó.'],
+        ]],
+        'origen' => 'PLANTILLA',
+    ]);
+
+    $migracion = require database_path('migrations/2026_10_20_200022_rename_ticket_labels_in_bi_resumen_table.php');
+    $migracion->up();
+    $resumen->refresh();
+
+    expect($resumen->hechos['kpis'][0])->toBe(['clave' => 'ticket_promedio', 'nombre' => 'Monto promedio por presupuesto', 'actual' => 1234.5])
+        ->and($resumen->contenido['recomendaciones'][0]['accion'])->toBe('Priorizar oportunidades de mayor monto (letreros, exhibidores, campañas completas).')
+        ->and($resumen->contenido['recomendaciones'][1]['motivo'])->toBe('El monto promedio por presupuesto bajó.');
+
+    // Y se puede volver atrás.
+    $migracion->down();
+
+    expect($resumen->refresh()->hechos['kpis'][0]['nombre'])->toBe('Ticket promedio por presupuesto');
+});

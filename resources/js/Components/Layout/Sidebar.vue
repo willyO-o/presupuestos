@@ -40,6 +40,9 @@ function closeOnMobile() {
 const page = usePage();
 const currentPath = computed(() => page.url.split('?')[0]);
 
+/* `path` es a donde lleva el enlace; un ítem puede declarar `match` (otro
+   prefijo) cuando abre en una subpágina pero representa a toda la sección:
+   el BI abre en /reportes/bi/panorama y se marca en cualquier pestaña. */
 function isActive(path) {
     if (!path) {
         return false;
@@ -124,7 +127,7 @@ function toggleKey(title) {
 
 function containsCurrentRoute(items) {
     return items.some((item) =>
-        item.type === 'sub' ? containsCurrentRoute(item.children ?? []) : isActive(item.path),
+        item.type === 'sub' ? containsCurrentRoute(item.children ?? []) : isActive(item.match ?? item.path),
     );
 }
 
@@ -144,7 +147,7 @@ for (const section of sections.value) {
                 openKeys.add(item.title);
                 return true;
             }
-        } else if (item.type === 'link' && isActive(item.path)) {
+        } else if (item.type === 'link' && isActive(item.match ?? item.path)) {
             return true;
         }
     }
@@ -210,8 +213,8 @@ for (const section of sections.value) {
                                 v-if="item.type === 'link'"
                                 :href="item.path"
                                 class="nav-sidebar-link"
-                                :class="{ active: isActive(item.path) }"
-                                :aria-current="isActive(item.path) ? 'page' : undefined"
+                                :class="{ active: isActive(item.match ?? item.path) }"
+                                :aria-current="isActive(item.match ?? item.path) ? 'page' : undefined"
                                 @click="closeOnMobile"
                             >
                                 <span v-if="section.icon" class="nav-dot" aria-hidden="true"></span>

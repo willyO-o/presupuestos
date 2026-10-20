@@ -157,6 +157,221 @@ export const AYUDAS = {
     },
 
     /* ------------------------------------------------------------------
+     * Inteligencia de negocios — Panorama
+     * ---------------------------------------------------------------- */
+    'bi-panorama.kpi-ventas': {
+        titulo: 'Ventas del periodo',
+        que: 'Todo lo que se vendió en el periodo: las cotizaciones aprobadas, sin IVA ni instalación y ya con el descuento que se le hizo al cliente.',
+        leer: [
+            'La pastilla de color dice cuánto subió o bajó frente al periodo anterior; al lado, cuánto fue ese periodo.',
+            'Verde es que vamos mejor; rojo, que vamos peor.',
+        ],
+        ojo: 'El periodo anterior es el mismo tramo de fechas corrido hacia atrás: si miras 12 meses, se compara con los 12 meses de antes.',
+    },
+    'bi-panorama.kpi-cotizaciones': {
+        titulo: 'Cotizaciones emitidas',
+        que: 'Cuántos presupuestos se hicieron en el periodo, sin importar cómo terminaron.',
+        leer: [
+            'Abajo ves cuántos de esos ya fueron aprobados.',
+            'Más cotizaciones es buena señal: quiere decir que nos están buscando.',
+        ],
+    },
+    'bi-panorama.kpi-conversion': {
+        titulo: 'Tasa de conversión',
+        que: 'De los presupuestos que ya tienen respuesta (aprobados, rechazados o vencidos), qué parte aprobó el cliente.',
+        leer: [
+            'Los pendientes no cuentan: todavía se pueden aprobar.',
+            'La variación va en "pp" (puntos): de 50 % a 52 % son +2 pp.',
+        ],
+        ojo: 'Si baja, puede ser el precio, el tiempo de respuesta o que falta hacer seguimiento a los caseros.',
+    },
+    'bi-panorama.kpi-ticket': {
+        titulo: 'Venta promedio',
+        que: 'Cuánto deja, en promedio, cada venta: las ventas del periodo divididas entre las cotizaciones aprobadas.',
+        leer: [
+            'Si sube, cada cliente está comprando más por vez.',
+            'Abajo ves en cuántas ventas se calculó.',
+        ],
+    },
+    'bi-panorama.kpi-margen': {
+        titulo: 'Margen bruto',
+        que: 'De cada 100 Bs que vendemos, cuántos quedan después de pagar el costo del trabajo (material, mano de obra y complejidad), antes de impuestos.',
+        leer: [
+            'Sale del costo que calculó el motor de margen al cotizar: es el margen presupuestado.',
+            'La variación va en puntos (pp).',
+        ],
+        ojo: 'Solo cuentan las cotizaciones con hoja de costos. La ganancia después de impuestos (IT e IUE) está en la pestaña "Presupuestos y rentabilidad".',
+    },
+    'bi-panorama.ventas': {
+        titulo: 'Ventas por mes',
+        que: 'Cuánto se vendió cada mes del periodo, comparado con el mismo mes del periodo anterior.',
+        leer: [
+            'Las barras son este periodo; la línea gris punteada, el periodo anterior.',
+            'La barra en color fuerte es el mejor mes; la raya punteada horizontal, el promedio mensual.',
+            'Arriba, en una frase, lo más importante que se ve.',
+        ],
+        ojo: 'Haz clic en una barra y todo el Panorama pasa a mostrar solo ese mes.',
+    },
+    'bi-panorama.embudo': {
+        titulo: 'Embudo de ventas',
+        que: 'El camino de las cotizaciones del periodo: cuántas se hicieron, cuántas aprobó el cliente, cuántas pasaron a pedido y cuántas ya se cobraron completas.',
+        leer: [
+            'Cada barra es una etapa; mientras más angosta, menos cotizaciones llegaron hasta ahí.',
+            'Entre etapa y etapa dice qué parte pasó a la siguiente.',
+            'En rojo, la etapa donde más se pierde: ahí conviene meterle ganas.',
+        ],
+        ojo: 'Al lado de cada etapa está el dinero que suman esas cotizaciones.',
+    },
+    'bi-panorama.ingresos-margen': {
+        titulo: 'Ingresos y margen por mes',
+        que: 'Las ventas de cada mes (barras) junto con el margen bruto de ese mes (línea).',
+        leer: [
+            'La escala de la izquierda es dinero; la de la derecha, el margen en %.',
+            'La raya punteada es el margen de todo el periodo: los meses por debajo se vendió más barato o costó más hacer los trabajos.',
+        ],
+        ojo: 'Vender harto con poco margen puede dejar menos que vender menos con buen margen: mira las dos cosas juntas.',
+    },
+    'bi-panorama.tipo': {
+        titulo: 'Ingresos y margen por tipo de producto',
+        que: 'Cuánto vende y cuánto margen deja cada tipo de producto: muebles y exhibidores, letreros, impresión, etc.',
+        leer: [
+            'Las barras son las ventas; la línea, el margen bruto de cada tipo.',
+            'Haz clic en una barra para bajar un nivel: de tipo a categorías, y de categoría a productos. Las migas de arriba te devuelven.',
+            '"Trabajos a medida" son las líneas cotizadas sin un producto del catálogo.',
+        ],
+        ojo: 'El tipo que más vende no siempre es el que más deja: el hallazgo de arriba te lo dice.',
+    },
+    'bi-panorama.clientes': {
+        titulo: 'Top 5 clientes por ingresos',
+        que: 'Los 5 clientes que más compraron en el periodo, con su parte de las ventas y el margen que dejaron.',
+        leer: [
+            'La barra compara a cada cliente contra el primero.',
+            'Haz clic en un cliente para ver todo el Panorama solo de él.',
+        ],
+        ojo: 'Un cliente grande con margen bajo es para conversar: quizás se le está cotizando muy barato.',
+    },
+    'bi-panorama.productos': {
+        titulo: 'Top 5 productos por ingresos',
+        que: 'Los 5 productos del catálogo que más ingresos generaron en el periodo, con las unidades vendidas y su margen.',
+        leer: [
+            'La barra compara cada producto contra el primero.',
+            'La foto es la que se cargó en Productos; si no hay, va un ícono.',
+        ],
+    },
+    'bi-panorama.vendedor': {
+        titulo: 'Ventas por vendedor',
+        que: 'Cuánto vendió cada vendedor en el periodo.',
+        leer: [
+            'La barra en color fuerte es el que más vendió.',
+            '"Sin vendedor" son las cotizaciones que el cliente pidió solito por el portal.',
+        ],
+        ojo: 'Sirve para reconocer al que está vendiendo harto y ver quién necesita una mano.',
+    },
+    'bi-panorama.ciudad': {
+        titulo: 'Ventas por ciudad',
+        que: 'Cuánto se vendió según la ciudad del cliente.',
+        leer: [
+            'La barra en color fuerte es la ciudad que más compra.',
+            'La ciudad sale de la ficha del cliente; si no está cargada, va en "Sin ciudad registrada".',
+        ],
+    },
+
+    /* ------------------------------------------------------------------
+     * Inteligencia de negocios — Preguntas para decidir
+     * ---------------------------------------------------------------- */
+    'bi-preguntas.costo-producto': {
+        titulo: 'Cuánto cuesta producir cada producto',
+        que: 'Lo que de verdad nos costó hacer 1 m², 1 metro o 1 unidad de cada producto: el material que el taller registró como usado, más la mano de obra y los otros insumos de la hoja de costos.',
+        leer: [
+            '"Mat. real" es lo que se gastó; "Mat. presup." lo que decía la hoja. Si el real es mayor, el taller está gastando más de lo pensado.',
+            'El total es el piso: cobrar menos que eso es trabajar a pérdida.',
+        ],
+        ojo: 'La mano de obra es la presupuestada, porque no se anotan las horas reales trabajadas.',
+    },
+    'bi-preguntas.costos-suben': {
+        titulo: 'Qué costos están aumentando',
+        que: 'Los materiales que subieron de precio en el periodo y cuánto dinero de más nos costó esa subida, según lo que realmente se usó.',
+        leer: [
+            '"Nos costó de más" = cuánto subió el precio × la cantidad que se usó.',
+            'También dice si la hora de mano de obra que se pone en las hojas de costos está subiendo.',
+        ],
+    },
+    'bi-preguntas.gasto-presupuesto': {
+        titulo: 'Gasto contra presupuesto',
+        que: 'En los mismos trabajos, el material que se gastó de verdad contra el que se había presupuestado en la cotización.',
+        leer: [
+            'Una diferencia positiva es material gastado de más (cortes, sobrantes, errores o una hoja de costos que se queda corta).',
+            '"Se pasaron" cuenta los trabajos que gastaron más del 5 % sobre lo presupuestado.',
+        ],
+        ojo: 'Solo entran los trabajos entregados que tienen el consumo anotado: si no, parecería que gastamos menos.',
+    },
+    'bi-preguntas.materiales-pesan': {
+        titulo: 'Los materiales que más pesan',
+        que: 'Los pocos materiales que se llevan la mayor parte de lo que gastamos en material.',
+        leer: [
+            '"Acumulado" va sumando de arriba hacia abajo: cuando pasa el 80 %, ya están los que importan.',
+            'Ahí es donde rinde negociar precio o buscar otro proveedor: una rebaja chica en estos ahorra más que una grande en los demás.',
+        ],
+    },
+    'bi-preguntas.productos-rentables': {
+        titulo: 'Qué producto deja más',
+        que: 'Los productos ordenados por la ganancia que dejan en bolivianos, con su margen: de cada 100 Bs que se cobran, cuántos quedan después de pagar el costo del trabajo (antes de impuestos).',
+        leer: [
+            'Más ganancia total no es lo mismo que mejor margen: uno con margen alto que se vende poco aporta menos que uno con margen normal que se vende harto.',
+            'Si un producto se vende mucho y deja poco, ahí conviene revisar el precio.',
+        ],
+    },
+    'bi-preguntas.clientes-rentables': {
+        titulo: 'Qué clientes dejan más',
+        que: 'Los clientes ordenados por la ganancia que nos dejan, no por lo que compran.',
+        leer: [
+            'Un cliente grande con mucho descuento puede dejar menos que uno mediano que paga el precio normal.',
+            'Si el que más compra deja poco margen, conviene revisar sus condiciones.',
+        ],
+    },
+    'bi-preguntas.descuentos': {
+        titulo: 'Lo que cuestan los descuentos',
+        que: 'Cuánto dinero se descontó en las ventas del periodo, quién da más descuento y cuánto margen se pierde por eso. También cuánto quedó por debajo del precio sugerido en las líneas con precio puesto a mano.',
+        leer: [
+            'Compara el margen de las ventas con descuento contra las que no tienen: la diferencia es lo que cuesta descontar.',
+            'El precio sugerido es el que calcula el sistema con el margen del tipo de proyecto.',
+        ],
+    },
+    'bi-preguntas.margen-bajo': {
+        titulo: 'Ventas con margen bajo',
+        que: 'Las ventas que se cerraron en amarillo o en rojo en el semáforo de margen, por vendedor.',
+        leer: [
+            'Rojo: después de impuestos queda menos del 15 % del costo. Amarillo: entre 15 % y 30 %.',
+            'Muchas en rojo de un mismo vendedor suele ser exceso de descuentos o precios puestos a mano.',
+        ],
+    },
+    'bi-preguntas.materia-prima': {
+        titulo: 'Si sube la materia prima',
+        que: 'Qué le pasaría al margen y a la ganancia si el material sube 5 %, 10 % o 20 %, y cuánto habría que subir los precios para no perder.',
+        leer: [
+            '"Subir precios" es lo justo para quedar igual: el material es solo una parte del costo, así que el precio sube menos que el material.',
+            '"Probable" usa la tendencia actual del índice de costo de materiales.',
+        ],
+        ojo: 'Es una simulación: supone que se vende lo mismo que en el periodo.',
+    },
+    'bi-preguntas.cobranza': {
+        titulo: 'Cuánto ya cobramos',
+        que: 'De lo vendido en pedidos del periodo, cuánto ya entró a caja y cuánto falta cobrar, según hace cuánto se hizo el pedido.',
+        leer: [
+            'Lo que tiene más de 90 días es lo más difícil de cobrar: va primero.',
+            'Ganancia que no se cobra no es dinero en caja.',
+        ],
+    },
+    'bi-preguntas.decisiones': {
+        titulo: 'Qué decisiones tomar',
+        que: 'Las acciones que salen de las otras preguntas, ordenadas por el dinero que mueven en un periodo como este.',
+        leer: [
+            'Cada acción dice de qué pregunta sale: con un clic vas a ver el detalle.',
+            'Los montos no se suman entre sí, porque algunas acciones se pisan (por ejemplo, descuentos y margen bajo).',
+        ],
+    },
+
+    /* ------------------------------------------------------------------
      * Inteligencia de negocios — Demanda y ventas
      * ---------------------------------------------------------------- */
     'bi.proyeccion-demanda': {
@@ -403,8 +618,8 @@ export const AYUDAS = {
         ojo: 'Si la barra de aprobados queda chiquita al lado de la de emitidos, conviene llamar a esos clientes antes de que se enfríen.',
     },
     'bi-rentabilidad.tendencia': {
-        titulo: 'Tendencia: ticket vs. costo',
-        que: 'Lo que en promedio vale cada presupuesto (el "ticket") contra lo que en promedio cuesta hacerlo.',
+        titulo: 'Tendencia: precio vs. costo',
+        que: 'Lo que en promedio cobramos por cada presupuesto (sin IVA ni instalación) contra lo que en promedio cuesta hacerlo. Las dos líneas salen de los mismos presupuestos: los que tienen hoja de costos.',
         leer: [
             'El espacio entre las dos líneas es, más o menos, lo que se gana en cada trabajo.',
             'Si las líneas se van juntando, cada trabajo nos deja menos.',
@@ -566,7 +781,7 @@ export const AYUDAS = {
     },
     'bi-resumen.indicadores': {
         titulo: 'Indicadores de la semana',
-        que: 'Los números de los que sale todo el resumen, de la semana pasada: presupuestos, ventas, ticket promedio, rentabilidad, cobranza, entregas y costo de material.',
+        que: 'Los números de los que sale todo el resumen, de la semana pasada: presupuestos, ventas, monto promedio por presupuesto, rentabilidad, cobranza, entregas y costo de material.',
         leer: [
             '"vs. 4 sem." compara con el promedio de las 4 semanas anteriores: es la comparación que más vale, porque una sola semana puede salir rara por un pedido grande.',
             '"vs. ant." compara con la semana anterior y "vs. año", con la misma semana del año pasado.',

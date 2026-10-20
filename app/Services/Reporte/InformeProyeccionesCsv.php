@@ -5,10 +5,11 @@ namespace App\Services\Reporte;
 /**
  * El informe de proyecciones como CSV, para reprocesarlo en una planilla.
  *
- * Tres bloques separados por una fila vacía: (1) la serie de cada indicador,
+ * Bloques separados por una fila vacía: (1) la serie de cada indicador,
  * mes a mes, real y proyectada, en formato largo (una fila por mes e
  * indicador, se filtra o se arma una tabla dinámica sin rehacer nada); (2)
- * la ficha del método de cada uno; (3) las alertas.
+ * la ficha del método de cada uno; (3) las alertas; (4) las preguntas para
+ * decidir, cada una con su respuesta, su tabla y qué hacer.
  *
  * Formato pensado para Excel en español: separador `;`, coma decimal, sin
  * separador de miles y BOM UTF-8 (sin BOM, Excel abre los acentos como
@@ -74,6 +75,38 @@ final class InformeProyeccionesCsv
 
             foreach ($alertas['alertas'] as $alerta) {
                 $fila([$alerta['severidad'], $alerta['titulo'], $alerta['detalle']]);
+            }
+        }
+
+        $preguntas = collect($informe['secciones'])->firstWhere('clave', 'preguntas');
+        if ($preguntas) {
+            foreach ($preguntas['preguntas'] as $indice => $pregunta) {
+                $numero = $indice + 1;
+                $columnas = $pregunta['tabla']['columnas'];
+
+                $fila([]);
+                $fila(["Pregunta {$numero}", $pregunta['pregunta']]);
+                $fila(['Respuesta', $pregunta['respuesta']]);
+
+                if ($pregunta['tabla']['filas'] !== []) {
+                    $fila(array_column($columnas, 'titulo'));
+
+                    foreach ($pregunta['tabla']['filas'] as $celdas) {
+                        $fila(array_map(
+                            fn (mixed $valor, int $i): string => $columnas[$i]['formato'] === 'texto' ? (string) $valor : self::numero($valor),
+                            $celdas,
+                            array_keys($celdas),
+                        ));
+                    }
+                }
+
+                foreach ($pregunta['acciones'] as $accion) {
+                    $fila(['Qué hacer', $accion['texto'], self::numero($accion['impacto'])]);
+                }
+
+                if ($pregunta['base']) {
+                    $fila(['Con qué datos', $pregunta['base']]);
+                }
             }
         }
 

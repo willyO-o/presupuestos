@@ -40,7 +40,7 @@ test('a user without permission cannot see the recipe', function () {
 });
 
 test('a user with permission sees the recipe lines', function () {
-    $producto = Producto::factory()->create();
+    $producto = Producto::factory()->create(['nombre' => 'Letrero 3D']);
     ProductoMaterial::factory()->for($producto)->count(2)->create();
     $user = userWithProductoMaterialPermissions('productos.editar');
 
@@ -50,6 +50,9 @@ test('a user with permission sees the recipe lines', function () {
     $response->assertInertia(fn ($page) => $page
         ->component('Productos/Receta')
         ->has('lineas', 2)
+        // En pantalla se llama "Materiales del producto", no "receta".
+        ->where('pageTitle', 'Materiales — Letrero 3D')
+        ->where('breadcrumbs', ['Catálogo de Productos', 'Productos', 'Materiales'])
     );
 });
 
@@ -63,7 +66,8 @@ test('a user with permission can add a static line', function () {
         'cantidad_por_unidad' => 1.5,
     ]);
 
-    $response->assertRedirect(route('productos.materiales.index', $producto));
+    $response->assertRedirect(route('productos.materiales.index', $producto))
+        ->assertSessionHas('success', 'Material agregado al producto correctamente.');
     $this->assertDatabaseHas('producto_material', [
         'producto_id' => $producto->id,
         'material_id' => $material->id,
@@ -144,7 +148,8 @@ test('a user with permission can update a line', function () {
         ['material_id' => $material->id, 'cantidad_por_unidad' => 2.5],
     );
 
-    $response->assertRedirect(route('productos.materiales.index', $producto));
+    $response->assertRedirect(route('productos.materiales.index', $producto))
+        ->assertSessionHas('success', 'Material actualizado correctamente.');
     $this->assertDatabaseHas('producto_material', ['id' => $linea->id, 'cantidad_por_unidad' => 2.5]);
 });
 
@@ -168,7 +173,8 @@ test('a user with permission can delete a line', function () {
 
     $response = $this->actingAs($user)->delete(route('productos.materiales.destroy', [$producto, $linea]));
 
-    $response->assertRedirect(route('productos.materiales.index', $producto));
+    $response->assertRedirect(route('productos.materiales.index', $producto))
+        ->assertSessionHas('success', 'Material quitado del producto correctamente.');
     $this->assertDatabaseMissing('producto_material', ['id' => $linea->id]);
 });
 

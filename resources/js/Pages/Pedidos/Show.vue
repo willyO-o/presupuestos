@@ -334,13 +334,13 @@ async function cancelarPedido() {
         </div>
     </div>
 
-    <!-- Costo estimado (BOM) vs real -->
+    <!-- Costo estimado (materiales del producto a las medidas del pedido) vs real -->
     <div class="card mb-4">
         <div class="card-header"><span class="card-title">Costo de materiales: presupuestado vs. real</span></div>
         <div class="card-body">
             <div class="row">
                 <div class="col-lg-6">
-                    <p class="fs-sm text-muted mb-1">Presupuestado (BOM de la cotización)</p>
+                    <p class="fs-sm text-muted mb-1">Presupuestado (según los materiales del producto)</p>
                     <p class="fs-lg fw-bold mb-0">{{ money(costos.estimado_total) }}</p>
                 </div>
                 <div class="col-lg-6">

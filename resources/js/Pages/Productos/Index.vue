@@ -247,7 +247,7 @@ async function confirmDelete(producto) {
                 </template>
 
                 <!-- Lista blanca del cotizador publico (/cotizador). Solo
-                     cuenta si el producto ademas tiene receta cargada: sin BOM
+                     cuenta si el producto ademas tiene sus materiales cargados: sin ellos
                      no hay costo que calcular y el sitio no lo ofrece. -->
                 <template #cell-cotizable_web="{ item }">
                     <span class="badge" :class="item.cotizable_web === 'SI' ? 'badge-soft-primary' : 'badge-soft-secondary'">
@@ -267,8 +267,8 @@ async function confirmDelete(producto) {
                 <template #actions="{ item }">
                     <div class="d-flex gap-1">
                         <Link v-can="'productos.editar'" :href="route('productos.materiales.index', item.id)"
-                            class="btn btn-sm btn-icon btn-soft-info" aria-label="Receta / BOM">
-                            <i class="fa-solid fa-flask"></i>
+                            class="btn btn-sm btn-icon btn-soft-info" aria-label="Materiales del producto">
+                            <i class="fa-solid fa-boxes-stacked"></i>
                         </Link>
                         <button v-can="'productos.editar'" type="button" class="btn btn-sm btn-icon btn-soft-primary"
                             aria-label="Editar producto" @click="openEdit(item)">

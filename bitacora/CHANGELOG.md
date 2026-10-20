@@ -13,6 +13,157 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-20 — BI: "Preguntas para decidir" (pestaña, PDF y CSV)
+
+**Qué cambió:**
+- Pestaña nueva **Preguntas** en Inteligencia de negocios (`/reportes/bi/preguntas`) y sección nueva
+  **"Preguntas para decidir"**, la primera del informe PDF/CSV (se elige en "Generar informe"). Once
+  preguntas, cada una con su respuesta en una frase (con la cifra), una tabla corta, qué hacer y con
+  qué datos se respondió:
+  - **Costos:** 1) cuánto cuesta realmente producir cada producto (material real + mano de obra y
+    otros presupuestados, por m²/metro/unidad); 2) qué costos suben (materiales, lo que nos costó la
+    subida, índice y tarifa de mano de obra); 3) si gastamos más de lo presupuestado (en los mismos
+    trabajos); 4) en qué materiales se va el dinero (Pareto 80 %).
+  - **Ganancias:** 5) productos por ganancia en Bs y por margen; 6) clientes por ganancia (no por
+    compras); 7) lo que cuestan los descuentos y los precios a mano; 8) ventas en amarillo/rojo.
+  - **Escenarios:** 9) si la materia prima sube 5/10/20 % (y el probable por la tendencia): margen,
+    ganancia perdida y cuánto subir precios; 10) cuánto de lo vendido ya se cobró, por antigüedad.
+  - **Decisiones:** 11) las acciones de las demás, ordenadas por el dinero en juego, con enlace a la
+    pregunta de la que salen.
+- En escritorio, índice fijo con las once preguntas; en el celular, un atajo a las decisiones.
+
+**Por qué:** pedido del usuario (las 6 preguntas del docente más 5 propuestas). Se descartaron por falta
+de datos: ganancia neta/punto de equilibrio (no hay gastos fijos), mano de obra real (no hay horas
+trabajadas), motivos de rechazo (no se guardan) y comparación de proveedores (ningún material se compra
+a más de uno).
+
+**Cómo:**
+- `PreguntasNegocioService`: agrega en SQL; reutiliza `CostosMaterialesService` (impacto, índice,
+  consumo). El ingreso neto por línea pasó a `ConsultaSql::INGRESO_NETO_LINEA`, compartido con el
+  Panorama. Parámetros en `config/bi.php` → `preguntas` (tolerancia 5 %, escenarios, mínimo de ventas,
+  Pareto, tramos de cobranza, ahorro negociable).
+- Decisiones de criterio: "real" y "presupuestado" se comparan solo en ítems **entregados** con
+  consumo y hoja de costos (un pedido a medias parecería ahorro); el escenario de materia prima no entra
+  a "Decisiones" (es hipótesis); las frases son plantillas, ninguna cifra sale de la IA.
+- PDF (`InformeProyeccionesPdf::preguntas()`), CSV (bloque 4), pantalla `Reportes/BiPreguntas.vue` con
+  `ChartCard`, 11 ayudas "i", CSS §38. `textoDelInforme()` se movió a `tests/Pest.php` (lo usan dos
+  tests). `AyudasTest` acepta `:ayuda` en `ChartCard`.
+- Tests: `PreguntasNegocioTest` (16, con dos ventas armadas para sacar las cuentas a mano). Verificado
+  con la base demo: pestaña (escritorio, celular, oscuro), anclas, PDF (8 páginas) y CSV.
+
+---
+
+## 2026-10-20 — Adiós "ticket": precio promedio y venta promedio (y la tendencia corregida)
+
+**Qué cambió:**
+- "Ticket" se reemplaza según lo que mide:
+  - **"Precio promedio"** (por presupuesto): gráfico "Tendencia: precio vs. costo" de Presupuestos y
+    rentabilidad (título, leyenda, subtítulo, lectura y ayuda "i") y conclusiones del informe de
+    proyecciones (PDF/CSV).
+  - **"Monto promedio por presupuesto"** en el Resumen semanal (va con "Monto presupuestado", que también
+    es con IVA), con sus recomendaciones ("mayor monto", "El monto promedio por presupuesto bajó.").
+  - **"Venta promedio"** para lo que deja cada venta aprobada: indicador del Panorama y el asistente IA
+    ("Venta promedio (sin IVA)").
+- **Corrección del gráfico de tendencia**: el precio era el total CON IVA e instalación de TODOS los
+  presupuestos y el costo solo el de los que tienen hoja de costos, sin IVA. Ahora las dos líneas salen
+  de los mismos presupuestos (con hoja de costos) y el precio es subtotal − descuento, el que mira el
+  motor de margen. En la base demo la brecha precio/costo bajó de 74 % a 51 %: la vieja exageraba lo
+  que se gana.
+- La frase de lectura decía "el costo crece más rápido que el precio" aun cuando los dos bajaban
+  (−0,3 % contra −0,5 %). Ahora: "el precio va por detrás del costo" / "acompaña al costo o le gana".
+
+**Por qué:** pedido del usuario ("ticket" no se entendía) y, al revisarlo, la tendencia comparaba dos
+bases distintas.
+
+**Cómo:**
+- `PresupuestosRentabilidadService::tendencia()`; textos en `BiRentabilidad.vue`, `Ayudas.js`,
+  `PanoramaService`, `RedaccionPronostico`, `ResumenSemanalService`, `ConsultaVentasService`. Las claves
+  internas (`ticket`, `ticket_promedio`, `variacion_ticket`) no cambian.
+- Migración de datos `rename_ticket_labels_in_bi_resumen_table`: los resúmenes ya generados guardan sus
+  textos; reemplaza solo las frases exactas de la plantilla (reversible). **Se corrió en
+  `presupuesto_demo` y `presupuesto`**; no quedó "ticket" en ningún resumen.
+- `TerminologiaPantallasTest` ahora también vigila "ticket" (en JS solo como palabra suelta, no las
+  claves; en PHP también `app/Services` y `app/Ai`). Se probó contra los textos viejos. Tests nuevos:
+  tendencia (InteligenciaNegociosAvanzadoTest), conclusión con pendientes negativas
+  (InformeProyeccionesTest) y la migración (ResumenSemanalTest). Verificado en la app y en el PDF.
+
+---
+
+## 2026-10-20 — "Receta" pasa a llamarse "Materiales del producto"
+
+**Qué cambió:**
+- En pantalla ya no se dice "receta" ni "BOM": la lista de materiales que lleva un producto es
+  **"Materiales del producto"**. Cambian el botón del listado de Productos (ícono de cajas en vez del
+  matraz), el título y las migas ("Materiales — {producto}"), la tarjeta, el estado vacío, los
+  modales ("Agregar material" / "Editar material"), la confirmación al quitar, los avisos, la
+  ayuda de "Publicar en la web" del producto, el tooltip y el texto de la hoja de costos vacía de la
+  cotización (y su ícono), y la etiqueta del permiso: "Editar productos (incluye sus materiales)".
+- En el pedido, "Presupuestado (BOM de la cotización)" pasa a **"Presupuestado (según los materiales
+  del producto)"**, que es lo que realmente calcula `PedidoController::comparativaCostos()`
+  (materiales del producto a las medidas del pedido), no la hoja de costos de la cotización.
+
+**Por qué:** pedido del usuario. Se descartó "materiales utilizados" porque eso ya es otra cosa:
+el consumo real que se registra en Pedidos (`materialesUsados`).
+
+**Cómo:**
+- Solo texto visible. Los nombres internos quedan igual: rutas `productos.materiales.*`, componente
+  `Productos/Receta`, modelo `ProductoMaterial`, comentarios y seeders. El permiso no cambia de
+  nombre (solo su etiqueta), así que no hace falta reseedear.
+- `TerminologiaPantallasTest` (3): falla si "receta" o "BOM" vuelve a aparecer en un .vue/.js (sin
+  contar comentarios) o en una cadena de `app/Http` o `config/acl.php`. Se probó contra los archivos
+  viejos: marcaba exactamente los 5 archivos y las 6 cadenas cambiadas. `ProductoMaterialControllerTest`
+  ahora verifica título, migas y los tres avisos.
+- Verificado en la app con la base demo: botón → pantalla, estado vacío, agregar → editar → quitar
+  (los datos quedaron como estaban), formulario de producto, "Traer insumos del producto" en una
+  cotización (cargó 2 insumos), etiqueta del pedido y del permiso en Roles. Sin errores de consola.
+- Pendiente: `.ai/rules/controllers.md` todavía dice que el botón usa el ícono `fa-flask`.
+
+---
+
+## 2026-10-20 — BI: pestaña "Panorama" (KPIs comparados, embudo, margen por tipo, drill-down)
+
+**Qué cambió:**
+- Pestaña nueva **Panorama** (`/reportes/bi/panorama`), primera del BI y destino del menú
+  "Inteligencia de Negocios". Filtros globales que mueven toda la pantalla: periodo, tipo de
+  producto (familia), categoría, cliente y sucursal, con chips para quitar cada uno.
+- **5 KPIs** contra el periodo anterior (▲ verde / ▼ rojo según convenga): ventas, cotizaciones
+  emitidas, tasa de conversión, ticket promedio y margen bruto. Conversión y margen varían en pp.
+- Cuadros, cada uno con su **hallazgo** (la conclusión en una frase, armada en el servidor) y su "i":
+  ventas por mes (este periodo vs. anterior + promedio, mejor mes destacado; clic en un mes = filtra
+  ese mes) · embudo emitidas → aprobadas → con pedido → cobradas (marca el paso que más pierde) ·
+  ingresos + margen por mes (combinado) · ingresos y margen por tipo con **drill-down** familia →
+  categoría → producto (clic en la barra) · top 5 clientes (clic = filtra el cliente) · top 5
+  productos · ventas por vendedor · ventas por ciudad.
+
+**Por qué:** pedido del docente: gráficos más llamativos y que digan algo. Decisiones tomadas por
+defecto: línea de **promedio** (no hay metas mensuales en la base), **margen bruto presupuestado**
+= (ingreso neto − `costo_ajustado` de la línea) / ingreso neto, antes de impuestos, solo con líneas
+que tienen hoja de costos (las anteriores al motor de márgenes tienen costo 0 y se excluyen), y la
+paleta actual (gris para el contexto, color solo para el dato clave).
+
+**Cómo:**
+- `PanoramaService` **agrega en SQL** (SUM/COUNT/GROUP BY), no en PHP: con 24 meses de líneas traer
+  todo a Collections ya no escala. El mes sale de `ConsultaSql::mes()` (strftime / to_char /
+  DATE_FORMAT según el motor, columna validada con regex). Esto es una **excepción explícita** a la
+  regla de `.ai/rules/reporte.md` ("toda agregación en PHP"); los services viejos siguen igual.
+- **Trampa**: en SQLite los decimales enteros se guardan como enteros y `100 / 1000` da 0. Toda
+  división en SQL lleva `* 1.0` (el prorrateo del descuento por línea la tenía).
+- Periodo anterior = mismo rango corrido tantos meses como dura (12 → el año anterior; mes con mes).
+  Si el periodo cierra a fin de mes, el anterior también (30/11 → 31/10).
+- `PanoramaRequest` (valida filtros y arma el periodo), `ReporteController::biPanorama`, ruta bajo
+  `can:reportes.bi`. Recarga parcial de Inertia (`only: datos, filters`) con la tarjeta atenuada
+  mientras carga.
+- Componentes nuevos `Reporte/KpiCard.vue` y `Reporte/ChartCard.vue`. `BaseChart` gana opciones
+  opcionales (no cambian los gráficos existentes): serie `neutra`, `destacar`, `etiquetas`, evento
+  `seleccionar` (cursor de mano solo si la página lo escucha), `formatoTooltip`, animación 650 ms
+  (apagada con reduced-motion). `moneyCompacto` en `FormatoReporte.js`. Menú: ítem con `match`
+  para que quede activo en todas las pestañas del BI. CSS §37. 13 ayudas nuevas en `Ayudas.js`.
+- Tests: `PanoramaTest` (15) y `AyudasTest` ampliado a KpiCard/ChartCard. Suite completa verde.
+  Verificado con la base demo en escritorio, tablet, celular y oscuro (drill-down y clic en mes).
+- **Falta en la base**: metas mensuales de ventas (por eso la línea es el promedio).
+
+---
+
 ## 2026-10-20 — Clientes que más compran (con logo) y Pareto de clientes en el BI
 
 **Qué cambió:**

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Ai\ServicioIa;
+use App\Http\Requests\Reporte\PanoramaRequest;
 use App\Http\Requests\Reporte\ReportePdfRequest;
 use App\Models\BiAnomalia;
 use App\Models\BiResumen;
@@ -12,7 +13,9 @@ use App\Services\Reporte\AlertasNegocioService;
 use App\Services\Reporte\CostosMaterialesService;
 use App\Services\Reporte\InformeReportesService;
 use App\Services\Reporte\InteligenciaNegociosService;
+use App\Services\Reporte\PanoramaService;
 use App\Services\Reporte\PeriodoReporte;
+use App\Services\Reporte\PreguntasNegocioService;
 use App\Services\Reporte\PresupuestosRentabilidadService;
 use App\Services\Reporte\ReporteFinancieroService;
 use App\Services\Reporte\ReporteProduccionService;
@@ -101,6 +104,12 @@ class ReporteController extends Controller
     {
         return $this->paginaBi($request, 'Reportes/BiCostos', 'Costos y materiales',
             fn (PeriodoReporte $periodo) => $costos->datos($request->user(), $periodo));
+    }
+
+    public function biPreguntas(Request $request, PreguntasNegocioService $preguntas): Response
+    {
+        return $this->paginaBi($request, 'Reportes/BiPreguntas', 'Preguntas para decidir',
+            fn (PeriodoReporte $periodo) => $preguntas->datos($request->user(), $periodo));
     }
 
     public function biRentabilidad(Request $request, PresupuestosRentabilidadService $presupuestos): Response
@@ -222,6 +231,21 @@ class ReporteController extends Controller
             'ultima_deteccion' => ($ultima = $base()->max('created_at')) ? Carbon::parse($ultima)->toIso8601String() : null,
             'puede_gestionar' => $usuario->can('reportes.asistente'),
         ];
+    }
+
+    /**
+     * Panorama del BI: KPIs, tendencias, tipo de producto, embudo y rankings
+     * con filtros globales (fechas, familia/categoría, cliente, sucursal).
+     * Es la pestaña con la que abre el BI.
+     */
+    public function biPanorama(PanoramaRequest $request, PanoramaService $panorama): Response
+    {
+        return inertia('Reportes/BiPanorama', [
+            'datos' => $panorama->datos($request->user(), $request->periodo(), $request->filtros()),
+            'filters' => $request->only(['desde', 'hasta', 'familia_id', 'categoria_id', 'cliente_id', 'sucursal_id']),
+            'pageTitle' => 'Inteligencia de negocios',
+            'breadcrumbs' => ['Reportes', 'Inteligencia de negocios', 'Panorama'],
+        ]);
     }
 
     public function biSimulador(Request $request, SimuladorDecisionesService $simulador): Response

@@ -137,7 +137,7 @@ const deleteForm = useForm({});
 
 async function confirmDelete(linea) {
     const confirmed = await confirmation(
-        `¿Seguro que deseas quitar <strong>${nombreMaterial(linea.material_id)}</strong> de la receta? Esta acción no se puede deshacer.`,
+        `¿Seguro que deseas quitar <strong>${nombreMaterial(linea.material_id)}</strong> de los materiales del producto? Esta acción no se puede deshacer.`,
         'Quitar material',
     );
 
@@ -155,7 +155,7 @@ async function confirmDelete(linea) {
 
 <template>
 
-    <Head :title="`Receta — ${producto.nombre}`" />
+    <Head :title="`Materiales — ${producto.nombre}`" />
 
     <div class="card mb-4">
         <div class="card-body">
@@ -180,7 +180,7 @@ async function confirmDelete(linea) {
 
     <div class="card">
         <div class="card-header">
-            <span class="card-title">Receta (BOM)</span>
+            <span class="card-title">Materiales del producto</span>
             <button v-can="'productos.editar'" type="button" class="btn btn-primary btn-sm" @click="openCreate">
                 <i class="fa-solid fa-plus"></i>
                 Agregar material
@@ -188,7 +188,7 @@ async function confirmDelete(linea) {
         </div>
 
         <div class="card-body">
-            <DataTable :headers="headers" :items="lineas" empty-text="Este producto todavía no tiene receta.">
+            <DataTable :headers="headers" :items="lineas" empty-text="Este producto todavía no tiene materiales cargados.">
                 <template #cell-material="{ item }">
                     {{ item.material?.nombre ?? nombreMaterial(item.material_id) }}
                 </template>
@@ -224,7 +224,7 @@ async function confirmDelete(linea) {
     <Modal :show="showFormModal" max-width="md" @close="closeFormModal">
         <div class="card-header">
             <span class="card-title">
-                {{ editingLinea ? 'Editar línea de receta' : 'Agregar material a la receta' }}
+                {{ editingLinea ? 'Editar material' : 'Agregar material' }}
             </span>
             <button type="button" class="modal-close" aria-label="Cerrar" @click="closeFormModal">
                 <i class="fa-solid fa-xmark"></i>
@@ -314,7 +314,7 @@ async function confirmDelete(linea) {
 
     <QuickCreateModal :show="mostrarModalMaterial" title="Nuevo material" route-name="materiales.rapido"
         :initial-data="materialVacio" submit-label="Crear material"
-        hint="Se guarda de una vez en el catálogo de materiales; al terminar queda elegido en esta línea de receta."
+        hint="Se guarda de una vez en el catálogo de materiales; al terminar queda elegido en esta línea."
         @close="mostrarModalMaterial = false" @created="onMaterialCreado">
         <template #default="{ form: materialForm, errors: materialErrors }">
             <MaterialFormFields :form="materialForm" :errors="materialErrors" :categorias-material="categoriasMaterial" />

@@ -507,9 +507,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/reportes/produccion/pdf', [ReporteController::class, 'produccionPdf'])
         ->middleware(['can:reportes.produccion', 'can:reportes.exportar_produccion'])
         ->name('reportes.produccion.pdf');
+    Route::get('/reportes/bi/panorama', [ReporteController::class, 'biPanorama'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.panorama');
     Route::get('/reportes/bi', [ReporteController::class, 'bi'])
         ->middleware('can:reportes.bi')
         ->name('reportes.bi');
+    Route::get('/reportes/bi/preguntas', [ReporteController::class, 'biPreguntas'])
+        ->middleware('can:reportes.bi')
+        ->name('reportes.bi.preguntas');
     Route::get('/reportes/bi/costos', [ReporteController::class, 'biCostos'])
         ->middleware('can:reportes.bi')
         ->name('reportes.bi.costos');

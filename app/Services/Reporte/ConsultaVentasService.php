@@ -37,7 +37,7 @@ class ConsultaVentasService
         'unidades_vendidas' => ['Unidades vendidas', 'numero'],
         'presupuestos' => ['Presupuestos emitidos', 'numero'],
         'ventas' => ['Presupuestos vendidos', 'numero'],
-        'ticket_promedio' => ['Ticket promedio por venta (sin IVA)', 'bs'],
+        'ticket_promedio' => ['Venta promedio (sin IVA)', 'bs'],
         'tasa_aprobacion' => ['Tasa de aprobación', 'porcentaje'],
         'margen_bruto' => ['Margen bruto (precio − costo)', 'bs'],
         'rentabilidad_bruta' => ['Rentabilidad bruta sobre costo', 'porcentaje'],
