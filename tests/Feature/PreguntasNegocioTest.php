@@ -165,7 +165,7 @@ test('el costo real por producto es material usado mas el resto de la hoja, por 
         ['Letrero', 1, 'unidad', 950.0, 1000.0, 500.0, 1450.0],
         ['Banner', 1, 'm²', 110.0, 100.0, 50.0, 160.0],
     ])
-        ->and($pregunta['respuesta'])->toBe('Producir 1 unidad de Letrero nos cuesta Bs 1.450,00: Bs 950,00 de material real y Bs 500,00 de mano de obra y otros insumos. El material salió -5,0 % frente a lo presupuestado.')
+        ->and($pregunta['respuesta'])->toBe('Producir 1 unidad de Letrero cuesta Bs 1.450,00: Bs 950,00 de material real y Bs 500,00 de mano de obra y otros insumos. El costo del material varió -5,0 % respecto a lo presupuestado.')
         ->and($pregunta['base'])->toContain('Con 2 trabajos entregados')
         ->and($pregunta['aviso'])->toContain('no se registran horas reales');
 });
@@ -184,7 +184,7 @@ test('el gasto contra presupuesto compara los mismos trabajos y nombra el que se
     $pregunta = preguntaDe('gasto_presupuesto');
 
     // 1.390 reales contra 1.400 presupuestados: en general no; el banner sí.
-    expect($pregunta['respuesta'])->toBe('En general no. En los trabajos comparables gastamos Bs 1.390 en material contra Bs 1.400 presupuestados (-0,7 %); 1 de 2 trabajos se pasaron. El material que más se pasa es Lona 13oz (+10,0 %).')
+    expect($pregunta['respuesta'])->toBe('En general no. En los trabajos comparables se gastaron Bs 1.390 en material frente a Bs 1.400 presupuestados (-0,7 %); 1 de 2 trabajos excedieron el presupuesto. El material con mayor exceso es Lona 13oz (+10,0 %).')
         ->and($pregunta['tabla']['filas'][0])->toBe(['Banner', 1, 1, 400.0, 440.0, 40.0, 10.0])
         ->and(array_column($pregunta['acciones'], 'impacto'))->toBe([40.0, 40.0]);
 });
@@ -221,7 +221,7 @@ test('productos por ganancia en bolivianos, con el descuento prorrateado', funct
         ['Banner', 1, 1000.0, 400.0, 40.0],
         ['Letrero', 1, 1800.0, 300.0, 16.7],
     ])
-        ->and($pregunta['respuesta'])->toBe('Banner es el que más ganancia deja: Bs 400 (margen 40,0 %). Además es el de mejor margen.')
+        ->and($pregunta['respuesta'])->toBe('Banner es el producto que más ganancia genera: Bs 400 (margen 40,0 %). Además es el de mejor margen.')
         // Margen promedio 25 %: llevar el letrero ahí son 1.800 × 8,3 %.
         ->and($pregunta['acciones'][0]['impacto'])->toBe(149.4);
 });
@@ -229,14 +229,14 @@ test('productos por ganancia en bolivianos, con el descuento prorrateado', funct
 test('el cliente que mas compra no es el que mas deja', function () {
     $pregunta = preguntaDe('clientes_rentables');
 
-    expect($pregunta['respuesta'])->toBe('Distribuidora Illimani es el cliente que más ganancia nos deja: Bs 400 (margen 40,0 %). El que más compra, Farmacias Sajama, queda 2.º en ganancia: su margen es 16,7 %.')
-        ->and($pregunta['acciones'][0]['texto'])->toStartWith('Revisar las condiciones de Farmacias Sajama');
+    expect($pregunta['respuesta'])->toBe('Distribuidora Illimani es el cliente que más ganancia genera: Bs 400 (margen 40,0 %). El cliente con más compras, Farmacias Sajama, ocupa el 2.º lugar en ganancia: su margen es 16,7 %.')
+        ->and($pregunta['acciones'][0]['texto'])->toStartWith('Revisar las condiciones comerciales de Farmacias Sajama');
 });
 
 test('lo que cuestan los descuentos y el precio puesto a mano', function () {
     $pregunta = preguntaDe('descuentos');
 
-    expect($pregunta['respuesta'])->toBe('Descontamos Bs 200 en 1 de 2 ventas (10,0 % de descuento en promedio). Las ventas con descuento dejan un margen de 16,7 % contra 40,0 % de las que no tienen. Además, 1 línea con precio puesto a mano quedó Bs 175 por debajo del precio sugerido.')
+    expect($pregunta['respuesta'])->toBe('Se descontaron Bs 200 en 1 de 2 ventas (10,0 % de descuento en promedio). Las ventas con descuento tienen un margen de 16,7 %, frente a 40,0 % de las que no lo tienen. Además, 1 línea con precio ingresado manualmente quedó Bs 175 por debajo del precio sugerido.')
         ->and($pregunta['tabla']['filas'])->toBe([['Alejandra Villegas', 1, 200.0, 10.0, 16.7]])
         ->and(collect($pregunta['acciones'])->firstWhere('impacto', 175.0))->not->toBeNull();
 });
@@ -265,7 +265,7 @@ test('si sube la materia prima el precio sube solo en la parte del material', fu
         ['Materia prima +5 %', 22.5, 70.0, 3.3],
         ['Materia prima +10 %', 20.0, 140.0, 6.7],
     ])
-        ->and($pregunta['respuesta'])->toStartWith('Si la materia prima sube 10 %, el margen bruto bajaría de 25,0 % a 20,0 % y perderíamos Bs 140 en un periodo como este. Para no perder margen alcanzaría con subir los precios 6,7 %.')
+        ->and($pregunta['respuesta'])->toStartWith('Si la materia prima sube 10 %, el margen bruto bajaría de 25,0 % a 20,0 % y se perderían Bs 140 en un periodo como este. Para no perder margen alcanzaría con subir los precios 6,7 %.')
         // Es una hipótesis: no compite en "Decisiones".
         ->and($pregunta['acciones'][0]['impacto'])->toBeNull();
 });
@@ -273,7 +273,7 @@ test('si sube la materia prima el precio sube solo en la parte del material', fu
 test('la cobranza cuenta lo pendiente por antiguedad y los entregados sin pago', function () {
     $pregunta = preguntaDe('cobranza');
 
-    expect($pregunta['respuesta'])->toBe('Ya cobramos el 35,7 % de lo vendido: faltan Bs 2.034 en 1 pedido.')
+    expect($pregunta['respuesta'])->toBe('Se ha cobrado el 35,7 % de lo vendido: faltan Bs 2.034 en 1 pedido.')
         ->and($pregunta['tabla']['filas'])->toBe([
             ['0 a 30 días', 0, 0.0, 0.0],
             ['31 a 60 días', 0, 0.0, 0.0],
@@ -281,7 +281,7 @@ test('la cobranza cuenta lo pendiente por antiguedad y los entregados sin pago',
             ['Más de 90 días', 0, 0.0, 0.0],
         ])
         ->and(array_column($pregunta['acciones'], 'texto'))->toBe([
-            'El que más debe es Farmacias Sajama: Bs 2.034.',
+            'El cliente con mayor deuda es Farmacias Sajama: Bs 2.034.',
             'Pedir un anticipo al aprobar: 1 pedido se entregó sin ningún pago.',
         ]);
 });
@@ -307,7 +307,7 @@ test('sin datos cada pregunta lo dice y no inventa acciones', function () {
 
     expect($porClave['costo_producto']['respuesta'])->toBe('No hay trabajos entregados con consumo de material registrado en el periodo.')
         ->and($porClave['cobranza']['respuesta'])->toBe('No hay pedidos en el periodo.')
-        ->and($porClave['decisiones']['respuesta'])->toBe('Con los datos del periodo no surge ninguna acción con dinero en juego.')
+        ->and($porClave['decisiones']['respuesta'])->toBe('Con los datos del periodo no surge ninguna acción con un monto involucrado.')
         ->and(collect($vacio['preguntas'])->flatMap(fn (array $p): array => $p['acciones'])->all())->toBe([]);
 });
 
@@ -331,10 +331,27 @@ test('el informe PDF y el CSV traen las preguntas con sus respuestas', function 
     $csv = InformeProyeccionesCsv::generar($informe);
 
     expect($texto)->toContain('Preguntas para decidir')
-        ->toContain('1. ¿Cuánto nos cuesta realmente producir cada producto?')
+        ->toContain('1. ¿Cuánto cuesta realmente producir cada producto?')
         ->toContain('Qué hacer')
         ->toContain('11. ¿Qué decisiones ayudarían a reducir los costos y mejorar las ganancias?')
         // fputcsv entrecomilla los textos con espacios; los números van solos.
         ->and($csv)->toContain('"Pregunta 9";"¿Qué pasaría si sube el precio de la materia prima?"')
         ->and($csv)->toContain('"Materia prima +10 %";20;140;6,7');
+});
+
+test('la tabla de rentabilidad incluye a quien se nombra aunque no este entre los 5 primeros', function () {
+    // Pedido del usuario: "Qué hacer" recomendaba revisar un producto que no
+    // aparecía en la tabla (estaba en el puesto 6 a 10).
+    $fila = fn (string $nombre, float $ganancia): array => [
+        'nombre' => $nombre, 'ventas' => 3, 'ingreso' => $ganancia * 2, 'ganancia' => $ganancia, 'margen' => 50.0,
+    ];
+    $porGanancia = collect([
+        $fila('A', 900), $fila('B', 800), $fila('C', 700), $fila('D', 600), $fila('E', 500),
+        $fila('F', 400), $fila('Banner roll-up', 300), $fila('H', 200),
+    ]);
+
+    $filas = (fn () => $this->filasConMencionados($porGanancia, [$porGanancia[0], null, $porGanancia[6]]))
+        ->call(app(PreguntasNegocioService::class));
+
+    expect(array_column($filas, 0))->toBe(['A', 'B', 'C', 'D', 'E', 'Banner roll-up']);
 });

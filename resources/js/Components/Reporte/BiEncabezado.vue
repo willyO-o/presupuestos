@@ -58,8 +58,27 @@ const SECCIONES_INFORME = [
     { clave: 'alertas', texto: 'Alertas', detalle: 'Aumentos de costo, márgenes bajos, sobrecostos' },
 ];
 
+/**
+ * Cada pestaña abre el informe con SU sección marcada (antes todas salían
+ * con las cinco y el PDF era el mismo en cualquier pestaña). Las que no
+ * tienen sección propia —Panorama y Simulador— ofrecen el informe general.
+ */
+const SECCION_DE_PESTANA = {
+    'reportes.bi.preguntas': 'preguntas',
+    'reportes.bi': 'demanda',
+    'reportes.bi.costos': 'costos',
+    'reportes.bi.rentabilidad': 'rentabilidad',
+    'reportes.bi.alertas': 'alertas',
+};
+
+const seccionPropia = SECCION_DE_PESTANA[route().current()] ?? null;
+
+const tituloInforme = seccionPropia
+    ? `Informe: ${SECCIONES_INFORME.find((s) => s.clave === seccionPropia).texto}`
+    : 'Informe general de inteligencia de negocios';
+
 const mostrarInforme = ref(false);
-const seccionesInforme = ref(SECCIONES_INFORME.map((s) => s.clave));
+const seccionesInforme = ref(seccionPropia ? [seccionPropia] : SECCIONES_INFORME.map((s) => s.clave));
 
 /**
  * El informe usa las fechas que se ven en el filtro (aunque todavía no se
@@ -113,7 +132,7 @@ function enlace(ruta) {
 
         <Modal :show="mostrarInforme" max-width="lg" @close="mostrarInforme = false">
             <div class="card-header">
-                <span class="card-title">Informe de proyecciones</span>
+                <span class="card-title">{{ tituloInforme }}</span>
                 <button type="button" class="modal-close" aria-label="Cerrar" @click="mostrarInforme = false">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
@@ -121,7 +140,8 @@ function enlace(ruta) {
             <div class="card-body">
                 <p class="fs-xs text-muted mb-3">
                     Periodo del filtro{{ rango.desde && rango.hasta ? `: ${rango.desde} al ${rango.hasta}` : '' }}.
-                    Incluye gráficos, tablas, lectura automática y anexo metodológico.
+                    Incluye gráficos, tablas, una lectura de los resultados y un anexo con el método de cálculo.
+                    <template v-if="seccionPropia"> Se marcó la sección de esta pestaña; puede agregar otras.</template>
                 </p>
                 <div role="group" aria-labelledby="bi-informe-secciones">
                     <p id="bi-informe-secciones" class="form-label">Secciones a incluir</p>
@@ -138,12 +158,12 @@ function enlace(ruta) {
                     </ul>
                 </div>
                 <p class="fs-xs text-muted mt-3 mb-0">
-                    El PDF es para leer o presentar; el CSV abre en Excel con las series mes a mes, la ficha del método
-                    y las alertas, para reprocesarlas.
+                    El PDF está pensado para leer o presentar; el CSV se abre en Excel con los datos mes a mes, la ficha
+                    del método y las alertas, para trabajarlos.
                 </p>
             </div>
             <div class="modal-footer bi-informe-acciones">
-                <span v-if="sinSecciones" class="fs-xs text-danger me-auto">Elegí al menos una sección.</span>
+                <span v-if="sinSecciones" class="fs-xs text-danger me-auto">Elija al menos una sección.</span>
                 <a :href="sinSecciones ? null : urlInforme('csv')" class="btn btn-outline-primary"
                     :class="{ disabled: sinSecciones }" :aria-disabled="sinSecciones">
                     <i class="fa-solid fa-file-csv"></i> Descargar CSV

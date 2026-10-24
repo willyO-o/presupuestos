@@ -13,6 +13,8 @@ use App\Services\Reporte\InteligenciaNegociosService;
 use App\Services\Reporte\PeriodoReporte;
 use App\Services\Reporte\RedaccionPronostico;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Permission;
 
 /**
@@ -132,7 +134,8 @@ test('el texto automatico usa las cifras de la proyeccion', function () {
         ->toContain('promedió 7,0 pedidos por mes')
         ->toContain('La tendencia es creciente')
         ->toContain("para {$septiembre} 18,0 pedidos")
-        ->toContain('ajuste fuerte')
+        ->toContain('Confiabilidad alta: la tendencia explica el 100 %')
+        ->not->toContain('Confiabilidad: Alta:')
         ->and($informe['conclusiones'][0])->toContain('La demanda (pedidos) crece');
 });
 
@@ -148,7 +151,10 @@ test('el pdf trae resumen, secciones elegidas, lectura y anexo metodologico', fu
         ->toContain('Pedidos por mes')
         ->toContain('Rango probable (80 %)')
         ->toContain('Anexo metodológico')
-        ->toContain('Intervalo de predicción al 80 %')
+        ->toContain('Con 80 % de confianza')
+        // Guía para leerlo sin ser analista; lo técnico, en el anexo.
+        ->toContain('Cómo leer este informe')
+        ->toContain('intervalo de predicción al 80 %')
         // Sección no pedida: no aparece.
         ->not->toContain('Índice de costo de materiales');
 });
@@ -185,7 +191,7 @@ test('la demanda deja fuera de la recta el mes en curso y estima su cierre', fun
         ->and($demanda['metodo']['cierre_estimado'][0]['valor'])->toEqualWithDelta(14.0, 1e-9)
         ->and($demanda['proyeccion'][0]['pedidos_estimados'])->toEqualWithDelta(16.0, 1e-9)
         ->and(collect($demanda['metodo']['explicacion'])->pluck('texto')->implode(' '))
-        ->toContain('no entra en la recta porque está incompleto (8 de 31 días)');
+        ->toContain('no se usa para calcular la tendencia porque aún no termina (8 de 31 días)');
 
     Carbon::setTestNow();
 });
@@ -198,4 +204,24 @@ test('la conclusion de precio contra costo no dice crece cuando los dos bajan', 
     // Los dos bajan, pero el precio más: el margen se achica.
     expect($conclusiones(-0.5, -0.3))->toBe(['El precio promedio por presupuesto va por detrás del costo (-0,5 % contra -0,3 % por mes): el margen se está achicando.'])
         ->and($conclusiones(2.0, 1.0))->toBe(['El precio promedio por presupuesto acompaña al costo o le gana (+2,0 % contra +1,0 % por mes): el margen se sostiene.']);
+});
+
+test('cada pestana del BI abre el informe con su propia seccion', function () {
+    // Pedido del usuario: el botón "Generar informe" daba el mismo PDF en
+    // todas las pestañas porque siempre salía con las cinco secciones.
+    $fuente = File::get(resource_path('js/Components/Reporte/BiEncabezado.vue'));
+
+    foreach ([
+        'reportes.bi.preguntas' => 'preguntas',
+        'reportes.bi' => 'demanda',
+        'reportes.bi.costos' => 'costos',
+        'reportes.bi.rentabilidad' => 'rentabilidad',
+        'reportes.bi.alertas' => 'alertas',
+    ] as $ruta => $seccion) {
+        expect($fuente)->toContain("'{$ruta}': '{$seccion}'")
+            ->and(array_keys(InformeProyeccionesService::SECCIONES))->toContain($seccion)
+            ->and(Route::has($ruta))->toBeTrue();
+    }
+
+    expect($fuente)->toContain('seccionPropia ? [seccionPropia]');
 });

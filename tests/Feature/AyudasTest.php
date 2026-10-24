@@ -166,3 +166,15 @@ test('los textos de ayuda no dicen plata', function () {
 
     expect(preg_match('/\bplata\b/iu', $textos))->toBe(0);
 });
+
+test('las ayudas y las preguntas usan un registro neutro, sin jerga', function () {
+    // Pedido del usuario (2026-10-24): textos entendibles pero no coloquiales.
+    // Solo los textos: los comentarios nombran la regla y sus ejemplos.
+    $sinComentarios = fn (string $fuente): string => preg_replace(['#/\*.*?\*/#s', '#^\s*//.*$#m'], '', $fuente);
+    $textos = $sinComentarios(File::get(resource_path('js/Data/Ayudas.js')))
+        .$sinComentarios(File::get(app_path('Services/Reporte/PreguntasNegocioService.php')));
+
+    foreach (['harto', 'nomás', 'chamba', 'caser', 'ahorita', 'solito', 'trancadera', 'se tranca', 'baratito', 'a full', 'nos costó', 'gastamos', 'cobramos', 'se pasaron'] as $palabra) {
+        expect(mb_stripos($textos, $palabra))->toBeFalse("Quedó \"{$palabra}\" en los textos");
+    }
+});

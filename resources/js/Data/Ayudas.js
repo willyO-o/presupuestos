@@ -3,10 +3,12 @@
  * tablas, indicadores y listas—: lo que muestra el popup del ícono "i"
  * (`Components/AyudaInfo.vue`) al lado del título.
  *
- * Están escritos para quien usa el sistema todos los días, no para un
- * analista: en castellano de acá, con palabras de todos los días ("harto",
- * "nomás", "caseros", "chamba") y sin términos de estadística. Para los
- * montos se dice "dinero" o "ingresos", nunca "plata" (pedido del usuario).
+ * Registro (pedido del usuario, 2026-10-24): un punto medio entre lo técnico
+ * y lo coloquial. Frases claras para quien usa el sistema todos los días,
+ * sin términos de estadística innecesarios, pero sin regionalismos ni jerga
+ * ("harto", "nomás", "chamba", "caseros", "ahorita"): el texto tiene que
+ * leerse bien en una reunión o en un informe. Para los montos se dice
+ * "dinero" o "ingresos", nunca "plata". AyudasTest vigila esas palabras.
  * Si un cuadro cambia lo que calcula, se corrige su texto AQUÍ: una ayuda
  * que dice otra cosa que el cuadro es peor que no tener ayuda.
  *
@@ -14,7 +16,7 @@
  * - `titulo`: el nombre del cuadro, como en la tarjeta.
  * - `que`:    qué muestra, en una o dos frases.
  * - `leer`:   cómo leerlo, de dos a cuatro pistas cortas.
- * - `ojo`:    (opcional) una advertencia o un consejo práctico.
+ * - `ojo`:    (opcional) una advertencia o una recomendación práctica.
  *
  * La clave es `pantalla.cuadro`. Un test (AyudasTest) revisa que cada
  * gráfico, cada tarjeta con título y cada indicador de Reportes y del BI
@@ -26,33 +28,33 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'dashboard.ventas-por-mes': {
         titulo: 'Ventas por mes',
-        que: 'Cuánto dinero sumaron las cotizaciones aprobadas en cada mes de este año, al lado de lo que se vendió el año pasado en el mismo mes.',
+        que: 'El monto total de las cotizaciones aprobadas en cada mes de este año, comparado con lo vendido en el mismo mes del año anterior.',
         leer: [
-            'Si la línea de este año va por encima de la del año pasado, nos está yendo mejor que el año anterior.',
-            'Los meses que todavía no llegaron quedan vacíos, no en cero.',
-            'Pasa el mouse por un punto para ver el monto exacto del mes.',
+            'Si la línea de este año está por encima de la del año anterior, las ventas mejoraron.',
+            'Los meses que aún no llegaron aparecen vacíos, no en cero.',
+            'Pase el cursor sobre un punto para ver el monto exacto del mes.',
         ],
-        ojo: 'Es lo aprobado, no lo cobrado: el dinero que ya entró a caja la ves en Pagos.',
+        ojo: 'Muestra lo aprobado, no lo cobrado: el dinero que ya ingresó a caja se consulta en Pagos.',
     },
     'dashboard.pedidos-por-etapa': {
         titulo: 'Pedidos por etapa',
-        que: 'Cuántos pedidos hay ahorita en producción y en qué etapa está cada uno: diseño, elaboración, acabado o control de calidad.',
+        que: 'Cuántos pedidos hay en producción en este momento y en qué etapa se encuentra cada uno: diseño, elaboración, acabado o control de calidad.',
         leer: [
-            'La barra más larga es la etapa donde más pedidos se están juntando.',
-            'El porcentaje dice qué parte de todo lo que está en producción está en esa etapa.',
-            'Abajo tienes cuántos pedidos ya se entregaron en total.',
+            'La barra más larga es la etapa donde se acumulan más pedidos.',
+            'El porcentaje indica qué parte de la producción en curso está en esa etapa.',
+            'Debajo se muestra cuántos pedidos se entregaron en total.',
         ],
-        ojo: 'Si una etapa se llena harto, ahí está la trancadera: conviene darle una mano a esa área antes de que se atrasen las entregas.',
+        ojo: 'Si una etapa acumula demasiados pedidos, es un cuello de botella: conviene reforzar esa área antes de que se retrasen las entregas.',
     },
     'dashboard.productos-mas-vendidos': {
         titulo: 'Productos más vendidos',
         que: 'Los productos que más ingresos generaron en los últimos 12 meses, en cotizaciones aprobadas.',
         leer: [
-            'El número de la izquierda es el puesto en el ranking: el 1 es el que más vende.',
-            '"uds." son las unidades vendidas y el porcentaje es cuánto pesa ese producto en todo lo vendido.',
-            'La barra compara cada producto contra el primero del ranking.',
+            'El número de la izquierda es la posición en el ranking: el 1 es el que más vende.',
+            '"uds." son las unidades vendidas y el porcentaje es la participación de ese producto en el total vendido.',
+            'La barra compara cada producto con el primero del ranking.',
         ],
-        ojo: 'El orden va por ingresos, no por cantidad: un producto puede salir harto en unidades y estar más abajo si es baratito.',
+        ojo: 'El orden es por ingresos, no por cantidad: un producto puede venderse en muchas unidades y aparecer más abajo si su precio es bajo.',
     },
 
     /* ------------------------------------------------------------------
@@ -60,59 +62,59 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'financiero.ventas-por-mes': {
         titulo: 'Ventas por mes',
-        que: 'Cuánto dinero sumaron las cotizaciones aprobadas (y las que ya pasaron a pedido) en cada mes del periodo que elegiste arriba.',
+        que: 'El monto total de las cotizaciones aprobadas (incluidas las que ya pasaron a pedido) en cada mes del periodo seleccionado.',
         leer: [
-            'Los picos son los meses de más venta; los bajones, los más flojos.',
-            'Si cambias las fechas del filtro y le das a "Aplicar", el gráfico se ajusta.',
+            'Los picos son los meses de mayor venta; los descensos, los de menor actividad.',
+            'Al cambiar las fechas del filtro y presionar "Aplicar", el gráfico se actualiza.',
         ],
-        ojo: 'Es lo vendido, no lo cobrado. Lo que todavía nos deben está en "Cuentas por cobrar".',
+        ojo: 'Muestra lo vendido, no lo cobrado. Los saldos pendientes de los clientes están en "Cuentas por cobrar".',
     },
     'financiero.ventas-por-sucursal': {
         titulo: 'Ventas por sucursal',
-        que: 'Cuánto vendió cada sucursal en el periodo elegido.',
+        que: 'El monto vendido por cada sucursal en el periodo seleccionado.',
         leer: [
-            'La barra más larga es la sucursal que más vende.',
-            'Pasa el mouse por una barra para ver el monto exacto.',
+            'La barra más larga corresponde a la sucursal con más ventas.',
+            'Pase el cursor sobre una barra para ver el monto exacto.',
         ],
-        ojo: 'Si solo ves tu sucursal es porque tu cuenta está limitada a ella: fíjate en la etiqueta de arriba a la derecha.',
+        ojo: 'Si solo aparece su sucursal, es porque su cuenta tiene acceso limitado a ella: lo indica la etiqueta de la esquina superior derecha.',
     },
     'financiero.margen-por-pedido': {
         titulo: 'Margen real por pedido',
-        que: 'Para cada pedido terminado: lo que se cobró menos lo que de verdad costó el material que se usó. Es lo que realmente nos quedó en el bolsillo.',
+        que: 'Para cada pedido terminado: lo cobrado menos el costo real del material utilizado. Es la ganancia efectiva de cada pedido.',
         leer: [
-            'Verde, hacia la derecha: ese pedido nos dejó ganancia.',
-            'Rojo, hacia la izquierda: ese pedido costó más de lo que se cobró, salimos perdiendo.',
-            'Van ordenados del peor al mejor, así lo primero que ves es lo que hay que revisar.',
+            'Verde, hacia la derecha: el pedido generó ganancia.',
+            'Rojo, hacia la izquierda: el pedido costó más de lo que se cobró y generó pérdida.',
+            'Están ordenados del peor al mejor, para que lo primero que se vea sea lo que requiere revisión.',
         ],
-        ojo: 'Si producción no cargó el material que usó en un pedido, su margen sale inflado. Pídeles que lo registren para que la cuenta salga bien.',
+        ojo: 'Si producción no registró el material utilizado en un pedido, su margen aparece más alto de lo real. Es importante que se registre para que el cálculo sea correcto.',
     },
     'financiero.total-vendido': {
         titulo: 'Total vendido en el periodo',
-        que: 'La suma de todas las cotizaciones aprobadas (y las que ya pasaron a pedido) con fecha dentro del periodo que elegiste arriba.',
+        que: 'La suma de todas las cotizaciones aprobadas (incluidas las que ya pasaron a pedido) con fecha dentro del periodo seleccionado.',
         leer: [
-            'Es el total de cada cotización tal como se le pasó al cliente.',
-            'Cambia apenas mueves las fechas del filtro y le das a "Aplicar".',
+            'Es el total de cada cotización tal como se presentó al cliente.',
+            'Se actualiza al cambiar las fechas del filtro y presionar "Aplicar".',
         ],
-        ojo: 'Vendido no es cobrado: un cliente puede haber aprobado y todavía no haber pagado nada.',
+        ojo: 'Vendido no significa cobrado: un cliente puede haber aprobado y aún no haber realizado ningún pago.',
     },
     'financiero.por-cobrar': {
         titulo: 'Cuentas por cobrar',
-        que: 'Todo el dinero que los clientes todavía nos deben: lo que falta pagar de los pedidos que no se cancelaron.',
+        que: 'El dinero que los clientes aún adeudan: el saldo pendiente de los pedidos que no fueron cancelados.',
         leer: [
-            'Es la suma de los saldos: total del pedido menos lo que ya pagaron.',
-            'No depende de las fechas del filtro: es lo que se debe a hoy, sea del pedido que sea.',
+            'Es la suma de los saldos: total del pedido menos lo ya pagado.',
+            'No depende de las fechas del filtro: es la deuda pendiente a la fecha, de cualquier pedido.',
         ],
-        ojo: 'El detalle pedido por pedido, con cuántos días lleva cada deuda, sale en el PDF del reporte.',
+        ojo: 'El detalle por pedido, con los días de antigüedad de cada deuda, se encuentra en el PDF del reporte.',
     },
     'financiero.rentabilidad-tabla': {
         titulo: 'Rentabilidad real por pedido',
-        que: 'Los mismos pedidos del gráfico de margen, pero con los números completos: cuánto se cobró, cuánto costó el material y cuánto quedó.',
+        que: 'Los mismos pedidos del gráfico de margen, con las cifras completas: lo cobrado, el costo del material y el resultado.',
         leer: [
-            'Ingreso: lo que vale el pedido. Costo real: el material que producción registró como usado.',
-            'Margen: la diferencia. En verde si ganamos, en rojo si perdimos; entre paréntesis, qué parte del ingreso es ganancia.',
-            'Entran los pedidos en acabado o ya entregados, sin importar la fecha del filtro.',
+            'Ingreso: el valor del pedido. Costo real: el material que producción registró como utilizado.',
+            'Margen: la diferencia. En verde si hubo ganancia, en rojo si hubo pérdida; entre paréntesis, qué parte del ingreso es ganancia.',
+            'Se incluyen los pedidos en acabado o ya entregados, sin importar la fecha del filtro.',
         ],
-        ojo: 'Un costo real de Bs 0 casi siempre quiere decir que no se cargó el consumo, no que el material salió gratis.',
+        ojo: 'Un costo real de Bs 0 casi siempre significa que no se registró el consumo, no que el material no tuvo costo.',
     },
 
     /* ------------------------------------------------------------------
@@ -120,40 +122,40 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'produccion.duracion-por-etapa': {
         titulo: 'Duración promedio por etapa',
-        que: 'Cuántos días, en promedio, se queda un trabajo en cada etapa del taller antes de pasar a la siguiente.',
+        que: 'Cuántos días, en promedio, permanece un trabajo en cada etapa del taller antes de pasar a la siguiente.',
         leer: [
-            'La barra más larga es la etapa más lenta: ahí es donde se tranca la cosa.',
-            'Las etapas que no aparecen todavía no tienen registros para medir.',
+            'La barra más larga es la etapa más lenta: ahí se concentran las demoras.',
+            'Las etapas que no aparecen todavía no tienen registros suficientes para medirse.',
         ],
-        ojo: 'Solo se cuentan las etapas que el taller abrió y cerró en el sistema. Si no se registra, no hay cómo medir.',
+        ojo: 'Solo se cuentan las etapas que el taller abrió y cerró en el sistema. Sin registro, no es posible medir.',
     },
     'produccion.carga-por-area': {
         titulo: 'Carga de trabajo por área',
-        que: 'Cuántos trabajos tiene cada área ahorita, todavía sin terminar.',
+        que: 'Cuántos trabajos pendientes tiene cada área en este momento.',
         leer: [
-            'El área con la barra más larga es la que está con más chamba en este momento.',
-            'Es una foto de ahora: cambia apenas se cierra o se asigna una etapa.',
+            'El área con la barra más larga es la que tiene más trabajo asignado.',
+            'Refleja la situación actual: cambia cuando se cierra o se asigna una etapa.',
         ],
-        ojo: 'Sirve para repartir mejor la chamba: si un área está a full y otra tranquila, se puede mover gente o reordenar prioridades.',
+        ojo: 'Sirve para distribuir mejor el trabajo: si un área está saturada y otra tiene capacidad libre, se puede reasignar personal o reordenar prioridades.',
     },
     'produccion.cumplimiento': {
         titulo: 'Cumplimiento de entregas',
-        que: 'De los pedidos que ya se entregaron, cuántos llegaron en la fecha que le prometimos al cliente o antes.',
+        que: 'De los pedidos ya entregados, cuántos llegaron en la fecha comprometida con el cliente o antes.',
         leer: [
-            'El porcentaje grande es la parte que llegó a tiempo; abajo ves cuántos son de cuántos.',
+            'El porcentaje principal es la proporción entregada a tiempo; debajo se indica cuántos son del total.',
             'Solo cuentan los pedidos que tenían fecha estimada y fecha real de entrega.',
-            'Es de toda la historia, no de un mes en particular.',
+            'Considera todo el historial, no un mes en particular.',
         ],
-        ojo: 'Cada entrega tarde es un caserito que puede no volver: el PDF del reporte trae la lista de los atrasados.',
+        ojo: 'Cada entrega tardía puede costar un cliente: el PDF del reporte incluye la lista de pedidos atrasados.',
     },
     'produccion.pedidos-activos': {
         titulo: 'Pedidos activos por etapa',
-        que: 'Cuántos pedidos hay ahorita en cada etapa, antes de la entrega.',
+        que: 'Cuántos pedidos hay en cada etapa en este momento, antes de la entrega.',
         leer: [
-            'Cada número es la cantidad de pedidos que están en esa etapa en este momento.',
-            'Si un pedido tiene varios trabajos, cuenta en la etapa del que va más atrás.',
+            'Cada número es la cantidad de pedidos que se encuentran en esa etapa.',
+            'Si un pedido tiene varios trabajos, se cuenta en la etapa del trabajo más atrasado.',
         ],
-        ojo: 'Si se amontonan en una etapa, ahí se está trancando la producción.',
+        ojo: 'Si los pedidos se acumulan en una etapa, ahí se está demorando la producción.',
     },
 
     /* ------------------------------------------------------------------
@@ -161,118 +163,118 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi-panorama.kpi-ventas': {
         titulo: 'Ventas del periodo',
-        que: 'Todo lo que se vendió en el periodo: las cotizaciones aprobadas, sin IVA ni instalación y ya con el descuento que se le hizo al cliente.',
+        que: 'El total vendido en el periodo: las cotizaciones aprobadas, sin IVA ni instalación y con el descuento otorgado al cliente.',
         leer: [
-            'La pastilla de color dice cuánto subió o bajó frente al periodo anterior; al lado, cuánto fue ese periodo.',
-            'Verde es que vamos mejor; rojo, que vamos peor.',
+            'La etiqueta de color indica cuánto subió o bajó frente al periodo anterior; al lado, el valor de ese periodo.',
+            'Verde indica una mejora; rojo, un retroceso.',
         ],
-        ojo: 'El periodo anterior es el mismo tramo de fechas corrido hacia atrás: si miras 12 meses, se compara con los 12 meses de antes.',
+        ojo: 'El periodo anterior es el mismo rango de fechas desplazado hacia atrás: si se consultan 12 meses, se comparan con los 12 meses previos.',
     },
     'bi-panorama.kpi-cotizaciones': {
         titulo: 'Cotizaciones emitidas',
-        que: 'Cuántos presupuestos se hicieron en el periodo, sin importar cómo terminaron.',
+        que: 'Cuántos presupuestos se emitieron en el periodo, sin importar su resultado.',
         leer: [
-            'Abajo ves cuántos de esos ya fueron aprobados.',
-            'Más cotizaciones es buena señal: quiere decir que nos están buscando.',
+            'Debajo se indica cuántos de ellos ya fueron aprobados.',
+            'Un aumento de cotizaciones es una buena señal: indica más demanda.',
         ],
     },
     'bi-panorama.kpi-conversion': {
         titulo: 'Tasa de conversión',
-        que: 'De los presupuestos que ya tienen respuesta (aprobados, rechazados o vencidos), qué parte aprobó el cliente.',
+        que: 'De los presupuestos que ya tienen respuesta (aprobados, rechazados o vencidos), qué porcentaje aprobó el cliente.',
         leer: [
-            'Los pendientes no cuentan: todavía se pueden aprobar.',
-            'La variación va en "pp" (puntos): de 50 % a 52 % son +2 pp.',
+            'Los pendientes no se cuentan: todavía pueden aprobarse.',
+            'La variación se expresa en "pp" (puntos porcentuales): de 50 % a 52 % son +2 pp.',
         ],
-        ojo: 'Si baja, puede ser el precio, el tiempo de respuesta o que falta hacer seguimiento a los caseros.',
+        ojo: 'Una baja puede deberse al precio, al tiempo de respuesta o a la falta de seguimiento a los clientes.',
     },
     'bi-panorama.kpi-ticket': {
         titulo: 'Venta promedio',
-        que: 'Cuánto deja, en promedio, cada venta: las ventas del periodo divididas entre las cotizaciones aprobadas.',
+        que: 'El ingreso promedio por venta: las ventas del periodo divididas entre las cotizaciones aprobadas.',
         leer: [
-            'Si sube, cada cliente está comprando más por vez.',
-            'Abajo ves en cuántas ventas se calculó.',
+            'Si aumenta, cada cliente está comprando más por pedido.',
+            'Debajo se indica sobre cuántas ventas se calculó.',
         ],
     },
     'bi-panorama.kpi-margen': {
         titulo: 'Margen bruto',
-        que: 'De cada 100 Bs que vendemos, cuántos quedan después de pagar el costo del trabajo (material, mano de obra y complejidad), antes de impuestos.',
+        que: 'De cada 100 Bs vendidos, cuántos quedan después de cubrir el costo del trabajo (material, mano de obra y complejidad), antes de impuestos.',
         leer: [
-            'Sale del costo que calculó el motor de margen al cotizar: es el margen presupuestado.',
-            'La variación va en puntos (pp).',
+            'Se basa en el costo que calculó el motor de margen al cotizar: es el margen presupuestado.',
+            'La variación se expresa en puntos porcentuales (pp).',
         ],
         ojo: 'Solo cuentan las cotizaciones con hoja de costos. La ganancia después de impuestos (IT e IUE) está en la pestaña "Presupuestos y rentabilidad".',
     },
     'bi-panorama.ventas': {
         titulo: 'Ventas por mes',
-        que: 'Cuánto se vendió cada mes del periodo, comparado con el mismo mes del periodo anterior.',
+        que: 'El monto vendido en cada mes del periodo, comparado con el mismo mes del periodo anterior.',
         leer: [
-            'Las barras son este periodo; la línea gris punteada, el periodo anterior.',
-            'La barra en color fuerte es el mejor mes; la raya punteada horizontal, el promedio mensual.',
-            'Arriba, en una frase, lo más importante que se ve.',
+            'Las barras corresponden a este periodo; la línea gris punteada, al periodo anterior.',
+            'La barra de color intenso es el mejor mes; la línea punteada horizontal, el promedio mensual.',
+            'En la parte superior, una frase resume lo más relevante.',
         ],
-        ojo: 'Haz clic en una barra y todo el Panorama pasa a mostrar solo ese mes.',
+        ojo: 'Al hacer clic en una barra, todo el Panorama se filtra para mostrar solo ese mes.',
     },
     'bi-panorama.embudo': {
         titulo: 'Embudo de ventas',
-        que: 'El camino de las cotizaciones del periodo: cuántas se hicieron, cuántas aprobó el cliente, cuántas pasaron a pedido y cuántas ya se cobraron completas.',
+        que: 'El recorrido de las cotizaciones del periodo: cuántas se emitieron, cuántas aprobó el cliente, cuántas pasaron a pedido y cuántas se cobraron por completo.',
         leer: [
             'Cada barra es una etapa; mientras más angosta, menos cotizaciones llegaron hasta ahí.',
-            'Entre etapa y etapa dice qué parte pasó a la siguiente.',
-            'En rojo, la etapa donde más se pierde: ahí conviene meterle ganas.',
+            'Entre etapas se indica qué porcentaje avanzó a la siguiente.',
+            'En rojo, la etapa donde más cotizaciones se pierden: es la que más conviene mejorar.',
         ],
-        ojo: 'Al lado de cada etapa está el dinero que suman esas cotizaciones.',
+        ojo: 'Junto a cada etapa se muestra el monto total de esas cotizaciones.',
     },
     'bi-panorama.ingresos-margen': {
         titulo: 'Ingresos y margen por mes',
         que: 'Las ventas de cada mes (barras) junto con el margen bruto de ese mes (línea).',
         leer: [
-            'La escala de la izquierda es dinero; la de la derecha, el margen en %.',
-            'La raya punteada es el margen de todo el periodo: los meses por debajo se vendió más barato o costó más hacer los trabajos.',
+            'La escala izquierda está en bolivianos; la derecha, en porcentaje de margen.',
+            'La línea punteada es el margen de todo el periodo: en los meses por debajo se vendió a menor precio o los trabajos costaron más.',
         ],
-        ojo: 'Vender harto con poco margen puede dejar menos que vender menos con buen margen: mira las dos cosas juntas.',
+        ojo: 'Vender mucho con poco margen puede generar menos ganancia que vender menos con buen margen: conviene analizar ambos indicadores juntos.',
     },
     'bi-panorama.tipo': {
         titulo: 'Ingresos y margen por tipo de producto',
-        que: 'Cuánto vende y cuánto margen deja cada tipo de producto: muebles y exhibidores, letreros, impresión, etc.',
+        que: 'Cuánto vende y qué margen genera cada tipo de producto: muebles y exhibidores, letreros, impresión, etc.',
         leer: [
             'Las barras son las ventas; la línea, el margen bruto de cada tipo.',
-            'Haz clic en una barra para bajar un nivel: de tipo a categorías, y de categoría a productos. Las migas de arriba te devuelven.',
+            'Al hacer clic en una barra se baja un nivel: de tipo a categorías y de categoría a productos. La ruta de navegación superior permite volver.',
             '"Trabajos a medida" son las líneas cotizadas sin un producto del catálogo.',
         ],
-        ojo: 'El tipo que más vende no siempre es el que más deja: el hallazgo de arriba te lo dice.',
+        ojo: 'El tipo que más vende no siempre es el más rentable: el hallazgo de la parte superior lo resume.',
     },
     'bi-panorama.clientes': {
         titulo: 'Top 5 clientes por ingresos',
-        que: 'Los 5 clientes que más compraron en el periodo, con su parte de las ventas y el margen que dejaron.',
+        que: 'Los 5 clientes que más compraron en el periodo, con su participación en las ventas y el margen que generaron.',
         leer: [
-            'La barra compara a cada cliente contra el primero.',
-            'Haz clic en un cliente para ver todo el Panorama solo de él.',
+            'La barra compara a cada cliente con el primero.',
+            'Al hacer clic en un cliente, el Panorama muestra solo sus datos.',
         ],
-        ojo: 'Un cliente grande con margen bajo es para conversar: quizás se le está cotizando muy barato.',
+        ojo: 'Un cliente grande con margen bajo merece una revisión: es posible que se le esté cotizando por debajo de lo conveniente.',
     },
     'bi-panorama.productos': {
         titulo: 'Top 5 productos por ingresos',
         que: 'Los 5 productos del catálogo que más ingresos generaron en el periodo, con las unidades vendidas y su margen.',
         leer: [
-            'La barra compara cada producto contra el primero.',
-            'La foto es la que se cargó en Productos; si no hay, va un ícono.',
+            'La barra compara cada producto con el primero.',
+            'La imagen es la registrada en Productos; si no existe, se muestra un ícono.',
         ],
     },
     'bi-panorama.vendedor': {
         titulo: 'Ventas por vendedor',
-        que: 'Cuánto vendió cada vendedor en el periodo.',
+        que: 'El monto vendido por cada vendedor en el periodo.',
         leer: [
-            'La barra en color fuerte es el que más vendió.',
-            '"Sin vendedor" son las cotizaciones que el cliente pidió solito por el portal.',
+            'La barra de color intenso corresponde al vendedor con más ventas.',
+            '"Sin vendedor" son las cotizaciones que el cliente solicitó directamente por el portal.',
         ],
-        ojo: 'Sirve para reconocer al que está vendiendo harto y ver quién necesita una mano.',
+        ojo: 'Sirve para reconocer el buen desempeño e identificar a quién conviene apoyar.',
     },
     'bi-panorama.ciudad': {
         titulo: 'Ventas por ciudad',
-        que: 'Cuánto se vendió según la ciudad del cliente.',
+        que: 'El monto vendido según la ciudad del cliente.',
         leer: [
-            'La barra en color fuerte es la ciudad que más compra.',
-            'La ciudad sale de la ficha del cliente; si no está cargada, va en "Sin ciudad registrada".',
+            'La barra de color intenso corresponde a la ciudad con más compras.',
+            'La ciudad se toma de la ficha del cliente; si no está registrada, se agrupa en "Sin ciudad registrada".',
         ],
     },
 
@@ -281,93 +283,93 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi-preguntas.costo-producto': {
         titulo: 'Cuánto cuesta producir cada producto',
-        que: 'Lo que de verdad nos costó hacer 1 m², 1 metro o 1 unidad de cada producto: el material que el taller registró como usado, más la mano de obra y los otros insumos de la hoja de costos.',
+        que: 'El costo real de producir 1 m², 1 metro o 1 unidad de cada producto: el material que el taller registró como utilizado, más la mano de obra y los otros insumos de la hoja de costos.',
         leer: [
-            '"Mat. real" es lo que se gastó; "Mat. presup." lo que decía la hoja. Si el real es mayor, el taller está gastando más de lo pensado.',
-            'El total es el piso: cobrar menos que eso es trabajar a pérdida.',
+            '"Mat. real" es el material efectivamente utilizado; "Mat. presup.", el previsto en la hoja de costos. Si el real es mayor, el taller está consumiendo más de lo previsto.',
+            'El total es el precio mínimo: cobrar menos implica trabajar a pérdida.',
         ],
-        ojo: 'La mano de obra es la presupuestada, porque no se anotan las horas reales trabajadas.',
+        ojo: 'La mano de obra es la presupuestada, porque no se registran las horas reales trabajadas.',
     },
     'bi-preguntas.costos-suben': {
         titulo: 'Qué costos están aumentando',
-        que: 'Los materiales que subieron de precio en el periodo y cuánto dinero de más nos costó esa subida, según lo que realmente se usó.',
+        que: 'Los materiales que subieron de precio en el periodo y el costo adicional que generó esa subida, según la cantidad realmente utilizada.',
         leer: [
-            '"Nos costó de más" = cuánto subió el precio × la cantidad que se usó.',
-            'También dice si la hora de mano de obra que se pone en las hojas de costos está subiendo.',
+            '"Costo adicional" = aumento del precio × cantidad utilizada.',
+            'También indica si está subiendo el costo de la hora de mano de obra usado en las hojas de costos.',
         ],
     },
     'bi-preguntas.gasto-presupuesto': {
         titulo: 'Gasto contra presupuesto',
-        que: 'En los mismos trabajos, el material que se gastó de verdad contra el que se había presupuestado en la cotización.',
+        que: 'En los mismos trabajos, el material realmente utilizado frente al presupuestado en la cotización.',
         leer: [
-            'Una diferencia positiva es material gastado de más (cortes, sobrantes, errores o una hoja de costos que se queda corta).',
-            '"Se pasaron" cuenta los trabajos que gastaron más del 5 % sobre lo presupuestado.',
+            'Una diferencia positiva es material consumido en exceso (cortes, sobrantes, errores o una hoja de costos que se quedó corta).',
+            '"Excedidos" cuenta los trabajos que superaron en más del 5 % lo presupuestado.',
         ],
-        ojo: 'Solo entran los trabajos entregados que tienen el consumo anotado: si no, parecería que gastamos menos.',
+        ojo: 'Solo se incluyen los trabajos entregados con consumo registrado; de lo contrario, el gasto aparecería menor al real.',
     },
     'bi-preguntas.materiales-pesan': {
         titulo: 'Los materiales que más pesan',
-        que: 'Los pocos materiales que se llevan la mayor parte de lo que gastamos en material.',
+        que: 'Los pocos materiales que concentran la mayor parte del gasto en material.',
         leer: [
-            '"Acumulado" va sumando de arriba hacia abajo: cuando pasa el 80 %, ya están los que importan.',
-            'Ahí es donde rinde negociar precio o buscar otro proveedor: una rebaja chica en estos ahorra más que una grande en los demás.',
+            '"Acumulado" va sumando de arriba hacia abajo: al pasar el 80 %, ya están los materiales más relevantes.',
+            'Ahí conviene negociar precios o buscar otros proveedores: una rebaja pequeña en estos ahorra más que una grande en el resto.',
         ],
     },
     'bi-preguntas.productos-rentables': {
-        titulo: 'Qué producto deja más',
-        que: 'Los productos ordenados por la ganancia que dejan en bolivianos, con su margen: de cada 100 Bs que se cobran, cuántos quedan después de pagar el costo del trabajo (antes de impuestos).',
+        titulo: 'Qué producto genera más ganancia',
+        que: 'Los productos ordenados por la ganancia que generan en bolivianos, con su margen: de cada 100 Bs cobrados, cuántos quedan después de cubrir el costo del trabajo (antes de impuestos).',
         leer: [
-            'Más ganancia total no es lo mismo que mejor margen: uno con margen alto que se vende poco aporta menos que uno con margen normal que se vende harto.',
-            'Si un producto se vende mucho y deja poco, ahí conviene revisar el precio.',
+            'Más ganancia total no equivale a mejor margen: un producto con margen alto que se vende poco aporta menos que uno con margen normal y mucha venta.',
+            'Si un producto se vende mucho y genera poco margen, conviene revisar su precio.',
         ],
     },
     'bi-preguntas.clientes-rentables': {
-        titulo: 'Qué clientes dejan más',
-        que: 'Los clientes ordenados por la ganancia que nos dejan, no por lo que compran.',
+        titulo: 'Qué clientes generan más ganancia',
+        que: 'Los clientes ordenados por la ganancia que generan, no por el volumen de compra.',
         leer: [
-            'Un cliente grande con mucho descuento puede dejar menos que uno mediano que paga el precio normal.',
-            'Si el que más compra deja poco margen, conviene revisar sus condiciones.',
+            'Un cliente grande con muchos descuentos puede generar menos ganancia que uno mediano que paga el precio normal.',
+            'Si el cliente que más compra tiene un margen bajo, conviene revisar sus condiciones comerciales.',
         ],
     },
     'bi-preguntas.descuentos': {
         titulo: 'Lo que cuestan los descuentos',
-        que: 'Cuánto dinero se descontó en las ventas del periodo, quién da más descuento y cuánto margen se pierde por eso. También cuánto quedó por debajo del precio sugerido en las líneas con precio puesto a mano.',
+        que: 'El monto descontado en las ventas del periodo, qué vendedores otorgan más descuentos y cuánto margen se pierde por ello. También cuánto quedó por debajo del precio sugerido en las líneas con precio ingresado manualmente.',
         leer: [
-            'Compara el margen de las ventas con descuento contra las que no tienen: la diferencia es lo que cuesta descontar.',
+            'Compara el margen de las ventas con descuento frente a las que no lo tienen: la diferencia es el costo de descontar.',
             'El precio sugerido es el que calcula el sistema con el margen del tipo de proyecto.',
         ],
     },
     'bi-preguntas.margen-bajo': {
         titulo: 'Ventas con margen bajo',
-        que: 'Las ventas que se cerraron en amarillo o en rojo en el semáforo de margen, por vendedor.',
+        que: 'Las ventas que se cerraron en amarillo o en rojo según el semáforo de margen, por vendedor.',
         leer: [
             'Rojo: después de impuestos queda menos del 15 % del costo. Amarillo: entre 15 % y 30 %.',
-            'Muchas en rojo de un mismo vendedor suele ser exceso de descuentos o precios puestos a mano.',
+            'Muchas ventas en rojo de un mismo vendedor suelen indicar exceso de descuentos o precios ingresados manualmente.',
         ],
     },
     'bi-preguntas.materia-prima': {
         titulo: 'Si sube la materia prima',
-        que: 'Qué le pasaría al margen y a la ganancia si el material sube 5 %, 10 % o 20 %, y cuánto habría que subir los precios para no perder.',
+        que: 'Cómo cambiarían el margen y la ganancia si el material sube 5 %, 10 % o 20 %, y cuánto habría que ajustar los precios para no perder margen.',
         leer: [
-            '"Subir precios" es lo justo para quedar igual: el material es solo una parte del costo, así que el precio sube menos que el material.',
+            '"Subir precios" es el ajuste justo para mantener el margen: como el material es solo una parte del costo, el precio sube en menor proporción que el material.',
             '"Probable" usa la tendencia actual del índice de costo de materiales.',
         ],
         ojo: 'Es una simulación: supone que se vende lo mismo que en el periodo.',
     },
     'bi-preguntas.cobranza': {
-        titulo: 'Cuánto ya cobramos',
-        que: 'De lo vendido en pedidos del periodo, cuánto ya entró a caja y cuánto falta cobrar, según hace cuánto se hizo el pedido.',
+        titulo: 'Cuánto se ha cobrado',
+        que: 'De lo vendido en pedidos del periodo, cuánto ya ingresó a caja y cuánto falta cobrar, según la antigüedad del pedido.',
         leer: [
-            'Lo que tiene más de 90 días es lo más difícil de cobrar: va primero.',
-            'Ganancia que no se cobra no es dinero en caja.',
+            'Lo que tiene más de 90 días es lo más difícil de cobrar: debe atenderse primero.',
+            'La ganancia que no se cobra no es dinero disponible.',
         ],
     },
     'bi-preguntas.decisiones': {
         titulo: 'Qué decisiones tomar',
-        que: 'Las acciones que salen de las otras preguntas, ordenadas por el dinero que mueven en un periodo como este.',
+        que: 'Las acciones que surgen de las demás preguntas, ordenadas por el monto que involucran en un periodo como este.',
         leer: [
-            'Cada acción dice de qué pregunta sale: con un clic vas a ver el detalle.',
-            'Los montos no se suman entre sí, porque algunas acciones se pisan (por ejemplo, descuentos y margen bajo).',
+            'Cada acción indica de qué pregunta proviene: con un clic se accede al detalle.',
+            'Los montos no se suman entre sí, porque algunas acciones se superponen (por ejemplo, descuentos y margen bajo).',
         ],
     },
 
@@ -376,73 +378,73 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi.proyeccion-demanda': {
         titulo: 'Proyección de demanda',
-        que: 'Cuántos pedidos tuvimos cada mes y, con esa historia, cuántos podrían llegar en los próximos meses.',
+        que: 'Cuántos pedidos hubo cada mes y, a partir de ese historial, cuántos podrían llegar en los próximos meses.',
         leer: [
-            'La línea con relleno son los pedidos reales que ya pasaron.',
-            'La línea gris es el promedio de los últimos 3 meses: suaviza los meses raros para ver mejor hacia dónde vamos.',
-            'La línea punteada, en la zona sombreada, es la proyección. La franja a su alrededor es el rango probable: 8 de cada 10 veces el número real cae ahí adentro.',
+            'La línea con relleno son los pedidos reales de los meses ya cerrados.',
+            'La línea gris es el promedio de los últimos 3 meses: suaviza los meses atípicos para ver mejor la tendencia.',
+            'La línea punteada, en la zona sombreada, es la proyección. La franja que la rodea es el rango probable: 8 de cada 10 veces el valor real cae dentro de ella.',
         ],
-        ojo: 'Es un cálculo con la tendencia, no una bola de cristal. Si pasa algo grande (una campaña, un cliente nuevo grande) tómalo con pinzas. Abajo, en "Cómo se calcula", ves qué tan confiable es.',
+        ojo: 'Es un cálculo basado en la tendencia, no una certeza. Ante un hecho fuera de lo común (una campaña, un cliente nuevo importante) conviene tomarlo con cautela. Más abajo, en "Cómo se calcula", se indica qué tan confiable es.',
     },
     'bi.productos-mas-vendidos': {
         titulo: 'Productos más vendidos',
         que: 'Los 10 productos que más ingresos generaron en cotizaciones aprobadas dentro del periodo.',
         leer: [
-            'La barra más larga es el producto estrella del periodo.',
-            'Pasa el mouse por una barra para ver el monto exacto.',
+            'La barra más larga es el producto con más ventas del periodo.',
+            'Pase el cursor sobre una barra para ver el monto exacto.',
         ],
-        ojo: 'Si un producto que antes vendía harto ya no aparece, vale la pena preguntarse por qué.',
+        ojo: 'Si un producto que antes se vendía bien ya no aparece, conviene analizar el motivo.',
     },
     'bi.categorias-mas-vendidas': {
         titulo: 'Categorías más vendidas',
-        que: 'Lo mismo que los productos, pero juntando los productos por categoría.',
+        que: 'Lo mismo que los productos, pero agrupados por categoría.',
         leer: [
-            'Te dice en qué rubro están los ingresos, más allá de un producto puntual.',
-            'La barra más larga es la categoría que más vende.',
+            'Indica en qué rubros se concentran los ingresos, más allá de un producto en particular.',
+            'La barra más larga es la categoría con más ventas.',
         ],
     },
     'bi.clientes-top': {
         titulo: 'Clientes que más compran',
-        que: 'Los 10 clientes que más dinero nos dejaron en el periodo, sumando sus cotizaciones aprobadas, y todos los demás juntos en "Otros".',
+        que: 'Los 10 clientes con mayor monto de compra en el periodo, sumando sus cotizaciones aprobadas, y el resto agrupado en "Otros".',
         leer: [
-            'Arriba a la derecha: cuánto suman los 10 primeros. Si es harto (más de la mitad), dependemos de pocos caseros y perder uno se siente fuerte.',
-            'Cada cliente muestra cuánto compró, cuántas veces, qué parte del total es y si compró más o menos que en un periodo igual de largo justo antes. "Nuevo" quiere decir que antes no había comprado.',
-            'En amarillo, los que hace más de 60 días que no compran: son los primeros a los que conviene llamar.',
-            'Si el cliente tiene logo cargado se ve el logo; si no, sus iniciales. El logo se sube desde Clientes.',
+            'En la esquina superior derecha: cuánto suman los 10 primeros. Si superan la mitad de las ventas, existe dependencia de pocos clientes y perder uno tiene un impacto importante.',
+            'Cada cliente muestra el monto comprado, la cantidad de compras, su participación en el total y si compró más o menos que en un periodo de igual duración inmediatamente anterior. "Nuevo" indica que antes no había comprado.',
+            'En amarillo, los clientes sin compras desde hace más de 60 días: son los primeros a quienes conviene contactar.',
+            'Si el cliente tiene logo registrado se muestra el logo; si no, sus iniciales. El logo se carga desde Clientes.',
         ],
-        ojo: 'Respeta las fechas del filtro y las sucursales que ves. Una variación muy alta puede ser solo porque en el periodo anterior todavía no había datos.',
+        ojo: 'Respeta las fechas del filtro y las sucursales a las que tiene acceso. Una variación muy alta puede deberse a que en el periodo anterior todavía no había datos.',
     },
     'bi.clientes-pareto': {
         titulo: 'Concentración de ventas por cliente',
-        que: 'Todos los clientes que compraron en el periodo, del que más al que menos, con una línea que va sumando qué parte de las ventas llevamos.',
+        que: 'Todos los clientes que compraron en el periodo, de mayor a menor, con una línea que muestra el porcentaje acumulado de las ventas.',
         leer: [
-            'Cada barra es lo que compró un cliente (su nombre completo sale al pasar el mouse).',
-            'La línea es el % acumulado: en el cliente 5, por ejemplo, dice cuánto suman los 5 primeros juntos.',
-            'La raya punteada marca el 80 %. Arriba a la derecha ves cuántos clientes hacen falta para llegar ahí.',
-            'Si hay muchos clientes, a partir del puesto 30 van juntos en una sola barra.',
+            'Cada barra es el monto comprado por un cliente (el nombre completo aparece al pasar el cursor).',
+            'La línea es el porcentaje acumulado: en el cliente 5, por ejemplo, indica cuánto suman los 5 primeros.',
+            'La línea punteada marca el 80 %. En la esquina superior derecha se indica cuántos clientes se necesitan para alcanzarlo.',
+            'Si hay muchos clientes, a partir del puesto 30 se agrupan en una sola barra.',
         ],
-        ojo: 'Si pocos clientes hacen el 80 %, dependemos harto de ellos: hay que cuidarlos y, a la vez, buscar más caseros para no quedar colgados de unos pocos.',
+        ojo: 'Si pocos clientes concentran el 80 %, la dependencia de ellos es alta: conviene cuidarlos y, al mismo tiempo, ampliar la cartera de clientes.',
     },
     'bi.evolucion-costos': {
         titulo: 'Evolución del costo de materiales',
-        que: 'Cómo fue cambiando el precio de los materiales cada vez que se aprobó una compra.',
+        que: 'Cómo cambió el precio de los materiales cada vez que se aprobó una compra.',
         leer: [
-            'Si una línea sube, ese material nos está saliendo más caro.',
-            'Entre una compra y la siguiente el precio se mantiene, por eso la línea no se corta.',
-            'Se muestran 4 materiales nomás para que se entienda; el resto está en "Costos y materiales".',
+            'Si una línea sube, ese material se está encareciendo.',
+            'Entre una compra y la siguiente el precio se mantiene; por eso la línea es continua.',
+            'Se muestran solo 4 materiales para facilitar la lectura; el resto está en "Costos y materiales".',
         ],
-        ojo: 'Es de toda la empresa, no de una sucursal. Si el material sube y no actualizamos precios, el margen se nos achica.',
+        ojo: 'Corresponde a toda la empresa, no a una sucursal. Si el material sube y no se actualizan los precios de venta, el margen se reduce.',
     },
     'bi.estacionalidad': {
         titulo: 'Estacionalidad',
-        que: 'Cuántos pedidos tenemos en cada mes del año, con una línea por gestión (2024, 2025, 2026…) y el promedio de todas. Usa toda la historia, no las fechas del filtro de arriba.',
+        que: 'Cuántos pedidos hay en cada mes del año, con una línea por gestión (2024, 2025, 2026…) y el promedio de todas. Usa todo el historial, no las fechas del filtro superior.',
         leer: [
-            'La línea con relleno es el promedio: los meses donde sube son la temporada fuerte; donde baja, los meses tranquilos.',
-            'Cada gestión tiene su línea: si un mes es alto en todos los años, es temporada de verdad; si es alto en uno solo, fue algo puntual.',
-            'Toca un año en la leyenda para ocultarlo o mostrarlo, y así comparar solo las gestiones que quieras.',
-            'Los meses que todavía no llegaron, o de antes del primer pedido registrado, quedan vacíos, no en cero.',
+            'La línea con relleno es el promedio: los meses en que sube son la temporada alta; en los que baja, la temporada baja.',
+            'Cada gestión tiene su propia línea: si un mes es alto en todos los años, es una temporada real; si lo es en uno solo, fue algo puntual.',
+            'Haga clic en un año de la leyenda para ocultarlo o mostrarlo y comparar solo las gestiones que necesite.',
+            'Los meses que aún no llegaron, o anteriores al primer pedido registrado, aparecen vacíos, no en cero.',
         ],
-        ojo: 'El promedio aparece cuando hay al menos dos gestiones, y no cuenta el mes en curso porque todavía no termina. Sirve para prepararse: comprar material y tener gente lista antes de la temporada alta.',
+        ojo: 'El promedio aparece cuando hay al menos dos gestiones y no incluye el mes en curso, porque aún no termina. Sirve para planificar: abastecer material y prever personal antes de la temporada alta.',
     },
 
     /* ------------------------------------------------------------------
@@ -450,46 +452,46 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi-alertas.anomalias': {
         titulo: 'Anomalías detectadas',
-        que: 'Cosas raras que el sistema encuentra solito revisando los datos todos los días a las 6:30: caídas o subidas bruscas de cotizaciones, ventas con margen muy bajo, vendedores que dejaron de cotizar y clientes grandes que dejaron de comprar.',
+        que: 'Situaciones inusuales que el sistema detecta automáticamente al revisar los datos cada día a las 6:30: caídas o aumentos bruscos de cotizaciones, ventas con margen muy bajo, vendedores que dejaron de cotizar y clientes importantes que dejaron de comprar.',
         leer: [
-            'Alta: hay que mirarla hoy (también llega a la campanita). Media: revisarla esta semana.',
-            'Cada una dice qué pasó, en qué sucursal o con quién, y qué conviene revisar.',
-            'Cuando ya la viste, márcala como "Revisada"; si no era nada, "Descartar". Los botones de arriba filtran por estado.',
+            'Alta: requiere atención hoy (también llega como notificación). Media: revisarla durante la semana.',
+            'Cada una indica qué ocurrió, en qué sucursal o con quién, y qué conviene revisar.',
+            'Una vez revisada, márquela como "Revisada"; si no era relevante, use "Descartar". Los botones superiores filtran por estado.',
         ],
-        ojo: 'Que el sistema la marque no quiere decir que esté mal: a veces hay una explicación (feriado, un cliente que avisó). Para eso está "Descartar".',
+        ojo: 'Que el sistema la marque no significa que haya un error: a veces existe una explicación (un feriado, un aviso del cliente). Para esos casos está "Descartar".',
     },
     'bi-alertas.kpi-activas': {
         titulo: 'Alertas activas',
-        que: 'Cuántas alertas de costo y margen hay en el periodo elegido: materiales que subieron harto, presupuestos con poco margen y pedidos que gastaron más material de lo previsto.',
+        que: 'Cuántas alertas de costo y margen hay en el periodo seleccionado: materiales con aumentos importantes, presupuestos con poco margen y pedidos que consumieron más material de lo previsto.',
         leer: [
-            'Es la suma de las de prioridad alta y media.',
-            'El detalle de cada una está en la lista de abajo.',
+            'Es la suma de las alertas de prioridad alta y media.',
+            'El detalle de cada una está en la lista inferior.',
         ],
     },
     'bi-alertas.kpi-alta': {
         titulo: 'Prioridad alta',
-        que: 'Las alertas que piden acción ya: por ejemplo, un presupuesto que se está por cerrar en rojo o un material que subió muy fuerte.',
+        que: 'Las alertas que requieren acción inmediata: por ejemplo, un presupuesto a punto de cerrarse en rojo o un material con un aumento muy fuerte.',
         leer: [
-            'Si este número no es cero, empieza por acá.',
-            'En la lista de abajo aparecen con la etiqueta roja "Alta".',
+            'Si este número no es cero, conviene empezar por aquí.',
+            'En la lista inferior aparecen con la etiqueta roja "Alta".',
         ],
     },
     'bi-alertas.kpi-media': {
         titulo: 'Prioridad media',
-        que: 'Alertas para revisar con calma durante la semana: no son urgentes, pero si se dejan pasar se vuelven un problema.',
+        que: 'Alertas para revisar durante la semana: no son urgentes, pero si no se atienden pueden convertirse en un problema.',
         leer: [
-            'En la lista de abajo aparecen con la etiqueta amarilla "Media".',
+            'En la lista inferior aparecen con la etiqueta amarilla "Media".',
         ],
     },
     'bi-alertas.costo-margen': {
         titulo: 'Alertas de costo y margen',
-        que: 'La lista de todo lo que puede estar comiéndose la ganancia: materiales que subieron más del límite, presupuestos vivos con margen bajo, presupuestos pendientes armados con precios viejos, pedidos que usaron más material de lo presupuestado y materiales que vienen subiendo mes tras mes.',
+        que: 'Todo lo que puede estar reduciendo la ganancia: materiales que subieron por encima del límite, presupuestos vigentes con margen bajo, presupuestos pendientes armados con precios desactualizados, pedidos que usaron más material de lo presupuestado y materiales que suben mes tras mes.',
         leer: [
-            'Arriba están los límites con los que se calcula cada alerta.',
-            'Puedes filtrar por tipo con la lista de la derecha.',
-            'El botón "Ver" te lleva directo al presupuesto, pedido o material.',
+            'En la parte superior están los límites con los que se calcula cada alerta.',
+            'Puede filtrar por tipo con la lista de la derecha.',
+            'El botón "Ver" lleva directamente al presupuesto, pedido o material.',
         ],
-        ojo: 'Se calcula al abrir la pantalla, así que siempre está al día. Los precios de material son de toda la empresa.',
+        ojo: 'Se calcula al abrir la pantalla, por lo que siempre está actualizado. Los precios de material corresponden a toda la empresa.',
     },
 
     /* ------------------------------------------------------------------
@@ -497,102 +499,102 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi-costos.indice': {
         titulo: 'Proyección de costos futuros',
-        que: 'Un solo número que resume cuánto cuestan los materiales comparado con el inicio del periodo. Arranca en 100.',
+        que: 'Un indicador que resume el costo de los materiales en comparación con el inicio del periodo. Parte de 100.',
         leer: [
-            '110 quiere decir que los materiales están 10 % más caros que al principio; 95, que están 5 % más baratos.',
-            'La parte punteada es hacia dónde iría si sigue la misma tendencia, con su rango probable.',
+            '110 significa que los materiales están 10 % más caros que al inicio; 95, que están 5 % más baratos.',
+            'La parte punteada indica hacia dónde iría si se mantiene la tendencia, con su rango probable.',
         ],
-        ojo: 'Si el índice sube y seguimos cotizando con los precios de antes, cada trabajo nos deja menos.',
+        ojo: 'Si el índice sube y se sigue cotizando con los precios anteriores, cada trabajo genera menos ganancia.',
     },
     'bi-costos.material': {
         titulo: 'Proyección por material',
-        que: 'El precio de un solo material, mes a mes, y hacia dónde va. El material lo eliges en la lista de arriba.',
+        que: 'El precio de un material, mes a mes, y su tendencia. El material se elige en la lista superior.',
         leer: [
-            'La línea llena es el precio que tuvo cada mes.',
+            'La línea continua es el precio de cada mes.',
             'La punteada es la proyección y la franja, el rango probable.',
         ],
-        ojo: 'Útil antes de comprar: si el precio viene subiendo, puede convenir adelantar la compra.',
+        ojo: 'Es útil antes de comprar: si el precio viene subiendo, puede convenir adelantar la compra.',
     },
     'bi-costos.consumo': {
         titulo: 'Consumo de materiales',
-        que: 'Cuánto dinero en material se usó en los pedidos cada mes, según lo que registró producción.',
+        que: 'El monto en material utilizado en los pedidos cada mes, según lo registrado por producción.',
         leer: [
             'La línea con relleno es el consumo real de cada mes.',
             'La gris es el promedio de los últimos 3 meses.',
-            'La punteada es cuánto se usaría los próximos meses si sigue igual.',
+            'La punteada es el consumo estimado para los próximos meses si se mantiene la tendencia.',
         ],
-        ojo: 'Si producción no carga lo que usa, el mes sale bajo aunque se haya trabajado harto.',
+        ojo: 'Si producción no registra lo que utiliza, el mes aparece bajo aunque haya tenido mucho trabajo.',
     },
     'bi-costos.mas-consumidos': {
         titulo: 'Materiales más consumidos',
-        que: 'Los 10 materiales en los que más dinero se gastó en el periodo.',
+        que: 'Los 10 materiales con mayor gasto en el periodo.',
         leer: [
-            'La barra más larga es el material que más nos cuesta.',
-            'Si aparece "Presupuestado", compara lo que se calculó en la cotización con lo que de verdad se usó.',
+            'La barra más larga es el material con mayor costo total.',
+            'Si aparece "Presupuestado", se compara lo calculado en la cotización con lo realmente utilizado.',
         ],
-        ojo: 'Si lo real es harto más que lo presupuestado, se está gastando más material de lo previsto: puede ser desperdicio o que la cotización se quedó corta.',
+        ojo: 'Si lo real es bastante mayor que lo presupuestado, se está consumiendo más material de lo previsto: puede ser desperdicio o una cotización que se quedó corta.',
     },
     'bi-costos.variacion': {
         titulo: 'Impacto de las variaciones de precio',
         que: 'Cuánto subió o bajó el precio de cada material dentro del periodo, en porcentaje.',
         leer: [
-            'Rojo, hacia la derecha: el material subió. Eso nos come el margen.',
-            'Verde, hacia la izquierda: el material bajó. Bien para nosotros.',
+            'Rojo, hacia la derecha: el material subió, lo que reduce el margen.',
+            'Verde, hacia la izquierda: el material bajó, lo que favorece el margen.',
         ],
-        ojo: 'Los que más subieron son los primeros candidatos para revisar precios o buscar otro proveedor.',
+        ojo: 'Los que más subieron son los primeros candidatos para revisar precios o evaluar otros proveedores.',
     },
     'bi-costos.kpi-indice': {
         titulo: 'Índice de costo (fin del periodo)',
-        que: 'Cuánto más caros (o más baratos) están los materiales al final del periodo comparado con el primer precio que tuvieron en ese periodo.',
+        que: 'Cuánto más caros (o más baratos) están los materiales al final del periodo en comparación con su primer precio dentro de ese periodo.',
         leer: [
-            '+6 % quiere decir que, en promedio, los materiales cuestan 6 % más que al principio.',
-            'La flecha dice hacia dónde va mes a mes: en rojo si sube (malo para nosotros), en verde si baja.',
+            '+6 % significa que, en promedio, los materiales cuestan 6 % más que al inicio.',
+            'La flecha indica la tendencia mensual: en rojo si sube (desfavorable), en verde si baja.',
         ],
     },
     'bi-costos.kpi-consumido': {
         titulo: 'Material consumido',
-        que: 'Cuánto dinero en material se usó en los pedidos del periodo, según lo que registró producción.',
+        que: 'El monto en material utilizado en los pedidos del periodo, según lo registrado por producción.',
         leer: [
-            'Abajo dice cuántos materiales distintos se usaron.',
-            'La flecha es la tendencia mes a mes: subir acá significa gastar más en material.',
+            'Debajo se indica cuántos materiales distintos se utilizaron.',
+            'La flecha es la tendencia mensual: si sube, se está gastando más en material.',
         ],
-        ojo: 'Si producción no carga el consumo, este número sale más bajo de lo que de verdad se gastó.',
+        ojo: 'Si producción no registra el consumo, este número aparece por debajo del gasto real.',
     },
     'bi-costos.kpi-impacto': {
         titulo: 'Impacto de las variaciones',
-        que: 'Cuánto dinero de más (o de menos) nos costó que los materiales cambiaran de precio, según lo que se usó en el periodo.',
+        que: 'El costo adicional (o el ahorro) que generó el cambio de precio de los materiales, según lo utilizado en el periodo.',
         leer: [
-            'Se calcula así: (precio final − precio inicial) × lo que se consumió de cada material.',
-            'En rojo, nos costó más; en verde, nos ahorramos.',
-            'Abajo dice cuántos materiales subieron y cuántos bajaron.',
+            'Se calcula así: (precio final − precio inicial) × cantidad consumida de cada material.',
+            'En rojo, costo adicional; en verde, ahorro.',
+            'Debajo se indica cuántos materiales subieron y cuántos bajaron.',
         ],
     },
     'bi-costos.kpi-historial': {
         titulo: 'Materiales con historial',
-        que: 'Cuántos materiales tienen al menos dos precios registrados, que es lo mínimo para ver si suben o bajan.',
+        que: 'Cuántos materiales tienen al menos dos precios registrados, lo mínimo necesario para ver si suben o bajan.',
         leer: [
-            'Cada compra aprobada deja registrado el precio del material.',
+            'Cada compra aprobada registra el precio del material.',
             'Un material con una sola compra todavía no tiene tendencia.',
         ],
     },
     'bi-costos.lectura': {
         titulo: 'Lectura del material',
-        que: 'El resumen en números del material que elegiste en el gráfico de al lado.',
+        que: 'El resumen numérico del material seleccionado en el gráfico contiguo.',
         leer: [
-            'Precio actual: lo que cuesta hoy por unidad de medida.',
+            'Precio actual: el costo vigente por unidad de medida.',
             'Tendencia: cuánto sube o baja por mes, en promedio.',
-            'Precio estimado: cuánto costaría al final de la proyección si sigue igual.',
+            'Precio estimado: lo que costaría al final de la proyección si se mantiene la tendencia.',
         ],
-        ojo: 'Si el precio estimado está harto más arriba que el actual, conviene revisar las cotizaciones que usan este material.',
+        ojo: 'Si el precio estimado es bastante mayor que el actual, conviene revisar las cotizaciones que usan este material.',
     },
     'bi-costos.detalle-impacto': {
         titulo: 'Detalle del impacto en costos',
-        que: 'Material por material: con qué precio empezó el periodo, con cuál terminó, cuánto se usó y cuánto dinero significó esa diferencia.',
+        que: 'Por material: el precio al inicio y al final del periodo, la cantidad utilizada y el monto que representó esa diferencia.',
         leer: [
             'Variación: cuánto cambió el precio, en porcentaje.',
-            'Impacto: (precio final − precio inicial) × lo consumido. En rojo nos costó más; en verde, menos.',
+            'Impacto: (precio final − precio inicial) × cantidad consumida. En rojo, costo adicional; en verde, ahorro.',
         ],
-        ojo: 'Un material que subió pero no se usó en el periodo tiene impacto cero hoy, pero se va a sentir en el próximo pedido que lo use.',
+        ojo: 'Un material que subió pero no se utilizó en el periodo tiene impacto cero por ahora, pero se reflejará en el próximo pedido que lo use.',
     },
 
     /* ------------------------------------------------------------------
@@ -600,94 +602,94 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi-rentabilidad.pronostico': {
         titulo: 'Pronóstico de presupuestos',
-        que: 'El dinero de los presupuestos que se hicieron cada mes y el de los que el cliente aprobó, con la proyección de lo que se va a cotizar.',
+        que: 'El monto de los presupuestos emitidos cada mes y el de los aprobados por el cliente, con la proyección de lo que se cotizará.',
         leer: [
-            'La línea con relleno es todo lo cotizado; la otra, lo que se aprobó.',
-            'La distancia entre las dos es lo que se cotizó y no se cerró.',
+            'La línea con relleno es todo lo cotizado; la otra, lo aprobado.',
+            'La distancia entre ambas es lo cotizado que no se concretó.',
             'La punteada es la proyección de lo cotizado, con su rango probable.',
         ],
-        ojo: 'Si la distancia crece, se está cotizando harto pero cerrando poco: toca hacer seguimiento a los caseros.',
+        ojo: 'Si la distancia crece, se está cotizando mucho pero cerrando poco: conviene reforzar el seguimiento a los clientes.',
     },
     'bi-rentabilidad.cantidades': {
         titulo: 'Presupuestos por mes',
-        que: 'Cuántos presupuestos se hicieron y cuántos se aprobaron cada mes.',
+        que: 'Cuántos presupuestos se emitieron y cuántos se aprobaron cada mes.',
         leer: [
-            'Cada mes tiene dos barras: la de emitidos y la de aprobados.',
-            'Mientras más se parezcan, mejor estamos cerrando ventas.',
+            'Cada mes tiene dos barras: emitidos y aprobados.',
+            'Mientras más se parezcan, mayor es la efectividad en el cierre de ventas.',
         ],
-        ojo: 'Si la barra de aprobados queda chiquita al lado de la de emitidos, conviene llamar a esos clientes antes de que se enfríen.',
+        ojo: 'Si la barra de aprobados es mucho menor que la de emitidos, conviene contactar a esos clientes antes de que pierdan interés.',
     },
     'bi-rentabilidad.tendencia': {
         titulo: 'Tendencia: precio vs. costo',
-        que: 'Lo que en promedio cobramos por cada presupuesto (sin IVA ni instalación) contra lo que en promedio cuesta hacerlo. Las dos líneas salen de los mismos presupuestos: los que tienen hoja de costos.',
+        que: 'El precio promedio cobrado por presupuesto (sin IVA ni instalación) frente a su costo promedio. Ambas líneas se calculan sobre los mismos presupuestos: los que tienen hoja de costos.',
         leer: [
-            'El espacio entre las dos líneas es, más o menos, lo que se gana en cada trabajo.',
-            'Si las líneas se van juntando, cada trabajo nos deja menos.',
+            'El espacio entre las dos líneas es, aproximadamente, la ganancia por trabajo.',
+            'Si las líneas se acercan, cada trabajo genera menos ganancia.',
         ],
     },
     'bi-rentabilidad.rentabilidad': {
         titulo: 'Rentabilidad por mes',
-        que: 'De cada 100 Bs que nos cuesta hacer un trabajo, cuántos Bs de ganancia real quedan después de impuestos, mes a mes.',
+        que: 'De cada 100 Bs de costo de un trabajo, cuántos Bs de ganancia real quedan después de impuestos, mes a mes.',
         leer: [
-            'Las líneas de colores son el semáforo: arriba de la verde, bien; entre la amarilla y la verde, a medias; debajo de la amarilla, estamos ganando poco.',
-            'La parte punteada es hacia dónde iría si sigue la tendencia.',
+            'Las líneas de colores son el semáforo: sobre la verde, rentabilidad adecuada; entre la amarilla y la verde, intermedia; bajo la amarilla, baja.',
+            'La parte punteada indica hacia dónde iría si se mantiene la tendencia.',
         ],
-        ojo: 'Solo cuenta presupuestos aprobados que tienen hoja de costos. Los antiguos, sin hoja, se dejan afuera para no inflar el número.',
+        ojo: 'Solo cuentan los presupuestos aprobados con hoja de costos. Los anteriores, sin hoja, se excluyen para no distorsionar el resultado.',
     },
     'bi-rentabilidad.utilidad': {
         titulo: 'Utilidad real por mes',
-        que: 'La ganancia real, en bolivianos, que dejaron los presupuestos aprobados de cada mes.',
+        que: 'La ganancia real, en bolivianos, que generaron los presupuestos aprobados de cada mes.',
         leer: [
-            'Cada barra es lo que quedó limpio ese mes, ya descontados costo e impuestos.',
+            'Cada barra es la utilidad neta del mes, ya descontados el costo y los impuestos.',
             'La parte punteada es la proyección para los próximos meses.',
         ],
-        ojo: 'Un mes puede tener rentabilidad alta y poca utilidad si se vendió poco: mira los dos gráficos juntos.',
+        ojo: 'Un mes puede tener rentabilidad alta y poca utilidad si se vendió poco: conviene analizar ambos gráficos juntos.',
     },
     'bi-rentabilidad.kpi-emitidos': {
         titulo: 'Presupuestos emitidos',
-        que: 'Cuántos presupuestos se hicieron en el periodo y cuánto dinero suman entre todos.',
+        que: 'Cuántos presupuestos se emitieron en el periodo y el monto total que suman.',
         leer: [
-            'Cuenta todos: aprobados, rechazados, vencidos y pendientes.',
-            'La flecha dice si cada mes se está cotizando más o menos.',
+            'Incluye todos: aprobados, rechazados, vencidos y pendientes.',
+            'La flecha indica si cada mes se cotiza más o menos.',
         ],
     },
     'bi-rentabilidad.kpi-aprobacion': {
         titulo: 'Tasa de aprobación',
-        que: 'De los presupuestos que ya tienen respuesta (aprobados, rechazados o vencidos), qué parte aprobó el cliente.',
+        que: 'De los presupuestos que ya tienen respuesta (aprobados, rechazados o vencidos), qué porcentaje aprobó el cliente.',
         leer: [
-            'Los pendientes no cuentan: todavía se pueden aprobar.',
-            'Abajo ves cuántos se aprobaron y cuántos siguen esperando.',
+            'Los pendientes no se cuentan: todavía pueden aprobarse.',
+            'Debajo se indica cuántos se aprobaron y cuántos siguen pendientes.',
         ],
-        ojo: 'Si este número baja, puede ser el precio, el tiempo de respuesta o que falta hacer seguimiento a los clientes.',
+        ojo: 'Si este número baja, puede deberse al precio, al tiempo de respuesta o a la falta de seguimiento a los clientes.',
     },
     'bi-rentabilidad.kpi-rentabilidad': {
         titulo: 'Rentabilidad sobre costo',
-        que: 'De cada 100 Bs que nos cuesta hacer los trabajos aprobados del periodo, cuántos Bs de ganancia real nos quedan, ya descontados los impuestos.',
+        que: 'De cada 100 Bs de costo de los trabajos aprobados del periodo, cuántos Bs de ganancia real quedan, ya descontados los impuestos.',
         leer: [
-            'El color sigue el semáforo: verde está bien, amarillo a medias, rojo es poco.',
-            'Abajo está la ganancia total en bolivianos; la flecha, si va mejorando mes a mes.',
+            'El color sigue el semáforo: verde es adecuado, amarillo intermedio y rojo bajo.',
+            'Debajo se indica la ganancia total en bolivianos; la flecha muestra si mejora mes a mes.',
         ],
         ojo: 'Solo cuentan los presupuestos con hoja de costos.',
     },
     'bi-rentabilidad.kpi-proyectada': {
         titulo: 'Rentabilidad proyectada',
-        que: 'Hasta dónde llegaría la rentabilidad al final de la proyección si sigue la tendencia de los últimos meses.',
+        que: 'La rentabilidad estimada al final de la proyección si se mantiene la tendencia de los últimos meses.',
         leer: [
-            'Abajo dice para qué mes es la estimación.',
-            'Si dice "Faltan meses con datos", todavía no hay historia suficiente para calcularla.',
+            'Debajo se indica a qué mes corresponde la estimación.',
+            'Si indica "Faltan meses con datos", todavía no hay historial suficiente para calcularla.',
         ],
-        ojo: 'Es una estimación, no un compromiso: sirve para ver si vamos para arriba o para abajo.',
+        ojo: 'Es una estimación, no un compromiso: sirve para saber si la tendencia es al alza o a la baja.',
     },
     'bi-rentabilidad.semaforo': {
         titulo: 'Semáforo de los presupuestos del periodo',
-        que: 'Cómo salieron todos los presupuestos del periodo según el motor de margen, el mismo que se usa al cotizar.',
+        que: 'El resultado de todos los presupuestos del periodo según el motor de margen, el mismo que se usa al cotizar.',
         leer: [
-            'Aceptar (verde): el precio deja buena ganancia.',
-            'Revisar precio (amarillo): deja algo, pero menos de lo recomendado.',
-            'No aceptar (rojo): con ese precio se gana muy poco o se pierde.',
+            'Aceptar (verde): el precio genera una buena ganancia.',
+            'Revisar precio (amarillo): genera ganancia, pero menos de la recomendada.',
+            'No aceptar (rojo): con ese precio la ganancia es muy baja o hay pérdida.',
             'Sin hoja de costos: presupuestos antiguos o manuales que no se pueden medir.',
         ],
-        ojo: 'Muchos en amarillo o rojo quiere decir que se está cotizando muy barato o que los costos subieron.',
+        ojo: 'Muchos presupuestos en amarillo o rojo indican que se está cotizando por debajo de lo conveniente o que los costos subieron.',
     },
 
     /* ------------------------------------------------------------------
@@ -695,52 +697,52 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi-simulador.sensibilidad': {
         titulo: 'Sensibilidad al costo de materiales',
-        que: '¿Qué pasa con la ganancia si el material sube o baja? Compara dos caminos: aguantar el precio o pasarle el aumento al cliente.',
+        que: '¿Qué ocurre con la ganancia si el material sube o baja? Compara dos alternativas: mantener el precio o trasladar el aumento al cliente.',
         leer: [
-            'Abajo está cuánto cambia el costo (de -30 % a +30 %); al costado, la rentabilidad que quedaría.',
-            '"Manteniendo el precio" se va cayendo a medida que el material sube.',
-            '"Trasladando el aumento" muestra qué pasa si subimos el precio en la misma proporción.',
+            'En el eje inferior está la variación del costo (de -30 % a +30 %); en el lateral, la rentabilidad resultante.',
+            '"Manteniendo el precio" disminuye a medida que sube el material.',
+            '"Trasladando el aumento" muestra el resultado si el precio sube en la misma proporción.',
             'Las líneas de colores son el semáforo de rentabilidad.',
         ],
-        ojo: 'Es una simulación con los datos que pusiste arriba: no cambia nada en el sistema, juega tranquilo.',
+        ojo: 'Es una simulación con los datos ingresados arriba: no modifica nada en el sistema.',
     },
     'bi-simulador.composicion': {
         titulo: 'A dónde va el precio',
-        que: 'Cómo se reparte el precio de un presupuesto: cuánto se va en costo, cuánto en impuestos (IT e IUE) y cuánto queda de ganancia.',
+        que: 'Cómo se distribuye el precio de un presupuesto: cuánto corresponde al costo, a los impuestos (IT e IUE) y a la ganancia.',
         leer: [
-            '"Base" es el presupuesto promedio del periodo, tal como está hoy.',
-            '"Escenario" es cómo quedaría con los cambios que moviste en el simulador.',
-            'Compara las barras de "Utilidad real": esa es la ganancia que de verdad queda.',
+            '"Base" es el presupuesto promedio del periodo, en su situación actual.',
+            '"Escenario" es cómo quedaría con los cambios aplicados en el simulador.',
+            'Compare las barras de "Utilidad real": es la ganancia efectiva.',
         ],
     },
     'bi-simulador.base': {
         titulo: 'Escenario base',
-        que: 'El punto de partida del simulador: un presupuesto "promedio" de los que se aprobaron en el periodo, con su costo, su precio y cuántos se aprueban por mes.',
+        que: 'El punto de partida del simulador: un presupuesto promedio de los aprobados en el periodo, con su costo, su precio y la cantidad de aprobaciones por mes.',
         leer: [
-            'Puedes cambiar cualquier número para simular un trabajo en particular.',
-            'Si eliges un tipo de proyecto, el precio se calcula con el margen mínimo de ese tipo.',
-            'El costo es el costo ajustado, el mismo que guarda la cotización.',
+            'Puede modificar cualquier valor para simular un trabajo en particular.',
+            'Si elige un tipo de proyecto, el precio se calcula con el margen mínimo de ese tipo.',
+            'El costo es el costo ajustado, el mismo que registra la cotización.',
         ],
-        ojo: 'Aquí juegas tranquilo: nada de lo que cambies se guarda ni toca las cotizaciones reales.',
+        ojo: 'Los cambios realizados aquí no se guardan ni afectan las cotizaciones reales.',
     },
     'bi-simulador.palancas': {
         titulo: '¿Qué pasa si…?',
-        que: 'Las "perillas" para probar decisiones: que suba o baje el material, subir o bajar el precio, dar un descuento o vender más o menos trabajos.',
+        que: 'Los controles para evaluar decisiones: variación del costo del material, ajuste del precio, descuentos y cambios en la cantidad de trabajos vendidos.',
         leer: [
-            'Mueve las barras y el resultado de la derecha cambia al instante.',
+            'Al mover los controles, el resultado de la derecha se actualiza de inmediato.',
             '"Trasladar al precio" sube el precio en la misma proporción que el material.',
-            '"Restablecer" vuelve todo a cero.',
+            '"Restablecer" devuelve todos los valores a cero.',
         ],
     },
     'bi-simulador.resultado': {
         titulo: 'Resultado del escenario',
-        que: 'Cómo quedaría el presupuesto con los cambios que hiciste, calculado con el mismo motor de margen que las cotizaciones.',
+        que: 'Cómo quedaría el presupuesto con los cambios aplicados, calculado con el mismo motor de margen de las cotizaciones.',
         leer: [
-            'El color de arriba es el semáforo: si se puede aceptar ese precio o no.',
-            'El mensaje dice cuánto más puede subir el costo sin salir de verde, o cuánto hay que subir el precio para volver a verde.',
-            'La tabla compara la base con tu escenario, línea por línea.',
+            'El color superior es el semáforo: indica si ese precio es aceptable o no.',
+            'El mensaje indica cuánto más puede subir el costo sin salir de verde, o cuánto debe subir el precio para volver a verde.',
+            'La tabla compara la base con su escenario, línea por línea.',
         ],
-        ojo: 'El "precio mínimo para verde" es una buena referencia para no cotizar por debajo cuando el material sube.',
+        ojo: 'El "precio mínimo para verde" es una buena referencia para no cotizar por debajo cuando sube el material.',
     },
 
     /* ------------------------------------------------------------------
@@ -748,60 +750,60 @@ export const AYUDAS = {
      * ---------------------------------------------------------------- */
     'bi-resumen.semana': {
         titulo: 'Resumen de la semana',
-        que: 'Un resumen automático de cómo nos fue la semana pasada, que se arma solito cada lunes a las 7 de la mañana.',
+        que: 'Un resumen automático del desempeño de la semana anterior, que se genera cada lunes a las 7:00.',
         leer: [
-            'La frase grande es lo más importante de la semana en una línea.',
-            'Si ves varias sucursales, hay uno para toda la empresa y uno por cada sucursal: cámbialo con los botones de la derecha.',
-            'La etiqueta dice si lo redactó la IA o la plantilla automática; los números son los mismos en los dos casos.',
+            'La frase destacada resume lo más importante de la semana en una línea.',
+            'Si tiene acceso a varias sucursales, hay un resumen general y uno por sucursal: puede cambiarlo con los botones de la derecha.',
+            'La etiqueta indica si fue redactado por la IA o por la plantilla automática; las cifras son las mismas en ambos casos.',
         ],
-        ojo: 'Si la IA lo redacta, igual no inventa cifras: cada número se revisa contra los datos antes de publicarse.',
+        ojo: 'Aunque lo redacte la IA, no inventa cifras: cada número se verifica contra los datos antes de publicarse.',
     },
     'bi-resumen.destacados': {
         titulo: 'Lo más destacado',
-        que: 'Lo que salió bien la semana pasada.',
+        que: 'Los resultados positivos de la semana anterior.',
         leer: [
-            'Pasa el mouse por un punto y se resaltan, en la tabla de la derecha, los indicadores de los que sale.',
+            'Al pasar el cursor sobre un punto, se resaltan en la tabla de la derecha los indicadores de los que proviene.',
         ],
     },
     'bi-resumen.riesgos': {
         titulo: 'Riesgos',
-        que: 'Lo que salió mal o puede convertirse en problema si no se atiende.',
+        que: 'Los resultados negativos o lo que puede convertirse en un problema si no se atiende.',
         leer: [
-            'Alta: atenderlo esta semana sí o sí. Media: tenerlo en el ojo.',
-            'Pasa el mouse por un punto para ver en la tabla los indicadores que lo explican.',
+            'Alta: debe atenderse esta semana. Media: requiere seguimiento.',
+            'Al pasar el cursor sobre un punto, se resaltan en la tabla los indicadores que lo explican.',
         ],
     },
     'bi-resumen.recomendaciones': {
         titulo: 'Recomendaciones para esta semana',
-        que: 'Qué conviene hacer esta semana a partir de lo que pasó en la anterior.',
+        que: 'Qué conviene hacer esta semana a partir de los resultados de la anterior.',
         leer: [
-            'En negrita la acción; abajo, el porqué.',
+            'En negrita la acción; debajo, su justificación.',
         ],
-        ojo: 'Son sugerencias para conversar con el equipo, no órdenes: tú conoces el contexto que los números no ven.',
+        ojo: 'Son sugerencias para analizar con el equipo, no instrucciones: el contexto que no reflejan los números lo conoce usted.',
     },
     'bi-resumen.indicadores': {
         titulo: 'Indicadores de la semana',
-        que: 'Los números de los que sale todo el resumen, de la semana pasada: presupuestos, ventas, monto promedio por presupuesto, rentabilidad, cobranza, entregas y costo de material.',
+        que: 'Las cifras de la semana anterior en las que se basa el resumen: presupuestos, ventas, monto promedio por presupuesto, rentabilidad, cobranza, entregas y costo de material.',
         leer: [
-            '"vs. 4 sem." compara con el promedio de las 4 semanas anteriores: es la comparación que más vale, porque una sola semana puede salir rara por un pedido grande.',
+            '"vs. 4 sem." compara con el promedio de las 4 semanas anteriores: es la comparación más confiable, porque una sola semana puede verse alterada por un pedido grande.',
             '"vs. ant." compara con la semana anterior y "vs. año", con la misma semana del año pasado.',
-            'Verde quiere decir que se movió para el lado bueno de ese indicador; rojo, para el lado malo.',
+            'Verde indica que el indicador se movió en la dirección favorable; rojo, en la desfavorable.',
         ],
     },
     'bi-resumen.contexto': {
         titulo: 'Contexto',
-        que: 'Datos de apoyo para entender la semana: qué familias de productos se cotizaron más, qué vendedor cotizó más y cuántas anomalías siguen sin revisar.',
+        que: 'Información de apoyo para interpretar la semana: qué familias de productos se cotizaron más, qué vendedor cotizó más y cuántas anomalías siguen sin revisar.',
         leer: [
-            'La barra de cada familia es su parte en el total cotizado.',
-            'El número de anomalías te lleva directo a la pantalla de Alertas.',
+            'La barra de cada familia es su participación en el total cotizado.',
+            'El número de anomalías lleva directamente a la pantalla de Alertas.',
         ],
     },
     'bi-resumen.historial': {
         titulo: 'Semanas anteriores',
-        que: 'Los resúmenes de las semanas pasadas, para comparar o volver a leerlos.',
+        que: 'Los resúmenes de semanas anteriores, para compararlos o consultarlos de nuevo.',
         leer: [
-            'Toca una semana para abrir su resumen.',
-            'Se abre con la misma sucursal que estás mirando.',
+            'Haga clic en una semana para abrir su resumen.',
+            'Se abre con la misma sucursal que está consultando.',
         ],
     },
 };

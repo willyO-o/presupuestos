@@ -105,7 +105,7 @@ final class InformeProyeccionesCsv
                 }
 
                 if ($pregunta['base']) {
-                    $fila(['Con qué datos', $pregunta['base']]);
+                    $fila(['Datos utilizados', $pregunta['base']]);
                 }
             }
         }

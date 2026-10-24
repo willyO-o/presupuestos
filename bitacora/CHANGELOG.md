@@ -13,6 +13,43 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-24 — Textos de ayuda e informe en registro neutro; informe por pestaña; tabla de rentabilidad
+
+**Qué cambió:**
+- **Textos de ayuda (íconos "i")** de Dashboard, Reportes y todo el BI reescritos en un punto medio:
+  claros pero sin regionalismos ni jerga ("harto", "nomás", "chamba", "caseros", "ahorita", "se
+  tranca"), ni la primera persona coloquial ("nos costó", "gastamos").
+- **Preguntas para decidir**: respuestas, acciones, columnas y títulos con el mismo criterio ("Costo
+  adicional", "Excedidos", "Proviene de", "Monto involucrado", "¿Cuánto cuesta realmente producir…?").
+- **Bug**: "Qué hacer" de la pregunta 5 recomendaba revisar un producto que no estaba en la tabla
+  (buscaba entre los 10 primeros y la tabla mostraba 5). Ahora el candidato se elige por ventas (lo
+  que dice la frase) y todo producto o cliente nombrado en la respuesta o en "Qué hacer" aparece en
+  la tabla. Igual en la pregunta 6 (clientes).
+- **Bug**: "Generar informe" daba el mismo PDF en todas las pestañas del BI (siempre con las cinco
+  secciones). Ahora cada pestaña marca solo la suya; Panorama y Simulador, sin sección propia,
+  ofrecen el informe general. El título del cuadro dice qué informe es.
+- **Informe general (PDF)**: recuadro "Cómo leer este informe"; método y rango probable explicados
+  sin jerga; la confiabilidad dice Alta/Media/Baja y el error de la prueba con meses reales; la ficha
+  de cada indicador ("Meses analizados", "Confiabilidad", "Prueba con datos reales") deja los
+  términos técnicos solo entre paréntesis. El anexo metodológico conserva el detalle técnico.
+- Corrección menor: la lectura decía "Confiabilidad: Alta: …" (dos veces dos puntos).
+
+**Por qué:** pedidos del usuario: textos "muy coloquiales", un producto de "Qué hacer" que no
+aparecía en la tabla, el mismo informe en todas las pestañas y un informe general difícil de leer.
+
+**Cómo:**
+- `resources/js/Data/Ayudas.js` (registro documentado en su cabecera), `PreguntasNegocioService`
+  (`filasConMencionados()`), `BiEncabezado.vue` (`SECCION_DE_PESTANA`), `BiPreguntas.vue`,
+  `RedaccionPronostico` (ficha, confiabilidad, validación), `InformeProyeccionesPdf::comoLeer()`, CSV.
+- Las claves internas no cambian (`ajuste`, `validacion`, `ticket`…); las columnas técnicas del CSV
+  quedan como estaban (es para reprocesar en Excel).
+- Tests: `AyudasTest` vigila las palabras coloquiales (sin contar comentarios); `PreguntasNegocioTest`
+  fija que un nombrado fuera del top 5 entra a la tabla; `InformeProyeccionesTest` fija la sección
+  por pestaña, la guía de lectura y la confiabilidad sin dos puntos dobles. Suite completa en verde y
+  `npm run build` sin errores. Revisado el PDF generado.
+
+---
+
 ## 2026-10-24 — NIT en documentos y sitio; firma del propietario en la cotización
 
 **Qué cambió:**

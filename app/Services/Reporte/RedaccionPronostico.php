@@ -15,9 +15,9 @@ final class RedaccionPronostico
 {
     /** Nombre legible de cada modelo de la validación. */
     public const MODELOS = [
-        'recta' => 'la recta (regresión lineal)',
-        'holt' => 'Holt (suavizado exponencial doble)',
-        'media_movil' => 'la media móvil de 3 meses',
+        'recta' => 'la tendencia lineal',
+        'holt' => 'el suavizado exponencial (Holt)',
+        'media_movil' => 'el promedio de los últimos 3 meses',
     ];
 
     /**
@@ -40,43 +40,43 @@ final class RedaccionPronostico
 
         if (! empty($metodo['mes_final_excluido'])) {
             $historia .= sprintf(
-                ' %s no entra en la recta porque está incompleto%s: se muestra en el gráfico y la línea punteada estima cómo cerraría.',
+                ' %s no se usa para calcular la tendencia porque aún no termina%s: se muestra en el gráfico y la línea punteada estima cómo cerraría.',
                 self::mayuscula($metodo['mes_final_excluido']),
                 $mesIncompleto ? sprintf(' (%d de %d días)', $mesIncompleto['dias'], $mesIncompleto['de']) : '',
             );
         }
 
         if (! empty($metodo['mes_inicial_excluido'])) {
-            $historia .= sprintf(' %s tampoco: el periodo empieza a mitad de ese mes.', self::mayuscula($metodo['mes_inicial_excluido']));
+            $historia .= sprintf(' %s tampoco se usa: el periodo empieza a mitad de ese mes.', self::mayuscula($metodo['mes_inicial_excluido']));
         }
 
         if (! ($metodo['suficiente'] ?? false)) {
             return [
-                ['rotulo' => 'Historia usada', 'texto' => $historia],
+                ['rotulo' => 'Meses analizados', 'texto' => $historia],
                 ['rotulo' => 'Proyección', 'texto' => sprintf(
-                    'Se necesitan al menos %d meses con datos para trazar una tendencia. No se proyecta para no inventar una.',
+                    'Se necesitan al menos %d meses con datos para calcular una tendencia. No se proyecta para no dar una cifra sin respaldo.',
                     $metodo['minimo'] ?? Pronostico::MINIMO_PUNTOS,
                 )],
             ];
         }
 
         $renglones = [
-            ['rotulo' => 'Método', 'texto' => 'Regresión lineal por mínimos cuadrados: una recta y = a + b·x con un punto por mes, prolongada '
+            ['rotulo' => 'Método', 'texto' => 'Se traza la tendencia de los meses con datos (una línea recta que pasa lo más cerca posible de cada mes) y se prolonga '
                 .config('bi.meses_proyeccion').' meses hacia adelante.'],
-            ['rotulo' => 'Historia usada', 'texto' => $historia],
-            ['rotulo' => 'Ajuste', 'texto' => self::textoAjuste($metodo)],
+            ['rotulo' => 'Meses analizados', 'texto' => $historia],
+            ['rotulo' => 'Confiabilidad', 'texto' => self::textoAjuste($metodo)],
             ['rotulo' => 'Rango probable', 'texto' => sprintf(
-                'Intervalo de predicción al %d %%: t de Student con %d grados de libertad (t = %s) × error típico (%s), ensanchado según la distancia al centro de los datos. Se abre cuanto más lejos se proyecta.',
+                'El resultado real debería quedar entre el mínimo y el máximo probables en %d de cada 100 casos. El rango se amplía cuanto más lejana es la proyección. (Intervalo de predicción: t = %s con %d grados de libertad, error típico %s.)',
                 $metodo['confianza'],
-                $metodo['grados_libertad'],
                 self::numero($metodo['t'], 3),
+                $metodo['grados_libertad'],
                 self::numero($metodo['error_tipico'], 2),
             )],
-            ['rotulo' => 'Validación', 'texto' => self::textoValidacion($metodo['validacion'] ?? null)],
+            ['rotulo' => 'Prueba con datos reales', 'texto' => self::textoValidacion($metodo['validacion'] ?? null)],
         ];
 
         if (! ($metodo['piso'] ?? true)) {
-            $renglones[] = ['rotulo' => 'Sin piso', 'texto' => 'Esta serie puede proyectarse negativa (un margen o una utilidad pueden serlo): no se corta en cero.'];
+            $renglones[] = ['rotulo' => 'Valores negativos', 'texto' => 'Este indicador puede proyectarse en negativo (un margen o una utilidad pueden serlo): no se limita a cero.'];
         }
 
         return $renglones;
@@ -90,15 +90,15 @@ final class RedaccionPronostico
     public static function textoAjuste(array $metodo): string
     {
         if (($metodo['r2'] ?? null) === null) {
-            return 'La serie no varía: no hay tendencia que medir (R² no aplica).';
+            return 'El indicador no cambió en el periodo: no hay tendencia que medir.';
         }
 
         $porcentaje = self::numero($metodo['r2'] * 100, 0);
 
         return match ($metodo['ajuste']) {
-            'fuerte' => 'R² = '.self::numero($metodo['r2'], 2)." (ajuste fuerte): la tendencia explica el {$porcentaje} % de la variación de un mes a otro.",
-            'moderado' => 'R² = '.self::numero($metodo['r2'], 2)." (ajuste moderado): la tendencia explica el {$porcentaje} % de la variación; el resto son altibajos propios de cada mes.",
-            default => 'R² = '.self::numero($metodo['r2'], 2)." (ajuste débil): la tendencia explica solo el {$porcentaje} % de la variación. Tomar la proyección como referencia, no como meta.",
+            'fuerte' => "Alta: la tendencia explica el {$porcentaje} % de los cambios de un mes a otro (R² = ".self::numero($metodo['r2'], 2).').',
+            'moderado' => "Media: la tendencia explica el {$porcentaje} % de los cambios; el resto son variaciones propias de cada mes (R² = ".self::numero($metodo['r2'], 2).').',
+            default => "Baja: la tendencia explica solo el {$porcentaje} % de los cambios (R² = ".self::numero($metodo['r2'], 2).'). Conviene tomar la proyección como referencia, no como meta.',
         };
     }
 
@@ -109,17 +109,17 @@ final class RedaccionPronostico
     {
         if ($validacion === null) {
             return sprintf(
-                'Hacen falta al menos %d meses de entrenamiento más los meses a validar para medir el error con datos propios.',
+                'No hay meses suficientes para probar la proyección con datos reales: se necesitan al menos %d, además de los meses que se comparan.',
                 Pronostico::MINIMO_VALIDACION,
             );
         }
 
         if ($validacion['recta'] === null) {
-            return 'Los meses reservados para validar no tuvieron movimiento: no se puede medir el error porcentual.';
+            return 'Los meses usados para la prueba no tuvieron movimiento: no se puede medir el error.';
         }
 
         $texto = sprintf(
-            'Se ocultaron los últimos %d meses reales y se pronosticaron con los %d anteriores: la recta se equivocó en promedio un %s %% (MAPE)',
+            'Se calculó la proyección sin los últimos %d meses reales (usando los %d anteriores) y se comparó con lo que realmente ocurrió: el error promedio fue de %s %% (MAPE)',
             $validacion['meses'],
             $validacion['entrenamiento'],
             self::numero($validacion['recta'], 1),
@@ -127,19 +127,19 @@ final class RedaccionPronostico
 
         $otros = collect(['holt', 'media_movil'])
             ->filter(fn (string $m) => $validacion[$m] !== null)
-            ->map(fn (string $m) => sprintf('%s %s %%', $m === 'holt' ? 'Holt' : 'media móvil', self::numero($validacion[$m], 1)))
+            ->map(fn (string $m) => sprintf('%s %s %%', $m === 'holt' ? 'Holt' : 'promedio de 3 meses', self::numero($validacion[$m], 1)))
             ->implode(', ');
 
         if ($otros !== '') {
-            $texto .= " (contra {$otros})";
+            $texto .= " (otros métodos: {$otros})";
         }
 
         $texto .= '.';
 
         if (($validacion['mejor'] ?? null) && $validacion['mejor'] !== 'recta') {
-            $texto .= sprintf(' En este tramo acertó más %s: conviene leer la recta con cautela.', self::MODELOS[$validacion['mejor']]);
+            $texto .= sprintf(' En este tramo fue más preciso %s: conviene leer la proyección con cautela.', self::MODELOS[$validacion['mejor']]);
         } else {
-            $texto .= ' La recta fue el modelo que menos se equivocó.';
+            $texto .= ' La tendencia lineal fue el método más preciso.';
         }
 
         return $texto;
@@ -231,7 +231,8 @@ final class RedaccionPronostico
             );
         }
 
-        $parrafos[] = 'Confiabilidad: '.self::textoAjuste($metodo).' '.self::textoValidacion($metodo['validacion'] ?? null);
+        // textoAjuste() ya empieza con "Alta:", "Media:" o "Baja:".
+        $parrafos[] = 'Confiabilidad '.lcfirst(self::textoAjuste($metodo)).' '.self::textoValidacion($metodo['validacion'] ?? null);
 
         return $parrafos;
     }
@@ -252,14 +253,18 @@ final class RedaccionPronostico
 
         $confiabilidad = '—';
         if ($metodo['suficiente'] ?? false) {
-            $partes = [];
-            if ($metodo['r2'] !== null) {
-                $partes[] = 'R² '.self::numero($metodo['r2'], 2);
-            }
+            // En palabras (Alta/Media/Baja) y el error de la prueba con datos
+            // reales; el R² queda para la ficha y el anexo.
+            $partes = [match (true) {
+                $metodo['r2'] === null => 'Sin variación',
+                ($metodo['ajuste'] ?? null) === 'fuerte' => 'Alta',
+                ($metodo['ajuste'] ?? null) === 'moderado' => 'Media',
+                default => 'Baja',
+            }];
             if (($metodo['validacion']['recta'] ?? null) !== null) {
                 $partes[] = 'error '.self::numero($metodo['validacion']['recta'], 0).' %';
             }
-            $confiabilidad = implode(' · ', $partes) ?: '—';
+            $confiabilidad = implode(', ', $partes);
         }
 
         return [
@@ -329,7 +334,7 @@ final class RedaccionPronostico
             ->pluck('titulo');
 
         if ($cautela->isNotEmpty()) {
-            $conclusiones[] = 'Leer con cautela: '.$cautela->implode(', ').' (ajuste débil o, en la validación, otro modelo se equivocó menos que la recta).';
+            $conclusiones[] = 'Conviene leer con cautela: '.$cautela->implode(', ').' (su tendencia es poco confiable o, al probarla con datos reales, otro método fue más preciso).';
         }
 
         $alertas = collect($secciones)->firstWhere('clave', 'alertas');

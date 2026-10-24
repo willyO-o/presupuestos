@@ -47,6 +47,7 @@ class InformeProyeccionesPdf extends Documento
     protected function cuerpo(): void
     {
         $this->datosGenerales();
+        $this->comoLeer();
 
         if ($this->informe['conclusiones'] !== []) {
             $this->recuadro([
@@ -111,18 +112,35 @@ class InformeProyeccionesPdf extends Documento
                 'lineas' => array_values(array_filter([
                     ['Fechas:', Carbon::parse($periodo['desde'])->format('d/m/Y').' al '.Carbon::parse($periodo['hasta'])->format('d/m/Y')],
                     ['Meses:', (string) $periodo['meses']],
-                    $incompleto ? ['Mes en curso:', sprintf('%s (%d de %d días, no entra en las tendencias de totales)', $incompleto['mes'], $incompleto['dias'], $incompleto['de'])] : null,
+                    $incompleto ? ['Mes en curso:', sprintf('%s (%d de %d días; no se usa en las tendencias de totales)', $incompleto['mes'], $incompleto['dias'], $incompleto['de'])] : null,
                 ])),
             ],
             [
                 'rotulo' => 'Proyección',
                 'titulo' => count($meses).' meses: '.implode(', ', $meses),
                 'lineas' => [
-                    ['Método:', 'Regresión lineal (mínimos cuadrados)'],
-                    ['Rango probable:', "Intervalo de predicción al {$this->informe['confianza']} %"],
+                    ['Método:', 'Tendencia de los meses analizados'],
+                    ['Rango probable:', "Con {$this->informe['confianza']} % de confianza"],
                     ['Alcance:', $this->informe['alcance']],
                 ],
             ],
+        ]);
+    }
+
+    /**
+     * Guía breve para quien no es analista: qué significa cada término que
+     * se repite en el informe. El detalle técnico queda en el anexo.
+     */
+    private function comoLeer(): void
+    {
+        $this->recuadro([
+            ['tipo' => 'titulo', 'texto' => 'Cómo leer este informe'],
+            ['tipo' => 'lista', 'items' => [
+                'Cada indicador muestra los meses reales, su tendencia y una estimación para los próximos meses.',
+                'Proyección: el valor esperado si la tendencia se mantiene. Rango probable: entre qué valores debería quedar el resultado real.',
+                'Confiabilidad: qué tan estable es la tendencia (alta, media o baja) y cuánto se equivocó al probarla con meses reales. Con confiabilidad baja, la proyección es solo una referencia.',
+                'El detalle técnico del cálculo está en el anexo metodológico, al final.',
+            ]],
         ]);
     }
 
@@ -147,18 +165,18 @@ class InformeProyeccionesPdf extends Documento
         $this->espacio(4);
         $this->rotulo('Resumen ejecutivo');
         $this->tabla([
-            ['titulo' => 'Indicador', 'ancho' => 21],
-            ['titulo' => 'Último mes', 'ancho' => 19],
+            ['titulo' => 'Indicador', 'ancho' => 20],
+            ['titulo' => 'Último mes', 'ancho' => 18],
             ['titulo' => 'Tendencia', 'ancho' => 13, 'alineacion' => 'R'],
             ['titulo' => 'Proyección', 'ancho' => 18, 'alineacion' => 'R'],
             ['titulo' => 'Rango probable', 'ancho' => 17, 'alineacion' => 'R'],
-            ['titulo' => 'Confiabilidad', 'ancho' => 12, 'alineacion' => 'R'],
+            ['titulo' => 'Confiabilidad', 'ancho' => 14, 'alineacion' => 'R'],
         ], $filas);
 
         $this->fuente(7, '', self::TENUE);
         $this->SetX(self::MARGEN_LATERAL);
         $this->flujo($this->anchoUtil(), [[
-            'texto' => 'Confiabilidad: R² = parte de la variación que explica la tendencia (0 a 1). Error = cuánto se equivocó la recta, en promedio, al pronosticar los últimos meses reales ocultándolos (MAPE). Ver el anexo metodológico.',
+            'texto' => 'Confiabilidad: alta, media o baja según qué tanto se ajustan los meses a la tendencia. Error: cuánto se desvió la proyección, en promedio, al compararla con los últimos meses reales. Detalle en el anexo metodológico.',
         ]], $this->altoLinea(7));
     }
 
@@ -230,7 +248,7 @@ class InformeProyeccionesPdf extends Documento
 
         if ($indicador['media_movil'] !== null) {
             $series[] = [
-                'nombre' => 'Media móvil 3 meses',
+                'nombre' => 'Promedio últimos 3 meses',
                 'datos' => [...array_values($indicador['media_movil']), ...$vacio],
                 'color' => self::TENUE,
                 'grosor' => 0.35,
@@ -387,7 +405,7 @@ class InformeProyeccionesPdf extends Documento
         $this->fuente(7.5, '', self::SUAVE);
         $this->SetX(self::MARGEN_LATERAL);
         $this->flujo($this->anchoUtil(), [[
-            'texto' => 'Cada respuesta sale de los datos registrados en el periodo y repite su cifra. Las acciones de la última pregunta salen de las anteriores.',
+            'texto' => 'Cada respuesta se basa en los datos registrados en el periodo e incluye su cifra. Las acciones de la última pregunta resumen las de las anteriores.',
         ]], $this->altoLinea(7.5));
 
         $grupo = null;
@@ -441,7 +459,7 @@ class InformeProyeccionesPdf extends Documento
             ]);
         }
 
-        foreach (array_filter([$pregunta['aviso'] ? "Ojo: {$pregunta['aviso']}" : null, $pregunta['base'] ? "Con qué datos: {$pregunta['base']}" : null]) as $nota) {
+        foreach (array_filter([$pregunta['aviso'] ? "Importante: {$pregunta['aviso']}" : null, $pregunta['base'] ? "Datos utilizados: {$pregunta['base']}" : null]) as $nota) {
             $this->fuente(7, '', self::SUAVE);
             $this->SetX(self::MARGEN_LATERAL);
             $this->flujo($this->anchoUtil(), [['texto' => $nota]], $this->altoLinea(7));

@@ -45,7 +45,7 @@ const grupos = computed(() => Object.entries(props.datos.grupos)
 
 const decisiones = computed(() => numeradas.value.find((p) => p.clave === 'decisiones'));
 
-/** "Sale de" trae el rótulo corto de la pregunta: se vuelve a su ancla. */
+/** "Proviene de" trae el rótulo corto de la pregunta: se vuelve a su ancla. */
 const claveDeCorto = computed(() => Object.fromEntries(props.datos.preguntas.map((p) => [p.corto, p.clave])));
 
 const ancla = (clave) => `pregunta-${clave}`;
@@ -88,7 +88,7 @@ function celda(valor, formato) {
                     class="preguntas-atajo">
                     <i class="fa-solid fa-list-check" aria-hidden="true"></i>
                     <span>
-                        <strong>Para ir directo a qué hacer, mira la pregunta {{ decisiones.numero }}.</strong>
+                        <strong>Para ir directamente a las acciones, consulte la pregunta {{ decisiones.numero }}.</strong>
                         {{ decisiones.respuesta }}
                     </span>
                     <i class="fa-solid fa-arrow-down preguntas-atajo-flecha" aria-hidden="true"></i>
@@ -111,7 +111,7 @@ function celda(valor, formato) {
                                     </a>
                                 </div>
                                 <span class="decision-monto">
-                                    <small>En juego</small>
+                                    <small>Monto involucrado</small>
                                     {{ celda(fila[2], 'bs') }}
                                 </span>
                             </li>
