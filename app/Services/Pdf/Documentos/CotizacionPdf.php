@@ -112,6 +112,9 @@ class CotizacionPdf extends Documento
             ['tipo' => 'lista', 'items' => $this->condiciones()],
         ]);
 
+        // Única aparición del nombre del propietario: al pie, como firma.
+        $this->firmaPropietario();
+
         $this->notaLegal([
             ['texto' => sprintf(
                 'Documento generado por el sistema de costos y presupuestos de %s el %s. Puedes verificar su autenticidad en ',
@@ -138,7 +141,8 @@ class CotizacionPdf extends Documento
         if ((float) $this->cotizacion->descuento > 0) {
             $filas[] = [
                 'etiqueta' => 'Descuento',
-                'valor' => '− '.$this->numero($this->cotizacion->descuento),
+                // Guion común: el "−" tipográfico no existe en cp1252 y salía "?".
+                'valor' => '- Bs '.$this->numero($this->cotizacion->descuento),
             ];
         }
 

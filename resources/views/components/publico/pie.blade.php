@@ -56,7 +56,7 @@
             <p>
                 &copy; {{ date('Y') }} {{ $empresa['nombre'] }}. Todos los derechos reservados.
                 @if (! empty($empresa['nit']))
-                    <span class="block sm:inline">{{ $empresa['razon_social'] ?? $empresa['propietario'] }} · NIT {{ $empresa['nit'] }}</span>
+                    <span class="block sm:inline">NIT {{ $empresa['nit'] }}</span>
                 @endif
             </p>
             <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1" aria-label="Enlaces del pie">

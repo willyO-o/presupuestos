@@ -187,11 +187,9 @@ class SitioPublicoController extends Controller
                     '@type' => 'LocalBusiness',
                     '@id' => $id,
                     'name' => $empresa['nombre'],
-                    'legalName' => $empresa['razon_social'] ?? null,
+                    // Solo el NIT: el nombre del propietario no se publica en
+                    // el sitio, va únicamente al pie de los documentos.
                     'taxID' => $empresa['nit'] ?? null,
-                    'founder' => isset($empresa['propietario'])
-                        ? ['@type' => 'Person', 'name' => $empresa['propietario']]
-                        : null,
                     'description' => $empresa['descripcion'],
                     'url' => route('inicio'),
                     'telephone' => $empresa['telefono'],

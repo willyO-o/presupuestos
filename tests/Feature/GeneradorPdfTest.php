@@ -368,9 +368,8 @@ test('todos los documentos comparten formato, pie numerado y membrete', function
         expect($texto)
             ->toContain(config('sitio.empresa.nombre'))
             ->toContain(config('sitio.empresa.telefono_visible'))
-            // Datos tributarios del propietario en el membrete de todos.
+            // El NIT va en el membrete de todos.
             ->toContain('NIT '.config('sitio.empresa.nit'))
-            ->toContain(config('sitio.empresa.razon_social'))
             // Pie con numeración de páginas en todos (los reportes pueden
             // ocupar más de una hoja).
             ->toMatch('/Página 1 de \d+/');
@@ -550,4 +549,34 @@ test('el PDF del pedido respeta el scoping por sucursal', function () {
     $global->givePermissionTo(['pedidos.ver', 'pedidos.ver_todas_sucursales']);
 
     $this->actingAs($global->fresh())->get(route('pedidos.pdf', $pedido))->assertOk();
+});
+
+test('el nombre del propietario va solo en la firma de la cotizacion', function () {
+    $propietario = config('sitio.empresa.propietario');
+
+    // La cotización es el documento que firma el propietario: su nombre va
+    // una sola vez, en la firma del pie, y no en el membrete.
+    $texto = textoDelPdf(generador()->cotizacion(cotizacionCompleta()));
+    $membrete = config('sitio.empresa.email').' · NIT '.config('sitio.empresa.nit');
+
+    // El descuento se imprime con guion, no como "?".
+    expect($texto)->toContain('Descuento- Bs 100,00')->not->toContain('? 100,00');
+
+    expect(substr_count($texto, $propietario))->toBe(1)
+        ->and(substr($texto, strrpos($texto, $membrete)))->toContain($propietario.' Propietario · '.config('sitio.empresa.nombre'));
+
+    // Los demás no lo llevan.
+    $sinFirma = [
+        generador()->cotizacionPublica(CotizacionPublica::factory()->create()),
+        generador()->notaEntrega(NotaEntrega::factory()->create()),
+        generador()->compra(Compra::factory()->create()),
+        generador()->pedido(Pedido::factory()->create()),
+        generador()->ordenCompraCliente(OrdenCompraCliente::factory()->create()),
+        generador()->reporteFinanciero(app(InformeReportesService::class)->financiero(User::factory()->todasLasSucursales()->create())),
+        generador()->reporteProduccion(app(InformeReportesService::class)->produccion(User::factory()->todasLasSucursales()->create())),
+    ];
+
+    foreach ($sinFirma as $pdf) {
+        expect(textoDelPdf($pdf))->not->toContain($propietario);
+    }
 });

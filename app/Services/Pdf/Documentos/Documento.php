@@ -195,21 +195,14 @@ abstract class Documento extends FPDF
             $this->empresa['ciudad'],
             $this->empresa['departamento'],
         )), 0, 2);
-        $this->Cell($anchoMarca, $this->altoLinea(7.5), $this->t(sprintf(
-            '%s · %s',
+        // El NIT va en el membrete (el cliente lo pide para su contabilidad);
+        // el nombre del propietario NO: solo aparece en la firma de los
+        // documentos que él firma, ver `firmaPropietario()`.
+        $this->Cell($anchoMarca, $this->altoLinea(7.5), $this->t(implode(' · ', array_filter([
             $this->empresa['telefono_visible'],
             $this->empresa['email'],
-        )), 0, 2);
-
-        // Identificación tributaria: el cliente la pide para su contabilidad
-        // y es la que respalda que la empresa emite factura.
-        if ($nit = ($this->empresa['nit'] ?? null)) {
-            $this->Cell($anchoMarca, $this->altoLinea(7.5), $this->t(sprintf(
-                'NIT %s · %s',
-                $nit,
-                $this->empresa['razon_social'] ?? $this->empresa['propietario'] ?? $this->empresa['nombre'],
-            )), 0, 2);
-        }
+            ! empty($this->empresa['nit']) ? 'NIT '.$this->empresa['nit'] : null,
+        ]))), 0, 2);
 
         $finMarca = $this->GetY();
 
@@ -568,6 +561,41 @@ abstract class Documento extends FPDF
             $this->SetX($x);
             $this->Cell($ancho, $this->altoLinea(8), $this->t($firma['pie']), 0, 2, 'C');
         }
+
+        $this->SetXY(self::MARGEN_LATERAL, $y + 12);
+    }
+
+    /**
+     * Firma del propietario, centrada, al cierre del documento. Es el único
+     * lugar donde se imprime su nombre (el membrete lleva solo el NIT) y solo
+     * la usan los documentos que él firma: hoy, la cotización. Sin
+     * propietario en el config no dibuja nada.
+     */
+    protected function firmaPropietario(): void
+    {
+        $propietario = $this->empresa['propietario'] ?? null;
+
+        if (! $propietario) {
+            return;
+        }
+
+        $ancho = 72.0;
+        $x = self::MARGEN_LATERAL + ($this->anchoUtil() - $ancho) / 2;
+
+        $this->asegurarEspacio(34);
+        $this->SetY($this->GetY() + 22);
+        $y = $this->GetY();
+
+        $this->setTrazo(self::OSCURO);
+        $this->Line($x, $y, $x + $ancho, $y);
+
+        $this->SetXY($x, $y + 1.5);
+        $this->fuente(8.5, 'B', self::OSCURO);
+        $this->Cell($ancho, $this->altoLinea(8.5), $this->t($propietario), 0, 2, 'C');
+
+        $this->fuente(8, '', self::SUAVE);
+        $this->SetX($x);
+        $this->Cell($ancho, $this->altoLinea(8), $this->t('Propietario · '.$this->empresa['nombre']), 0, 2, 'C');
 
         $this->SetXY(self::MARGEN_LATERAL, $y + 12);
     }
