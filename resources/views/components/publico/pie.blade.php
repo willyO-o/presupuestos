@@ -26,6 +26,9 @@
                     <div>
                         <span class="mb-0.5 block font-bold">Centro de operaciones</span>
                         <span class="text-white/85">{{ $empresa['direccion'] }}<br>{{ $empresa['ciudad'] }}, {{ $empresa['departamento'] }}</span>
+                        @if (! empty($empresa['referencia']))
+                            <span class="mt-1 block text-white/70">{{ $empresa['referencia'] }}</span>
+                        @endif
                     </div>
                 </div>
 
@@ -50,7 +53,12 @@
 
     <div class="border-t border-white/15">
         <div class="mx-auto flex max-w-contenido flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-white/80 sm:flex-row sm:px-6">
-            <p>&copy; {{ date('Y') }} {{ $empresa['nombre'] }}. Todos los derechos reservados.</p>
+            <p>
+                &copy; {{ date('Y') }} {{ $empresa['nombre'] }}. Todos los derechos reservados.
+                @if (! empty($empresa['nit']))
+                    <span class="block sm:inline">{{ $empresa['razon_social'] ?? $empresa['propietario'] }} · NIT {{ $empresa['nit'] }}</span>
+                @endif
+            </p>
             <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1" aria-label="Enlaces del pie">
                 <a href="{{ $empresa['web'] }}" rel="noopener" class="hover:underline">{{ str_replace('https://', '', $empresa['web']) }}</a>
                 <a href="{{ route('proyectos') }}" class="hover:underline">Proyectos</a>

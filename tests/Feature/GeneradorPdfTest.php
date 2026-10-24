@@ -368,6 +368,9 @@ test('todos los documentos comparten formato, pie numerado y membrete', function
         expect($texto)
             ->toContain(config('sitio.empresa.nombre'))
             ->toContain(config('sitio.empresa.telefono_visible'))
+            // Datos tributarios del propietario en el membrete de todos.
+            ->toContain('NIT '.config('sitio.empresa.nit'))
+            ->toContain(config('sitio.empresa.razon_social'))
             // Pie con numeración de páginas en todos (los reportes pueden
             // ocupar más de una hoja).
             ->toMatch('/Página 1 de \d+/');
@@ -439,6 +442,11 @@ test('una cotizacion larga pagina sola y repite el membrete en cada hoja', funct
     expect(substr_count($texto, 'DESCRIPCIÓN'))->toBeGreaterThanOrEqual($paginas - 1);
     // Y el pie numera correctamente.
     expect($texto)->toContain('Página '.$paginas.' de '.$paginas);
+
+    // El bloque de totales no se parte: del subtotal al total no hay un pie
+    // de página en medio (antes el "Total" podía quedar solo en otra hoja).
+    $desdeSubtotal = substr($texto, strrpos($texto, 'SubtotalBs'));
+    expect(substr($desdeSubtotal, 0, strpos($desdeSubtotal, 'TotalBs', 1)))->not->toContain('Página');
 });
 
 /*

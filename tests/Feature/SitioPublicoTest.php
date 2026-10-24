@@ -52,6 +52,10 @@ test('la portada publica los datos de la empresa como JSON-LD', function () {
         ->and($datos['@graph'][0]['@type'])->toBe('LocalBusiness')
         ->and($datos['@graph'][0]['telephone'])->toBe(config('sitio.empresa.telefono'))
         ->and($datos['@graph'][0]['address']['addressLocality'])->toBe(config('sitio.empresa.ciudad'))
+        // Datos tributarios del propietario (empresa unipersonal).
+        ->and($datos['@graph'][0]['taxID'])->toBe(config('sitio.empresa.nit'))
+        ->and($datos['@graph'][0]['legalName'])->toBe(config('sitio.empresa.razon_social'))
+        ->and($datos['@graph'][0]['founder']['name'])->toBe(config('sitio.empresa.propietario'))
         // Los cuatro servicios viajan como catálogo de ofertas.
         ->and($datos['@graph'][0]['hasOfferCatalog']['itemListElement'])->toHaveCount(4);
 });
@@ -226,4 +230,13 @@ test('robots.txt abre el sitio y publica el sitemap en produccion', function () 
         ->toContain('Sitemap: '.route('sitemap'))
         // El panel interno no tiene nada que hacer en un buscador.
         ->toContain('Disallow: /dashboard');
+});
+
+test('el pie muestra la direccion del NIT y los datos tributarios', function () {
+    $this->get(route('inicio'))
+        ->assertOk()
+        ->assertSee(config('sitio.empresa.direccion'))
+        ->assertSee(config('sitio.empresa.referencia'))
+        ->assertSee('NIT '.config('sitio.empresa.nit'))
+        ->assertSee(config('sitio.empresa.razon_social'));
 });

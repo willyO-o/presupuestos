@@ -51,7 +51,20 @@ return [
         'email' => env('SITIO_EMAIL', 'xtrapubli@gmail.com'),
         'web' => env('SITIO_WEB', 'https://www.xtrapubli.com'),
 
-        'direccion' => 'Z/Ballivián C/R. Vargas 113',
+        // Datos tributarios del padrón (NIT 2021, Régimen General, emite
+        // factura). XtraPubli es el nombre comercial de una empresa
+        // unipersonal: la razón social es el nombre del propietario.
+        'propietario' => 'Guillermo Apaza Apaza',
+        'razon_social' => 'Guillermo Apaza Apaza',
+        'nit' => '4755806014',
+        'actividad' => 'Publicidad',
+
+        // Domicilio de la casa matriz tal como figura en el NIT. `direccion`
+        // es la versión corta que entra en una línea del membrete;
+        // `referencia` completa cómo llegar.
+        'direccion' => 'C/ René Vargas Nro. 113, Z. Villa Ballivián',
+        'referencia' => 'Entre C/ Álvarez Plata y C/ Catacora, planta baja (tienda externa), '
+            .'frente al Colegio Técnico Humanístico José Ballivián',
         'ciudad' => 'El Alto',
         'departamento' => 'La Paz',
         'pais' => 'BO',

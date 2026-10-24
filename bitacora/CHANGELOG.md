@@ -13,6 +13,37 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-24 — Datos del propietario y NIT en documentos y sitio público
+
+**Qué cambió:**
+- Se cargaron los datos del NIT de la empresa: propietario y razón social **Guillermo Apaza Apaza**,
+  **NIT 4755806014**, actividad Publicidad, domicilio de la casa matriz
+  (C/ René Vargas Nro. 113, Z. Villa Ballivián, El Alto) con su referencia.
+- **Todos los PDF** (cotizaciones, estimación web, órdenes de trabajo, notas de entrega, compras,
+  acuses de OC y reportes) muestran en el membrete, en cada hoja, la línea
+  "NIT 4755806014 · Guillermo Apaza Apaza" y la dirección actualizada.
+- Sitio público: el pie muestra la dirección con la referencia y "Guillermo Apaza Apaza · NIT …";
+  el JSON-LD de la portada suma `legalName`, `taxID` y `founder`.
+- Seeder: la casa matriz de prueba usa la dirección real (las demás sucursales siguen ficticias).
+- Corrección: el bloque de totales se medía corto (≈34 mm contra ≈45 mm reales) y en cotizaciones
+  largas el "Total" podía quedar solo en otra hoja; con el membrete una línea más alto pasaba seguido.
+
+**Por qué:** pedido del usuario, a partir del certificado de NIT (Régimen General, emite factura).
+
+**Cómo:**
+- Claves nuevas en `config/sitio.php` → `empresa`: `propietario`, `razon_social`, `nit`, `actividad`,
+  `referencia`; `direccion` pasó a la forma corta del NIT. Todo sale de ahí (un solo lugar).
+- `Documento::Header()` dibuja la línea del NIT solo si la clave existe; `Documento::totales()` mide
+  el bloque con las mismas alturas con que lo dibuja. JSON-LD sin nulos (`array_filter`).
+- Tests: `GeneradorPdfTest` exige NIT y razón social en los 8 documentos y que el subtotal y el total
+  queden en la misma hoja (se probó que fallaba con la medida vieja); `SitioPublicoTest` verifica
+  JSON-LD y pie. Suite completa: 802 en verde.
+- Las bases ya sembradas no cambian la dirección de la sucursal (el seeder usa `firstOrCreate` por
+  nombre): si se quiere, se edita desde Sucursales. Teléfono, correo y web no figuran en el NIT y
+  quedan como estaban.
+
+---
+
 ## 2026-10-20 — BI: "Preguntas para decidir" (pestaña, PDF y CSV)
 
 **Qué cambió:**

@@ -201,6 +201,16 @@ abstract class Documento extends FPDF
             $this->empresa['email'],
         )), 0, 2);
 
+        // Identificación tributaria: el cliente la pide para su contabilidad
+        // y es la que respalda que la empresa emite factura.
+        if ($nit = ($this->empresa['nit'] ?? null)) {
+            $this->Cell($anchoMarca, $this->altoLinea(7.5), $this->t(sprintf(
+                'NIT %s · %s',
+                $nit,
+                $this->empresa['razon_social'] ?? $this->empresa['propietario'] ?? $this->empresa['nombre'],
+            )), 0, 2);
+        }
+
         $finMarca = $this->GetY();
 
         // --- Derecha: qué documento es. Alineado a la derecha del área útil.
@@ -437,7 +447,15 @@ abstract class Documento extends FPDF
         $ancho = $this->anchoUtil() * $porcentaje / 100;
         $x = $this->w - self::MARGEN_LATERAL - $ancho;
 
-        $this->asegurarEspacio(count($filas) * 6 + 4);
+        // Se mide el bloque entero con las mismas alturas con que se dibuja
+        // abajo: si no entra, salta de página completo. Una estimación corta
+        // dejaba el "Total" solo en una hoja nueva.
+        $altoBloque = 3 + array_sum(array_map(
+            fn (array $fila) => ($fila['principal'] ?? false) ? 2 + 6.5 + 3.2 : 5.2 + 2.4,
+            $filas,
+        ));
+
+        $this->asegurarEspacio($altoBloque);
         $this->SetY($this->GetY() + 3);
 
         foreach (array_values($filas) as $indice => $fila) {

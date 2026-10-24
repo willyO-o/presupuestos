@@ -181,10 +181,17 @@ class SitioPublicoController extends Controller
         return [
             '@context' => 'https://schema.org',
             '@graph' => [
-                [
+                // Sin nulos: un dato tributario que falte en el config no
+                // debe publicarse como `null`.
+                array_filter([
                     '@type' => 'LocalBusiness',
                     '@id' => $id,
                     'name' => $empresa['nombre'],
+                    'legalName' => $empresa['razon_social'] ?? null,
+                    'taxID' => $empresa['nit'] ?? null,
+                    'founder' => isset($empresa['propietario'])
+                        ? ['@type' => 'Person', 'name' => $empresa['propietario']]
+                        : null,
                     'description' => $empresa['descripcion'],
                     'url' => route('inicio'),
                     'telephone' => $empresa['telefono'],
@@ -217,7 +224,7 @@ class SitioPublicoController extends Controller
                             ],
                         ], config('sitio.servicios')),
                     ],
-                ],
+                ], fn ($valor) => $valor !== null),
                 [
                     '@type' => 'WebSite',
                     '@id' => route('inicio').'#sitio',
