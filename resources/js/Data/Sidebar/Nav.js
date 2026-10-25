@@ -263,7 +263,7 @@ export const NAV_MENU = [
     {
         menutitle: 'Administración',
         icon: 'fa-solid fa-shield-halved',
-        permission: ['usuarios.ver', 'roles.ver'],
+        permission: ['usuarios.ver', 'roles.ver', 'firmas-documento.ver'],
     },
     {
         title: 'Usuarios',
@@ -278,5 +278,12 @@ export const NAV_MENU = [
         type: 'link',
         path: '/roles',
         permission: 'roles.ver',
+    },
+    {
+        title: 'Firmas de documentos',
+        icon: 'fa-solid fa-signature',
+        type: 'link',
+        path: '/firmas-documento',
+        permission: 'firmas-documento.ver',
     },
 ];

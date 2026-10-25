@@ -236,7 +236,7 @@ async function cancelarPedido() {
                         {{ pedido.orden_compra.estado }}
                     </span>
                     <a v-if="pedido.orden_compra.archivo_url" :href="pedido.orden_compra.archivo_url" target="_blank"
-                        rel="noopener" class="text-pdf fw-semibold"> · <i class="fa-solid fa-file-pdf"></i> PDF</a>
+                        rel="noopener" class="text-pdf fw-semibold"> · <i class="fa-solid fa-file-lines"></i> Ver archivo</a>
                 </template>
                 <template v-else>
                     <span class="text-muted">sin registrar</span>

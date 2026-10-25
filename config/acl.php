@@ -296,6 +296,13 @@ return [
                 'roles.eliminar' => 'Eliminar roles',
             ],
         ],
+        'firmas-documento' => [
+            'label' => 'Firmas de documentos',
+            'permissions' => [
+                'firmas-documento.ver' => 'Ver quién firma los documentos',
+                'firmas-documento.editar' => 'Cambiar quién firma los documentos',
+            ],
+        ],
     ],
 
     /*
@@ -352,6 +359,7 @@ return [
                 'reportes.financiero', 'reportes.produccion', 'reportes.exportar_financiero', 'reportes.exportar_produccion', 'reportes.bi', 'reportes.asistente',
                 'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
                 'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
+                'firmas-documento.ver', 'firmas-documento.editar',
             ],
         ],
 

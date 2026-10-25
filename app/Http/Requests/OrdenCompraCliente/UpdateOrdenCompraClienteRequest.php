@@ -24,7 +24,18 @@ class UpdateOrdenCompraClienteRequest extends FormRequest
             'fecha' => ['required', 'date'],
             'monto_total' => ['required', 'numeric', 'min:0'],
             'condicion_pago' => ['nullable', 'string', 'max:255'],
-            'archivo_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            // El cliente manda su OC en PDF o como foto/escaneo (pedido del
+            // usuario: antes solo se aceptaba PDF). La columna conserva su
+            // nombre histórico `archivo_pdf`.
+            'archivo_pdf' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return ['archivo_pdf' => 'archivo de la orden de compra'];
     }
 }

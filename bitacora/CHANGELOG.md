@@ -13,6 +13,47 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-25 — Firmas editables, OC con imagen e imagen de referencia en la cotización
+
+**Qué cambió:**
+- **Firmas de documentos** (Administración → Firmas de documentos, `/firmas-documento`): quién firma
+  por la empresa la cotización, la orden de trabajo (producción y control de calidad) y la nota de
+  entrega. Por defecto firma **Guillermo Apaza Apaza, Propietario**; cuando haya responsable de
+  producción se cambia ahí su nombre y cargo, sin tocar código.
+- **Orden de trabajo**: antes firmaban "Jefe de producción" y "Control de calidad" sin nombre. Ahora
+  firma la persona configurada; si es la misma en las dos líneas sale UNA firma con ambas funciones
+  ("Propietario · Recibe la orden y aprueba antes de entregar").
+- **Nota de entrega**: por la empresa firma la persona configurada; quien llevó el trabajo sigue en
+  "Entregó" del bloque de datos. Al lado sigue la firma de quien recibe.
+- **Orden de compra del cliente**: acepta PDF o imagen (JPG, PNG, WEBP), antes solo PDF. Ícono de
+  imagen o PDF en el listado; en el pedido el enlace dice "Ver archivo".
+- **Bug**: la imagen de referencia de las líneas de la cotización se guardaba pero el PDF nunca la
+  dibujaba. Ahora sale en una columna "Imagen" (solo si alguna línea tiene imagen), sin deformarse.
+- **Bug**: signos que la fuente del PDF no tiene salían como "?" ("Pedidos ? Ajustar medidas reales"
+  en la orden de trabajo; "−" y "→" de textos del BI). `Documento::t()` los cambia por su equivalente.
+- Las miniaturas (evidencia de la nota de entrega, referencia de la cotización) ya no se estiran a un
+  recuadro 3:2 fijo: respetan la proporción de la foto.
+
+**Por qué:** pedido del usuario (todo lo firma el dueño mientras no haya jefe de producción; la OC
+del cliente llega como foto; la imagen de referencia no salía al imprimir).
+
+**Cómo:**
+- Tabla `firma_documento` (clave única, nombre, cargo), modelo `FirmaDocumento` con las firmas fijas
+  (`FIRMAS`) y `vigentes()` (lo editado + el propietario para el resto, una consulta).
+  `GeneradorPdf::empresa()` las suma a los datos de la empresa; `Documento::firmasEmpresa()` las
+  dibuja (une a la misma persona; una sola firma va centrada). Reemplaza a `firmaPropietario()`.
+- Permisos `firmas-documento.ver` / `.editar` en `config/acl.php` (rol administrador) y entrada en
+  `Nav.js`. **En producción**: `php artisan migrate` y
+  `php artisan db:seed --class=RolesAndPermissionsSeeder`.
+- `CotizacionDetalle::imagenRuta()` (por ruta, como `NotaEntregaDetalle::fotoRuta()`); celdas de
+  imagen con `alto_imagen` (26 mm en la cotización, 15 en la evidencia).
+- Tests: `FirmaDocumentoControllerTest` (6), OC con PDF/JPG/PNG/WEBP y rechazo de .docx, imagen de
+  referencia con su proporción (se probó que falla sin la columna), firma solo en cotización, orden de
+  trabajo y nota de entrega, signos sin "?". Suite completa en verde y `npm run build` sin errores.
+  Verificado en el navegador: guardar firmas, volver al propietario y subir una OC con foto.
+
+---
+
 ## 2026-10-24 — Textos de ayuda e informe en registro neutro; informe por pestaña; tabla de rentabilidad
 
 **Qué cambió:**

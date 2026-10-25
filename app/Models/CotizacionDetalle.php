@@ -126,4 +126,20 @@ class CotizacionDetalle extends Model
             get: fn () => $this->imagen ? Storage::disk('public')->url($this->imagen) : null,
         );
     }
+
+    /**
+     * Ruta en disco de la imagen referencial, para el PDF: FPDF lee por ruta,
+     * nunca por URL (ver NotaEntregaDetalle::fotoRuta()). Null si la línea no
+     * tiene imagen o el archivo ya no existe.
+     */
+    public function imagenRuta(): ?string
+    {
+        if (! $this->imagen) {
+            return null;
+        }
+
+        $disco = Storage::disk('public');
+
+        return $disco->exists($this->imagen) ? $disco->path($this->imagen) : null;
+    }
 }

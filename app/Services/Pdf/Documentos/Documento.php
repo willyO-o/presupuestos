@@ -197,7 +197,7 @@ abstract class Documento extends FPDF
         )), 0, 2);
         // El NIT va en el membrete (el cliente lo pide para su contabilidad);
         // el nombre del propietario NO: solo aparece en la firma de los
-        // documentos que él firma, ver `firmaPropietario()`.
+        // documentos que él firma, ver `firmasEmpresa()`.
         $this->Cell($anchoMarca, $this->altoLinea(7.5), $this->t(implode(' · ', array_filter([
             $this->empresa['telefono_visible'],
             $this->empresa['email'],
@@ -566,20 +566,97 @@ abstract class Documento extends FPDF
     }
 
     /**
-     * Firma del propietario, centrada, al cierre del documento. Es el único
-     * lugar donde se imprime su nombre (el membrete lleva solo el NIT) y solo
-     * la usan los documentos que él firma: hoy, la cotización. Sin
-     * propietario en el config no dibuja nada.
+     * Firmas de la empresa: el nombre y cargo salen de
+     * Administración → Firmas de documentos (`$empresa['firmas']`, por defecto
+     * el propietario). Es el único lugar donde se imprime el nombre de quien
+     * firma por la empresa; el membrete lleva solo el NIT.
+     *
+     * Si varias firmas recaen en la misma persona (hoy el propietario firma
+     * producción y control de calidad) se imprime UNA sola firma con sus
+     * funciones juntas: dos líneas con el mismo nombre no aportan nada.
+     *
+     * @param  list<string>  $claves  Claves de FirmaDocumento::FIRMAS.
+     * @param  list<array{titulo: string, pie: string}>  $otras  Firmas ajenas a la empresa (el cliente, el proveedor), van a la derecha.
      */
-    protected function firmaPropietario(): void
+    protected function firmasEmpresa(array $claves, array $otras = []): void
     {
-        $propietario = $this->empresa['propietario'] ?? null;
+        $porPersona = [];
 
-        if (! $propietario) {
+        foreach ($claves as $clave) {
+            $firma = $this->firmaConfigurada($clave);
+
+            if ($firma === null) {
+                continue;
+            }
+
+            $llave = mb_strtolower($firma['nombre'].'|'.$firma['cargo']);
+            $porPersona[$llave] ??= ['titulo' => $firma['nombre'], 'cargo' => $firma['cargo'], 'funciones' => []];
+            $porPersona[$llave]['funciones'][] = $firma['funcion'];
+        }
+
+        $firmas = array_map(fn (array $persona): array => [
+            'titulo' => $persona['titulo'],
+            'pie' => $persona['cargo'].' · '.$this->unirFunciones($persona['funciones']),
+        ], array_values($porPersona));
+
+        $firmas = [...$firmas, ...$otras];
+
+        if ($firmas === []) {
             return;
         }
 
-        $ancho = 72.0;
+        if (count($firmas) === 1) {
+            $this->firmaCentrada($firmas[0]);
+
+            return;
+        }
+
+        $this->firmas($firmas);
+    }
+
+    /**
+     * @return array{nombre: string, cargo: string, funcion: string}|null
+     */
+    private function firmaConfigurada(string $clave): ?array
+    {
+        $firma = $this->empresa['firmas'][$clave] ?? null;
+
+        if ($firma === null) {
+            $propietario = $this->empresa['propietario'] ?? null;
+
+            return $propietario ? ['nombre' => $propietario, 'cargo' => 'Propietario', 'funcion' => $this->empresa['nombre']] : null;
+        }
+
+        return ['nombre' => $firma['nombre'], 'cargo' => $firma['cargo'], 'funcion' => $firma['funcion'] ?? $this->empresa['nombre']];
+    }
+
+    /**
+     * "Recibe la orden" + "Aprueba antes de entregar" →
+     * "Recibe la orden y aprueba antes de entregar".
+     *
+     * @param  list<string>  $funciones
+     */
+    private function unirFunciones(array $funciones): string
+    {
+        $funciones = array_values(array_unique($funciones));
+        $ultima = array_pop($funciones);
+
+        if ($funciones === []) {
+            return $ultima;
+        }
+
+        return implode(', ', $funciones).' y '.mb_strtolower(mb_substr($ultima, 0, 1)).mb_substr($ultima, 1);
+    }
+
+    /**
+     * Una sola firma, centrada y con una línea de largo razonable (una firma
+     * a todo el ancho de la hoja se ve rara).
+     *
+     * @param  array{titulo: string, pie: string}  $firma
+     */
+    private function firmaCentrada(array $firma): void
+    {
+        $ancho = 80.0;
         $x = self::MARGEN_LATERAL + ($this->anchoUtil() - $ancho) / 2;
 
         $this->asegurarEspacio(34);
@@ -591,11 +668,11 @@ abstract class Documento extends FPDF
 
         $this->SetXY($x, $y + 1.5);
         $this->fuente(8.5, 'B', self::OSCURO);
-        $this->Cell($ancho, $this->altoLinea(8.5), $this->t($propietario), 0, 2, 'C');
+        $this->Cell($ancho, $this->altoLinea(8.5), $this->t($firma['titulo']), 0, 2, 'C');
 
         $this->fuente(8, '', self::SUAVE);
         $this->SetX($x);
-        $this->Cell($ancho, $this->altoLinea(8), $this->t('Propietario · '.$this->empresa['nombre']), 0, 2, 'C');
+        $this->Cell($ancho, $this->altoLinea(8), $this->t($firma['pie']), 0, 2, 'C');
 
         $this->SetXY(self::MARGEN_LATERAL, $y + 12);
     }
@@ -1016,12 +1093,12 @@ abstract class Documento extends FPDF
 
     /**
      * @param  string|array<string, mixed>  $celda
-     * @return array{texto: string, nota: ?string, negrita: bool, imagen: ?string, color: ?array<int, int>}
+     * @return array{texto: string, nota: ?string, negrita: bool, imagen: ?string, alto_imagen: float, color: ?array<int, int>}
      */
     private function normalizarCelda(string|array $celda): array
     {
         if (is_string($celda)) {
-            return ['texto' => $celda, 'nota' => null, 'negrita' => false, 'imagen' => null, 'color' => null];
+            return ['texto' => $celda, 'nota' => null, 'negrita' => false, 'imagen' => null, 'alto_imagen' => self::ALTO_EVIDENCIA, 'color' => null];
         }
 
         return [
@@ -1029,6 +1106,9 @@ abstract class Documento extends FPDF
             'nota' => $celda['nota'] ?? null,
             'negrita' => (bool) ($celda['negrita'] ?? false),
             'imagen' => $celda['imagen'] ?? null,
+            // Alto de la fila que reserva la imagen, en mm (la imagen de
+            // referencia de la cotización va más grande que una evidencia).
+            'alto_imagen' => (float) ($celda['alto_imagen'] ?? self::ALTO_EVIDENCIA),
             // Solo para cifras con signo de estado (una pérdida en rojo).
             'color' => $celda['color'] ?? null,
         ];
@@ -1046,7 +1126,7 @@ abstract class Documento extends FPDF
 
         foreach ($celdas as $indice => $celda) {
             if ($celda['imagen']) {
-                $alto = max($alto, self::ALTO_EVIDENCIA);
+                $alto = max($alto, $celda['alto_imagen']);
 
                 continue;
             }
@@ -1067,7 +1147,7 @@ abstract class Documento extends FPDF
         return $alto + 2 * self::RESPIRO;
     }
 
-    /** Alto reservado a la miniatura de evidencia de la nota de entrega, en mm. */
+    /** Alto por defecto de una fila con imagen (evidencia de la nota de entrega), en mm. */
     private const ALTO_EVIDENCIA = 15.0;
 
     /**
@@ -1091,7 +1171,7 @@ abstract class Documento extends FPDF
             $ancho = $anchos[$indice];
 
             if ($celda['imagen']) {
-                $this->evidencia($celda['imagen'], $x, $y, $ancho, $alto);
+                $this->evidencia($celda['imagen'], $x, $y, $ancho, $alto, $celda['alto_imagen']);
                 $x += $ancho;
 
                 continue;
@@ -1117,25 +1197,37 @@ abstract class Documento extends FPDF
     }
 
     /**
-     * Miniatura de evidencia, centrada en su celda.
+     * Miniatura de una imagen (evidencia de entrega, referencia de una
+     * cotización), centrada en su celda y SIN deformarla: se ajusta dentro
+     * del recuadro respetando su proporción.
      *
      * FPDF lee la imagen del disco: no hay data URI que valga (eso era para
      * Chromium). Si el archivo desapareció o no es una imagen que FPDF sepa
      * leer, se dibuja un guion en vez de reventar el documento entero — una
-     * foto perdida no puede impedir que se imprima la nota de entrega.
+     * foto perdida no puede impedir que se imprima el documento.
      */
-    private function evidencia(string $ruta, float $x, float $y, float $ancho, float $altoFila): void
+    private function evidencia(string $ruta, float $x, float $y, float $ancho, float $altoFila, float $altoImagen): void
     {
-        $alto = self::ALTO_EVIDENCIA - 2 * self::RESPIRO;
-        $anchoImagen = $alto * 1.5;
+        $altoMaximo = $altoImagen - 2 * self::RESPIRO;
+        $anchoMaximo = $ancho - 2 * self::RESPIRO;
 
         try {
+            $medidas = @getimagesize($ruta);
+
+            if ($medidas === false || $medidas[0] <= 0 || $medidas[1] <= 0) {
+                throw new \RuntimeException('No es una imagen legible.');
+            }
+
+            $escala = min($anchoMaximo / $medidas[0], $altoMaximo / $medidas[1]);
+            $anchoDibujo = $medidas[0] * $escala;
+            $altoDibujo = $medidas[1] * $escala;
+
             $this->Image(
                 $ruta,
-                $x + ($ancho - $anchoImagen) / 2,
-                $y + ($altoFila - $alto) / 2,
-                $anchoImagen,
-                $alto,
+                $x + ($ancho - $anchoDibujo) / 2,
+                $y + ($altoFila - $altoDibujo) / 2,
+                $anchoDibujo,
+                $altoDibujo,
             );
         } catch (\Throwable) {
             $this->SetXY($x, $y + $altoFila / 2 - 2);
@@ -1254,8 +1346,10 @@ abstract class Documento extends FPDF
      * Es la conversión que hay que hacer en CADA string que se dibuje: FPDF
      * 1.9 acepta UTF-8 solo en las propiedades del documento (título, autor),
      * nunca en el contenido. Todo lo que usan estos documentos —tildes, ñ, ×,
-     * m², ±, guion largo— existe en cp1252, así que no se pierde nada; lo que
-     * no exista se convierte en '?' antes que romper el PDF.
+     * m², ±, guion largo— existe en cp1252, así que no se pierde nada. Los
+     * pocos signos que NO existen y sí aparecen en los textos del sistema se
+     * cambian por su equivalente (EQUIVALENTES_CP1252): sin eso salían como
+     * "?" ("Pedidos ? Ajustar medidas reales", "Descuento ? 100,00").
      */
     protected function t(?string $texto): string
     {
@@ -1263,8 +1357,24 @@ abstract class Documento extends FPDF
             return '';
         }
 
-        return mb_convert_encoding($texto, 'Windows-1252', 'UTF-8');
+        return mb_convert_encoding(strtr($texto, self::EQUIVALENTES_CP1252), 'Windows-1252', 'UTF-8');
     }
+
+    /**
+     * Signos que no existen en cp1252 → el más parecido que sí existe.
+     *
+     * @var array<string, string>
+     */
+    private const EQUIVALENTES_CP1252 = [
+        '→' => '›',
+        '←' => '‹',
+        '−' => '-',
+        '≤' => '<=',
+        '≥' => '>=',
+        '≈' => '~',
+        '✓' => '',
+        '✔' => '',
+    ];
 
     /** Importe en bolivianos con formato local (miles con punto, decimales con coma). */
     protected function monto(float|int|string|null $valor, bool $moneda = true): string

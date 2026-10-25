@@ -16,6 +16,9 @@ use Illuminate\Support\Carbon;
  */
 class CotizacionPdf extends Documento
 {
+    /** Alto de la fila con imagen de referencia, en mm: más grande que una evidencia, se tiene que ver el diseño. */
+    private const ALTO_IMAGEN_REFERENCIA = 26.0;
+
     /**
      * @param  array<string, mixed>  $empresa
      */
@@ -82,23 +85,42 @@ class CotizacionPdf extends Documento
             ],
         ]);
 
-        $this->tabla(
-            [
+        // La imagen de referencia de cada línea (la que se carga en el
+        // formulario) va en su propia columna; si ninguna línea tiene imagen
+        // la columna no aparece y la descripción conserva su ancho.
+        $imagenes = $this->cotizacion->detalles->values()->map(fn ($linea): ?string => $linea->imagenRuta());
+        $conImagenes = $imagenes->filter()->isNotEmpty();
+
+        $columnas = $conImagenes
+            ? [
+                ['titulo' => '#', 'ancho' => 5],
+                ['titulo' => 'Descripción', 'ancho' => 31],
+                ['titulo' => 'Imagen', 'ancho' => 17, 'alineacion' => 'C'],
+                ['titulo' => 'Medidas (m)', 'ancho' => 15, 'alineacion' => 'C'],
+                ['titulo' => 'Cant.', 'ancho' => 6, 'alineacion' => 'R'],
+                ['titulo' => 'P. unit.', 'ancho' => 13, 'alineacion' => 'R'],
+                ['titulo' => 'Subtotal', 'ancho' => 13, 'alineacion' => 'R'],
+            ]
+            : [
                 ['titulo' => '#', 'ancho' => 5],
                 ['titulo' => 'Descripción', 'ancho' => 39],
                 ['titulo' => 'Medidas (m)', 'ancho' => 18, 'alineacion' => 'C'],
                 ['titulo' => 'Cant.', 'ancho' => 8, 'alineacion' => 'R'],
                 ['titulo' => 'P. unit.', 'ancho' => 15, 'alineacion' => 'R'],
                 ['titulo' => 'Subtotal', 'ancho' => 15, 'alineacion' => 'R'],
-            ],
-            $this->cotizacion->detalles->values()->map(fn ($linea, $indice): array => [
+            ];
+
+        $this->tabla(
+            $columnas,
+            $this->cotizacion->detalles->values()->map(fn ($linea, $indice): array => array_values(array_filter([
                 (string) ($indice + 1),
                 ['texto' => $linea->descripcion, 'nota' => $linea->producto?->nombre],
+                $conImagenes ? ['texto' => '—', 'imagen' => $imagenes[$indice], 'alto_imagen' => self::ALTO_IMAGEN_REFERENCIA] : null,
                 $this->medidas($linea->ancho, $linea->alto, $linea->area_m2),
                 $this->numero($linea->cantidad, 0),
                 $this->monto($linea->precio_unitario, moneda: false),
                 ['texto' => $this->monto($linea->subtotal, moneda: false), 'negrita' => true],
-            ])->all(),
+            ], fn ($celda) => $celda !== null)))->all(),
         );
 
         $this->totales($this->filasDeTotales());
@@ -113,7 +135,7 @@ class CotizacionPdf extends Documento
         ]);
 
         // Única aparición del nombre del propietario: al pie, como firma.
-        $this->firmaPropietario();
+        $this->firmasEmpresa(['cotizacion']);
 
         $this->notaLegal([
             ['texto' => sprintf(

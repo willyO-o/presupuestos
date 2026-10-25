@@ -106,16 +106,13 @@ class NotaEntregaPdf extends Documento
 
         // La razón de ser del documento: sin la firma de quien recibe no
         // prueba nada.
-        $this->firmas([
-            [
-                'titulo' => $entrego ?: 'Entregado por',
-                'pie' => $this->empresa['nombre'],
-            ],
-            [
-                'titulo' => $this->nota->recibido_por ?: 'Recibido por',
-                'pie' => ($cliente?->razon_social ?? 'Cliente').' · Firma y sello',
-            ],
-        ]);
+        // Por la empresa firma quien se configure en Administración → Firmas
+        // de documentos (hoy el propietario); quién llevó el trabajo queda en
+        // "Entregó" del bloque de datos.
+        $this->firmasEmpresa(['nota_entrega'], [[
+            'titulo' => $this->nota->recibido_por ?: 'Recibido por',
+            'pie' => ($cliente?->razon_social ?? 'Cliente').' · Firma y sello',
+        ]]);
 
         $this->notaLegal([
             ['texto' => sprintf(

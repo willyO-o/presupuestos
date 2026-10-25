@@ -4,6 +4,8 @@ use App\Models\Cotizacion;
 use App\Models\OrdenCompraCliente;
 use App\Models\Pedido;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -132,3 +134,33 @@ test('super-admin bypasses individual permissions', function () {
 
     $this->actingAs($user)->get(route('ordenes-compra-cliente.index'))->assertOk();
 });
+
+test('the OC file can be a PDF or an image, but not any file', function (string $nombre, string $mime, bool $acepta) {
+    // Pedido del usuario: la OC del cliente llega muchas veces como foto.
+    Storage::fake('public');
+    $pedido = pedidoParaOc();
+
+    $respuesta = $this->actingAs(userWithOc('ordenes-compra-cliente.crear'))
+        ->post(route('ordenes-compra-cliente.store'), [
+            'pedido_id' => $pedido->id,
+            'numero_oc' => 'OC-FOTO',
+            'fecha' => now()->toDateString(),
+            'monto_total' => 100,
+            'archivo_pdf' => UploadedFile::fake()->create($nombre, 200, $mime),
+        ]);
+
+    if ($acepta) {
+        $respuesta->assertSessionHasNoErrors();
+        $orden = OrdenCompraCliente::where('pedido_id', $pedido->id)->firstOrFail();
+        Storage::disk('public')->assertExists($orden->archivo_pdf);
+    } else {
+        $respuesta->assertSessionHasErrors('archivo_pdf');
+        expect(OrdenCompraCliente::where('pedido_id', $pedido->id)->exists())->toBeFalse();
+    }
+})->with([
+    'pdf' => ['orden.pdf', 'application/pdf', true],
+    'jpg' => ['orden.jpg', 'image/jpeg', true],
+    'png' => ['orden.png', 'image/png', true],
+    'webp' => ['orden.webp', 'image/webp', true],
+    'word' => ['orden.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', false],
+]);

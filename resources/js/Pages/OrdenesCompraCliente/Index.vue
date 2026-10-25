@@ -90,6 +90,13 @@ function openEdit(orden) {
     showModal.value = true;
 }
 
+/** El archivo de la OC puede ser PDF o imagen: el ícono lo dice. */
+function iconoArchivo(url) {
+    return /\.(jpe?g|png|webp)(\?.*)?$/i.test(url ?? '')
+        ? 'fa-solid fa-file-image text-primary'
+        : 'fa-solid fa-file-pdf text-pdf';
+}
+
 function submit() {
     const options = { preserveScroll: true, onSuccess: () => { showModal.value = false; } };
     if (editing.value) {
@@ -155,7 +162,7 @@ async function anular(orden) {
                 <template #cell-numero_oc="{ item }">
                     <a v-if="item.archivo_url" :href="item.archivo_url" target="_blank" rel="noopener"
                         class="fw-semibold text-primary">
-                        {{ item.numero_oc }} <i class="fa-solid fa-file-pdf text-pdf"></i>
+                        {{ item.numero_oc }} <i :class="iconoArchivo(item.archivo_url)"></i>
                     </a>
                     <span v-else class="fw-semibold">{{ item.numero_oc }}</span>
                 </template>
@@ -260,9 +267,11 @@ async function anular(orden) {
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Archivo PDF (opcional)</label>
-                    <FileDropzone v-model="form.archivo_pdf" :preview="editing?.archivo_url" accept="application/pdf"
-                        kind="archivo" :invalid="!!form.errors.archivo_pdf" />
+                    <label class="form-label">Archivo de la orden (opcional)</label>
+                    <FileDropzone v-model="form.archivo_pdf" :preview="editing?.archivo_url"
+                        accept="application/pdf,image/jpeg,image/png,image/webp" kind="auto"
+                        :invalid="!!form.errors.archivo_pdf" />
+                    <p class="fs-xs text-muted mt-1 mb-0">PDF o imagen (JPG, PNG o WEBP), hasta 5 MB.</p>
                     <p v-if="form.errors.archivo_pdf" class="form-error">{{ form.errors.archivo_pdf }}</p>
                 </div>
             </div>

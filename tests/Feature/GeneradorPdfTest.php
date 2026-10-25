@@ -551,26 +551,32 @@ test('el PDF del pedido respeta el scoping por sucursal', function () {
     $this->actingAs($global->fresh())->get(route('pedidos.pdf', $pedido))->assertOk();
 });
 
-test('el nombre del propietario va solo en la firma de la cotizacion', function () {
+test('el nombre de quien firma va solo en la firma de cotizacion, orden de trabajo y nota de entrega', function () {
     $propietario = config('sitio.empresa.propietario');
-
-    // La cotización es el documento que firma el propietario: su nombre va
-    // una sola vez, en la firma del pie, y no en el membrete.
-    $texto = textoDelPdf(generador()->cotizacion(cotizacionCompleta()));
     $membrete = config('sitio.empresa.email').' · NIT '.config('sitio.empresa.nit');
 
-    // El descuento se imprime con guion, no como "?".
-    expect($texto)->toContain('Descuento- Bs 100,00')->not->toContain('? 100,00');
+    $conFirma = [
+        'cotización' => generador()->cotizacion(cotizacionCompleta()),
+        'orden de trabajo' => generador()->pedido(Pedido::factory()->create()),
+        'nota de entrega' => generador()->notaEntrega(NotaEntrega::factory()->create()),
+    ];
 
-    expect(substr_count($texto, $propietario))->toBe(1)
-        ->and(substr($texto, strrpos($texto, $membrete)))->toContain($propietario.' Propietario · '.config('sitio.empresa.nombre'));
+    foreach ($conFirma as $documento => $pdf) {
+        $texto = textoDelPdf($pdf);
+
+        // Una sola vez (en la orden de trabajo firma producción y calidad,
+        // pero es la misma persona) y al pie, nunca en el membrete.
+        expect(substr_count($texto, $propietario))->toBe(1, "{$documento}: el nombre va una sola vez")
+            ->and(substr($texto, strrpos($texto, $membrete)))->toContain($propietario.' Propietario · ');
+    }
+
+    // El descuento se imprime con guion, no como "?".
+    expect(textoDelPdf($conFirma['cotización']))->toContain('Descuento- Bs 100,00')->not->toContain('? 100,00');
 
     // Los demás no lo llevan.
     $sinFirma = [
         generador()->cotizacionPublica(CotizacionPublica::factory()->create()),
-        generador()->notaEntrega(NotaEntrega::factory()->create()),
         generador()->compra(Compra::factory()->create()),
-        generador()->pedido(Pedido::factory()->create()),
         generador()->ordenCompraCliente(OrdenCompraCliente::factory()->create()),
         generador()->reporteFinanciero(app(InformeReportesService::class)->financiero(User::factory()->todasLasSucursales()->create())),
         generador()->reporteProduccion(app(InformeReportesService::class)->produccion(User::factory()->todasLasSucursales()->create())),
@@ -579,4 +585,42 @@ test('el nombre del propietario va solo en la firma de la cotizacion', function 
     foreach ($sinFirma as $pdf) {
         expect(textoDelPdf($pdf))->not->toContain($propietario);
     }
+});
+
+test('la cotizacion imprime la imagen de referencia de cada linea', function () {
+    // Pedido del usuario: la imagen se guardaba pero el PDF no la dibujaba.
+    Storage::fake('public');
+
+    $cotizacion = cotizacionCompleta();
+    $ruta = UploadedFile::fake()->image('referencia.jpg', 300, 200)->store('cotizaciones', 'public');
+    $cotizacion->detalles()->first()->update(['imagen' => $ruta]);
+    // Otra línea apunta a un archivo que ya no existe: el PDF sale igual.
+    $cotizacion->detalles()->skip(1)->first()?->update(['imagen' => 'cotizaciones/borrada.jpg']);
+
+    $pdf = generador()->cotizacion($cotizacion->fresh())->sinComprimir();
+
+    expect(preg_match_all('~/DCTDecode~', $pdf->contenido()))->toBe(1)
+        ->and(textoDelPdf($pdf))->toContain('IMAGEN');
+
+    // La imagen de 300 × 200 conserva su proporción 3:2 (antes se estiraba a
+    // un recuadro fijo): FPDF la dibuja con "ancho 0 0 alto x y cm".
+    $imagenes = [];
+    preg_match_all('~q ([\d.]+) 0 0 ([\d.]+) [\d.]+ [\d.]+ cm /I(\d+) Do Q~', $pdf->contenido(), $imagenes, PREG_SET_ORDER);
+    $referencia = collect($imagenes)->first(fn (array $m): bool => abs((float) $m[1] / (float) $m[2] - 1.5) < 0.01);
+    expect($referencia)->not->toBeNull('La imagen de referencia tiene que salir en proporción 3:2');
+});
+
+test('sin imagenes la cotizacion no agrega la columna', function () {
+    $texto = textoDelPdf(generador()->cotizacion(cotizacionCompleta()));
+
+    expect($texto)->not->toContain('IMAGEN')->toContain('DESCRIPCIÓN');
+});
+
+test('los signos que no existen en la fuente del PDF no salen como signo de pregunta', function () {
+    // La orden de trabajo decía "Pedidos ? Ajustar medidas reales": la flecha
+    // no existe en cp1252. Igual el signo menos de los textos del BI.
+    $texto = textoDelPdf(generador()->pedido(Pedido::factory()->create()));
+
+    expect($texto)->toContain('Pedidos › Ajustar medidas reales')
+        ->not->toContain('Pedidos ? Ajustar');
 });

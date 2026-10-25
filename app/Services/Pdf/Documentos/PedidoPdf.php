@@ -115,10 +115,10 @@ class PedidoPdf extends Documento
             ['etiqueta' => 'Total del pedido', 'valor' => $this->monto($this->pedido->total), 'principal' => true],
         ]);
 
-        $this->firmas([
-            ['titulo' => 'Jefe de producción', 'pie' => 'Recibe la orden'],
-            ['titulo' => 'Control de calidad', 'pie' => 'Aprueba antes de entregar'],
-        ]);
+        // Quién firma se configura en Administración → Firmas de documentos;
+        // mientras no haya responsable de producción firma el propietario,
+        // una sola vez con las dos funciones.
+        $this->firmasEmpresa(['orden_trabajo_produccion', 'orden_trabajo_calidad']);
 
         $this->notaLegal([
             ['texto' => sprintf(

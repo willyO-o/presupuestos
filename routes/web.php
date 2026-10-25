@@ -12,6 +12,7 @@ use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizadorPublicoController;
 use App\Http\Controllers\DocumentoPdfController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\FirmaDocumentoController;
 use App\Http\Controllers\FormulaController;
 use App\Http\Controllers\InformeProyeccionesController;
 use App\Http\Controllers\MaterialController;
@@ -333,6 +334,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/tipos-proyecto/{tipoProyecto}', [TipoProyectoController::class, 'destroy'])
         ->middleware('can:tipos-proyecto.eliminar')
         ->name('tipos-proyecto.destroy');
+
+    // --- Firmas de documentos (quién firma por la empresa) ---
+    Route::get('/firmas-documento', [FirmaDocumentoController::class, 'index'])
+        ->middleware('can:firmas-documento.ver')
+        ->name('firmas-documento.index');
+    Route::put('/firmas-documento', [FirmaDocumentoController::class, 'update'])
+        ->middleware('can:firmas-documento.editar')
+        ->name('firmas-documento.update');
 
     // --- Cotizaciones (presupuestos) ---
     Route::get('/cotizaciones', [CotizacionController::class, 'index'])

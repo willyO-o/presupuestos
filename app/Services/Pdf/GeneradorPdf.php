@@ -5,6 +5,7 @@ namespace App\Services\Pdf;
 use App\Models\Compra;
 use App\Models\Cotizacion;
 use App\Models\CotizacionPublica;
+use App\Models\FirmaDocumento;
 use App\Models\NotaEntrega;
 use App\Models\OrdenCompraCliente;
 use App\Models\Pedido;
@@ -265,7 +266,9 @@ class GeneradorPdf
      */
     private function empresa(): array
     {
-        return config('sitio.empresa');
+        // Las firmas viajan con los datos de la empresa: quién firma cada
+        // documento se edita en Administración → Firmas de documentos.
+        return [...config('sitio.empresa'), 'firmas' => FirmaDocumento::vigentes()];
     }
 
     private function entregar(Documento $documento, string $archivo): RespuestaPdf
