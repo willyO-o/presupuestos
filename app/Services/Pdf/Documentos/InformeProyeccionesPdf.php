@@ -536,26 +536,24 @@ class InformeProyeccionesPdf extends Documento
         };
     }
 
+    /**
+     * Detalle técnico en apartados numerados; cada fórmula va aparte, en su
+     * recuadro, en vez de perdida dentro del párrafo. Después, la ficha de
+     * cada indicador. Solo describe lo que calcula `Pronostico`.
+     */
     private function anexoMetodologico(): void
     {
         $this->AddPage();
         $this->tituloSeccion('Anexo metodológico (detalle técnico)');
         $this->parrafo('Esta sección es para quien quiera revisar cómo se calcularon las estimaciones. No hace falta leerla para entender el informe.');
 
-        $confianza = $this->informe['confianza'];
-
-        foreach ([
-            'Cada indicador se resume en un valor por mes. La tendencia es una recta de mínimos cuadrados, y = a + b·x, donde x es el número de mes (0, 1, 2…) e y el valor del mes; la recta se prolonga '.count($this->informe['meses_proyeccion']).' meses hacia adelante. Es deliberadamente simple: con el volumen de una empresa de este tamaño, un modelo más complejo no tiene datos suficientes para ser más exacto, y en cambio deja de poder explicarse.',
-            'Meses incompletos: en los totales del mes (pedidos, montos, consumo, utilidad) el mes en curso no entra en la recta, porque sus pocos días se leerían como una caída. Se muestra igual en el gráfico y se estima cómo cerraría. Los promedios, porcentajes y precios no dependen de cuántos días pasaron y usan el mes entero.',
-            "Rango probable: intervalo de predicción al {$confianza} %. Para el mes x0 vale y(x0) ± t × s × raíz(1 + 1/n + (x0 - media de x)² / Sxx), con t de Student de n - 2 grados de libertad, s el error típico de la recta (raíz de SSE / (n - 2)) y Sxx la suma de (x - media de x)². Se ensancha cuanto más lejos se proyecta.",
-            'R² (coeficiente de determinación) = 1 - SSE / SST: qué parte de la variación entre meses explica la recta. Se lee fuerte desde 0,7, moderado entre 0,4 y 0,7 y débil por debajo.',
-            'Validación retrospectiva: se ocultan los últimos meses reales (tantos como se proyectan), se pronostican con los anteriores y se mide el error porcentual absoluto medio (MAPE). Se compara la recta con Holt (suavizado exponencial doble, que adapta nivel y tendencia mes a mes, con alfa y beta elegidos por mínimo error) y con la media móvil de 3 meses (sin tendencia). Si otro modelo se equivoca menos, el informe lo advierte.',
-            'Mínimos: se necesitan 3 meses con datos para trazar una recta y 6 meses de entrenamiento, además de los validados, para medir el error.',
-        ] as $parrafo) {
-            $this->parrafo($parrafo);
+        foreach ($this->apartadosDelAnexo() as $numero => $apartado) {
+            $this->apartadoAnexo($numero + 1, $apartado);
         }
 
         $periodo = $this->informe['periodo'];
+
+        $this->subtitulo('Ficha de cada estimación', 'Los datos con que se calculó cada indicador de este informe.');
 
         foreach ($this->informe['secciones'] as $seccion) {
             foreach ($seccion['indicadores'] ?? [] as $indicador) {
@@ -572,6 +570,98 @@ class InformeProyeccionesPdf extends Documento
                     $r['texto'],
                 ], $ficha));
             }
+        }
+    }
+
+    /**
+     * Los seis apartados del anexo: texto antes de la fórmula, la fórmula
+     * (si tiene) y la explicación de sus términos.
+     *
+     * Las fórmulas se escriben con signos que existen en cp1252 (la fuente
+     * del PDF): "raíz(...)" en lugar de √ e "y(x0)" en lugar de ŷ.
+     *
+     * @return list<array{titulo: string, texto: string, formula?: string, despues?: string}>
+     */
+    private function apartadosDelAnexo(): array
+    {
+        $meses = count($this->informe['meses_proyeccion']);
+        $confianza = $this->informe['confianza'];
+
+        return [
+            [
+                'titulo' => 'Método de cálculo de las proyecciones',
+                'texto' => "Cada indicador se resume en un valor por mes. La tendencia es una recta de mínimos cuadrados, donde x es el número de mes (0, 1, 2…) e y el valor del mes; la recta se prolonga {$meses} meses hacia adelante.",
+                'formula' => 'y = a + b · x',
+                'despues' => 'Es deliberadamente simple: con el volumen de una empresa de este tamaño, un modelo más complejo no tiene datos suficientes para ser más exacto, y en cambio deja de poder explicarse.',
+            ],
+            [
+                'titulo' => 'Tratamiento de los meses incompletos',
+                'texto' => 'En los totales del mes (pedidos, montos, consumo, utilidad) el mes en curso no entra en la recta, porque sus pocos días se leerían como una caída. Se muestra igual en el gráfico y se estima cómo cerraría. Los promedios, porcentajes y precios no dependen de cuántos días pasaron y usan el mes entero.',
+            ],
+            [
+                'titulo' => 'Rango probable de las proyecciones',
+                'texto' => "Rango probable: intervalo de predicción al {$confianza} %. Para el mes x0 vale:",
+                'formula' => 'y(x0) ± t × s × raíz(1 + 1/n + (x0 - media de x)² / Sxx)',
+                'despues' => 'Donde t es la t de Student con n - 2 grados de libertad, s el error típico de la recta, raíz(SSE / (n - 2)), y Sxx la suma de (x - media de x)². El rango se ensancha cuanto más lejos se proyecta.',
+            ],
+            [
+                'titulo' => 'Qué tan bien se ajusta la recta (R²)',
+                'texto' => 'El coeficiente de determinación indica qué parte de la variación entre meses explica la recta:',
+                'formula' => 'R² = 1 - SSE / SST',
+                'despues' => 'SSE es la suma de los cuadrados de la distancia de cada mes a la recta y SST la de cada mes a su promedio. Se lee fuerte desde 0,7, moderado entre 0,4 y 0,7 y débil por debajo.',
+            ],
+            [
+                'titulo' => 'Validación con meses reales',
+                'texto' => "Se ocultan los últimos {$meses} meses reales (tantos como se proyectan), se pronostican con los anteriores y se mide el error porcentual absoluto medio (MAPE):",
+                'formula' => 'MAPE = promedio de |real - estimado| / |real| × 100',
+                'despues' => 'Los meses con valor real 0 no entran. Se compara la recta con Holt (suavizado exponencial doble, que adapta nivel y tendencia mes a mes, con alfa y beta elegidos por mínimo error) y con la media móvil de 3 meses (sin tendencia). Si otro modelo se equivoca menos, el informe lo advierte.',
+            ],
+            [
+                'titulo' => 'Datos mínimos',
+                'texto' => 'Se necesitan 3 meses con datos para trazar una recta y 6 meses de entrenamiento, además de los validados, para medir el error.',
+            ],
+        ];
+    }
+
+    /**
+     * Un apartado del anexo: "01 Título", el texto, la fórmula en un
+     * recuadro centrado y la explicación de sus términos. Va entero en una
+     * página: una fórmula separada de su explicación no se entiende.
+     *
+     * @param  array{titulo: string, texto: string, formula?: string, despues?: string}  $apartado
+     */
+    private function apartadoAnexo(int $numero, array $apartado): void
+    {
+        $altoParrafo = function (string $texto): float {
+            $this->fuente(8.5);
+
+            return $this->flujo($this->anchoUtil(), [['texto' => $texto]], $this->altoLinea(8.5), dibujar: false) + 1.5;
+        };
+
+        // Título + texto + recuadro (4 de margen, 6 de relleno, una línea de
+        // 10 pt y 3 de respiro) + explicación.
+        $this->asegurarEspacio(
+            3 + $this->altoLinea(10) + 1
+            + $altoParrafo($apartado['texto'])
+            + (isset($apartado['formula']) ? 13 + $this->altoLinea(10) : 0)
+            + (isset($apartado['despues']) ? $altoParrafo($apartado['despues']) : 0)
+        );
+        $this->espacio(3);
+
+        $this->fuente(10, 'B', self::AZUL_OSCURO);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->Cell($this->anchoUtil(), $this->altoLinea(10), $this->t(sprintf('%02d  %s', $numero, $apartado['titulo'])), 0, 2);
+        $this->espacio(1);
+
+        $this->parrafo($apartado['texto']);
+
+        if (isset($apartado['formula'])) {
+            $this->recuadro([['tipo' => 'formula', 'texto' => $apartado['formula']]], tono: 'destacado', centrado: true);
+            $this->espacio(3);
+        }
+
+        if (isset($apartado['despues'])) {
+            $this->parrafo($apartado['despues']);
         }
     }
 

@@ -13,6 +13,31 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-26 — Anexo metodológico ordenado en apartados con fórmulas aparte
+
+**Qué cambió:**
+- El anexo del "Informe del negocio" pasó de 6 párrafos seguidos a **6 apartados numerados**: 01 Método
+  de cálculo, 02 Meses incompletos, 03 Rango probable, 04 Ajuste de la recta (R²), 05 Validación con
+  meses reales, 06 Datos mínimos. Después, "Ficha de cada estimación" con la tabla de cada indicador.
+- Cada fórmula sale del párrafo y va en un **recuadro celeste centrado** (y = a + b · x, el rango
+  probable, R² = 1 - SSE / SST y la del MAPE, que antes no estaba escrita), con la explicación de los
+  términos debajo. Un apartado no se parte entre páginas.
+- **Bug**: un párrafo que provocaba un salto de página salía en **blanco** (invisible): heredaba el
+  color de la etiqueta "USO INTERNO" del membrete. Afectaba a cualquier PDF con párrafos largos.
+
+**Por qué:** pedido del usuario (propuesta de maqueta del anexo); el bug apareció al revisar el PDF.
+
+**Cómo:**
+- Los cálculos no cambian. `InformeProyeccionesPdf::apartadosDelAnexo()` (contenido) y
+  `apartadoAnexo()` (maqueta); bloque nuevo `formula` en `Documento::recuadro()`. Fórmulas con signos
+  de cp1252: "raíz(...)" y "y(x0)" porque la fuente del PDF no tiene √ ni ŷ. MAPE descrito según
+  `Pronostico::mape()` (los meses con real 0 no entran).
+- `Documento::AddPage()` restaura `colorActual` después del membrete (FPDF restaura su color, no nuestra copia).
+- Tests: orden de los apartados y fórmulas en `InformeProyeccionesTest`, y que lo único en blanco sea la
+  etiqueta (se probó que falla sin el arreglo). Suite completa en verde (822). Revisado el PDF generado.
+
+---
+
 ## 2026-10-25 — Informe del BI entendible para quien no es analista
 
 **Qué cambió:**

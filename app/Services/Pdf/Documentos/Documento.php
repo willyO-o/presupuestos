@@ -238,6 +238,26 @@ abstract class Documento extends FPDF
         $this->SetXY(self::MARGEN_LATERAL, $base + 5);
     }
 
+    /**
+     * Página nueva sin perder el color del texto que se estaba escribiendo.
+     *
+     * FPDF restaura su color interno después del membrete, pero no la copia
+     * `colorActual` que lee `flujo()`: un párrafo que saltaba de página
+     * heredaba el blanco de la etiqueta del membrete y salía invisible.
+     *
+     * @param  string  $orientation
+     * @param  string|array<int, float>  $size
+     * @param  int  $rotation
+     */
+    public function AddPage($orientation = '', $size = '', $rotation = 0): void
+    {
+        $color = $this->colorActual;
+
+        parent::AddPage($orientation, $size, $rotation);
+
+        $this->colorActual = $color;
+    }
+
     public function Footer(): void
     {
         $this->SetY(-13);
@@ -477,7 +497,7 @@ abstract class Documento extends FPDF
      * Recuadro de condiciones o avisos.
      *
      * El contenido se declara en bloques (`titulo`, `nota`, `lista`, `rotulo`,
-     * `rango`) porque hay que medir su altura ANTES de pintar el fondo: en
+     * `rango`, `formula`) porque hay que medir su altura ANTES de pintar el fondo: en
      * FPDF el rectángulo se dibuja primero y el texto encima, así que no se
      * puede "dejar que crezca" como una caja de CSS.
      *
@@ -1284,6 +1304,7 @@ abstract class Documento extends FPDF
             'titulo' => $this->bloqueSimple($bloque['texto'], $ancho, 9, 'B', self::OSCURO, $alineacion, $dibujar),
             'rotulo' => $this->bloqueSimple(mb_strtoupper($bloque['texto'], 'UTF-8'), $ancho, 7, 'B', self::TENUE, $alineacion, $dibujar),
             'rango' => $this->bloqueSimple($bloque['texto'], $ancho, 13, 'B', self::AZUL_OSCURO, $alineacion, $dibujar),
+            'formula' => $this->bloqueSimple($bloque['texto'], $ancho, 10, 'B', self::AZUL_OSCURO, $alineacion, $dibujar),
             'lista' => $this->bloqueLista($bloque['items'], $ancho, $x, $dibujar),
             default => $this->bloqueNota($bloque, $ancho, $alineacion, $dibujar),
         };

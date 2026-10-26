@@ -169,6 +169,40 @@ test('el pdf trae resumen, secciones elegidas, lectura y anexo metodologico', fu
     }
 });
 
+test('el anexo ordena el metodo en seis apartados numerados con cada formula aparte', function () {
+    $informe = app(InformeProyeccionesService::class)->armar($this->usuario, $this->periodo, ['demanda']);
+    $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
+    $anexo = substr($texto, strpos($texto, 'Anexo metodológico'));
+
+    // En orden, y la ficha de cada indicador después de los seis.
+    expect($anexo)->toMatch('/01  Método de cálculo.*02  Tratamiento de los meses incompletos.*03  Rango probable'
+        .'.*04  Qué tan bien se ajusta la recta.*05  Validación con meses reales.*06  Datos mínimos.*Ficha de cada estimación.*PEDIDOS/su');
+
+    // Cada fórmula en su propio renglón, no dentro del párrafo, y con signos
+    // que la fuente del PDF sí tiene (sin "?").
+    foreach ([
+        'y = a + b · x',
+        'y(x0) ± t × s × raíz(1 + 1/n + (x0 - media de x)² / Sxx)',
+        'R² = 1 - SSE / SST',
+        'MAPE = promedio de |real - estimado| / |real| × 100',
+    ] as $formula) {
+        expect($anexo)->toContain(" {$formula} ");
+    }
+
+    expect($anexo)->not->toContain('?');
+});
+
+test('un parrafo que salta de pagina no hereda el blanco de la etiqueta del membrete', function () {
+    $informe = app(InformeProyeccionesService::class)->armar($this->usuario, $this->periodo);
+    $contenido = app(GeneradorPdf::class)->informeProyecciones($informe)->sinComprimir()->contenido();
+
+    // Lo único escrito en blanco es la etiqueta "USO INTERNO" de cada página.
+    preg_match_all('/q 1\.000 1\.000 1\.000 rg BT [\d.-]+ [\d.-]+ Td \((.*?)\) Tj ET Q/s', $contenido, $blancos);
+
+    expect($blancos[1])->not->toBeEmpty()
+        ->and(array_unique($blancos[1]))->toBe(['USO INTERNO']);
+});
+
 test('el informe con todas las secciones se genera aunque falten datos de costos', function () {
     $informe = app(InformeProyeccionesService::class)->armar($this->usuario, $this->periodo);
     $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
