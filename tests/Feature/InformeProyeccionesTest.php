@@ -129,14 +129,18 @@ test('el texto automatico usa las cifras de la proyeccion', function () {
     expect($informe['secciones'])->toHaveCount(1)
         ->and($pedidos['proyeccion'][2]['valor'])->toEqualWithDelta(18.0, 1e-9)
         ->and($pedidos['metodo']['r2'])->toEqualWithDelta(1.0, 1e-9)
-        ->and($pedidos['resumen']['proyeccion'])->toBe("18,0 pedidos ({$septiembre})")
+        // Pedidos sin decimales; el mes de la estimación va aparte (cabecera).
+        ->and($pedidos['resumen']['proyeccion'])->toBe('18 pedidos')
+        ->and($pedidos['resumen']['mes_proyeccion'])->toBe($septiembre)
+        ->and($pedidos['resumen']['tendencia'])->toBe('Sube 28,6 % al mes')
+        ->and($pedidos['resumen']['confiabilidad'])->toBe('Alta')
         ->and(implode(' ', $pedidos['lectura']))
-        ->toContain('promedió 7,0 pedidos por mes')
-        ->toContain('La tendencia es creciente')
-        ->toContain("para {$septiembre} 18,0 pedidos")
-        ->toContain('Confiabilidad alta: la tendencia explica el 100 %')
-        ->not->toContain('Confiabilidad: Alta:')
-        ->and($informe['conclusiones'][0])->toContain('La demanda (pedidos) crece');
+        ->toContain('Qué pasó: entre')
+        ->toContain('el promedio fue de 7 pedidos por mes')
+        ->toContain('Cómo viene: va en aumento')
+        ->toContain("para {$septiembre} unos 18 pedidos")
+        ->toContain('Confianza en la estimación: alta.')
+        ->and($informe['conclusiones'][0])->toBe('Pedidos: en promedio 7 pedidos por mes; van en aumento (+28,6 % al mes).');
 });
 
 test('el pdf trae resumen, secciones elegidas, lectura y anexo metodologico', function () {
@@ -144,19 +148,25 @@ test('el pdf trae resumen, secciones elegidas, lectura y anexo metodologico', fu
     $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
 
     expect($texto)
-        ->toContain('INFORME DE PROYECCIONES')
+        ->toContain('INFORME DEL NEGOCIO')
         ->toContain('USO INTERNO')
-        ->toContain('Conclusiones')
-        ->toContain('RESUMEN EJECUTIVO')
+        ->toContain('En pocas palabras')
+        ->toContain('QUÉ ESPERAR EN LOS PRÓXIMOS MESES')
         ->toContain('Pedidos por mes')
-        ->toContain('Rango probable (80 %)')
+        ->toContain('Rango probable')
         ->toContain('Anexo metodológico')
-        ->toContain('Con 80 % de confianza')
         // Guía para leerlo sin ser analista; lo técnico, en el anexo.
         ->toContain('Cómo leer este informe')
         ->toContain('intervalo de predicción al 80 %')
         // Sección no pedida: no aparece.
-        ->not->toContain('Índice de costo de materiales');
+        ->not->toContain('Precio de los materiales');
+
+    // Pedido del usuario: entendible sin formación técnica. La jerga
+    // estadística solo puede aparecer en el anexo, al final.
+    $cuerpo = substr($texto, 0, strpos($texto, 'Anexo metodológico'));
+    foreach (['R²', 'MAPE', 'Holt', 'regresión', 'mínimos cuadrados', 'intervalo de predicción', 'grados de libertad'] as $jerga) {
+        expect(mb_stripos($cuerpo, $jerga))->toBeFalse("\"{$jerga}\" aparece fuera del anexo");
+    }
 });
 
 test('el informe con todas las secciones se genera aunque falten datos de costos', function () {
@@ -202,8 +212,8 @@ test('la conclusion de precio contra costo no dice crece cuando los dos bajan', 
     ]);
 
     // Los dos bajan, pero el precio más: el margen se achica.
-    expect($conclusiones(-0.5, -0.3))->toBe(['El precio promedio por presupuesto va por detrás del costo (-0,5 % contra -0,3 % por mes): el margen se está achicando.'])
-        ->and($conclusiones(2.0, 1.0))->toBe(['El precio promedio por presupuesto acompaña al costo o le gana (+2,0 % contra +1,0 % por mes): el margen se sostiene.']);
+    expect($conclusiones(-0.5, -0.3))->toBe(['Precios y costos: el precio de los trabajos se está quedando atrás de lo que cuesta hacerlos, así que cada trabajo deja un poco menos de ganancia.'])
+        ->and($conclusiones(2.0, 1.0))->toBe(['Precios y costos: los precios acompañan a los costos, así que la ganancia de cada trabajo se mantiene.']);
 });
 
 test('cada pestana del BI abre el informe con su propia seccion', function () {

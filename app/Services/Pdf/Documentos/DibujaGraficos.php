@@ -72,7 +72,7 @@ trait DibujaGraficos
             $this->Rect($x0 + $inicio * $paso, $y0, $ancho - $inicio * $paso, $altoArea, 'F');
             $this->SetXY($x0 + $inicio * $paso, $y0 + 0.5);
             $this->fuente(6, 'B', self::TENUE);
-            $this->Cell($ancho - $inicio * $paso, 3, $this->t('PROYECCIÓN'), 0, 0, 'C');
+            $this->Cell($ancho - $inicio * $paso, 3, $this->t('ESTIMADO'), 0, 0, 'C');
         }
 
         // Rejilla y eje Y.

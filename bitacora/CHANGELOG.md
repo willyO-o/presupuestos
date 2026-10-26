@@ -13,6 +13,41 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-25 — Informe del BI entendible para quien no es analista
+
+**Qué cambió:**
+- El PDF del BI ahora se llama **"Informe del negocio"** y la portada se lee de un vistazo:
+  - **"En pocas palabras"**: frases simples por tema (Ventas, Pedidos, Cotizaciones, Precios y
+    costos, Materiales, Ganancia, Alertas, Estimaciones). Reemplaza las "Conclusiones" con jerga.
+  - **"Lo primero que conviene hacer"**: las 3 acciones con más dinero en juego (de "¿Qué
+    decisiones…?").
+  - **"Qué esperar en los próximos meses"**: promedio por mes, cómo viene ("Sube 1,3 % al mes",
+    "Estable"), lo que se espera, entre qué valores podría quedar y la confianza (Alta/Media/Baja).
+    Reemplaza el "Resumen ejecutivo".
+  - **"Cómo leer este informe"**: qué es cada línea del gráfico y qué significa la confianza.
+- Indicadores con nombres claros: "Precio de los materiales" (antes Índice de costo), "Gasto en
+  materiales", "Monto cotizado", "Ventas", "Ganancia por cada Bs 100 de costo" (antes Rentabilidad
+  sobre costo), "Ganancia del mes" (antes Utilidad real), con descripciones sin fórmulas.
+- Cada gráfico se explica con "Qué pasó / Cómo viene / Qué se espera / Confianza en la
+  estimación". R², MAPE, Holt e intervalos solo aparecen en el anexo, rotulado como detalle técnico.
+- Gráficos y tablas: "Lo que pasó", "Lo que se espera", "Rango probable", "Lo más probable / Como
+  mínimo / Como máximo"; pedidos sin decimales ("67 pedidos"); el índice de precios se traduce a
+  "15,9 % más caros que al inicio".
+
+**Por qué:** pedido del usuario: el informe tiene que entenderlo alguien sin conocimiento técnico.
+
+**Cómo:**
+- Solo cambió la presentación: los cálculos (`Pronostico`, servicios del BI) no se tocaron.
+  `RedaccionPronostico::lectura()/resumen()/conclusiones()` reescritos (solo los usa el informe;
+  `ficha()`, la de la pantalla "Cómo se calcula", queda igual). `InformeProyeccionesPdf`: portada
+  nueva (`accionesPrincipales()`, `comoLeer()`), tabla de resumen y anexo. El rótulo del área
+  estimada de los gráficos dice "ESTIMADO" (`DibujaGraficos`). El nombre del archivo no cambia.
+- Tests: `InformeProyeccionesTest` fija la redacción nueva y que la jerga estadística no aparezca
+  antes del anexo (se probó que falla si vuelve). Suite completa en verde. Revisado el PDF con la base
+  demo (informe completo y por pestaña).
+
+---
+
 ## 2026-10-25 — Firmas editables, OC con imagen e imagen de referencia en la cotización
 
 **Qué cambió:**

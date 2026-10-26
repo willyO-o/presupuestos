@@ -98,7 +98,7 @@ class InformeProyeccionesService
                 $this->indicador($periodo, [
                     'clave' => 'pedidos',
                     'titulo' => 'Pedidos por mes',
-                    'descripcion' => 'Órdenes de trabajo registradas cada mes.',
+                    'descripcion' => 'Cantidad de órdenes de trabajo que se registraron cada mes.',
                     'formato' => 'cantidad',
                     'unidad' => 'pedidos',
                     'historico' => array_column($demanda['serie'], 'pedidos'),
@@ -127,8 +127,8 @@ class InformeProyeccionesService
             'indicadores' => [
                 $this->indicador($periodo, [
                     'clave' => 'indice_costo',
-                    'titulo' => 'Índice de costo de materiales',
-                    'descripcion' => 'Promedio de (precio del mes ÷ primer precio del periodo) × 100 de los materiales con historial. 100 = igual que al inicio. Toda la empresa.',
+                    'titulo' => 'Precio de los materiales',
+                    'descripcion' => 'Cuánto cuestan los materiales comparado con el inicio del periodo: 100 = el mismo precio; 110 = 10 % más caros. Es de toda la empresa.',
                     'formato' => 'indice',
                     'historico' => $costos['indice']['serie'],
                     'proyeccion' => $costos['indice']['proyeccion'],
@@ -138,8 +138,8 @@ class InformeProyeccionesService
                 ]),
                 $this->indicador($periodo, [
                     'clave' => 'consumo',
-                    'titulo' => 'Costo de material consumido',
-                    'descripcion' => 'Costo del material que producción registró en los pedidos, por mes.',
+                    'titulo' => 'Gasto en materiales',
+                    'descripcion' => 'Lo que costó el material que producción registró como usado en los pedidos de cada mes.',
                     'formato' => 'bs',
                     'historico' => $costos['consumo']['serie'],
                     'media_movil' => $costos['consumo']['media_movil'],
@@ -149,19 +149,19 @@ class InformeProyeccionesService
                 ]),
             ],
             'tabla' => [
-                'titulo' => 'Proyección de precio por material',
-                'nota' => 'Materiales más consumidos del periodo. Precio unitario vigente; toda la empresa.',
-                'columnas' => ['Material', 'Precio actual', 'Tendencia', 'Estimado '.($meses[count($meses) - 1] ?? ''), 'Rango probable', 'R²'],
+                'titulo' => 'Precio esperado de los materiales principales',
+                'nota' => 'Los materiales en los que más se gasta. Precio por unidad de compra; es de toda la empresa.',
+                'columnas' => ['Material', 'Precio hoy', 'Cómo viene', 'Precio en '.($meses[count($meses) - 1] ?? ''), 'Podría quedar entre', 'Confianza'],
                 'filas' => array_map(function (array $m): array {
                     $final = $m['proyeccion'] === [] ? null : $m['proyeccion'][count($m['proyeccion']) - 1];
 
                     return [
                         $m['material'],
                         RedaccionPronostico::formatear($m['precio_actual'], 'bs_exacto'),
-                        $m['variacion_mensual'] === null ? '—' : RedaccionPronostico::variacion($m['variacion_mensual']).' / mes',
+                        $m['variacion_mensual'] === null ? '—' : RedaccionPronostico::variacion($m['variacion_mensual']).' al mes',
                         $final ? RedaccionPronostico::formatear($final['valor'], 'bs_exacto') : '—',
                         $final ? RedaccionPronostico::formatear($final['inferior'], 'bs_exacto').' – '.RedaccionPronostico::formatear($final['superior'], 'bs_exacto') : '—',
-                        ($m['metodo']['r2'] ?? null) === null ? '—' : RedaccionPronostico::numero($m['metodo']['r2'], 2),
+                        ($m['metodo']['suficiente'] ?? false) ? RedaccionPronostico::nivelConfianza($m['metodo']) : '—',
                     ];
                 }, $costos['materiales']),
             ],
@@ -182,8 +182,8 @@ class InformeProyeccionesService
             'indicadores' => [
                 $this->indicador($periodo, [
                     'clave' => 'monto_emitido',
-                    'titulo' => 'Monto presupuestado (emitido)',
-                    'descripcion' => 'Suma del total de los presupuestos emitidos cada mes.',
+                    'titulo' => 'Monto cotizado',
+                    'descripcion' => 'Suma de todas las cotizaciones emitidas cada mes, se hayan aprobado o no.',
                     'formato' => 'bs',
                     'historico' => $pronostico['monto_emitido'],
                     'media_movil' => $pronostico['media_movil'],
@@ -193,8 +193,8 @@ class InformeProyeccionesService
                 ]),
                 $this->indicador($periodo, [
                     'clave' => 'monto_aprobado',
-                    'titulo' => 'Monto vendido (aprobado)',
-                    'descripcion' => 'Suma del total de los presupuestos aprobados o convertidos en pedido cada mes.',
+                    'titulo' => 'Ventas',
+                    'descripcion' => 'Suma de las cotizaciones que el cliente aprobó cada mes (incluidas las que ya pasaron a pedido).',
                     'formato' => 'bs',
                     'historico' => $pronostico['monto_aprobado'],
                     'proyeccion' => $pronostico['proyeccion_aprobado'],
@@ -203,8 +203,8 @@ class InformeProyeccionesService
                 ]),
                 $this->indicador($periodo, [
                     'clave' => 'rentabilidad',
-                    'titulo' => 'Rentabilidad sobre costo',
-                    'descripcion' => 'Utilidad real ÷ costo ajustado de los presupuestos aprobados con hoja de costos (la razón del semáforo).',
+                    'titulo' => 'Ganancia por cada Bs 100 de costo',
+                    'descripcion' => 'De cada Bs 100 que cuesta hacer los trabajos aprobados, cuántos quedan de ganancia después de impuestos. Solo cuentan las cotizaciones con hoja de costos.',
                     'formato' => 'porcentaje',
                     'historico' => $rentabilidad['porcentaje'],
                     'proyeccion' => $rentabilidad['proyeccion_porcentaje'],
@@ -218,8 +218,8 @@ class InformeProyeccionesService
                 ]),
                 $this->indicador($periodo, [
                     'clave' => 'utilidad',
-                    'titulo' => 'Utilidad real',
-                    'descripcion' => 'Utilidad real de los presupuestos aprobados con hoja de costos, por mes.',
+                    'titulo' => 'Ganancia del mes',
+                    'descripcion' => 'Ganancia en bolivianos, después de costos e impuestos, de las cotizaciones aprobadas cada mes (solo las que tienen hoja de costos).',
                     'formato' => 'bs',
                     'historico' => $rentabilidad['utilidad'],
                     'proyeccion' => $rentabilidad['proyeccion_utilidad'],
@@ -233,7 +233,7 @@ class InformeProyeccionesService
             ],
             'notas' => $rentabilidad['excluidos_sin_costo'] > 0
                 ? [sprintf(
-                    '%d presupuesto(s) aprobado(s) del periodo no tienen hoja de costos (son anteriores al motor de margen) y no entran en la rentabilidad; se analizan %d.',
+                    'Hay %d cotizaciones aprobadas sin hoja de costos (son anteriores al cálculo de márgenes): no se pueden usar para medir la ganancia. Se analizaron %d.',
                     $rentabilidad['excluidos_sin_costo'],
                     $rentabilidad['analizados'],
                 )]

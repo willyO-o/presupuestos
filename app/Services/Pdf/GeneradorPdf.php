@@ -177,7 +177,7 @@ class GeneradorPdf
         $periodo = $informe['periodo'];
 
         return $this->entregar(
-            new InformeProyeccionesPdf($informe, 'Informe de proyecciones', $this->empresa(), now()),
+            new InformeProyeccionesPdf($informe, 'Informe del negocio', $this->empresa(), now()),
             $this->nombre('informe-proyecciones', "{$periodo['desde']}-al-{$periodo['hasta']}"),
         );
     }

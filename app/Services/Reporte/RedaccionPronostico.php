@@ -150,9 +150,10 @@ final class RedaccionPronostico
      * -------------------------------------------------------------- */
 
     /**
-     * Lectura en prosa de un indicador del informe: situación, tendencia,
-     * proyección con su rango, cierre estimado del mes en curso, semáforo
-     * (si aplica) y confiabilidad.
+     * Lectura en prosa de un indicador del informe, para quien NO es analista
+     * (pedido del usuario): qué pasó, cómo viene, qué se espera, el mes en
+     * curso, el semáforo (si aplica) y cuánta confianza merece. Sin R², MAPE
+     * ni nombres de métodos: eso queda en el anexo (ficha()).
      *
      * Cada cifra sale del indicador ya calculado; acá solo se elige la
      * frase. Por eso se puede auditar: todo número del párrafo está en la
@@ -169,26 +170,27 @@ final class RedaccionPronostico
         $formato = fn (?float $v): string => self::conUnidad($v, $indicador);
 
         if ($tramo === []) {
-            return ['No hubo datos de este indicador en el periodo, así que no hay tendencia que leer.'];
+            return ['No hubo datos de este indicador en el periodo.'];
         }
 
-        $valores = array_column($tramo, 'valor');
         $ultimo = $tramo[count($tramo) - 1];
 
         $parrafos = [sprintf(
-            'Entre %s y %s (%d %s con datos) el indicador promedió %s por mes; el último mes considerado, %s, cerró en %s.',
+            'Qué pasó: entre %s y %s el promedio fue de %s por mes; en %s, el último mes analizado, fue de %s%s.',
             $tramo[0]['mes'],
             $ultimo['mes'],
-            count($tramo),
-            count($tramo) === 1 ? 'mes' : 'meses',
-            $formato(array_sum($valores) / count($valores)),
+            $formato(self::promedio($tramo)),
             $ultimo['mes'],
             $formato($ultimo['valor']),
+            // El índice dicho en palabras: 115,9 pts = 15,9 % más caros.
+            $indicador['formato'] === 'indice' && abs($ultimo['valor'] - 100) >= 0.5
+                ? sprintf(' (es decir, %s %s que al inicio)', self::formatear(abs($ultimo['valor'] - 100), 'porcentaje'), $ultimo['valor'] > 100 ? 'más caros' : 'más baratos')
+                : '',
         )];
 
         if (! ($metodo['suficiente'] ?? false)) {
             $parrafos[] = sprintf(
-                'Con menos de %d meses con datos no se traza una tendencia: el informe no proyecta este indicador para no inventar una.',
+                'Qué se espera: todavía no hay meses suficientes para estimarlo (hacen falta al menos %d).',
                 $metodo['minimo'] ?? Pronostico::MINIMO_PUNTOS,
             );
 
@@ -202,46 +204,45 @@ final class RedaccionPronostico
         $final = $proyeccion[count($proyeccion) - 1];
 
         $parrafos[] = sprintf(
-            'Si la tendencia se mantiene, para %s se estima %s y para %s %s, con un rango probable de %s a %s (%d %% de confianza).',
+            'Qué se espera: si todo sigue igual, para %s se esperan unos %s y para %s unos %s. Lo más probable es que el resultado real quede entre %s y %s.',
             $meses[0],
             $formato($proyeccion[0]['valor']),
             $meses[count($proyeccion) - 1],
             $formato($final['valor']),
             $formato($final['inferior']),
             $formato($final['superior']),
-            $metodo['confianza'],
         );
 
         if (! empty($metodo['cierre_estimado']) && ! empty($metodo['mes_final_excluido'])) {
             $parrafos[] = sprintf(
-                '%s está en curso%s y no entra en el cálculo; según la tendencia cerraría en torno a %s.',
+                '%s todavía no termina%s: se muestra aparte y no se usa en el cálculo; debería cerrar cerca de %s.',
                 self::mayuscula($metodo['mes_final_excluido']),
-                $mesIncompleto ? sprintf(' (%d de %d días)', $mesIncompleto['dias'], $mesIncompleto['de']) : '',
+                $mesIncompleto ? sprintf(' (van %d de %d días)', $mesIncompleto['dias'], $mesIncompleto['de']) : '',
                 $formato($metodo['cierre_estimado'][0]['valor']),
             );
         }
 
         if ($semaforo = $indicador['semaforo'] ?? null) {
             $parrafos[] = sprintf(
-                'Contra el semáforo del motor de margen (verde por encima de %s, amarillo por encima de %s), la rentabilidad estimada para %s queda en zona %s.',
+                'Semáforo: verde desde %s, amarillo entre %s y %s, rojo por debajo. Para %s se espera que quede en zona %s.',
                 self::formatear($semaforo['verde'], 'porcentaje'),
                 self::formatear($semaforo['amarillo'], 'porcentaje'),
+                self::formatear($semaforo['verde'], 'porcentaje'),
                 $meses[count($proyeccion) - 1],
                 self::zonaSemaforo($final['valor'], $semaforo),
             );
         }
 
-        // textoAjuste() ya empieza con "Alta:", "Media:" o "Baja:".
-        $parrafos[] = 'Confiabilidad '.lcfirst(self::textoAjuste($metodo)).' '.self::textoValidacion($metodo['validacion'] ?? null);
+        $parrafos[] = self::fraseConfianza($metodo);
 
         return $parrafos;
     }
 
     /**
-     * Fila del resumen ejecutivo de un indicador.
+     * Fila de "Qué esperar en los próximos meses" (resumen de la portada).
      *
      * @param  array<string, mixed>  $indicador
-     * @return array{indicador: string, ultimo: string, tendencia: string, proyeccion: string, rango: string, confiabilidad: string}
+     * @return array{indicador: string, promedio: string, ultimo: string, tendencia: string, mes_proyeccion: string, proyeccion: string, rango: string, confiabilidad: string}
      */
     public static function resumen(array $indicador): array
     {
@@ -251,35 +252,23 @@ final class RedaccionPronostico
         $final = $indicador['proyeccion'] === [] ? null : $indicador['proyeccion'][count($indicador['proyeccion']) - 1];
         $mesFinal = $indicador['meses_proyeccion'][count($indicador['proyeccion']) - 1] ?? '';
 
-        $confiabilidad = '—';
-        if ($metodo['suficiente'] ?? false) {
-            // En palabras (Alta/Media/Baja) y el error de la prueba con datos
-            // reales; el R² queda para la ficha y el anexo.
-            $partes = [match (true) {
-                $metodo['r2'] === null => 'Sin variación',
-                ($metodo['ajuste'] ?? null) === 'fuerte' => 'Alta',
-                ($metodo['ajuste'] ?? null) === 'moderado' => 'Media',
-                default => 'Baja',
-            }];
-            if (($metodo['validacion']['recta'] ?? null) !== null) {
-                $partes[] = 'error '.self::numero($metodo['validacion']['recta'], 0).' %';
-            }
-            $confiabilidad = implode(', ', $partes);
-        }
-
         return [
             'indicador' => $indicador['titulo'],
+            'promedio' => $tramo === [] ? '—' : self::conUnidad(self::promedio($tramo), $indicador),
             'ultimo' => $ultimo ? self::conUnidad($ultimo['valor'], $indicador).' ('.$ultimo['mes'].')' : '—',
             'tendencia' => self::tendenciaCorta($indicador),
-            'proyeccion' => $final ? self::conUnidad($final['valor'], $indicador).' ('.$mesFinal.')' : 'Sin proyección',
-            'rango' => $final ? self::formatear($final['inferior'], $indicador['formato']).' – '.self::formatear($final['superior'], $indicador['formato']) : '—',
-            'confiabilidad' => $confiabilidad,
+            'mes_proyeccion' => $mesFinal,
+            'proyeccion' => $final ? self::conUnidad($final['valor'], $indicador) : 'Sin estimación',
+            'rango' => $final ? self::rangoCompacto($final['inferior'], $final['superior'], $indicador['formato']) : '—',
+            'confiabilidad' => ($metodo['suficiente'] ?? false) ? self::nivelConfianza($metodo) : '—',
         ];
     }
 
     /**
-     * Conclusiones del informe: lo que un gerente debería llevarse en cinco
-     * renglones, deducido de los indicadores y las alertas.
+     * "En pocas palabras": lo que el dueño debería llevarse de la portada, en
+     * frases simples, deducido de los indicadores y las alertas. Cada frase
+     * empieza con el tema ("Ventas:", "Materiales:"…) para leerse de un
+     * vistazo.
      *
      * @param  list<array<string, mixed>>  $indicadores
      * @param  list<array<string, mixed>>  $secciones
@@ -290,13 +279,24 @@ final class RedaccionPronostico
         $porClave = collect($indicadores)->keyBy('clave');
         $conclusiones = [];
 
-        $movimiento = collect(['pedidos' => 'La demanda (pedidos)', 'monto_aprobado' => 'el monto vendido', 'monto_emitido' => 'el monto presupuestado'])
-            ->filter(fn (string $texto, string $clave) => $porClave->has($clave) && $porClave[$clave]['metodo']['suficiente'])
-            ->map(fn (string $texto, string $clave) => $texto.' '.self::verboTendencia($porClave[$clave]).' ('.self::tendenciaCorta($porClave[$clave]).')')
-            ->values();
+        foreach ([
+            'monto_aprobado' => ['Ventas', 'en promedio %s vendidos por mes'],
+            'pedidos' => ['Pedidos', 'en promedio %s por mes'],
+            'monto_emitido' => ['Cotizaciones', 'en promedio %s cotizados por mes'],
+        ] as $clave => [$tema, $frase]) {
+            $indicador = $porClave->get($clave);
+            $tramo = $indicador ? self::tramoUsado($indicador) : [];
 
-        if ($movimiento->isNotEmpty()) {
-            $conclusiones[] = self::mayuscula($movimiento->implode('; ')).'.';
+            if ($tramo === []) {
+                continue;
+            }
+
+            $conclusiones[] = sprintf(
+                '%s: %s%s.',
+                $tema,
+                sprintf($frase, self::conUnidad(self::promedio($tramo), $indicador)),
+                ($indicador['metodo']['suficiente'] ?? false) ? '; '.self::rumbo($indicador) : '',
+            );
         }
 
         $rentabilidad = collect($secciones)->firstWhere('clave', 'rentabilidad');
@@ -305,44 +305,68 @@ final class RedaccionPronostico
             // "Va por detrás" y no "crece más lento": las dos pendientes
             // pueden ser negativas (precio −0,5 % y costo −0,3 % por mes).
             $conclusiones[] = $costo > $precio
-                ? sprintf('El precio promedio por presupuesto va por detrás del costo (%s contra %s por mes): el margen se está achicando.', self::variacion($precio), self::variacion($costo))
-                : sprintf('El precio promedio por presupuesto acompaña al costo o le gana (%s contra %s por mes): el margen se sostiene.', self::variacion($precio), self::variacion($costo));
+                ? 'Precios y costos: el precio de los trabajos se está quedando atrás de lo que cuesta hacerlos, así que cada trabajo deja un poco menos de ganancia.'
+                : 'Precios y costos: los precios acompañan a los costos, así que la ganancia de cada trabajo se mantiene.';
         }
 
         if ($porClave->has('indice_costo') && ($ritmo = $porClave['indice_costo']['variacion_mensual']) !== null) {
+            $tramo = self::tramoUsado($porClave['indice_costo']);
+            $hoy = $tramo === [] ? null : $tramo[count($tramo) - 1]['valor'] - 100;
             $umbral = config('bi.alerta_tendencia_mensual') * 100;
-            $conclusiones[] = $ritmo >= $umbral
-                ? sprintf('El costo de los materiales sube %s por mes, por encima del umbral de alerta (%s por mes): conviene revisar márgenes o adelantar compras.', self::variacion($ritmo), self::formatear($umbral, 'porcentaje'))
-                : sprintf('El costo de los materiales varía %s por mes, por debajo del umbral de alerta (%s por mes).', self::variacion($ritmo), self::formatear($umbral, 'porcentaje'));
+
+            $conclusiones[] = 'Materiales: '
+                .($hoy === null || abs($hoy) < 0.5
+                    ? 'cuestan lo mismo que al inicio del periodo'
+                    : sprintf('hoy cuestan %s %s que al inicio del periodo', self::formatear(abs($hoy), 'porcentaje'), $hoy > 0 ? 'más' : 'menos'))
+                .(abs($ritmo) < 0.5 ? ' y sus precios están estables' : sprintf(' y %s alrededor de %s cada mes', $ritmo > 0 ? 'suben' : 'bajan', self::formatear(abs($ritmo), 'porcentaje')))
+                .($ritmo >= $umbral ? '. Suben más rápido de lo normal: conviene revisar los precios de venta o adelantar compras.' : '.');
         }
 
         $margen = $porClave->get('rentabilidad');
-        if ($margen && $margen['proyeccion'] !== [] && $margen['semaforo']) {
-            $final = $margen['proyeccion'][count($margen['proyeccion']) - 1];
-            $conclusiones[] = sprintf(
-                'La rentabilidad sobre costo proyectada para %s es %s: zona %s del semáforo.',
-                $margen['meses_proyeccion'][count($margen['proyeccion']) - 1],
-                self::formatear($final['valor'], 'porcentaje'),
-                self::zonaSemaforo($final['valor'], $margen['semaforo']),
-            );
-        }
+        if ($margen && ($tramo = self::tramoUsado($margen)) !== []) {
+            $frase = sprintf('Ganancia: de cada Bs 100 que cuesta hacer un trabajo, quedan en promedio Bs %s de ganancia después de impuestos', self::numero(self::promedio($tramo), 1));
 
-        $cautela = collect($indicadores)
-            ->filter(fn (array $i) => ($i['metodo']['suficiente'] ?? false)
-                && (($i['metodo']['ajuste'] ?? null) === 'debil'
-                    || (($i['metodo']['validacion']['mejor'] ?? 'recta') !== 'recta')))
-            ->pluck('titulo');
+            if ($margen['proyeccion'] !== [] && $margen['semaforo']) {
+                $final = $margen['proyeccion'][count($margen['proyeccion']) - 1];
+                $frase .= sprintf('; para %s se espera que siga en zona %s', $margen['meses_proyeccion'][count($margen['proyeccion']) - 1], self::zonaSemaforo($final['valor'], $margen['semaforo']));
+            }
 
-        if ($cautela->isNotEmpty()) {
-            $conclusiones[] = 'Conviene leer con cautela: '.$cautela->implode(', ').' (su tendencia es poco confiable o, al probarla con datos reales, otro método fue más preciso).';
+            $conclusiones[] = $frase.'.';
         }
 
         $alertas = collect($secciones)->firstWhere('clave', 'alertas');
         if ($alertas) {
             $resumen = $alertas['resumen_alertas'];
+            $media = $resumen['total'] - $resumen['alta'];
             $conclusiones[] = $resumen['total'] === 0
-                ? 'No hay alertas de costo ni de margen en el periodo.'
-                : sprintf('Hay %d %s de costo y margen, %d de prioridad alta (detalle en la sección Alertas).', $resumen['total'], $resumen['total'] === 1 ? 'alerta' : 'alertas', $resumen['alta']);
+                ? 'Alertas: no hay alertas de costo ni de margen en el periodo.'
+                : sprintf(
+                    'Alertas: %d para atender ya y %d para revisar esta semana (detalle en la sección Alertas).',
+                    $resumen['alta'],
+                    $media,
+                );
+        }
+
+        // Qué estimaciones son confiables, sin listar media docena de
+        // nombres: si la mayoría es dudosa se dice "la mayoría" y se nombran
+        // las que sí sirven.
+        $conEstimacion = collect($indicadores)->filter(fn (array $i) => $i['metodo']['suficiente'] ?? false);
+        $esDudosa = fn (array $i): bool => ($i['metodo']['ajuste'] ?? null) === 'debil'
+            || (($i['metodo']['validacion']['mejor'] ?? 'recta') !== 'recta');
+        $comillas = fn (string $titulo): string => "\"{$titulo}\"";
+        $dudosas = $conEstimacion->filter($esDudosa)->pluck('titulo')->map($comillas);
+        $confiables = $conEstimacion->reject($esDudosa)->pluck('titulo')->map($comillas);
+
+        if ($dudosas->isNotEmpty()) {
+            $conclusiones[] = $dudosas->count() > $conEstimacion->count() / 2
+                ? 'Estimaciones: la mayoría de los indicadores sube y baja mucho de un mes a otro, así que sus estimaciones sirven solo como referencia'
+                    .($confiables->isEmpty() ? '.' : sprintf('. Solo %s %s una línea clara.', self::enumerar($confiables->all()), $confiables->count() === 1 ? 'sigue' : 'siguen'))
+                : sprintf(
+                    'Estimaciones: %s %s mucho de un mes a otro; %s solo como referencia.',
+                    self::enumerar($dudosas->all()),
+                    $dudosas->count() === 1 ? 'sube y baja' : 'suben y bajan',
+                    $dudosas->count() === 1 ? 'su estimación sirve' : 'sus estimaciones sirven',
+                );
         }
 
         return $conclusiones;
@@ -362,6 +386,8 @@ final class RedaccionPronostico
             'bs_exacto' => 'Bs '.self::numero($valor, 2),
             'porcentaje' => self::numero($valor, 1).' %',
             'indice' => self::numero($valor, 1).' pts',
+            // Pedidos y otras cantidades: "67 pedidos", no "67,3 pedidos".
+            'cantidad' => self::numero($valor, 0),
             default => self::numero($valor, abs($valor) < 100 ? 1 : 0),
         };
     }
@@ -399,6 +425,8 @@ final class RedaccionPronostico
     }
 
     /**
+     * "Cómo viene: va en aumento, unos 0,6 pedidos más cada mes (+1,0 % al mes)."
+     *
      * @param  array<string, mixed>  $indicador
      */
     private static function fraseTendencia(array $indicador): string
@@ -409,58 +437,132 @@ final class RedaccionPronostico
             $puntos = $metodo['pendiente'];
 
             return abs($puntos) < 0.1
-                ? 'La tendencia es estable: se mueve menos de una décima de punto porcentual por mes.'
-                : sprintf('La tendencia es %s: %s %s puntos porcentuales por mes.', $puntos > 0 ? 'creciente' : 'decreciente', $puntos > 0 ? 'sube' : 'baja', self::numero(abs($puntos), 2));
+                ? 'Cómo viene: se mantiene estable.'
+                : sprintf('Cómo viene: va %s, unos %s puntos por mes.', $puntos > 0 ? 'en aumento' : 'bajando', self::numero(abs($puntos), 2));
         }
 
         $variacion = $indicador['variacion_mensual'];
 
         if ($variacion === null) {
-            return 'La serie promedia cero: su ritmo de cambio no se puede expresar en porcentaje.';
+            return 'Cómo viene: no se puede medir el ritmo, porque el promedio del periodo es cero.';
         }
 
         if (abs($variacion) < 0.5) {
-            return sprintf('La tendencia es estable: varía %s por mes.', self::variacion($variacion));
+            return 'Cómo viene: se mantiene estable (cambia menos de medio por ciento al mes).';
         }
 
         return sprintf(
-            'La tendencia es %s: %s en promedio %s por mes (unos %s por mes).',
-            $variacion > 0 ? 'creciente' : 'decreciente',
-            $variacion > 0 ? 'sube' : 'baja',
-            self::variacion(abs($variacion)),
-            self::conUnidad(abs($metodo['pendiente']), $indicador),
+            'Cómo viene: va %s, unos %s %s cada mes (%s al mes).',
+            $variacion > 0 ? 'en aumento' : 'bajando',
+            self::cantidadPorMes(abs($metodo['pendiente']), $indicador),
+            $variacion > 0 ? 'más' : 'menos',
+            self::variacion($variacion),
         );
     }
 
     /**
+     * Cambio por mes con unidad, sin redondear a cero lo que es chico
+     * ("0,6 pedidos", "Bs 10.463", "1,2 pts").
+     *
+     * @param  array<string, mixed>  $indicador
+     */
+    private static function cantidadPorMes(float $valor, array $indicador): string
+    {
+        if ($indicador['formato'] !== 'cantidad') {
+            return self::conUnidad($valor, $indicador);
+        }
+
+        $texto = self::numero($valor, $valor < 10 ? 1 : 0);
+
+        return isset($indicador['unidad']) ? "{$texto} {$indicador['unidad']}" : $texto;
+    }
+
+    /**
+     * Confianza en la estimación, en palabras.
+     *
+     * @param  array<string, mixed>  $metodo
+     */
+    private static function fraseConfianza(array $metodo): string
+    {
+        if (($metodo['r2'] ?? null) === null) {
+            return 'Confianza en la estimación: el indicador no cambió en el periodo, así que se espera que siga igual.';
+        }
+
+        $frase = match (self::nivelConfianza($metodo)) {
+            'Alta' => 'Confianza en la estimación: alta. Los meses siguen una línea clara.',
+            'Media' => 'Confianza en la estimación: media. Los meses siguen una tendencia, con algunas subidas y bajadas.',
+            default => 'Confianza en la estimación: baja. Los meses suben y bajan mucho, así que la estimación es solo una referencia.',
+        };
+
+        $validacion = $metodo['validacion'] ?? null;
+
+        if ($validacion !== null && ($validacion['recta'] ?? null) !== null) {
+            $frase .= sprintf(
+                ' Al probar el cálculo con los últimos %d meses ya conocidos, se equivocó en promedio un %s.',
+                $validacion['meses'],
+                self::formatear($validacion['recta'], 'porcentaje'),
+            );
+        }
+
+        return $frase;
+    }
+
+    /**
+     * Alta / Media / Baja según qué tanto siguen los meses a la tendencia.
+     *
+     * @param  array<string, mixed>  $metodo
+     */
+    public static function nivelConfianza(array $metodo): string
+    {
+        return match (true) {
+            ($metodo['r2'] ?? null) === null => 'Alta',
+            ($metodo['ajuste'] ?? null) === 'fuerte' => 'Alta',
+            ($metodo['ajuste'] ?? null) === 'moderado' => 'Media',
+            default => 'Baja',
+        };
+    }
+
+    /**
+     * "Sube 1,0 % al mes", "Estable", "Baja 0,17 pts al mes".
+     *
      * @param  array<string, mixed>  $indicador
      */
     private static function tendenciaCorta(array $indicador): string
     {
         if (! ($indicador['metodo']['suficiente'] ?? false)) {
-            return 'Sin datos suficientes';
+            return 'Faltan datos';
         }
 
         if ($indicador['formato'] === 'porcentaje') {
             $puntos = $indicador['metodo']['pendiente'];
 
-            return ($puntos > 0 ? '+' : ($puntos < 0 ? '-' : '')).self::numero(abs($puntos), 2).' pts / mes';
+            return abs($puntos) < 0.1
+                ? 'Estable'
+                : sprintf('%s %s pts al mes', $puntos > 0 ? 'Sube' : 'Baja', self::numero(abs($puntos), 2));
         }
 
-        return $indicador['variacion_mensual'] === null ? '—' : self::variacion($indicador['variacion_mensual']).' / mes';
+        $variacion = $indicador['variacion_mensual'];
+
+        return match (true) {
+            $variacion === null => '—',
+            abs($variacion) < 0.5 => 'Estable',
+            default => sprintf('%s %s al mes', $variacion > 0 ? 'Sube' : 'Baja', self::formatear(abs($variacion), 'porcentaje')),
+        };
     }
 
     /**
+     * Rumbo en una frase corta: "van en aumento (+1,0 % al mes)".
+     *
      * @param  array<string, mixed>  $indicador
      */
-    private static function verboTendencia(array $indicador): string
+    private static function rumbo(array $indicador): string
     {
         $variacion = $indicador['variacion_mensual'];
 
         return match (true) {
-            $variacion === null || abs($variacion) < 0.5 => 'se mantiene estable',
-            $variacion > 0 => 'crece',
-            default => 'cae',
+            $variacion === null || abs($variacion) < 0.5 => 'se mantienen estables',
+            $variacion > 0 => sprintf('van en aumento (%s al mes)', self::variacion($variacion)),
+            default => sprintf('van bajando (%s al mes)', self::variacion($variacion)),
         };
     }
 
@@ -470,10 +572,53 @@ final class RedaccionPronostico
     private static function zonaSemaforo(float $valor, array $semaforo): string
     {
         return match (true) {
-            $valor > $semaforo['verde'] => 'verde (aceptar)',
-            $valor > $semaforo['amarillo'] => 'amarilla (revisar precio)',
-            default => 'roja (no aceptar)',
+            $valor > $semaforo['verde'] => 'verde (buena)',
+            $valor > $semaforo['amarillo'] => 'amarilla (conviene revisar precios)',
+            default => 'roja (ganancia muy baja)',
         };
+    }
+
+    /**
+     * "Bs 532.221 – 1.226.114", "30,4 – 36,4 %", "49 – 89": la unidad una
+     * sola vez, para que el rango entre en una línea de la tabla.
+     */
+    private static function rangoCompacto(float $inferior, float $superior, string $formato): string
+    {
+        $desnudo = fn (float $v): string => match ($formato) {
+            'bs' => self::numero($v, 0),
+            'bs_exacto' => self::numero($v, 2),
+            'porcentaje', 'indice' => self::numero($v, 1),
+            default => self::formatear($v, $formato),
+        };
+
+        $rango = $desnudo($inferior).' – '.$desnudo($superior);
+
+        return match ($formato) {
+            'bs', 'bs_exacto' => 'Bs '.$rango,
+            'porcentaje' => $rango.' %',
+            'indice' => $rango.' pts',
+            default => $rango,
+        };
+    }
+
+    /**
+     * @param  list<array{mes: string, valor: float}>  $tramo
+     */
+    private static function promedio(array $tramo): float
+    {
+        return array_sum(array_column($tramo, 'valor')) / count($tramo);
+    }
+
+    /**
+     * "a", "a y b", "a, b y c".
+     *
+     * @param  list<string>  $partes
+     */
+    private static function enumerar(array $partes): string
+    {
+        $ultima = array_pop($partes);
+
+        return $partes === [] ? (string) $ultima : implode(', ', $partes).' y '.$ultima;
     }
 
     /**
