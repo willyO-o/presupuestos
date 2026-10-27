@@ -13,6 +13,28 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-26 — Google reCAPTCHA v2 en el login
+
+**Qué cambió:**
+- El login muestra la casilla **"No soy un robot"** de Google (reCAPTCHA v2) debajo de la contraseña.
+  El botón "Iniciar sesión" queda deshabilitado hasta marcarla, y la casilla se reinicia después de
+  cada intento fallido (Google invalida el token una vez verificado).
+- El backend verifica el token contra Google antes de comprobar la contraseña. Sin token, con token
+  rechazado o si Google no responde, el login se rechaza con un mensaje bajo la casilla.
+- Se activa por `.env` (`RECAPTCHA_ENABLED`, `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY`). Sin las dos
+  claves no se exige: en local y en los tests el login funciona igual que antes.
+
+**Por qué:** pedido del usuario, para frenar ataques automáticos de fuerza bruta sobre el login
+(complementa el límite de 5 intentos por email + IP que ya existía).
+
+**Cómo:**
+- `App\Services\Seguridad\RecaptchaService`: una sola llamada HTTP a `siteverify` (sin paquetes nuevos);
+  falla cerrado y deja aviso en el log si Google no responde.
+- `LoginRequest` agrega la regla `captcha` solo cuando el servicio está activo;
+  `AuthenticatedSessionController::create` pasa `recaptchaSiteKey` (null si no está activo).
+- `Components/RecaptchaWidget.vue` carga el script de Google una vez por pestaña (render explícito, `hl=es`)
+  y expone `reiniciar()`. Tests en `tests/Feature/Auth/LoginRecaptchaTest.php` (10, con `Http::fake`).
+
 ## 2026-10-26 — Anexo metodológico ordenado en apartados con fórmulas aparte
 
 **Qué cambió:**

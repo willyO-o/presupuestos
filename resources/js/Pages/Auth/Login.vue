@@ -1,29 +1,44 @@
 <script setup>
 import InputError from '@/Components/InputError.vue';
+import RecaptchaWidget from '@/Components/RecaptchaWidget.vue';
 import AuthSplitLayout from '@/Layouts/AuthSplitLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     canResetPassword: {
         type: Boolean,
     },
     status: {
         type: String,
     },
+    /** null cuando el captcha no está habilitado (local, tests). */
+    recaptchaSiteKey: {
+        type: String,
+        default: null,
+    },
 });
 
-const form = useForm({
+const form = useForm(() => ({
     email: '',
     password: '',
     remember: false,
-});
+    captcha: '',
+}));
 
 const showPassword = ref(false);
+const recaptcha = ref(null);
+
+const faltaCaptcha = computed(
+    () => Boolean(props.recaptchaSiteKey) && !form.captcha,
+);
 
 const submit = () => {
     form.post(route('login'), {
-        onFinish: () => form.reset('password'),
+        onFinish: () => {
+            form.reset('password');
+            recaptcha.value?.reiniciar();
+        },
     });
 };
 </script>
@@ -116,11 +131,24 @@ const submit = () => {
                 </Link>
             </div>
 
+            <div v-if="recaptchaSiteKey" class="mt-5">
+                <RecaptchaWidget
+                    ref="recaptcha"
+                    v-model="form.captcha"
+                    :site-key="recaptchaSiteKey"
+                />
+
+                <InputError
+                    class="mt-2 text-center"
+                    :message="form.errors.captcha"
+                />
+            </div>
+
             <button
                 type="submit"
                 class="btn btn-primary mt-6 w-full justify-center rounded-full py-3 text-sm tracking-widest uppercase"
-                :class="{ 'opacity-25': form.processing }"
-                :disabled="form.processing"
+                :class="{ 'opacity-25': form.processing || faltaCaptcha }"
+                :disabled="form.processing || faltaCaptcha"
             >
                 Iniciar sesión
             </button>

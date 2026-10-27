@@ -28,6 +28,18 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    | Google reCAPTCHA v2 ("No soy un robot") en el login. Solo se exige
+    | cuando está habilitado Y tiene ambas claves: sin claves el login sigue
+    | funcionando igual (desarrollo local, tests). Claves en
+    | https://www.google.com/recaptcha/admin (tipo "v2 casilla").
+    */
+    'recaptcha' => [
+        'enabled' => env('RECAPTCHA_ENABLED', false),
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

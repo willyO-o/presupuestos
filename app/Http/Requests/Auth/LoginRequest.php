@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Services\Seguridad\RecaptchaService;
+use Closure;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,9 +29,32 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $reglas = [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+        ];
+
+        $recaptcha = app(RecaptchaService::class);
+
+        if ($recaptcha->estaActivo()) {
+            // `bail`: sin token no se llama a Google.
+            $reglas['captcha'] = ['bail', 'required', 'string', function (string $attribute, mixed $value, Closure $fail) use ($recaptcha) {
+                if (! $recaptcha->verificar($value, $this->ip())) {
+                    $fail('No se pudo verificar el captcha. Vuelve a marcarlo e inténtalo otra vez.');
+                }
+            }];
+        }
+
+        return $reglas;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'captcha.required' => 'Marca la casilla "No soy un robot" para continuar.',
         ];
     }
 
