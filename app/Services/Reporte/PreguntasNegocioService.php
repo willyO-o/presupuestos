@@ -45,9 +45,9 @@ class PreguntasNegocioService
     /** Grupos, en el orden en que salen. */
     public const GRUPOS = [
         'costos' => 'Costos',
-        'ganancias' => 'Ganancias',
-        'escenarios' => 'Escenarios',
-        'decisiones' => 'Decisiones',
+        'ganancias' => 'Rentabilidad',
+        'escenarios' => 'Escenarios y cobros',
+        'decisiones' => 'Acciones',
     ];
 
     private const UNIDADES = ['M2' => 'm²', 'METRO_LINEAL' => 'm', 'UNIDAD' => 'unidad'];
@@ -1231,17 +1231,20 @@ class PreguntasNegocioService
 
     /** Texto de cada pregunta y su rótulo corto (para "Proviene de"). */
     public const PREGUNTAS = [
-        'costo_producto' => ['¿Cuánto cuesta realmente producir cada producto?', 'Costo real por producto'],
-        'costos_suben' => ['¿Qué costos están aumentando?', 'Costos que suben'],
-        'gasto_presupuesto' => ['¿Se está gastando más de lo presupuestado?', 'Gasto contra presupuesto'],
-        'materiales_pesan' => ['¿En qué materiales se concentra la mayor parte del gasto?', 'Materiales que más pesan'],
-        'productos_rentables' => ['¿Qué producto genera mayor rentabilidad?', 'Productos más rentables'],
-        'clientes_rentables' => ['¿Qué clientes generan más ganancia?', 'Clientes más rentables'],
+        // "Según los registros disponibles": la mano de obra es la
+        // presupuestada (no se registran horas), así que no es un costo
+        // totalmente real; el aviso de la pregunta lo explica.
+        'costo_producto' => ['¿Cuál es el costo por producto según los registros disponibles?', 'Costo por producto'],
+        'costos_suben' => ['¿Qué costos están aumentando?', 'Aumento de materiales'],
+        'gasto_presupuesto' => ['¿Se está gastando más de lo presupuestado?', 'Gasto frente al presupuesto'],
+        'materiales_pesan' => ['¿En qué materiales se concentra la mayor parte del gasto?', 'Materiales de mayor gasto'],
+        'productos_rentables' => ['¿Qué producto genera mayor rentabilidad?', 'Productos con mayor margen'],
+        'clientes_rentables' => ['¿Qué clientes generan más ganancia?', 'Clientes con mayor aporte'],
         'descuentos' => ['¿Cuánto cuestan los descuentos y los precios ingresados manualmente?', 'Descuentos y precios manuales'],
         'margen_bajo' => ['¿Qué trabajos se están vendiendo con margen bajo?', 'Ventas con margen bajo'],
         'materia_prima' => ['¿Qué pasaría si sube el precio de la materia prima?', 'Si sube la materia prima'],
-        'cobranza' => ['¿Cuánto de lo vendido ya se ha cobrado?', 'Cobranza'],
-        'decisiones' => ['¿Qué decisiones ayudarían a reducir los costos y mejorar las ganancias?', 'Decisiones'],
+        'cobranza' => ['¿Cuánto de lo vendido ya se ha cobrado?', 'Pagos pendientes'],
+        'decisiones' => ['¿Qué decisiones ayudarían a reducir los costos y mejorar las ganancias?', 'Acciones sugeridas'],
     ];
 
     /**

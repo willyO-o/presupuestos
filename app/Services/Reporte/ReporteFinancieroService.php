@@ -15,15 +15,19 @@ use Illuminate\Support\Carbon;
 class ReporteFinancieroService
 {
     /**
+     * `$sucursalId` acota a una sola sucursal DENTRO de lo que el usuario ya
+     * ve (el filtro de la pantalla); `null` = todas las suyas.
+     *
      * @return array<string, mixed>
      */
-    public function datos(User $usuario, ?string $desde = null, ?string $hasta = null): array
+    public function datos(User $usuario, ?string $desde = null, ?string $hasta = null, ?int $sucursalId = null): array
     {
         $desde = $desde ? Carbon::parse($desde)->startOfDay() : Carbon::now()->startOfYear();
         $hasta = $hasta ? Carbon::parse($hasta)->endOfDay() : Carbon::now()->endOfDay();
 
         $cotizaciones = Cotizacion::query()
             ->visiblePara($usuario)
+            ->deSucursal($sucursalId)
             ->whereIn('estado', ['APROBADA', 'CONVERTIDA'])
             ->whereBetween('fecha', [$desde, $hasta])
             ->with('sucursal:id,nombre')
@@ -31,6 +35,7 @@ class ReporteFinancieroService
 
         $pedidos = Pedido::query()
             ->visiblePara($usuario)
+            ->deSucursal($sucursalId)
             ->whereIn('estado', ['ACABADO', 'ENTREGADO'])
             ->with(['cotizacion:id,codigo_verificacion,cliente_id', 'cotizacion.cliente:id,razon_social', 'detalles.materialesUsados', 'pagos'])
             ->get();
@@ -64,17 +69,18 @@ class ReporteFinancieroService
                     'margen_pct' => $ingreso > 0 ? round(($ingreso - $costoReal) / $ingreso * 100, 1) : null,
                 ];
             })->values()->all(),
-            'cuentas_por_cobrar' => $this->cuentasPorCobrar($usuario),
+            'cuentas_por_cobrar' => $this->cuentasPorCobrar($usuario, $sucursalId),
         ];
     }
 
     /**
      * @return array{total: float, pedidos: list<array<string, mixed>>}
      */
-    private function cuentasPorCobrar(User $usuario): array
+    private function cuentasPorCobrar(User $usuario, ?int $sucursalId): array
     {
         $pedidos = Pedido::query()
             ->visiblePara($usuario)
+            ->deSucursal($sucursalId)
             ->where('estado', '!=', 'CANCELADO')
             ->with(['pagos', 'cotizacion:id,cliente_id', 'cotizacion.cliente:id,razon_social'])
             ->orderBy('fecha_pedido')

@@ -56,6 +56,13 @@ final readonly class PeriodoReporte
     private const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
     /**
+     * Nombre completo de cada mes, para los textos redactados de los informes
+     * en PDF ("Julio fue el mes con mayores ventas"). Fijo por la misma razón
+     * que `MESES`: no depender del idioma configurado en la aplicación.
+     */
+    private const MESES_COMPLETOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    /**
      * Etiqueta mes-año de un mes: `Ene-2026`.
      *
      * Es el ÚNICO formato de mes de los reportes (pedido del usuario): en
@@ -74,6 +81,12 @@ final readonly class PeriodoReporte
     public static function nombreMes(int $mes): string
     {
         return self::MESES[$mes - 1];
+    }
+
+    /** Nombre completo de un mes sin año (`Enero`). */
+    public static function nombreMesCompleto(int $mes): string
+    {
+        return self::MESES_COMPLETOS[$mes - 1];
     }
 
     /**

@@ -48,9 +48,9 @@ class InformeReportesService
     /**
      * @return array<string, mixed>
      */
-    public function financiero(User $usuario, ?string $desde = null, ?string $hasta = null): array
+    public function financiero(User $usuario, ?string $desde = null, ?string $hasta = null, ?int $sucursalId = null): array
     {
-        $datos = $this->financiero->datos($usuario, $desde, $hasta);
+        $datos = $this->financiero->datos($usuario, $desde, $hasta, $sucursalId);
         $inicio = Carbon::parse($datos['rango']['desde']);
         $fin = Carbon::parse($datos['rango']['hasta']);
         $total = (float) $datos['total_vendido'];
@@ -89,11 +89,14 @@ class InformeReportesService
             'margen_pct' => $ingresoMedido > 0 ? round($margenMedido / $ingresoMedido * 100, 1) : null,
         ];
 
+        $perdidas = $conCosto->filter(fn (array $r): bool => $r['margen'] < 0)->sortBy('margen')->values();
+
         $cuentas = collect($datos['cuentas_por_cobrar']['pedidos'])->sortByDesc('dias')->values();
         $viejas = $cuentas->filter(fn (array $c): bool => $c['dias'] > self::DIAS_DEUDA_VIEJA);
 
         return [
-            'alcance' => AlcanceReporte::rotulo($usuario),
+            'alcance' => AlcanceReporte::rotulo($usuario, $sucursalId),
+            'sucursal_id' => $sucursalId,
             'periodo' => [
                 'desde' => $inicio->toDateString(),
                 'hasta' => $fin->toDateString(),
@@ -130,6 +133,7 @@ class InformeReportesService
             'total_vendido' => $total,
             'rentabilidad' => $rentabilidad->all(),
             'rentabilidad_resumen' => $resumenRentabilidad,
+            'pedidos_con_perdida' => $perdidas->all(),
             'cuentas_por_cobrar' => [
                 'total' => (float) $datos['cuentas_por_cobrar']['total'],
                 'pedidos' => $cuentas->all(),
@@ -141,9 +145,9 @@ class InformeReportesService
     /**
      * @return array<string, mixed>
      */
-    public function produccion(User $usuario): array
+    public function produccion(User $usuario, ?int $sucursalId = null): array
     {
-        $datos = $this->produccion->datos($usuario);
+        $datos = $this->produccion->datos($usuario, $sucursalId);
         $cumplimiento = $datos['cumplimiento'];
 
         $etapas = collect($datos['duracion_por_etapa'])
@@ -158,7 +162,8 @@ class InformeReportesService
         $atrasos = collect($datos['atrasos']);
 
         return [
-            'alcance' => AlcanceReporte::rotulo($usuario),
+            'alcance' => AlcanceReporte::rotulo($usuario, $sucursalId),
+            'sucursal_id' => $sucursalId,
             'fecha' => today()->translatedFormat('j \d\e F \d\e Y'),
             'indicadores' => [
                 [
@@ -175,7 +180,13 @@ class InformeReportesService
                 [
                     'rotulo' => 'Entregados tarde',
                     'valor' => (string) $cumplimiento['tarde'],
-                    'nota' => $atrasos->isNotEmpty() ? 'Atraso promedio: '.RedaccionPronostico::numero($atrasos->avg('dias')).' días' : 'Sin atrasos registrados',
+                    'nota' => $atrasos->isNotEmpty()
+                        ? sprintf(
+                            $atrasos->count() === 1 ? 'Atraso del pedido entregado tarde: %2$s días' : 'Atraso medio de los %1$d pedidos entregados tarde: %2$s días',
+                            $atrasos->count(),
+                            RedaccionPronostico::numero($atrasos->avg('dias')),
+                        )
+                        : 'Sin atrasos registrados',
                     'tono' => $cumplimiento['tarde'] > 0 ? 'aviso' : 'exito',
                 ],
                 [
@@ -184,7 +195,7 @@ class InformeReportesService
                     'nota' => 'Antes de la entrega',
                 ],
                 [
-                    'rotulo' => 'Ítems abiertos',
+                    'rotulo' => 'Trabajos pendientes',
                     'valor' => (string) $areas->sum('items_abiertos'),
                     'nota' => 'En '.$areas->count().' '.($areas->count() === 1 ? 'área' : 'áreas'),
                 ],
@@ -293,7 +304,7 @@ class InformeReportesService
         $puntos[] = $cumplimiento['cumplimiento_pct'] === null
             ? 'Todavía no hay pedidos entregados con fecha estimada y real para medir el cumplimiento.'
             : sprintf(
-                'Se entregó a tiempo el %s %% de los pedidos (%d de %d).',
+                'Se entregó a tiempo el %s %% de los pedidos: %d de %d.',
                 RedaccionPronostico::numero($cumplimiento['cumplimiento_pct']),
                 $cumplimiento['a_tiempo'],
                 $cumplimiento['entregados'],
@@ -309,33 +320,54 @@ class InformeReportesService
         if ($conDatos->isNotEmpty()) {
             $lenta = $conDatos->sortByDesc('dias_promedio')->first();
             $puntos[] = sprintf(
-                'La etapa más lenta es %s: %s días en promedio (%d %s).',
-                mb_strtolower($lenta['nombre']),
+                '%s tuvo la mayor duración promedio: %s días (%d %s).',
+                $lenta['nombre'],
                 RedaccionPronostico::numero($lenta['dias_promedio']),
                 $lenta['muestras'],
-                $lenta['muestras'] === 1 ? 'registro' : 'registros',
+                $lenta['muestras'] === 1 ? 'etapa finalizada analizada' : 'etapas finalizadas analizadas',
             );
         }
 
-        if ($areas->isNotEmpty()) {
-            $cargada = $areas->first();
-            $puntos[] = sprintf(
-                'El área con más trabajo abierto es %s: %d de %d ítems.',
-                $cargada['area'],
-                $cargada['items_abiertos'],
-                $areas->sum('items_abiertos'),
-            );
+        $pendientes = (int) $areas->sum('items_abiertos');
+
+        if ($pendientes > 0) {
+            $conTrabajo = $areas->filter(fn (array $a): bool => $a['items_abiertos'] > 0);
+            // Puede haber empate: nombrar solo a la primera diría que es la única.
+            $lideres = $conTrabajo->where('items_abiertos', $conTrabajo->max('items_abiertos'))->values();
+            $nombres = $lideres->pluck('area')->all();
+            $ultimo = array_pop($nombres);
+            $lista = $nombres === [] ? $ultimo : implode(', ', $nombres).' y '.$ultimo;
+
+            $puntos[] = match (true) {
+                $conTrabajo->count() === 1 => sprintf('%s concentra %s.', $lista, $pendientes === 1 ? 'el único trabajo pendiente' : "los {$pendientes} trabajos pendientes"),
+                $lideres->count() === 1 => sprintf('%s concentra %d de los %d trabajos pendientes, distribuidos en %d áreas.', $lista, $lideres[0]['items_abiertos'], $pendientes, $conTrabajo->count()),
+                default => sprintf('%s concentran %d trabajos pendientes cada una, de los %d distribuidos en %d áreas.', $lista, $lideres[0]['items_abiertos'], $pendientes, $conTrabajo->count()),
+            };
         }
 
         if ($totalActivos === 0) {
             $puntos[] = 'No hay pedidos en curso.';
         } else {
-            $mayoria = $activos->sortByDesc('pedidos')->first();
+            // "Diseño y Acabado tienen 3 cada uno; Elaboración tiene 1": las
+            // etapas con la misma cantidad van juntas, de la más cargada a la menos.
+            $grupos = $activos
+                ->filter(fn (array $e): bool => $e['pedidos'] > 0)
+                ->groupBy('pedidos')
+                ->sortKeysDesc()
+                ->map(function (Collection $grupo, int $cantidad): string {
+                    $nombres = $grupo->pluck('nombre')->all();
+                    $ultimo = array_pop($nombres);
+                    $lista = $nombres === [] ? $ultimo : implode(', ', $nombres).' y '.$ultimo;
+
+                    return $grupo->count() === 1
+                        ? "{$lista} tiene {$cantidad}"
+                        : "{$lista} tienen {$cantidad} cada uno";
+                });
+
             $puntos[] = sprintf(
-                'Hay %s en curso; la etapa con más pedidos es %s (%d).',
-                $this->pedidos($totalActivos),
-                mb_strtolower($mayoria['nombre']),
-                $mayoria['pedidos'],
+                '%s en curso: %s.',
+                $totalActivos === 1 ? 'Hay 1 pedido' : "Hay {$totalActivos} pedidos",
+                $grupos->implode('; '),
             );
         }
 
@@ -350,19 +382,31 @@ class InformeReportesService
      * Todos los meses del periodo, con cero donde no hubo ventas: sin eso la
      * línea uniría enero con marzo como si febrero no hubiera existido.
      *
+     * `nombre` es el mes escrito completo para los textos del PDF (con el año
+     * solo si el periodo cruza de año) y `parcial` avisa cuando el periodo
+     * corta el mes: un octubre "al día 27" no se compara con un mes entero.
+     *
      * @param  list<array{mes: string, total: float}>  $ventas
-     * @return list<array{mes: string, etiqueta: string, total: float}>
+     * @return list<array{mes: string, etiqueta: string, nombre: string, parcial: ?string, total: float}>
      */
     private function mesesCompletos(array $ventas, Carbon $inicio, Carbon $fin): array
     {
         $porMes = collect($ventas)->pluck('total', 'mes');
+        $variosAnios = $inicio->year !== $fin->year;
         $meses = [];
 
         for ($mes = $inicio->copy()->startOfMonth(); $mes->lessThanOrEqualTo($fin); $mes->addMonth()) {
             $clave = $mes->format('Y-m');
+            $parciales = array_filter([
+                $mes->isSameMonth($inicio) && $inicio->day > 1 ? "desde el día {$inicio->day}" : null,
+                $mes->isSameMonth($fin) && $fin->day < $mes->daysInMonth ? "al día {$fin->day}" : null,
+            ]);
+
             $meses[] = [
                 'mes' => $clave,
                 'etiqueta' => PeriodoReporte::etiquetaMes($mes),
+                'nombre' => PeriodoReporte::nombreMesCompleto($mes->month).($variosAnios ? " {$mes->year}" : ''),
+                'parcial' => $parciales === [] ? null : implode(' y ', $parciales),
                 'total' => (float) ($porMes[$clave] ?? 0),
             ];
         }

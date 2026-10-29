@@ -13,6 +13,138 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-28 — Preguntas para decidir: una pregunta a la vez
+
+**Qué cambió:**
+- La pestaña muestra UNA pregunta por vez, como en el diseño del usuario: índice a la izquierda con buscador y
+  grupos; a la derecha la miga ("Costos / Pregunta 1 de 11"), la pregunta con una etiqueta de qué datos usa, la
+  respuesta breve, el aviso, la tabla con Gráfico/Tabla, la acción sugerida, "Ver cómo se calcula y qué incluye"
+  (la base del análisis, plegada) y los botones Anterior / Siguiente.
+- "Costo por producto" muestra la cuenta de su primera fila: material registrado + mano de obra y otros
+  presupuestados = costo calculado, y cuánto se desvió el material.
+- Nombres: grupos "Rentabilidad", "Escenarios y cobros" y "Acciones"; rótulos cortos del índice como en el diseño;
+  la pregunta 1 pasó a "¿Cuál es el costo por producto según los registros disponibles?", porque la mano de obra
+  es presupuestada y "cuánto cuesta realmente" prometía más de lo que los datos dicen. Se ven igual en el PDF/CSV.
+
+**Por qué:**
+- Pedido del usuario: con 11 preguntas apiladas la pantalla era muy larga; así se lee una a una.
+
+**Cómo:**
+- Solo presentación: `PreguntasNegocioService` no cambia sus cálculos (sí `GRUPOS` y `PREGUNTAS`). La pregunta
+  abierta viaja en el hash (#pregunta-clave) para poder enlazarla. CSS en app.css §42.
+
+---
+
+## 2026-10-28 — Panorama del BI reorganizado en 4 secciones
+
+**Qué cambió:**
+- La pestaña Panorama sigue el diseño que pasó el usuario: franja de destacados bajo los KPIs (mejor mes, peso de
+  los 5 principales clientes, aviso de mes parcial) y cuatro secciones numeradas: 1. Evolución de las ventas
+  (línea este periodo vs. anterior con Gráfico/Tabla; avance de las cotizaciones en barras), 2. Ventas y margen
+  presupuestado (margen por mes con Gráfico/Tabla; tabla por tipo de producto con barra y margen), 3. Clientes y
+  productos destacados (tablas con barra), 4. Distribución comercial (vendedor y ciudad).
+- Los hallazgos de cada cuadro pasaron al pie. Se mantienen los filtros por URL y el drill-down (clic en mes,
+  en tipo/categoría y en cliente).
+- Rótulos: "Tasa de conversión" → "Conversión de cotizaciones"; "Margen bruto" → "Margen presupuestado"
+  (sale de la hoja de costos al cotizar, no del consumo real). Se aclara por qué el % de aprobación del avance
+  y el de la tarjeta de conversión no coinciden.
+
+**Por qué:**
+- Pedido del usuario: una lectura por secciones, de arriba abajo, con las conclusiones al pie de cada cuadro.
+
+**Cómo:**
+- Solo cambia la presentación: `PanoramaService` mantiene los cálculos (cambian rótulos y la palabra del hallazgo
+  de margen). `ChartCard` ganó `subtitulo` y `hallazgo-abajo` (Preguntas no cambia). CSS en app.css §41.
+
+---
+
+## 2026-10-28 — Pantalla del reporte de producción rediseñada y filtro por sucursal
+
+**Qué cambió:**
+- La pantalla sigue el diseño que pasó el usuario: barra con "Situación al", sucursal y PDF; 4 indicadores
+  (entregas a tiempo, entregados tarde con su atraso medio, pedidos en curso, trabajos pendientes); franja de
+  alcance; tiempo promedio por etapa y trabajos pendientes por área, cada uno con Gráfico/Tabla y su hallazgo;
+  pedidos en curso como pasos del taller y la aclaración de por qué pedidos y trabajos no suman lo mismo.
+- Filtro por sucursal en la pantalla y en el PDF de producción.
+- Los hallazgos contemplan empates ("Acabado y Diseño concentran 9 trabajos pendientes cada una"), también en el PDF.
+
+**Por qué:**
+- Pedido del usuario. Igual que en el financiero, la pantalla ahora usa el mismo informe que el PDF.
+
+**Cómo:**
+- `ReporteController::produccion()` entrega `InformeReportesService::produccion()` y valida con `ReportePdfRequest`;
+  `ReporteProduccionService::datos()` acepta `$sucursalId` (scope `deSucursal()`).
+- CSS en app.css §40 (`.produccion-*`, reusa clases de §39). Test nuevo en `ReportesPdfTest`.
+
+---
+
+## 2026-10-28 — Reporte de producción en PDF: resumen de resultados más claro
+
+**Qué cambió:**
+- "Puntos clave" pasó a "Resumen de resultados", con frases más explicadas: cuántas etapas se analizaron para
+  la duración promedio, cómo se reparten los trabajos pendientes entre áreas y cuántos pedidos en curso hay en
+  cada etapa ("Diseño y Acabado tienen 3 cada uno; Elaboración tiene 1").
+- "Ítems abiertos" se llama ahora "Trabajos pendientes"; la nota de "Entregados tarde" dice sobre cuántos
+  pedidos se calcula el atraso medio.
+- Las notas de las tarjetas de indicadores de los PDFs pueden ocupar dos renglones en vez de cortarse con "...".
+
+**Por qué:**
+- Pedido del usuario, con una imagen de cómo quería leerlo. Las frases salen de los mismos datos del informe.
+
+**Cómo:**
+- `InformeReportesService::puntosProduccion()` y los `indicadores` del informe de producción;
+  `Documento::indicadores()` mide la nota y ajusta el alto de la fila. Tests en `ReportesPdfTest`.
+
+---
+
+## 2026-10-28 — Pantalla del reporte financiero rediseñada y filtro por sucursal
+
+**Qué cambió:**
+- La pantalla sigue el diseño que pasó el usuario: filtros en una fila (período, sucursal, Actualizar, Ver PDF,
+  Descargar PDF), 4 indicadores (ventas, pendiente de cobro, margen sobre materiales, pedidos con pérdida),
+  franja de alcance, ventas por mes con interruptor Gráfico/Tabla y el mejor mes, barras de participación por
+  sucursal, aviso de pedidos sin materiales y una tabla "Resultado por pedido" con búsqueda, orden y filtros.
+- Nuevo filtro por sucursal en la pantalla y en el PDF (el PDF lo rotula: "Sucursal: X").
+- Sale el gráfico de barras "Margen real por pedido": su información está en la tabla (orden y filtro "Con pérdida").
+
+**Por qué:**
+- El usuario pidió que la pantalla muestre los mismos datos que el PDF. Antes la pantalla calculaba el margen
+  con los pedidos sin consumo registrado adentro (costo 0 = "100 %") y el PDF no: daban cifras distintas.
+
+**Cómo:**
+- `ReporteController::financiero()` ahora entrega `InformeReportesService::financiero()` (el informe del PDF) y
+  valida con `ReportePdfRequest`, que suma `sucursal_id` con `sucursalAdministrada()` (una sucursal ajena da error).
+- Scope nuevo `deSucursal()` en `AcotaPorSucursal`, encadenado después de `visiblePara()`.
+- CSS en app.css §39 (`.financiero-*`); `BaseChart` ganó la prop `sin-tabla`. Tests nuevos en `ReportesPdfTest`.
+
+---
+
+## 2026-10-28 — Reporte financiero en PDF con formato de informe para la gerencia
+
+**Qué cambió:**
+- El PDF del reporte financiero sigue el modelo que entregó el usuario: tres hojas de resultados
+  redactadas (01 Resumen para la gerencia, 02 Ventas, 03 Margen y cobros), cada una con su pregunta
+  como título, y detrás el anexo con el detalle por pedido y las cuentas por cobrar. La cabecera no cambia.
+- Salen las tarjetas de indicadores, el recuadro "Puntos clave" y los gráficos de ventas (línea y barras
+  por sucursal); queda el gráfico de los 10 pedidos con menor margen en el anexo.
+- El pie nombra la parte del documento ("Resumen de resultados" / "Anexo de pedidos").
+- En la pantalla y en el PDF, "de peor a mejor" pasó a "de menor a mayor margen".
+
+**Por qué:**
+- El usuario pidió un reporte que se lea sin conocer el sistema y que no invente información: cada frase
+  sale de los mismos números del informe y las que no aplican no se escriben (sin pérdidas no hay aviso
+  de pérdidas, sin saldos no hay acciones de cobro).
+
+**Cómo:**
+- `InformeReportesService::financiero()` agrega `pedidos_con_perdida` y, por mes, `nombre` y `parcial`
+  ("al día 27") para avisar cuando el periodo corta un mes. `PeriodoReporte::nombreMesCompleto()`.
+- `Documento` suma ladrillos reutilizables: `encabezadoCapitulo()`, `apartado()`, `parrafoRotulado()`,
+  `fichas()`, `tabla(..., resumen: true)` y `$tramoPie`.
+- El índice de la página 1 ("Página 2… Página 3… Desde la página 4") se calcula dibujando ventas y margen
+  en un borrador para contar sus hojas. Test nuevo en `ReportesPdfTest`.
+
+---
+
 ## 2026-10-26 — Google reCAPTCHA v2 en el login
 
 **Qué cambió:**

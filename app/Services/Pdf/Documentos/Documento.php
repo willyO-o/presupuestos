@@ -57,6 +57,9 @@ abstract class Documento extends FPDF
 
     protected const FONDO = [248, 250, 252];
 
+    /** Fondo celeste de las cabeceras y fichas de las páginas de resultados. */
+    protected const CELESTE = [236, 244, 251];
+
     protected const VERDE = [23, 166, 115];
 
     protected const AMBAR = [247, 184, 75];
@@ -105,6 +108,14 @@ abstract class Documento extends FPDF
      * `getimagesize()` no pudiera medir el archivo.
      */
     protected const PROPORCION_LOGO = 4.1;
+
+    /**
+     * Parte del documento que nombra el pie ("Resumen de resultados", "Anexo
+     * de pedidos"). Con `null` el pie es el de siempre (datos de contacto).
+     * Se cambia DESPUÉS del `AddPage()` que abre la parte nueva: FPDF dibuja el
+     * pie de una hoja al abrir la siguiente.
+     */
+    protected ?string $tramoPie = null;
 
     /**
      * @param  array<string, mixed>  $empresa  Datos de `config('sitio.empresa')`.
@@ -276,6 +287,11 @@ abstract class Documento extends FPDF
         // páginas al cerrar el documento, y sobrevive a la conversión.
         $derecha = sprintf('%s · Página %d de {nb}', $this->titulo, $this->PageNo());
 
+        if ($this->tramoPie !== null) {
+            $izquierda = sprintf('%s | %s | %s', $this->empresa['nombre'], $this->titulo, $this->tramoPie);
+            $derecha = sprintf('Página %d de {nb}', $this->PageNo());
+        }
+
         $mitad = $this->anchoUtil() / 2;
         $this->Cell($mitad, 4, $this->t($izquierda), 0, 0, 'L');
         $this->Cell($mitad, 4, $this->t($derecha), 0, 0, 'R');
@@ -426,14 +442,18 @@ abstract class Documento extends FPDF
      * saltar y volver a pintar la cabecera. Sin esto, una cotización de
      * veinte líneas parte una fila por la mitad entre dos páginas.
      *
+     * Con `$resumen` la cabecera va en texto normal sobre un fondo celeste:
+     * es la tabla corta de las páginas de resultados de un informe, que se
+     * lee como parte del texto y no como un listado.
+     *
      * @param  list<array{titulo: string, ancho: float, alineacion?: string}>  $columnas  `ancho` en % del área útil.
      * @param  list<list<string|array{texto?: string, nota?: ?string, negrita?: bool, imagen?: ?string, color?: array<int, int>}>>  $filas
      */
-    protected function tabla(array $columnas, array $filas): void
+    protected function tabla(array $columnas, array $filas, bool $resumen = false): void
     {
         $anchos = array_map(fn (array $c): float => $this->anchoUtil() * $c['ancho'] / 100, $columnas);
 
-        $this->cabeceraTabla($columnas, $anchos);
+        $this->cabeceraTabla($columnas, $anchos, $resumen);
 
         foreach (array_values($filas) as $indice => $fila) {
             $celdas = array_map($this->normalizarCelda(...), array_values($fila));
@@ -441,13 +461,13 @@ abstract class Documento extends FPDF
 
             if ($this->GetY() + $alto > $this->PageBreakTrigger) {
                 $this->AddPage();
-                $this->cabeceraTabla($columnas, $anchos);
+                $this->cabeceraTabla($columnas, $anchos, $resumen);
             }
 
             $this->dibujarFila($celdas, $anchos, $columnas, $alto, $indice % 2 === 1);
         }
 
-        $this->SetXY(self::MARGEN_LATERAL, $this->GetY() + 1);
+        $this->SetXY(self::MARGEN_LATERAL, $this->GetY() + ($resumen ? 3 : 1));
     }
 
     /**
@@ -738,6 +758,112 @@ abstract class Documento extends FPDF
         $this->SetXY(self::MARGEN_LATERAL, $y + 2);
     }
 
+    /**
+     * Apertura de un capítulo de informe: "01 / RESUMEN PARA LA GERENCIA",
+     * la pregunta que responde en grande y una bajada que dice qué entra en
+     * las cifras. Pensado para empezar hoja: no deja espacio antes.
+     */
+    protected function encabezadoCapitulo(string $numero, string $rotulo, string $pregunta, ?string $bajada = null): void
+    {
+        $this->asegurarEspacio(40);
+        $ancho = $this->anchoUtil();
+
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->fuente(8, '', self::OSCURO);
+        $this->Cell($ancho, $this->altoLinea(8), $this->t($numero.' / '.mb_strtoupper($rotulo, 'UTF-8')), 0, 2);
+
+        $this->espacio(2);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->fuente(20, '', self::AZUL_OSCURO);
+        $this->flujo($ancho, [['texto' => $pregunta]], $this->altoLinea(20));
+
+        if ($bajada !== null) {
+            $this->espacio(0.5);
+            $this->SetX(self::MARGEN_LATERAL);
+            $this->fuente(9, '', self::OSCURO);
+            $this->flujo($ancho, [['texto' => $bajada]], $this->altoLinea(9));
+        }
+
+        $this->espacio(3);
+    }
+
+    /**
+     * Título de un apartado dentro de un capítulo ("Lo que requiere
+     * atención", "A. Margen de los pedidos…"): azul, sin regla.
+     */
+    protected function apartado(string $texto): void
+    {
+        $this->asegurarEspacio(22);
+        $this->espacio(3);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->fuente(12, '', self::AZUL_OSCURO);
+        $this->flujo($this->anchoUtil(), [['texto' => $texto]], $this->altoLinea(12));
+        $this->espacio(1.5);
+    }
+
+    /**
+     * Párrafo que arranca con un rótulo en negrita ("Lectura del resultado:
+     * …"). `$tamano` 9 para lo que se lee; 8 para las aclaraciones.
+     */
+    protected function parrafoRotulado(?string $rotulo, string $texto, float $tamano = 9): void
+    {
+        $trozos = array_values(array_filter([
+            $rotulo !== null ? ['texto' => $rotulo.' ', 'negrita' => true, 'color' => self::OSCURO] : null,
+            ['texto' => $texto],
+        ]));
+
+        $this->fuente($tamano, '', self::OSCURO);
+        $alto = $this->flujo($this->anchoUtil(), $trozos, $this->altoLinea($tamano), dibujar: false);
+
+        $this->asegurarEspacio($alto + 2);
+        $this->SetX(self::MARGEN_LATERAL);
+        $this->flujo($this->anchoUtil(), $trozos, $this->altoLinea($tamano));
+        $this->espacio(2);
+    }
+
+    /**
+     * Fichas de cifras principales: cada una es una franja celeste con el
+     * rótulo y la cifra, y debajo la explicación de qué cuenta esa cifra.
+     * Reemplaza a las tarjetas de `indicadores()` cuando el informe tiene que
+     * leerse sin conocer el sistema.
+     *
+     * @param  list<array{rotulo: string, valor: string, explicacion: string, tono?: string}>  $fichas
+     */
+    protected function fichas(array $fichas): void
+    {
+        $ancho = $this->anchoUtil();
+        $columnaValor = $ancho * 0.34;
+        $anchoTexto = $ancho - $columnaValor - 2 * self::RESPIRO;
+
+        foreach ($fichas as $ficha) {
+            $this->fuente(8.5);
+            $altoExplicacion = $this->flujo($anchoTexto, [['texto' => $ficha['explicacion']]], $this->altoLinea(8.5), dibujar: false);
+            $this->asegurarEspacio(7 + $altoExplicacion + 6);
+
+            $y = $this->GetY();
+            $this->setRelleno(self::CELESTE);
+            $this->Rect(self::MARGEN_LATERAL, $y, $ancho, 7, 'F');
+            $this->setTrazo(self::AZUL);
+            $this->SetLineWidth(0.3);
+            $this->Line(self::MARGEN_LATERAL, $y + 7, $this->w - self::MARGEN_LATERAL, $y + 7);
+            $this->SetLineWidth(0.2);
+
+            $this->SetXY(self::MARGEN_LATERAL + self::RESPIRO, $y);
+            $this->fuente(8.5, '', self::OSCURO);
+            $this->Cell($anchoTexto, 7, $this->t(mb_strtoupper($ficha['rotulo'], 'UTF-8')));
+
+            $this->SetXY($this->w - self::MARGEN_LATERAL - $columnaValor + self::RESPIRO, $y);
+            $this->fuente(8.5, '', ($ficha['tono'] ?? null) === 'peligro' ? self::ROJO : self::OSCURO);
+            $this->Cell($columnaValor - 2 * self::RESPIRO, 7, $this->t($ficha['valor']));
+
+            $this->SetXY(self::MARGEN_LATERAL + self::RESPIRO, $y + 7 + 2);
+            $this->fuente(8.5, '', self::TEXTO);
+            $this->flujo($anchoTexto, [['texto' => $ficha['explicacion']]], $this->altoLinea(8.5));
+
+            $this->SetXY(self::MARGEN_LATERAL, $this->GetY() + 4);
+        }
+    }
+
     /** Párrafo de texto corrido que no se parte entre páginas. */
     protected function parrafo(string $texto): void
     {
@@ -784,7 +910,23 @@ abstract class Documento extends FPDF
         $separacion = 3.0;
         $cantidad = max(count($indicadores), 1);
         $ancho = ($this->anchoUtil() - $separacion * ($cantidad - 1)) / $cantidad;
-        $alto = 21.0;
+        $interno = $ancho - 6;
+
+        // La nota explica la cifra ("Atraso medio de los 237 pedidos
+        // entregados tarde"): puede ocupar hasta dos renglones. Todas las
+        // tarjetas toman el alto de la que más necesite, para que la fila
+        // quede pareja.
+        $this->fuente(7);
+        $renglonesNota = 1;
+
+        foreach ($indicadores as $indicador) {
+            if (! empty($indicador['nota'])) {
+                $alto = $this->flujo($interno, [['texto' => $indicador['nota']]], $this->altoLinea(7), dibujar: false);
+                $renglonesNota = max($renglonesNota, min(2, (int) round($alto / $this->altoLinea(7))));
+            }
+        }
+
+        $alto = 21.0 + ($renglonesNota - 1) * $this->altoLinea(7);
 
         $this->asegurarEspacio($alto + 4);
         $y = $this->GetY() + 1;
@@ -805,8 +947,6 @@ abstract class Documento extends FPDF
             $this->setRelleno($acento);
             $this->Rect($x, $y, $ancho, 0.9, 'F');
 
-            $interno = $ancho - 6;
-
             $this->SetXY($x + 3, $y + 3.2);
             $this->fuente(6.5, 'B', self::TENUE);
             $this->Cell($interno, $this->altoLinea(6.5), $this->t($this->recortar(mb_strtoupper($indicador['rotulo'], 'UTF-8'), $interno)), 0, 2);
@@ -818,7 +958,7 @@ abstract class Documento extends FPDF
             if (! empty($indicador['nota'])) {
                 $this->SetX($x + 3);
                 $this->fuente(7, '', self::SUAVE);
-                $this->Cell($interno, $this->altoLinea(7), $this->t($this->recortar($indicador['nota'], $interno)), 0, 2);
+                $this->flujo($interno, [['texto' => $indicador['nota']]], $this->altoLinea(7));
             }
         }
 
@@ -1084,31 +1224,45 @@ abstract class Documento extends FPDF
      * @param  list<array{titulo: string, ancho: float, alineacion?: string}>  $columnas
      * @param  list<float>  $anchos
      */
-    private function cabeceraTabla(array $columnas, array $anchos): void
+    private function cabeceraTabla(array $columnas, array $anchos, bool $resumen = false): void
     {
         $this->SetY($this->GetY() + 2);
         $y = $this->GetY();
+        $alto = $resumen ? 7.0 : 5.0;
 
-        $this->fuente(7, 'B', self::SUAVE);
+        if ($resumen) {
+            $this->setRelleno(self::CELESTE);
+            $this->Rect(self::MARGEN_LATERAL, $y, $this->anchoUtil(), $alto, 'F');
+            $this->fuente(8.5, '', self::TEXTO);
+        } else {
+            $this->fuente(7, 'B', self::SUAVE);
+        }
+
         $this->SetX(self::MARGEN_LATERAL);
 
         foreach (array_values($columnas) as $indice => $columna) {
+            $titulo = $resumen ? $columna['titulo'] : mb_strtoupper($columna['titulo'], 'UTF-8');
+
+            // La cabecera resumida lleva el mismo respiro que las celdas, para
+            // que el título quede alineado con el texto de su columna.
+            $this->SetX($this->GetX() + ($resumen ? self::RESPIRO : 0));
             $this->Cell(
-                $anchos[$indice],
-                5,
-                $this->t(mb_strtoupper($columna['titulo'], 'UTF-8')),
+                $anchos[$indice] - ($resumen ? 2 * self::RESPIRO : 0),
+                $alto,
+                $this->t($titulo),
                 0,
                 0,
                 $columna['alineacion'] ?? 'L',
             );
+            $this->SetX($this->GetX() + ($resumen ? self::RESPIRO : 0));
         }
 
         $this->setTrazo(self::AZUL);
         $this->SetLineWidth(0.45);
-        $this->Line(self::MARGEN_LATERAL, $y + 5, $this->w - self::MARGEN_LATERAL, $y + 5);
+        $this->Line(self::MARGEN_LATERAL, $y + $alto, $this->w - self::MARGEN_LATERAL, $y + $alto);
         $this->SetLineWidth(0.2);
 
-        $this->SetXY(self::MARGEN_LATERAL, $y + 5);
+        $this->SetXY(self::MARGEN_LATERAL, $y + $alto);
     }
 
     /**

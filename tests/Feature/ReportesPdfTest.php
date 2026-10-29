@@ -186,13 +186,16 @@ test('el PDF financiero trae indicadores, ventas, rentabilidad y cuentas por cob
         ->toContain('REPORTE FINANCIERO')
         ->toContain('USO INTERNO')
         ->toContain('Toda la empresa')
-        ->toContain('Puntos clave')
+        ->toContain('01 / RESUMEN PARA LA GERENCIA')
+        ->toContain('02 / VENTAS')
+        ->toContain('03 / MARGEN Y COBROS')
         ->toContain('Bs 3.500,00')          // total vendido
         ->toContain('El Alto')
         ->toContain('Ferretería Andina')
         ->toContain('Bs -200,00')           // el pedido que perdió plata
-        ->toContain('Un pedido costó más de lo que dejó')
-        ->toContain('1 mes con ventas')
+        ->toContain('1 pedido con pérdida: revisar el precio y los materiales registrados del pedido')
+        ->toContain('Se registraron ventas en 1 mes.')
+        ->toContain('Anexo de pedidos')
         ->toContain('Cuentas por cobrar')
         ->toContain('Delizia');
 
@@ -223,6 +226,34 @@ test('un pedido sin consumo registrado no infla el margen', function () {
         ->toContain('Un pedido terminado no tiene consumo de material registrado');
 });
 
+test('el resumen del PDF financiero redacta solo lo que dicen los datos', function () {
+    pedidoDeReporte('Pierde poco', 500, 600);
+    pedidoDeReporte('Pierde mucho', 500, 900);
+    pedidoDeReporte('Gana', 1000, 400)->cotizacion->update(['fecha' => '2026-10-05']);
+
+    $informe = app(InformeReportesService::class)->financiero(usuarioDeReportes('reportes.financiero'), '2026-08-01', '2026-10-20');
+    $texto = textoDelReporte(app(GeneradorPdf::class)->reporteFinanciero($informe));
+
+    // La peor pérdida primero, y el mes que el periodo corta, marcado.
+    expect(array_column($informe['pedidos_con_perdida'], 'cliente'))->toBe(['Pierde mucho', 'Pierde poco'])
+        ->and($informe['ventas_por_mes'][0])->toMatchArray(['nombre' => 'Agosto', 'parcial' => null])
+        ->and($informe['ventas_por_mes'][2])->toMatchArray(['nombre' => 'Octubre', 'parcial' => 'al día 20']);
+
+    expect($texto)
+        ->toContain('2 pedidos con pérdida:')
+        ->toContain('de Pierde mucho, por Bs 400,00')
+        ->toContain('Octubre (al día 20)')
+        ->toContain('Octubre es un mes parcial, con información hasta el día 20.')
+        ->toContain('No hubo ventas en septiembre.')
+        ->toContain('Revisar los 2 pedidos con pérdida y dar seguimiento a los saldos')
+        // El índice de la página 1 cita las páginas reales de cada capítulo.
+        ->toContain('Página 2: ventas por mes y sucursal. Página 3: explicación del margen y de los cobros. Desde la página 4')
+        ->toContain('Reporte financiero | Resumen de resultados')
+        ->toContain('Reporte financiero | Anexo de pedidos')
+        // Sin pedidos sin consumo, no se inventa la advertencia.
+        ->not->toContain('sin consumo registrado:');
+});
+
 test('los meses sin ventas cuentan como cero y las sucursales llevan su participacion', function () {
     pedidoDeReporte('Uno', 1000, 500);
 
@@ -251,6 +282,44 @@ test('el PDF financiero respeta el alcance por sucursal y lo rotula', function (
         ->toContain('Cliente de El Alto')
         ->not->toContain('Cliente de Sopocachi')
         ->not->toContain('9.000,00');
+});
+
+test('la pantalla y el PDF financieros filtran por una sucursal y lo rotulan', function () {
+    $otra = Sucursal::factory()->create(['nombre' => 'Sopocachi']);
+    pedidoDeReporte('Cliente de El Alto', 1000, 500);
+    pedidoDeReporte('Cliente de Sopocachi', 9000, 100, sucursal: $otra);
+
+    $usuario = usuarioDeReportes('reportes.financiero', 'reportes.exportar_financiero');
+
+    $this->actingAs($usuario)->get(route('reportes.financiero', ['sucursal_id' => $otra->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('datos.alcance', 'Sucursal: Sopocachi')
+            ->where('datos.total_vendido', fn ($v) => (float) $v === 9000.0)
+            ->has('datos.rentabilidad', 1)
+            ->has('sucursales', 2));
+
+    $texto = textoDelReporte(app(GeneradorPdf::class)->reporteFinanciero(
+        app(InformeReportesService::class)->financiero($usuario, '2026-01-01', '2026-10-20', $otra->id),
+    ));
+
+    expect($texto)->toContain('Sucursal: Sopocachi')
+        ->toContain('Cliente de Sopocachi')
+        ->not->toContain('Cliente de El Alto');
+});
+
+test('no se puede filtrar el reporte financiero por una sucursal ajena', function () {
+    $ajena = Sucursal::factory()->create(['nombre' => 'Sopocachi']);
+    pedidoDeReporte('Cliente ajeno', 9000, 100, sucursal: $ajena);
+
+    $acotado = User::factory()->create(['alcance_sucursal' => 'PROPIA']);
+    $acotado->givePermissionTo(['reportes.financiero', 'reportes.exportar_financiero']);
+    Empleado::factory()->recycle($this->area)->create(['user_id' => $acotado->id, 'sucursal_id' => $this->sucursal->id]);
+
+    $this->actingAs($acotado->fresh())->get(route('reportes.financiero', ['sucursal_id' => $ajena->id]))
+        ->assertSessionHasErrors('sucursal_id');
+    $this->actingAs($acotado->fresh())->get(route('reportes.financiero.pdf', ['sucursal_id' => $ajena->id]))
+        ->assertSessionHasErrors('sucursal_id');
 });
 
 test('el PDF financiero se genera sin ningun dato', function () {
@@ -293,13 +362,41 @@ test('el PDF de produccion trae cumplimiento, atrasos, etapas y carga', function
     expect($texto)
         ->toContain('REPORTE DE PRODUCCIÓN')
         ->toContain('AL 20/10/2026')
-        ->toContain('Se entregó a tiempo el 50,0 % de los pedidos (1 de 2).')
+        ->toContain('Resumen de resultados')
+        ->toContain('Se entregó a tiempo el 50,0 % de los pedidos: 1 de 2.')
+        ->toContain('El mayor atraso fue de 5 días, en el pedido PED-20260801-TARDE.')
+        ->toContain('Control de calidad tuvo la mayor duración promedio: 3,0 días (1 etapa finalizada analizada).')
+        ->toContain('Atraso del pedido entregado tarde: 5,0 días')
+        ->toContain('Impresión concentra el único trabajo pendiente.')
+        ->toContain('Hay 1 pedido en curso: Control de calidad tiene 1.')
         ->toContain('PED-20260801-TARDE')
         ->toContain('Control de calidad')
         ->not->toContain('CONTROL_CALIDAD')
         ->toContain('Impresión');
 
     expect($informe['atrasos'][0])->toMatchArray(['pedido' => 'PED-20260801-TARDE', 'dias' => 5]);
+});
+
+test('la pantalla y el PDF de produccion filtran por una sucursal', function () {
+    $otra = Sucursal::factory()->create(['nombre' => 'Sopocachi']);
+    pedidoDeReporte('Cliente de El Alto', 1000, null);
+    pedidoDeReporte('Cliente de Sopocachi', 1000, null, ['numero_pedido' => 'PED-20260801-SOPO', 'fecha_entrega_real' => '2026-08-25'], $otra);
+
+    $usuario = usuarioDeReportes('reportes.produccion', 'reportes.exportar_produccion');
+
+    $this->actingAs($usuario)->get(route('reportes.produccion', ['sucursal_id' => $otra->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('datos.alcance', 'Sucursal: Sopocachi')
+            ->where('datos.cumplimiento.entregados', 1)
+            ->where('datos.cumplimiento.tarde', 1)
+            ->has('sucursales', 2));
+
+    $texto = textoDelReporte(app(GeneradorPdf::class)->reporteProduccion(
+        app(InformeReportesService::class)->produccion($usuario, $otra->id),
+    ));
+
+    expect($texto)->toContain('Sucursal: Sopocachi')->toContain('PED-20260801-SOPO');
 });
 
 test('el PDF de produccion se genera sin ningun dato', function () {

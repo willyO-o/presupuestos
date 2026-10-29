@@ -71,7 +71,7 @@ class ReporteProduccionPdf extends Documento
         $this->indicadores($this->informe['indicadores']);
 
         $this->recuadro([
-            ['tipo' => 'titulo', 'texto' => 'Puntos clave'],
+            ['tipo' => 'titulo', 'texto' => 'Resumen de resultados'],
             ['tipo' => 'lista', 'items' => $this->informe['puntos_clave']],
         ], tono: 'destacado');
 
@@ -177,7 +177,7 @@ class ReporteProduccionPdf extends Documento
         $this->espacio(4);
         $this->tituloSeccion('Carga de trabajo actual');
 
-        $this->subtitulo('Ítems abiertos por área', 'Etapas asignadas a un área que todavía no se cerraron.');
+        $this->subtitulo('Trabajos pendientes por área', 'Etapas asignadas a un área que todavía no se cerraron.');
 
         if ($areas === []) {
             $this->recuadro([['tipo' => 'nota', 'texto' => 'No hay etapas abiertas en ninguna área.']]);

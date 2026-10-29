@@ -6656,3 +6656,872 @@ button.panorama-top-item:hover {
         @apply w-full flex-row items-baseline gap-2 pl-10;
     }
 }
+
+/* ==========================================================================
+   39. REPORTE FINANCIERO (Pages/Reportes/Financiero.vue)
+   --------------------------------------------------------------------------
+   Filtros en una fila, 4 KPIs (reusa .kpi-card + .stat-icon del panel),
+   franja de alcance, ventas por mes/sucursal lado a lado, aviso de pedidos
+   sin materiales y la tabla de resultado por pedido con sus filtros.
+   Las barras por sucursal son medidores (participación), no un gráfico.
+   ========================================================================== */
+
+.financiero-filtros {
+    @apply flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end;
+}
+
+.financiero-filtro-fechas {
+    @apply w-full lg:w-60;
+}
+
+.financiero-filtro-sucursal {
+    @apply w-full lg:w-56;
+}
+
+.financiero-filtros-acciones {
+    @apply flex flex-wrap gap-2 lg:ml-auto;
+}
+
+.financiero-filtros-acciones .btn {
+    @apply inline-flex items-center gap-2;
+}
+
+.financiero-kpis {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4;
+}
+
+.financiero-kpis .kpi-label {
+    @apply flex items-center gap-1.5 whitespace-normal font-medium;
+}
+
+.financiero-kpis .kpi-value {
+    @apply text-[1.375rem];
+}
+
+.financiero-kpis .kpi-note {
+    @apply mt-2 leading-snug;
+}
+
+.financiero-alcance {
+    background-color: var(--c-info-soft);
+    border: 1px solid color-mix(in srgb, var(--c-info) 22%, transparent);
+    color: var(--c-info-dark);
+    @apply m-0 flex items-start gap-2.5 rounded-xl px-4 py-3 text-[0.8125rem] leading-relaxed;
+}
+
+.financiero-alcance i {
+    color: var(--c-info);
+    @apply mt-[0.2em] text-base;
+}
+
+.dark .financiero-alcance {
+    color: var(--text-body);
+}
+
+.financiero-fila {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)];
+}
+
+.financiero-card-header {
+    @apply items-start sm:flex-nowrap;
+}
+
+.financiero-card-header > div:first-child {
+    @apply min-w-0;
+}
+
+.financiero-card-header .card-subtitle {
+    @apply mt-1;
+}
+
+/* Interruptor Gráfico / Tabla */
+.financiero-vista {
+    border: 1px solid var(--border-subtle);
+    @apply inline-flex shrink-0 overflow-hidden rounded-lg;
+}
+
+.financiero-vista button {
+    color: var(--text-muted);
+    @apply px-4 py-1.5 text-[0.8125rem] font-semibold transition-colors;
+}
+
+.financiero-vista button + button {
+    border-left: 1px solid var(--border-subtle);
+}
+
+.financiero-vista button.is-active {
+    background-color: var(--c-primary);
+    @apply text-white;
+}
+
+.financiero-hallazgo {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary-dark);
+    @apply m-0 mt-4 flex items-center gap-2.5 rounded-lg px-4 py-3 text-[0.8125rem] font-medium;
+}
+
+.financiero-hallazgo i {
+    color: var(--c-primary);
+}
+
+.dark .financiero-hallazgo {
+    color: var(--text-body);
+}
+
+.financiero-num {
+    font-variant-numeric: tabular-nums;
+    @apply whitespace-nowrap;
+}
+
+/* Barras de participación por sucursal */
+.financiero-sucursales {
+    @apply m-0 flex list-none flex-col gap-5 p-0 pt-1;
+}
+
+/* En móvil el nombre va arriba de la barra (completo); desde sm, a su izquierda. */
+.financiero-sucursal {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 sm:grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_7.5rem];
+}
+
+.financiero-sucursal-nombre {
+    color: var(--text-body);
+    @apply truncate text-xs sm:text-right;
+}
+
+.financiero-sucursal-pista {
+    background-color: var(--c-primary-soft);
+    @apply flex h-8 items-center overflow-hidden rounded-md;
+}
+
+.financiero-sucursal-barra {
+    background-color: var(--c-primary);
+    @apply flex h-full items-center justify-end rounded-md pr-2.5 text-xs font-bold text-white;
+}
+
+.financiero-sucursal-fuera {
+    color: var(--text-heading);
+    @apply pl-2.5 text-xs font-bold;
+}
+
+.financiero-sucursal-pista {
+    @apply col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto;
+}
+
+.financiero-sucursal-monto {
+    color: var(--text-body);
+    font-variant-numeric: tabular-nums;
+    @apply col-start-2 row-start-1 text-right text-xs sm:col-start-auto sm:row-start-auto sm:text-[0.8125rem];
+}
+
+/* Aviso de pedidos sin materiales */
+.financiero-aviso {
+    background-color: var(--c-warning-soft);
+    border: 1px solid color-mix(in srgb, var(--c-warning) 35%, transparent);
+    @apply flex flex-col gap-3 rounded-xl px-5 py-4 sm:flex-row sm:items-center sm:gap-4;
+}
+
+.financiero-aviso-icono {
+    color: var(--c-warning);
+    @apply text-[1.75rem] leading-none;
+}
+
+.financiero-aviso-texto {
+    color: var(--text-body);
+    @apply min-w-0 flex-1 text-[0.8125rem];
+}
+
+.financiero-aviso-texto p {
+    @apply m-0;
+}
+
+.financiero-aviso-titulo {
+    color: var(--c-warning-dark);
+    @apply text-[0.9375rem] font-bold;
+}
+
+.dark .financiero-aviso-titulo {
+    color: var(--c-warning);
+}
+
+.financiero-aviso-accion {
+    @apply inline-flex shrink-0 items-center gap-2 self-start bg-transparent sm:self-auto;
+}
+
+/* Tabla de resultado por pedido */
+.financiero-resultados {
+    scroll-margin-top: 5rem;
+}
+
+.financiero-tabla-controles {
+    @apply flex w-full flex-wrap items-center gap-2 xl:w-auto;
+}
+
+.financiero-busqueda {
+    @apply relative m-0 w-full sm:w-56;
+}
+
+.financiero-busqueda i {
+    color: var(--text-muted);
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs;
+}
+
+.financiero-busqueda .form-control {
+    @apply pl-8;
+}
+
+.financiero-orden {
+    @apply w-full sm:w-auto;
+}
+
+.financiero-chip {
+    border: 1px solid transparent;
+    @apply rounded-lg px-3 py-2 text-xs font-semibold transition-colors;
+}
+
+.financiero-chip-danger {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.financiero-chip-danger.is-active {
+    background-color: var(--c-danger);
+    @apply text-white;
+}
+
+.financiero-chip-warning {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+}
+
+.dark .financiero-chip-warning {
+    color: var(--c-warning);
+}
+
+.financiero-chip-warning.is-active {
+    background-color: var(--c-warning);
+    color: var(--text-heading);
+}
+
+.financiero-tabla td {
+    @apply align-middle;
+}
+
+.financiero-pedido {
+    color: var(--text-heading);
+    @apply block text-[0.8125rem] font-bold;
+}
+
+.financiero-cliente {
+    color: var(--text-muted);
+    @apply block text-xs;
+}
+
+.financiero-estado {
+    @apply whitespace-nowrap;
+}
+
+.financiero-tabla-pie {
+    color: var(--text-muted);
+    @apply mt-3 flex flex-wrap items-center justify-between gap-2 text-xs;
+}
+
+.financiero-ver-mas {
+    color: var(--c-primary);
+    @apply inline-flex items-center gap-2 text-[0.8125rem] font-semibold hover:underline;
+}
+
+/* ==========================================================================
+   40. REPORTE DE PRODUCCIÓN (Pages/Reportes/Produccion.vue)
+   --------------------------------------------------------------------------
+   Reusa del financiero (§39) los KPIs (.financiero-kpis), la franja de
+   alcance, el interruptor Gráfico/Tabla y .financiero-num. Propio: barra de
+   acciones, hallazgos bajo cada gráfico, los pasos de "pedidos en curso" y
+   la aclaración de pedidos vs. trabajos.
+   ========================================================================== */
+
+.produccion-acciones {
+    @apply flex flex-wrap items-center justify-end gap-2;
+}
+
+.produccion-acciones .btn {
+    @apply inline-flex items-center gap-2;
+}
+
+.produccion-fecha {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-heading);
+    box-shadow: var(--card-shadow);
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-[0.8125rem] font-semibold sm:w-auto;
+}
+
+.produccion-fecha i,
+.produccion-sucursal i {
+    color: var(--c-primary);
+}
+
+.produccion-sucursal {
+    @apply relative m-0 w-full sm:w-60;
+}
+
+.produccion-sucursal i {
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs;
+}
+
+.produccion-sucursal .form-control {
+    @apply pl-8;
+}
+
+.produccion-fila {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2;
+}
+
+.produccion-fila .financiero-vista button {
+    @apply inline-flex items-center gap-1.5;
+}
+
+.produccion-hallazgo,
+.produccion-pregunta {
+    background-color: var(--c-primary-soft);
+    color: var(--text-body);
+    @apply mt-4 flex items-start gap-3 rounded-lg px-4 py-3 text-xs;
+}
+
+.produccion-hallazgo p,
+.produccion-pregunta p {
+    @apply m-0;
+}
+
+.produccion-hallazgo > i,
+.produccion-pregunta > i {
+    color: var(--c-primary);
+    @apply mt-0.5 text-lg;
+}
+
+.produccion-hallazgo-titulo,
+.produccion-pregunta-titulo {
+    color: var(--c-primary-dark);
+    @apply text-[0.8125rem] font-semibold;
+}
+
+.dark .produccion-hallazgo-titulo,
+.dark .produccion-pregunta-titulo {
+    color: var(--text-heading);
+}
+
+/* Pasos del taller: una tarjeta por etapa con una flecha entre ellas
+   (desde lg; en pantallas chicas se apilan de a dos y la flecha sobra). */
+.produccion-flujo {
+    @apply m-0 grid list-none grid-cols-2 gap-3 p-0 lg:grid-cols-4 lg:gap-10;
+}
+
+.produccion-paso {
+    border: 1px solid var(--border-subtle);
+    @apply relative flex items-center gap-3 rounded-xl p-3 sm:gap-4 sm:p-4;
+}
+
+.produccion-paso p {
+    @apply m-0;
+}
+
+.produccion-paso + .produccion-paso::before {
+    content: '\2192';
+    color: var(--text-muted);
+    @apply absolute -left-7 top-1/2 hidden -translate-y-1/2 text-lg lg:block;
+}
+
+.produccion-paso-icono {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base sm:h-14 sm:w-14 sm:text-xl;
+}
+
+.produccion-paso-nombre {
+    color: var(--text-heading);
+    @apply text-[0.8125rem] font-semibold;
+}
+
+.produccion-paso-valor {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply text-2xl font-bold leading-tight;
+}
+
+.produccion-paso-unidad {
+    color: var(--text-muted);
+    @apply text-xs;
+}
+
+/* ==========================================================================
+   41. PANORAMA DEL BI, VERSIÓN POR SECCIONES (Pages/Reportes/BiPanorama.vue)
+   --------------------------------------------------------------------------
+   Complementa §37: franja de destacados bajo los KPIs, títulos numerados de
+   sección, subtítulo y hallazgo al pie de ChartCard, el avance de las
+   cotizaciones en barras horizontales y las tablas-ranking con barra.
+   Reusa .financiero-vista (§39) para el interruptor Gráfico/Tabla.
+   ========================================================================== */
+
+.panorama-destacados {
+    background-color: var(--c-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--c-primary) 15%, transparent);
+    transition: opacity 180ms ease-out;
+    @apply m-0 grid list-none grid-cols-1 gap-3 rounded-xl p-4 md:grid-cols-3 md:gap-0 md:p-0;
+}
+
+.panorama-destacados.is-cargando {
+    @apply opacity-50;
+}
+
+.panorama-destacados li {
+    color: var(--text-body);
+    @apply flex items-center gap-3 text-[0.8125rem] leading-snug md:px-5 md:py-4;
+}
+
+.panorama-destacados li + li {
+    @apply md:border-l;
+    border-color: color-mix(in srgb, var(--c-primary) 18%, transparent);
+}
+
+.panorama-destacados li > i {
+    color: var(--c-primary);
+    @apply w-6 shrink-0 text-center text-xl;
+}
+
+.panorama-destacados strong {
+    color: var(--c-primary-dark);
+    @apply whitespace-nowrap text-[0.9375rem] font-bold;
+}
+
+.dark .panorama-destacados strong {
+    color: var(--text-heading);
+}
+
+.panorama-seccion {
+    color: var(--text-heading);
+    @apply -mb-1 mt-2 text-lg font-bold sm:-mb-2;
+}
+
+.panorama-vista {
+    @apply self-start;
+}
+
+.panorama-vista button {
+    @apply inline-flex items-center gap-1.5 px-3 text-xs;
+}
+
+.chart-card-subtitulo {
+    @apply mt-1;
+}
+
+.chart-card-pie {
+    color: var(--text-body);
+    border-top: 1px solid var(--border-subtle);
+    @apply m-0 mt-4 flex items-start gap-2 pt-3 text-xs leading-relaxed;
+}
+
+.chart-card-pie i {
+    color: var(--c-primary);
+    @apply mt-0.5;
+}
+
+/* Avance de las cotizaciones: barras horizontales, una por etapa. */
+.panorama-avance {
+    @apply m-0 flex list-none flex-col gap-4 p-0;
+}
+
+.panorama-avance-etapa {
+    @apply grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1;
+}
+
+.panorama-avance-nombre {
+    color: var(--text-body);
+    @apply text-xs font-medium;
+}
+
+.panorama-avance-pista {
+    @apply flex items-center gap-2;
+}
+
+.panorama-avance-pista strong {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply shrink-0 text-[0.8125rem];
+}
+
+.panorama-avance-barra {
+    background-color: var(--c-primary);
+    @apply block h-5 rounded;
+}
+
+.panorama-avance-barra-1 {
+    opacity: 0.88;
+}
+
+.panorama-avance-barra-2 {
+    opacity: 0.76;
+}
+
+.panorama-avance-barra-3 {
+    opacity: 0.64;
+}
+
+.panorama-avance-paso {
+    color: var(--text-muted);
+    @apply col-start-2 text-[0.6875rem];
+}
+
+.panorama-avance-paso.is-peor {
+    color: var(--c-danger);
+    @apply font-semibold;
+}
+
+.panorama-aclaracion {
+    color: var(--text-muted);
+    @apply m-0 mt-4 text-[0.6875rem] leading-relaxed;
+}
+
+.panorama-aclaracion i {
+    color: var(--c-info);
+}
+
+/* Tablas-ranking: nombre, barra con monto y margen. Las filas con
+   `.is-clic` filtran o bajan de nivel al tocarlas. */
+.panorama-ranking {
+    @apply w-full border-collapse text-[0.8125rem];
+}
+
+.panorama-ranking th {
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+    @apply px-1.5 pb-2 text-left text-[0.6875rem] font-semibold;
+}
+
+.panorama-ranking td {
+    color: var(--text-body);
+    border-bottom: 1px solid var(--border-subtle);
+    @apply px-1.5 py-2.5 align-middle;
+}
+
+.panorama-ranking tr:last-child td {
+    @apply border-b-0;
+}
+
+.panorama-ranking tr.is-clic {
+    @apply cursor-pointer transition-colors;
+}
+
+.panorama-ranking tr.is-clic:hover td,
+.panorama-ranking tr.is-clic:focus-visible td {
+    background-color: var(--c-primary-soft);
+}
+
+.panorama-ranking-puesto {
+    color: var(--text-muted);
+    @apply w-6 text-center;
+}
+
+.panorama-ranking-nombre {
+    color: var(--text-heading) !important;
+    @apply max-w-[13rem] font-medium;
+}
+
+.panorama-ranking-barra {
+    @apply flex min-w-[9rem] items-center gap-2;
+}
+
+.panorama-ranking-barra > span:first-child {
+    background-color: color-mix(in srgb, var(--c-primary) 12%, transparent);
+    @apply block h-2.5 min-w-[3rem] flex-1 overflow-hidden rounded-full;
+}
+
+.panorama-ranking-barra > span:first-child > span {
+    background-color: var(--c-primary);
+    @apply block h-full rounded-full;
+}
+
+.panorama-ranking-barra > span:last-child {
+    @apply w-24 shrink-0 text-right text-xs;
+}
+
+.panorama-nota-final {
+    color: var(--text-muted);
+    @apply m-0 text-right text-xs;
+}
+
+/* ==========================================================================
+   42. PREGUNTAS PARA DECIDIR, UNA A LA VEZ (Pages/Reportes/BiPreguntas.vue)
+   --------------------------------------------------------------------------
+   Índice a la izquierda (buscador + grupos) y la pregunta abierta a la
+   derecha: respuesta breve, cuenta del costo (solo "Costo por producto"),
+   aviso, tabla/gráfico, acción sugerida, cómo se calcula y Siguiente.
+   Reusa .decision-* de §38 y .financiero-vista/.panorama-vista.
+   ========================================================================== */
+
+.preguntas-vista {
+    @apply grid items-start gap-4 sm:gap-6 lg:grid-cols-[17rem_minmax(0,1fr)];
+}
+
+.preguntas-menu {
+    top: calc(var(--topbar-height) + 1rem);
+    @apply lg:sticky;
+}
+
+.preguntas-menu-titulo {
+    color: var(--text-heading);
+    @apply mb-3 text-base font-bold;
+}
+
+.preguntas-buscar {
+    @apply relative mb-4 block;
+}
+
+.preguntas-buscar i {
+    color: var(--text-muted);
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs;
+}
+
+.preguntas-buscar .form-control {
+    @apply pl-8;
+}
+
+.preguntas-menu-grupo + .preguntas-menu-grupo {
+    @apply mt-4;
+}
+
+.preguntas-menu-rotulo {
+    color: var(--text-muted);
+    @apply mb-1 text-[0.6875rem] font-semibold uppercase tracking-wide;
+}
+
+.preguntas-menu ol {
+    @apply m-0 flex list-none flex-col gap-0.5 p-0;
+}
+
+.preguntas-menu-item {
+    color: var(--text-body);
+    border-left: 3px solid transparent;
+    @apply flex w-full gap-2 rounded-md px-2 py-1.5 text-left text-[0.8125rem] leading-snug transition-colors;
+}
+
+.preguntas-menu-item:hover {
+    background-color: var(--c-primary-soft);
+}
+
+.preguntas-menu-item.is-activa {
+    background-color: var(--c-primary-soft);
+    border-left-color: var(--c-primary);
+    color: var(--c-primary-dark);
+    @apply font-semibold;
+}
+
+.dark .preguntas-menu-item.is-activa {
+    color: var(--text-heading);
+}
+
+.preguntas-menu-numero {
+    @apply w-5 shrink-0 text-right;
+}
+
+.preguntas-menu-vacio {
+    color: var(--text-muted);
+    @apply m-0 text-xs;
+}
+
+/* --- Pregunta abierta --- */
+.preguntas-detalle {
+    scroll-margin-top: 5rem;
+    @apply min-w-0;
+}
+
+.preguntas-detalle .card-body {
+    @apply flex flex-col gap-4;
+}
+
+.preguntas-detalle p {
+    @apply m-0;
+}
+
+.preguntas-miga {
+    color: var(--text-muted);
+    @apply flex gap-2 text-xs;
+}
+
+.preguntas-cabecera {
+    @apply flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between;
+}
+
+.preguntas-titulo {
+    color: var(--text-heading);
+    @apply m-0 text-xl font-bold leading-snug;
+}
+
+.preguntas-etiqueta {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary-dark);
+    @apply inline-flex shrink-0 items-center gap-2 self-start rounded-full px-4 py-2 text-xs font-semibold;
+}
+
+.dark .preguntas-etiqueta {
+    color: var(--text-heading);
+}
+
+.preguntas-respuesta {
+    background-color: var(--c-primary-soft);
+    color: var(--text-body);
+    @apply flex items-start gap-3 rounded-xl px-4 py-3 text-sm leading-relaxed;
+}
+
+.preguntas-respuesta > i {
+    color: var(--c-primary);
+    @apply mt-0.5 text-xl;
+}
+
+.preguntas-respuesta-titulo {
+    color: var(--c-primary-dark);
+    @apply font-bold;
+}
+
+.dark .preguntas-respuesta-titulo {
+    color: var(--text-heading);
+}
+
+/* Cuenta del costo: dato + dato = total. */
+.preguntas-cuenta {
+    @apply grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)];
+}
+
+.preguntas-cuenta-dato {
+    background-color: color-mix(in srgb, var(--c-primary) 6%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, var(--c-primary) 12%, transparent);
+    @apply flex items-center gap-4 rounded-xl px-4 py-3;
+}
+
+.preguntas-cuenta-dato.is-total {
+    background-color: color-mix(in srgb, var(--c-primary) 12%, var(--card-bg));
+}
+
+.preguntas-cuenta-dato > i {
+    color: var(--c-primary);
+    @apply w-8 shrink-0 text-center text-2xl;
+}
+
+.preguntas-cuenta-dato span {
+    @apply flex min-w-0 flex-col;
+}
+
+.preguntas-cuenta-dato small {
+    color: var(--text-muted);
+    @apply text-[0.6875rem] leading-tight;
+}
+
+.preguntas-cuenta-dato small:first-child {
+    color: var(--text-heading);
+    @apply text-xs font-semibold;
+}
+
+.preguntas-cuenta-dato strong {
+    color: var(--c-primary);
+    font-variant-numeric: tabular-nums;
+    @apply text-2xl font-bold leading-tight;
+}
+
+.preguntas-cuenta-signo {
+    color: var(--text-heading);
+    @apply text-center text-xl font-bold;
+}
+
+.preguntas-desvio {
+    color: var(--text-body);
+    @apply -mt-1 text-[0.8125rem];
+}
+
+.preguntas-aviso {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+    @apply flex items-start gap-2.5 rounded-lg px-4 py-2.5 text-[0.8125rem] leading-relaxed;
+}
+
+.preguntas-aviso i {
+    color: var(--c-warning);
+    @apply mt-0.5;
+}
+
+.dark .preguntas-aviso {
+    color: var(--text-body);
+}
+
+.preguntas-tabla-caja {
+    border: 1px solid var(--border-subtle);
+    @apply rounded-xl p-4;
+}
+
+.preguntas-tabla-cabecera {
+    @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+}
+
+.preguntas-tabla-cabecera h3 {
+    color: var(--text-heading);
+    @apply m-0 text-[0.9375rem] font-bold;
+}
+
+.preguntas-accion {
+    background-color: color-mix(in srgb, var(--c-success) 10%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, var(--c-success) 22%, transparent);
+    color: var(--text-body);
+    @apply flex items-start gap-3 rounded-xl px-4 py-3 text-[0.8125rem] leading-relaxed;
+}
+
+.preguntas-accion > i {
+    color: var(--c-success);
+    @apply mt-0.5 text-xl;
+}
+
+.preguntas-accion-titulo {
+    color: var(--c-success-dark);
+    @apply font-bold;
+}
+
+.dark .preguntas-accion-titulo {
+    color: var(--c-success);
+}
+
+.preguntas-accion ul {
+    @apply m-0 flex list-none flex-col gap-1 p-0;
+}
+
+.preguntas-calculo {
+    border: 1px solid var(--border-subtle);
+    @apply rounded-lg;
+}
+
+.preguntas-calculo-boton {
+    color: var(--text-heading);
+    @apply flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[0.8125rem] font-semibold;
+}
+
+.preguntas-calculo-boton i {
+    color: var(--text-muted);
+    @apply text-xs transition-transform;
+}
+
+.preguntas-calculo-boton i.is-abierto {
+    @apply rotate-180;
+}
+
+.preguntas-calculo-texto {
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-subtle);
+    @apply flex items-start gap-2.5 px-4 py-3 text-xs leading-relaxed;
+}
+
+.preguntas-pie {
+    @apply flex flex-wrap items-center justify-between gap-2;
+}
+
+.preguntas-pie .btn {
+    @apply inline-flex items-center gap-2;
+}
+
+button.decision-origen {
+    @apply cursor-pointer bg-transparent p-0 text-left;
+}

@@ -129,9 +129,16 @@ test('en reportes y BI cada indicador tiene su icono de ayuda', function (string
         expect($tarjeta)->toMatch('/\s:?ayuda="[^"]+"/');
     }
 
-    // Las tarjetas de indicador escritas a mano (reportes financiero y de
-    // producción) llevan la etiqueta con su ícono al lado.
-    expect(substr_count($fuente, 'etiqueta-con-ayuda'))->toBe(substr_count($fuente, 'stat-card card'));
+    // Las tarjetas de indicador escritas a mano (reporte de producción)
+    // llevan la etiqueta con su ícono al lado. Las que salen de un v-for
+    // (reporte financiero) la escriben una vez y toman la clave del script.
+    $porBucle = str_contains($fuente, 'class="card kpi-card"') ? 1 : 0;
+
+    expect(substr_count($fuente, 'etiqueta-con-ayuda'))->toBe(substr_count($fuente, 'stat-card card') + $porBucle);
+
+    if ($porBucle) {
+        expect($fuente)->toContain('<AyudaInfo :clave="kpi.ayuda" />');
+    }
 })->with(vistasDe('Pages/Reportes'));
 
 test('toda clave de ayuda usada en una pantalla existe y no se repite', function () {

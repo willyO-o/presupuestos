@@ -228,9 +228,12 @@ class PanoramaService
         return [
             $kpi('ventas', 'Ventas del periodo', $actual['ingreso'], $anterior['ingreso'] ?: null, 'bs', 'Sin IVA ni instalación'),
             $kpi('cotizaciones', 'Cotizaciones emitidas', (float) $actual['emitidas'], $anterior['emitidas'] ? (float) $anterior['emitidas'] : null, 'numero', "{$actual['aprobadas']} aprobadas"),
-            $kpi('conversion', 'Tasa de conversión', $conversion($actual), $conversion($anterior), 'porcentaje', 'Aprobadas sobre las ya decididas'),
-            $kpi('ticket', 'Venta promedio', $ticket($actual), $ticket($anterior), 'bs', "En {$actual['ventas']} ventas"),
-            $kpi('margen', 'Margen bruto', $margen($actual), $margen($anterior), 'porcentaje', 'Presupuestado, antes de impuestos'),
+            $kpi('conversion', 'Conversión de cotizaciones', $conversion($actual), $conversion($anterior), 'porcentaje', 'Aprobadas entre las ya decididas'),
+            $kpi('ticket', 'Venta promedio', $ticket($actual), $ticket($anterior), 'bs', "Calculada sobre {$actual['ventas']} ventas"),
+            // "Presupuestado": sale de la hoja de costos de la cotización, no
+            // de lo que producción consumió de verdad (eso es el margen del
+            // reporte financiero). El rótulo lo dice para no confundirlos.
+            $kpi('margen', 'Margen presupuestado', $margen($actual), $margen($anterior), 'porcentaje', 'Antes de impuestos · No es margen real'),
         ];
     }
 
@@ -658,11 +661,11 @@ class PanoramaService
         $peor = array_search(min($medidos), $margen, true);
 
         if (count($medidos) < 2 || $mejor === $peor) {
-            return sprintf('El margen bruto del periodo es %s %%.', $this->numero($periodo));
+            return sprintf('El margen presupuestado del periodo es %s %%.', $this->numero($periodo));
         }
 
         return sprintf(
-            'El margen bruto fue %s %% en el periodo: el más alto en %s (%s %%) y el más bajo en %s (%s %%).',
+            'El margen presupuestado fue %s %% en el periodo: el más alto en %s (%s %%) y el más bajo en %s (%s %%).',
             $this->numero($periodo),
             $labels[$mejor],
             $this->numero($margen[$mejor]),

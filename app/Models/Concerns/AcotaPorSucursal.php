@@ -103,4 +103,32 @@ trait AcotaPorSucursal
             ),
         );
     }
+
+    /**
+     * Acota a UNA sucursal elegida en un filtro (`null` = sin filtro).
+     *
+     * No reemplaza a `visiblePara()`: se encadena después. Solo, una sucursal
+     * ajena pasada a mano por la URL mostraría sus datos; junto a
+     * `visiblePara()` da vacío. Los Form Requests igual la rechazan antes.
+     */
+    #[Scope]
+    protected function deSucursal(Builder $query, ?int $sucursalId): void
+    {
+        if ($sucursalId === null) {
+            return;
+        }
+
+        $ruta = static::rutaSucursal();
+
+        if ($ruta === null) {
+            $query->where($query->qualifyColumn('sucursal_id'), $sucursalId);
+
+            return;
+        }
+
+        $query->whereHas(
+            $ruta,
+            fn (Builder $relacionada) => $relacionada->where($relacionada->qualifyColumn('sucursal_id'), $sucursalId),
+        );
+    }
 }

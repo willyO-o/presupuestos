@@ -17,8 +17,6 @@ use App\Services\Reporte\PanoramaService;
 use App\Services\Reporte\PeriodoReporte;
 use App\Services\Reporte\PreguntasNegocioService;
 use App\Services\Reporte\PresupuestosRentabilidadService;
-use App\Services\Reporte\ReporteFinancieroService;
-use App\Services\Reporte\ReporteProduccionService;
 use App\Services\Reporte\ResumenDashboardService;
 use App\Services\Reporte\SimuladorDecisionesService;
 use Illuminate\Http\RedirectResponse;
@@ -44,25 +42,43 @@ class ReporteController extends Controller
         ]);
     }
 
-    public function financiero(Request $request, ReporteFinancieroService $financiero): Response
+    /**
+     * La pantalla recibe el MISMO informe que el PDF
+     * (`InformeReportesService::financiero()`): así el margen de la tarjeta y
+     * el del papel excluyen igual a los pedidos sin consumo registrado.
+     */
+    public function financiero(ReportePdfRequest $request, InformeReportesService $informes): Response
     {
+        $sucursalId = $request->integer('sucursal_id') ?: null;
+
         return inertia('Reportes/Financiero', [
-            'datos' => $financiero->datos(
+            'datos' => $informes->financiero(
                 $request->user(),
-                $request->query('desde'),
-                $request->query('hasta'),
+                $request->validated('desde'),
+                $request->validated('hasta'),
+                $sucursalId,
             ),
-            'filters' => $request->only(['desde', 'hasta']),
+            'sucursales' => $request->user()->sucursalesDisponibles()->map->only(['id', 'nombre'])->values(),
+            'filters' => $request->only(['desde', 'hasta', 'sucursal_id']),
             'pageTitle' => 'Reporte financiero',
+            'pageSubtitle' => 'Ventas, materiales y pagos pendientes en un solo lugar.',
             'breadcrumbs' => ['Reportes', 'Financiero'],
         ]);
     }
 
-    public function produccion(Request $request, ReporteProduccionService $produccion): Response
+    /**
+     * Igual que el financiero: la pantalla recibe el MISMO informe que el PDF
+     * (`InformeReportesService::produccion()`), con nombres de etapa legibles
+     * y los mismos totales.
+     */
+    public function produccion(ReportePdfRequest $request, InformeReportesService $informes): Response
     {
         return inertia('Reportes/Produccion', [
-            'datos' => $produccion->datos($request->user()),
+            'datos' => $informes->produccion($request->user(), $request->integer('sucursal_id') ?: null),
+            'sucursales' => $request->user()->sucursalesDisponibles()->map->only(['id', 'nombre'])->values(),
+            'filters' => $request->only(['sucursal_id']),
             'pageTitle' => 'Reporte de producción',
+            'pageSubtitle' => 'Entregas, tiempos de trabajo y pedidos en curso.',
             'breadcrumbs' => ['Reportes', 'Producción'],
         ]);
     }
@@ -74,16 +90,19 @@ class ReporteController extends Controller
      */
     public function financieroPdf(ReportePdfRequest $request, InformeReportesService $informes, GeneradorPdf $generador): RespuestaPdf
     {
-        $pdf = $generador->reporteFinanciero(
-            $informes->financiero($request->user(), $request->validated('desde'), $request->validated('hasta')),
-        );
+        $pdf = $generador->reporteFinanciero($informes->financiero(
+            $request->user(),
+            $request->validated('desde'),
+            $request->validated('hasta'),
+            $request->integer('sucursal_id') ?: null,
+        ));
 
         return $request->boolean('descargar') ? $pdf : $generador->previsualizar($pdf);
     }
 
     public function produccionPdf(ReportePdfRequest $request, InformeReportesService $informes, GeneradorPdf $generador): RespuestaPdf
     {
-        $pdf = $generador->reporteProduccion($informes->produccion($request->user()));
+        $pdf = $generador->reporteProduccion($informes->produccion($request->user(), $request->integer('sucursal_id') ?: null));
 
         return $request->boolean('descargar') ? $pdf : $generador->previsualizar($pdf);
     }

@@ -13,12 +13,16 @@ use App\Models\User;
 class ReporteProduccionService
 {
     /**
+     * `$sucursalId` acota a una sola sucursal DENTRO de lo que el usuario ya
+     * ve (el filtro de la pantalla); `null` = todas las suyas.
+     *
      * @return array<string, mixed>
      */
-    public function datos(User $usuario): array
+    public function datos(User $usuario, ?int $sucursalId = null): array
     {
         $entregados = Pedido::query()
             ->visiblePara($usuario)
+            ->deSucursal($sucursalId)
             ->where('estado', 'ENTREGADO')
             ->whereNotNull('fecha_entrega_estimada')
             ->whereNotNull('fecha_entrega_real')
@@ -30,6 +34,7 @@ class ReporteProduccionService
 
         $seguimientosCerrados = PedidoSeguimiento::query()
             ->visiblePara($usuario)
+            ->deSucursal($sucursalId)
             ->whereNotNull('fecha_inicio')
             ->whereNotNull('fecha_fin')
             ->get(['etapa', 'fecha_inicio', 'fecha_fin']);
@@ -70,6 +75,7 @@ class ReporteProduccionService
                 ->all(),
             'carga_por_area' => PedidoSeguimiento::query()
                 ->visiblePara($usuario)
+                ->deSucursal($sucursalId)
                 ->whereNull('fecha_fin')
                 ->with('area:id,nombre')
                 ->get(['id', 'area_id'])
@@ -81,7 +87,7 @@ class ReporteProduccionService
                 ->filter(fn ($e) => $e !== 'ENTREGADO')
                 ->map(fn (string $etapa) => [
                     'etapa' => $etapa,
-                    'pedidos' => Pedido::query()->visiblePara($usuario)->where('estado', $etapa)->count(),
+                    'pedidos' => Pedido::query()->visiblePara($usuario)->deSucursal($sucursalId)->where('estado', $etapa)->count(),
                 ])
                 ->values()
                 ->all(),

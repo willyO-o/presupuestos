@@ -103,6 +103,11 @@ const props = defineProps({
      * largo de una barra tiene que ser proporcional a su valor.
      */
     ajustarEscala: { type: Boolean, default: false },
+    /**
+     * Oculta el botón "Tabla" cuando la página ya ofrece su propia vista de
+     * tabla (con más columnas) y dos botones iguales confundirían.
+     */
+    sinTabla: { type: Boolean, default: false },
     /** Texto cuando no hay nada que graficar. */
     vacio: { type: String, default: 'Sin datos para este periodo.' },
     /**
@@ -642,7 +647,7 @@ function celda(serie, fila) {
             <span v-else></span>
 
             <div class="chart-actions">
-                <button type="button" class="chart-action" :class="{ 'is-active': verTabla }"
+                <button v-if="!sinTabla" type="button" class="chart-action" :class="{ 'is-active': verTabla }"
                     :aria-pressed="verTabla" @click="verTabla = !verTabla">
                     <i class="fa-solid fa-table-list"></i>
                     <span class="chart-action-text">Tabla</span>

@@ -14,8 +14,15 @@ import AyudaInfo from '@/Components/AyudaInfo.vue';
 defineProps({
     /** El tema del cuadro ("Ventas por mes"). */
     tema: { type: String, required: true },
+    /** Qué muestra el cuadro, en gris bajo el título ("Cantidad que llega a cada etapa"). */
+    subtitulo: { type: String, default: '' },
     /** La conclusión en una frase. */
     hallazgo: { type: String, default: '' },
+    /**
+     * El hallazgo va al pie, debajo del gráfico (Panorama), en vez de bajo el
+     * título (Preguntas): se lee después de mirar la prueba.
+     */
+    hallazgoAbajo: { type: Boolean, default: false },
     /** Clave de `Data/Ayudas.js` para el ícono "i". */
     ayuda: { type: String, default: null },
     cargando: { type: Boolean, default: false },
@@ -27,7 +34,8 @@ defineProps({
         <header class="card-header chart-card-cabecera">
             <div class="min-w-0 flex-1">
                 <h2 class="card-title">{{ tema }} <AyudaInfo v-if="ayuda" :clave="ayuda" /></h2>
-                <p v-if="hallazgo" class="chart-card-hallazgo">
+                <p v-if="subtitulo" class="card-subtitle chart-card-subtitulo">{{ subtitulo }}</p>
+                <p v-if="hallazgo && !hallazgoAbajo" class="chart-card-hallazgo">
                     <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
                     <span>{{ hallazgo }}</span>
                 </p>
@@ -36,6 +44,11 @@ defineProps({
         </header>
         <div class="card-body">
             <slot />
+
+            <p v-if="hallazgo && hallazgoAbajo" class="chart-card-pie">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                <span>{{ hallazgo }}</span>
+            </p>
         </div>
     </section>
 </template>

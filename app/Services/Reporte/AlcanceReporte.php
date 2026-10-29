@@ -16,8 +16,16 @@ use App\Models\User;
  */
 class AlcanceReporte
 {
-    public static function rotulo(User $usuario): string
+    /**
+     * Con `$sucursalId` el informe se filtró a esa sucursal (filtro de la
+     * pantalla) y el rótulo lo dice, aunque el usuario vea más.
+     */
+    public static function rotulo(User $usuario, ?int $sucursalId = null): string
     {
+        if ($sucursalId !== null) {
+            return 'Sucursal: '.(Sucursal::query()->whereKey($sucursalId)->value('nombre') ?? 'desconocida');
+        }
+
         $visibles = $usuario->sucursalesVisibles();
 
         if ($visibles === null) {

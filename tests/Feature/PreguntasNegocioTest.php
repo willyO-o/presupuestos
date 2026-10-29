@@ -331,7 +331,7 @@ test('el informe PDF y el CSV traen las preguntas con sus respuestas', function 
     $csv = InformeProyeccionesCsv::generar($informe);
 
     expect($texto)->toContain('Preguntas para decidir')
-        ->toContain('1. ¿Cuánto cuesta realmente producir cada producto?')
+        ->toContain('1. ¿Cuál es el costo por producto según los registros disponibles?')
         ->toContain('Qué hacer')
         ->toContain('11. ¿Qué decisiones ayudarían a reducir los costos y mejorar las ganancias?')
         // fputcsv entrecomilla los textos con espacios; los números van solos.

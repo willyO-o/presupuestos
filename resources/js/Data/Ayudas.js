@@ -65,7 +65,7 @@ export const AYUDAS = {
         que: 'El monto total de las cotizaciones aprobadas (incluidas las que ya pasaron a pedido) en cada mes del periodo seleccionado.',
         leer: [
             'Los picos son los meses de mayor venta; los descensos, los de menor actividad.',
-            'Al cambiar las fechas del filtro y presionar "Aplicar", el gráfico se actualiza.',
+            'Al cambiar las fechas del filtro y presionar "Actualizar", el gráfico se actualiza.',
         ],
         ojo: 'Muestra lo vendido, no lo cobrado. Los saldos pendientes de los clientes están en "Cuentas por cobrar".',
     },
@@ -73,32 +73,40 @@ export const AYUDAS = {
         titulo: 'Ventas por sucursal',
         que: 'El monto vendido por cada sucursal en el periodo seleccionado.',
         leer: [
-            'La barra más larga corresponde a la sucursal con más ventas.',
-            'Pase el cursor sobre una barra para ver el monto exacto.',
+            'La barra más larga corresponde a la sucursal con más ventas; el porcentaje es su parte del total.',
+            'A la derecha, el monto vendido por cada sucursal.',
         ],
         ojo: 'Si solo aparece su sucursal, es porque su cuenta tiene acceso limitado a ella: lo indica la etiqueta de la esquina superior derecha.',
     },
-    'financiero.margen-por-pedido': {
-        titulo: 'Margen real por pedido',
-        que: 'Para cada pedido terminado: lo cobrado menos el costo real del material utilizado. Es la ganancia efectiva de cada pedido.',
+    'financiero.margen-materiales': {
+        titulo: 'Margen sobre materiales',
+        que: 'Qué parte de lo cobrado en los pedidos terminados queda después de descontar el material que producción registró como utilizado.',
         leer: [
-            'Verde, hacia la derecha: el pedido generó ganancia.',
-            'Rojo, hacia la izquierda: el pedido costó más de lo que se cobró y generó pérdida.',
-            'Están ordenados del peor al mejor, para que lo primero que se vea sea lo que requiere revisión.',
+            'Por ejemplo, 75 % quiere decir que de cada Bs 100 cobrados quedan Bs 75 después de pagar el material.',
+            'Cuenta los pedidos en acabado o entregados, de cualquier fecha: no depende del período del filtro.',
         ],
-        ojo: 'Si producción no registró el material utilizado en un pedido, su margen aparece más alto de lo real. Es importante que se registre para que el cálculo sea correcto.',
+        ojo: 'Solo descuenta materiales, no sueldos ni otros gastos: no es la ganancia final de la empresa. Los pedidos sin consumo registrado quedan fuera del cálculo.',
+    },
+    'financiero.pedidos-con-perdida': {
+        titulo: 'Pedidos con pérdida',
+        que: 'Pedidos terminados cuyo material registrado costó más de lo que se cobró.',
+        leer: [
+            'Use el filtro "Con pérdida" de la tabla de resultados para ver cuáles son.',
+            'Están ordenados del menor al mayor resultado, para que lo primero que se vea sea lo que requiere revisión.',
+        ],
+        ojo: 'Conviene revisar el precio y el material registrado de cada uno: una pérdida también puede ser un consumo cargado de más.',
     },
     'financiero.total-vendido': {
-        titulo: 'Total vendido en el periodo',
+        titulo: 'Ventas del período',
         que: 'La suma de todas las cotizaciones aprobadas (incluidas las que ya pasaron a pedido) con fecha dentro del periodo seleccionado.',
         leer: [
             'Es el total de cada cotización tal como se presentó al cliente.',
-            'Se actualiza al cambiar las fechas del filtro y presionar "Aplicar".',
+            'Se actualiza al cambiar las fechas del filtro y presionar "Actualizar".',
         ],
         ojo: 'Vendido no significa cobrado: un cliente puede haber aprobado y aún no haber realizado ningún pago.',
     },
     'financiero.por-cobrar': {
-        titulo: 'Cuentas por cobrar',
+        titulo: 'Pendiente de cobro',
         que: 'El dinero que los clientes aún adeudan: el saldo pendiente de los pedidos que no fueron cancelados.',
         leer: [
             'Es la suma de los saldos: total del pedido menos lo ya pagado.',
@@ -107,21 +115,42 @@ export const AYUDAS = {
         ojo: 'El detalle por pedido, con los días de antigüedad de cada deuda, se encuentra en el PDF del reporte.',
     },
     'financiero.rentabilidad-tabla': {
-        titulo: 'Rentabilidad real por pedido',
-        que: 'Los mismos pedidos del gráfico de margen, con las cifras completas: lo cobrado, el costo del material y el resultado.',
+        titulo: 'Resultado por pedido',
+        que: 'Cada pedido terminado con lo cobrado, el costo del material registrado y la diferencia entre ambos.',
         leer: [
-            'Ingreso: el valor del pedido. Costo real: el material que producción registró como utilizado.',
-            'Margen: la diferencia. En verde si hubo ganancia, en rojo si hubo pérdida; entre paréntesis, qué parte del ingreso es ganancia.',
+            'Ingreso: el valor del pedido. Materiales: lo que producción registró como utilizado.',
+            'Resultado: la diferencia. En verde si quedó a favor, en rojo si hubo pérdida; entre paréntesis, qué parte del ingreso representa.',
             'Se incluyen los pedidos en acabado o ya entregados, sin importar la fecha del filtro.',
         ],
-        ojo: 'Un costo real de Bs 0 casi siempre significa que no se registró el consumo, no que el material no tuvo costo.',
+        ojo: 'Los pedidos "Sin materiales" no tienen consumo registrado: su resultado no se puede medir y van al final de la lista.',
     },
 
     /* ------------------------------------------------------------------
      * Reporte de producción
      * ---------------------------------------------------------------- */
+    'produccion.entregados-tarde': {
+        titulo: 'Pedidos entregados tarde',
+        que: 'Pedidos entregados después de la fecha comprometida con el cliente.',
+        leer: [
+            'Debajo se indica el atraso medio: cuántos días pasaron, en promedio, desde la fecha comprometida.',
+            'Considera todo el historial de entregas.',
+        ],
+        ojo: 'El PDF del reporte lista cada pedido atrasado con sus fechas.',
+    },
+    'produccion.pedidos-en-curso': {
+        titulo: 'Pedidos en curso',
+        que: 'Pedidos que todavía no se entregaron: están en alguna etapa del taller.',
+        leer: ['Más abajo se ve en qué etapa está cada uno.'],
+        ojo: 'Un pedido puede tener varios trabajos: por eso esta cifra puede ser distinta a la de trabajos pendientes.',
+    },
+    'produccion.trabajos-pendientes': {
+        titulo: 'Trabajos pendientes',
+        que: 'Etapas de trabajo asignadas a un área que todavía no se cerraron.',
+        leer: ['Debajo se indica entre cuántas áreas se reparten.'],
+        ojo: 'Refleja la situación actual: cambia cuando un área cierra o recibe una etapa.',
+    },
     'produccion.duracion-por-etapa': {
-        titulo: 'Duración promedio por etapa',
+        titulo: 'Tiempo promedio por etapa',
         que: 'Cuántos días, en promedio, permanece un trabajo en cada etapa del taller antes de pasar a la siguiente.',
         leer: [
             'La barra más larga es la etapa más lenta: ahí se concentran las demoras.',
@@ -130,7 +159,7 @@ export const AYUDAS = {
         ojo: 'Solo se cuentan las etapas que el taller abrió y cerró en el sistema. Sin registro, no es posible medir.',
     },
     'produccion.carga-por-area': {
-        titulo: 'Carga de trabajo por área',
+        titulo: 'Trabajos pendientes por área',
         que: 'Cuántos trabajos pendientes tiene cada área en este momento.',
         leer: [
             'El área con la barra más larga es la que tiene más trabajo asignado.',
@@ -149,7 +178,7 @@ export const AYUDAS = {
         ojo: 'Cada entrega tardía puede costar un cliente: el PDF del reporte incluye la lista de pedidos atrasados.',
     },
     'produccion.pedidos-activos': {
-        titulo: 'Pedidos activos por etapa',
+        titulo: 'Pedidos en curso por etapa',
         que: 'Cuántos pedidos hay en cada etapa en este momento, antes de la entrega.',
         leer: [
             'Cada número es la cantidad de pedidos que se encuentran en esa etapa.',
@@ -179,7 +208,7 @@ export const AYUDAS = {
         ],
     },
     'bi-panorama.kpi-conversion': {
-        titulo: 'Tasa de conversión',
+        titulo: 'Conversión de cotizaciones',
         que: 'De los presupuestos que ya tienen respuesta (aprobados, rechazados o vencidos), qué porcentaje aprobó el cliente.',
         leer: [
             'Los pendientes no se cuentan: todavía pueden aprobarse.',
@@ -196,7 +225,7 @@ export const AYUDAS = {
         ],
     },
     'bi-panorama.kpi-margen': {
-        titulo: 'Margen bruto',
+        titulo: 'Margen presupuestado',
         que: 'De cada 100 Bs vendidos, cuántos quedan después de cubrir el costo del trabajo (material, mano de obra y complejidad), antes de impuestos.',
         leer: [
             'Se basa en el costo que calculó el motor de margen al cotizar: es el margen presupuestado.',
@@ -208,43 +237,43 @@ export const AYUDAS = {
         titulo: 'Ventas por mes',
         que: 'El monto vendido en cada mes del periodo, comparado con el mismo mes del periodo anterior.',
         leer: [
-            'Las barras corresponden a este periodo; la línea gris punteada, al periodo anterior.',
-            'La barra de color intenso es el mejor mes; la línea punteada horizontal, el promedio mensual.',
-            'En la parte superior, una frase resume lo más relevante.',
+            'La línea azul corresponde a este periodo; la gris punteada, al periodo anterior.',
+            'Con el botón "Tabla" se ven los montos exactos de cada mes y su variación.',
+            'Debajo del gráfico, una frase resume lo más relevante.',
         ],
-        ojo: 'Al hacer clic en una barra, todo el Panorama se filtra para mostrar solo ese mes.',
+        ojo: 'Al hacer clic en un mes, todo el Panorama se filtra para mostrar solo ese mes.',
     },
     'bi-panorama.embudo': {
-        titulo: 'Embudo de ventas',
+        titulo: 'Avance de las cotizaciones',
         que: 'El recorrido de las cotizaciones del periodo: cuántas se emitieron, cuántas aprobó el cliente, cuántas pasaron a pedido y cuántas se cobraron por completo.',
         leer: [
-            'Cada barra es una etapa; mientras más angosta, menos cotizaciones llegaron hasta ahí.',
-            'Entre etapas se indica qué porcentaje avanzó a la siguiente.',
-            'En rojo, la etapa donde más cotizaciones se pierden: es la que más conviene mejorar.',
+            'Cada barra es una etapa; mientras más corta, menos cotizaciones llegaron hasta ahí.',
+            'Debajo de cada etapa se indica qué porcentaje de la anterior llegó a ella.',
+            'En rojo, el paso donde más cotizaciones se pierden: es el que más conviene mejorar.',
         ],
-        ojo: 'Junto a cada etapa se muestra el monto total de esas cotizaciones.',
+        ojo: 'Este porcentaje de aprobación usa todas las emitidas; el de la tarjeta "Conversión de cotizaciones" solo las que ya tienen respuesta. Por eso no coinciden.',
     },
     'bi-panorama.ingresos-margen': {
-        titulo: 'Ingresos y margen por mes',
-        que: 'Las ventas de cada mes (barras) junto con el margen bruto de ese mes (línea).',
+        titulo: 'Margen presupuestado por mes',
+        que: 'El margen presupuestado de cada mes: qué parte de lo vendido queda después del costo calculado al cotizar.',
         leer: [
-            'La escala izquierda está en bolivianos; la derecha, en porcentaje de margen.',
             'La línea punteada es el margen de todo el periodo: en los meses por debajo se vendió a menor precio o los trabajos costaron más.',
+            'Con el botón "Tabla" se ven las ventas y el margen de cada mes.',
         ],
         ojo: 'Vender mucho con poco margen puede generar menos ganancia que vender menos con buen margen: conviene analizar ambos indicadores juntos.',
     },
     'bi-panorama.tipo': {
-        titulo: 'Ingresos y margen por tipo de producto',
-        que: 'Cuánto vende y qué margen genera cada tipo de producto: muebles y exhibidores, letreros, impresión, etc.',
+        titulo: 'Ventas y margen por tipo de producto',
+        que: 'Cuánto vende y qué margen presupuestado deja cada tipo de producto: muebles y exhibidores, letreros, impresión, etc.',
         leer: [
-            'Las barras son las ventas; la línea, el margen bruto de cada tipo.',
-            'Al hacer clic en una barra se baja un nivel: de tipo a categorías y de categoría a productos. La ruta de navegación superior permite volver.',
+            'La barra compara las ventas de cada tipo con las del primero; a la derecha, su margen.',
+            'Al hacer clic en una fila se baja un nivel: de tipo a categorías y de categoría a productos. La ruta de navegación superior permite volver.',
             '"Trabajos a medida" son las líneas cotizadas sin un producto del catálogo.',
         ],
-        ojo: 'El tipo que más vende no siempre es el más rentable: el hallazgo de la parte superior lo resume.',
+        ojo: 'El tipo que más vende no siempre es el más rentable: la frase de abajo lo resume.',
     },
     'bi-panorama.clientes': {
-        titulo: 'Top 5 clientes por ingresos',
+        titulo: '5 clientes con mayores ventas',
         que: 'Los 5 clientes que más compraron en el periodo, con su participación en las ventas y el margen que generaron.',
         leer: [
             'La barra compara a cada cliente con el primero.',
@@ -253,11 +282,11 @@ export const AYUDAS = {
         ojo: 'Un cliente grande con margen bajo merece una revisión: es posible que se le esté cotizando por debajo de lo conveniente.',
     },
     'bi-panorama.productos': {
-        titulo: 'Top 5 productos por ingresos',
+        titulo: '5 productos con mayores ventas',
         que: 'Los 5 productos del catálogo que más ingresos generaron en el periodo, con las unidades vendidas y su margen.',
         leer: [
             'La barra compara cada producto con el primero.',
-            'La imagen es la registrada en Productos; si no existe, se muestra un ícono.',
+            'El margen es el presupuestado al cotizar cada producto.',
         ],
     },
     'bi-panorama.vendedor': {

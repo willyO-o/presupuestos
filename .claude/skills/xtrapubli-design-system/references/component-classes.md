@@ -365,6 +365,46 @@ el ícono según el campo `color` que manda cada `App\Notifications\*::toArray()
 - **Tablas**: encabezado en franja (`--table-head-bg`, sin mayúsculas) y números tabulares.
 - **Badges**: píldora; los `badge-soft-*` llevan filete del mismo color.
 
+## Reporte financiero (app.css §39, Pages/Reportes/Financiero.vue)
+
+- Filtros en fila: `.financiero-filtros` / `-filtro-fechas` / `-filtro-sucursal` / `-filtros-acciones`.
+- KPIs: `.financiero-kpis` (grilla de 4) con `.kpi-card` + `.stat-icon-*` del panel.
+- `.financiero-alcance` (franja info), `.financiero-hallazgo` (frase destacada bajo un gráfico),
+  `.financiero-vista` (interruptor Gráfico/Tabla, botón activo `.is-active`).
+- Barras de participación (medidor, no gráfico): `.financiero-sucursales` / `-sucursal` / `-sucursal-nombre`
+  / `-sucursal-pista` / `-sucursal-barra` / `-sucursal-fuera` / `-sucursal-monto`.
+- Aviso con acción: `.financiero-aviso` / `-aviso-icono` / `-aviso-texto` / `-aviso-titulo` / `-aviso-accion`.
+- Tabla con filtros: `.financiero-tabla-controles`, `.financiero-busqueda`, `.financiero-orden`,
+  `.financiero-chip` + `-chip-danger` / `-chip-warning` (`.is-active`), `.financiero-pedido`,
+  `.financiero-cliente`, `.financiero-num`, `.financiero-tabla-pie`, `.financiero-ver-mas`.
+- `BaseChart` acepta `sin-tabla` para ocultar su botón "Tabla" cuando la página trae su propia tabla.
+
+## Reporte de producción (app.css §40, Pages/Reportes/Produccion.vue)
+
+- Reusa de §39: `.financiero-kpis`, `.financiero-alcance`, `.financiero-vista`, `.financiero-card-header`, `.financiero-num`.
+- Propias: `.produccion-acciones` (barra de fecha + sucursal + PDF), `.produccion-fecha`, `.produccion-sucursal`,
+  `.produccion-fila`, `.produccion-hallazgo` / `-hallazgo-titulo` (bombilla bajo un gráfico),
+  `.produccion-pregunta` / `-pregunta-titulo`, pasos del taller `.produccion-flujo` / `.produccion-paso`
+  (flecha entre pasos desde lg) / `-paso-icono` / `-paso-nombre` / `-paso-valor` / `-paso-unidad`.
+
+## Panorama del BI por secciones (app.css §41, Pages/Reportes/BiPanorama.vue)
+
+- `.panorama-destacados` (franja de 3 datos bajo los KPIs), `.panorama-seccion` (título numerado),
+  `.panorama-vista` (variante chica de `.financiero-vista`), `.panorama-nota-final`.
+- `ChartCard` acepta `subtitulo` (→ `.chart-card-subtitulo`) y `hallazgo-abajo` (→ `.chart-card-pie`).
+- Avance de cotizaciones: `.panorama-avance` / `-etapa` / `-nombre` / `-pista` / `-barra` (`-barra-0..3`) / `-paso` (`.is-peor`),
+  `.panorama-aclaracion`.
+- Tablas-ranking: `.panorama-ranking` (filas `.is-clic`), `-ranking-puesto`, `-ranking-nombre`, `-ranking-barra`.
+
+## Preguntas para decidir, una a la vez (app.css §42, Pages/Reportes/BiPreguntas.vue)
+
+- Índice: `.preguntas-vista`, `.preguntas-menu` / `-menu-titulo` / `-menu-grupo` / `-menu-rotulo` / `-menu-item` (`.is-activa`)
+  / `-menu-numero`, `.preguntas-buscar`.
+- Pregunta: `.preguntas-detalle`, `.preguntas-miga`, `.preguntas-cabecera`, `.preguntas-titulo`, `.preguntas-etiqueta`,
+  `.preguntas-respuesta` (+ `-titulo`), cuenta `.preguntas-cuenta` / `-cuenta-dato` (`.is-total`) / `-cuenta-signo`,
+  `.preguntas-desvio`, `.preguntas-aviso`, `.preguntas-tabla-caja` / `-tabla-cabecera`, `.preguntas-accion` (+ `-titulo`),
+  `.preguntas-calculo` / `-calculo-boton` / `-calculo-texto`, `.preguntas-pie`.
+
 ## Al agregar una clase nueva
 
 Sigue el patrón de color de tres variables (`--c-{nombre}` / `-dark` / `-soft`) y añade la
