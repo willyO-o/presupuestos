@@ -91,7 +91,7 @@
 
             {{-- ==================== LÍNEA DE TIEMPO (sidebar) ==================== --}}
             <aside
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1"
+                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1"
                 aria-labelledby="titulo-seguimiento"
             >
                 <div class="mb-6 flex items-baseline justify-between gap-3">

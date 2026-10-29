@@ -16,15 +16,34 @@ use Illuminate\Support\Facades\File;
 */
 
 test('la portada se ve sin iniciar sesion y trae el contenido en el HTML', function () {
+    // Las mismas secciones que xtrapubli.com, con sus títulos.
     $this->get(route('inicio'))
         ->assertOk()
         ->assertSee(config('sitio.empresa.lema'))
-        ->assertSee('¿Qué hacemos?')
-        ->assertSee('¿Cómo lo hacemos?')
+        ->assertSee('¿Qué Hacemos?')
+        ->assertSee('¿Cómo hacemos?')
         ->assertSee('¿Para quién es?')
+        ->assertSee('Algunos Proyectos Realizados')
+        ->assertSee('Un proveedor que responde')
+        ->assertSee('¿Listo para ejecutar tu próxima campaña?')
         // Los servicios salen del config, no están escritos en el Blade.
         ->assertSee(config('sitio.servicios.0.titulo'))
         ->assertSee(config('sitio.servicios.0.descripcion'));
+});
+
+test('el menu lleva a las secciones de la portada y a las paginas del sistema', function () {
+    $respuesta = $this->get(route('proyectos'))->assertOk();
+
+    // Los cinco del sitio original apuntan a la portada desde cualquier página.
+    foreach (['#que-hacemos', '#como-hacemos', '#proyectos', '#contacto'] as $ancla) {
+        $respuesta->assertSee('href="'.route('inicio').$ancla.'"', false);
+    }
+
+    // Y las páginas propias del sistema siguen enlazadas.
+    $respuesta
+        ->assertSee('href="'.route('cotizador').'"', false)
+        ->assertSee('href="'.route('seguimiento').'"', false)
+        ->assertSee('href="'.route('login').'"', false);
 });
 
 test('la portada declara las etiquetas que necesita un buscador', function () {
@@ -59,18 +78,18 @@ test('la portada publica los datos de la empresa como JSON-LD', function () {
         ->and($datos['@graph'][0]['hasOfferCatalog']['itemListElement'])->toHaveCount(4);
 });
 
-test('la portada muestra los destacados y empuja a la galeria completa', function () {
-    $destacados = config('sitio.destacados');
-
+test('la portada muestra la vitrina y empuja a la galeria completa', function () {
     $respuesta = $this->get(route('inicio'))->assertOk();
 
-    foreach ($destacados as $slug) {
-        $respuesta->assertSee("img/publico/proyectos/{$slug}.jpg", false);
+    foreach (config('sitio.vitrina') as $trabajo) {
+        $respuesta
+            ->assertSee($trabajo['imagen'], false)
+            ->assertSee($trabajo['descripcion']);
     }
 
     $respuesta
-        ->assertSee(route('proyectos'), false)
-        ->assertSee('Ver los '.count(config('sitio.proyectos')).' proyectos');
+        ->assertSee('href="'.route('proyectos').'"', false)
+        ->assertSee('Ver más proyectos');
 });
 
 /*
@@ -80,6 +99,9 @@ test('la portada muestra los destacados y empuja a la galeria completa', functio
 */
 
 test('la galeria lista todos los proyectos con su imagen', function () {
+    // Las 40 fotos de la galería de xtrapubli.com.
+    expect(config('sitio.proyectos'))->toHaveCount(40);
+
     $proyectos = config('sitio.proyectos');
 
     $respuesta = $this->get(route('proyectos'))->assertOk();
@@ -149,21 +171,30 @@ test('cada proyecto pertenece a una categoria declarada', function () {
     expect($huerfanos)->toBe([]);
 });
 
-test('cada destacado de la portada existe en la galeria', function () {
-    $slugs = collect(config('sitio.proyectos'))->pluck('slug')->all();
+test('cada imagen de la portada referenciada en el config existe en disco', function () {
+    // Íconos de las tarjetas y fotos de la vitrina, descargados de xtrapubli.com.
+    $faltantes = collect(config('sitio.servicios'))
+        ->concat(config('sitio.diferenciales'))
+        ->concat(config('sitio.publico_objetivo'))
+        ->concat(config('sitio.vitrina'))
+        ->pluck('imagen')
+        ->reject(fn (string $ruta) => File::exists(public_path($ruta)))
+        ->all();
 
-    expect(array_diff(config('sitio.destacados'), $slugs))->toBe([]);
+    expect($faltantes)->toBe([]);
 });
 
-test('cada icono referenciado en el config esta dibujado en el componente', function () {
-    $componente = File::get(resource_path('views/components/publico/icono.blade.php'));
+test('la galeria declara las medidas reales de cada foto', function () {
+    // Las fotos van en columnas, cada una en su proporción: sin ancho y alto
+    // reales el navegador no reserva el hueco y las columnas saltan al cargar.
+    $html = $this->get(route('proyectos'))->assertOk()->getContent();
 
-    $usados = collect(config('sitio.servicios'))
-        ->concat(config('sitio.diferenciales'))
-        ->pluck('icono');
+    foreach (config('sitio.proyectos') as $proyecto) {
+        [$ancho, $alto] = getimagesize(public_path("img/publico/proyectos/{$proyecto['slug']}.jpg"));
 
-    foreach ($usados as $icono) {
-        expect($componente)->toContain("@case('{$icono}')");
+        expect($html)->toMatch(
+            '#'.preg_quote("img/publico/proyectos/{$proyecto['slug']}.jpg", '#').'"[^>]*width="'.$ancho.'"[^>]*height="'.$alto.'"#'
+        );
     }
 });
 
@@ -234,8 +265,9 @@ test('robots.txt abre el sitio y publica el sitemap en produccion', function () 
 test('el pie muestra la direccion y el NIT pero no el nombre del propietario', function () {
     $this->get(route('inicio'))
         ->assertOk()
-        ->assertSee(config('sitio.empresa.direccion'))
-        ->assertSee(config('sitio.empresa.referencia'))
+        ->assertSee('Centro de Operaciones:')
+        ->assertSee(config('sitio.empresa.direccion_sitio'))
+        ->assertSee(config('sitio.empresa.email'))
         ->assertSee('NIT '.config('sitio.empresa.nit'))
         ->assertDontSee(config('sitio.empresa.propietario'));
 });

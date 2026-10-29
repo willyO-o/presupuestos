@@ -9,10 +9,11 @@ import defaultTheme from 'tailwindcss/defaultTheme';
  * Por eso `resources/css/publico.css` apunta a este config con `@config` y
  * escanea solo las vistas públicas.
  *
- * Los colores NO son los del mockup (#0066d6 / #0070bb, aproximaciones a ojo):
- * son los tokens reales de marca de `resources/css/app.css`, para que el sitio
- * público y el panel se vean como la misma empresa. Si cambia la identidad, se
- * cambia allá y se replica acá.
+ * `marca.*` son los tokens de marca de `resources/css/app.css` (los usan el
+ * cotizador, el seguimiento y las páginas de error). `sitio.*` son los colores
+ * EXACTOS de xtrapubli.com, que la portada, la galería, la cabecera y el pie
+ * replican al 100 % (pedido del usuario, 2026-10-29): salen de las variables
+ * CSS de ese sitio, no se aproximaron a ojo.
  *
  * @type {import('tailwindcss').Config}
  */
@@ -56,15 +57,30 @@ export default {
                     whatsapp: '#25d366',
                     'whatsapp-oscuro': '#1eb757',
                 },
+
+                // Paleta de xtrapubli.com (variables CSS del sitio original).
+                sitio: {
+                    marino: '#083791', // fondo del hero, bajo la foto al 30 %
+                    azul: '#006db1', // secciones azules y franja de contacto
+                    verde: '#37ca37', // botón "Solicitar Cotización"
+                    naranja: '#f6ad55', // botón "Ver más proyectos"
+                    gris: '#cbd5e0', // tarjetas de "¿Qué Hacemos?"
+                    play: '#ff5e14', // ícono de reproducir del banner
+                    sombra: '#707070', // sombra dura 2px 2px 2px de las tarjetas
+                },
             },
 
             fontFamily: {
                 titulo: ['Montserrat', ...defaultTheme.fontFamily.sans],
-                texto: ['Roboto', ...defaultTheme.fontFamily.sans],
+                // Las dos fuentes de xtrapubli.com: Montserrat en los títulos y
+                // Barlow en el texto.
+                texto: ['Barlow', ...defaultTheme.fontFamily.sans],
             },
 
             maxWidth: {
                 contenido: '72rem',
+                // Ancho del contenido de xtrapubli.com (1170px).
+                sitio: '73.125rem',
             },
         },
     },

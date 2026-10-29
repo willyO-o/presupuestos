@@ -1,89 +1,113 @@
-{{-- Todas las variantes filtradas (?categoria=) declaran la misma canónica:
-     es el mismo catálogo recortado, no cinco páginas distintas compitiendo
-     entre sí por el mismo contenido. --}}
+{{--
+    Galería: réplica de xtrapubli.com/galeria-proyectos (logo, título, raya
+    azul y las fotos en columnas, cada una en su proporción).
+
+    Los filtros por categoría no están en el original y se conservan: son
+    enlaces reales (funcionan sin JS y se pueden compartir), y todas las
+    variantes filtradas declaran la misma canónica para no competir entre sí.
+--}}
 <x-publico.layout
     :titulo="$titulo"
     :descripcion="$descripcion"
     :canonical="route('proyectos')"
-    imagen="img/publico/proyectos/implementacion-de-pasillo.jpg"
+    imagen="img/publico/proyectos/delizia-kefir-exhibidor.jpg"
     :datos="$datosEstructurados"
 >
     {{-- ==================== ENCABEZADO ==================== --}}
-    <section class="bg-white px-4 pb-8 pt-10 text-center">
-        <div class="mx-auto max-w-4xl">
-            <nav class="mb-4 text-xs text-slate-500" aria-label="Migas de pan">
-                <a href="{{ route('inicio') }}" class="hover:text-marca-azul hover:underline">Inicio</a>
-                <span class="mx-1.5 text-slate-300">/</span>
-                @if ($filtro)
-                    <a href="{{ route('proyectos') }}" class="hover:text-marca-azul hover:underline">Proyectos</a>
-                    <span class="mx-1.5 text-slate-300">/</span>
-                    <span class="font-medium text-slate-700">{{ $titulo }}</span>
-                @else
-                    <span class="font-medium text-slate-700">Proyectos</span>
-                @endif
-            </nav>
+    <section class="bg-white px-4 pb-6 pt-5 text-center font-texto text-black">
+        <div class="mx-auto max-w-sitio">
+            <img
+                src="{{ asset('img/publico/sitio/logo.webp') }}"
+                alt=""
+                width="800"
+                height="195"
+                class="mx-auto h-auto w-[185px]"
+            >
 
-            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl md:text-4xl">
+            <h1 class="mt-5 font-texto text-[32px] font-bold leading-[1.3] sm:text-[40px]">
                 @if ($filtro)
                     {{ $titulo }}
                 @else
                     Proyectos y ejecuciones realizadas
                 @endif
             </h1>
-            <p class="mx-auto mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
-                {{ $descripcion }}
+            <p class="mx-auto mt-3 max-w-[900px] text-lg leading-[1.3] sm:text-xl">
+                @if ($filtro)
+                    {{ $descripcion }}
+                @else
+                    Cada proyecto refleja nuestro compromiso con la calidad, la ejecución y la presencia de marca.
+                @endif
             </p>
+            <span class="sitio-divisor mt-[45px] w-[175px] bg-sitio-azul" aria-hidden="true"></span>
+
+            {{-- Filtros: enlaces de verdad, no botones con JavaScript. --}}
+            <nav class="mt-8" aria-label="Filtrar proyectos por categoría">
+                <ul class="flex flex-wrap items-center justify-center gap-2">
+                    <li>
+                        <a
+                            href="{{ route('proyectos') }}"
+                            @class([
+                                'inline-block rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors',
+                                'border-sitio-azul bg-sitio-azul text-white' => ! $filtro,
+                                'border-slate-300 text-slate-700 hover:border-sitio-azul hover:text-sitio-azul' => (bool) $filtro,
+                            ])
+                            @if (! $filtro) aria-current="page" @endif
+                        >Todos</a>
+                    </li>
+
+                    @foreach ($categorias as $slug => $categoria)
+                        <li>
+                            <a
+                                href="{{ route('proyectos', ['categoria' => $slug]) }}"
+                                @class([
+                                    'inline-block rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors',
+                                    'border-sitio-azul bg-sitio-azul text-white' => $filtro === $slug,
+                                    'border-slate-300 text-slate-700 hover:border-sitio-azul hover:text-sitio-azul' => $filtro !== $slug,
+                                ])
+                                @if ($filtro === $slug) aria-current="page" @endif
+                            >{{ $categoria['nombre'] }} <span class="opacity-60">({{ $categoria['total'] }})</span></a>
+                        </li>
+                    @endforeach
+                </ul>
+            </nav>
         </div>
     </section>
 
-    {{-- ==================== FILTROS ====================
-         Son enlaces reales, no botones con JavaScript: se pueden compartir,
-         funcionan sin JS y el navegador los recuerda en el historial. --}}
-    <nav class="sticky top-16 z-30 border-y border-slate-100 bg-white/95 px-4 py-3 backdrop-blur-md" aria-label="Filtrar proyectos por categoría">
-        <ul class="mx-auto flex max-w-contenido flex-wrap items-center justify-center gap-2">
-            <li>
-                <a
-                    href="{{ route('proyectos') }}"
-                    @class([
-                        'inline-block rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors',
-                        'border-marca-azul bg-marca-azul text-white' => ! $filtro,
-                        'border-slate-200 text-slate-600 hover:border-marca-azul hover:text-marca-azul' => (bool) $filtro,
-                    ])
-                    @if (! $filtro) aria-current="page" @endif
-                >Todos</a>
-            </li>
-
-            @foreach ($categorias as $slug => $categoria)
-                <li>
-                    <a
-                        href="{{ route('proyectos', ['categoria' => $slug]) }}"
-                        @class([
-                            'inline-block rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors',
-                            'border-marca-azul bg-marca-azul text-white' => $filtro === $slug,
-                            'border-slate-200 text-slate-600 hover:border-marca-azul hover:text-marca-azul' => $filtro !== $slug,
-                        ])
-                        @if ($filtro === $slug) aria-current="page" @endif
-                    >{{ $categoria['nombre'] }} <span class="opacity-60">({{ $categoria['total'] }})</span></a>
-                </li>
-            @endforeach
-        </ul>
-    </nav>
-
     {{-- ==================== GALERÍA ==================== --}}
-    <section class="mx-auto w-full max-w-contenido px-3 py-8 sm:px-4 sm:py-10">
-        @if ($proyectos === [])
-            <p class="py-16 text-center text-sm text-slate-500">
-                Todavía no hay proyectos publicados en esta categoría.
-            </p>
-        @else
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                @foreach ($proyectos as $indice => $proyecto)
-                    {{-- Las primeras cuatro entran en la primera pantalla: se cargan
-                         con prioridad y el resto en diferido. --}}
-                    <x-publico.tarjeta-proyecto :proyecto="$proyecto" :prioritaria="$indice < 4" />
-                @endforeach
-            </div>
-        @endif
+    <section class="bg-white px-4 pb-[60px] pt-4">
+        <div class="mx-auto max-w-[1150px]">
+            @if ($proyectos === [])
+                <p class="py-16 text-center font-texto text-base text-slate-500">
+                    Todavía no hay proyectos publicados en esta categoría.
+                </p>
+            @else
+                <div class="sitio-galeria">
+                    @foreach ($proyectos as $indice => $proyecto)
+                        {{-- Las primeras fotos entran en la primera pantalla: se
+                             cargan con prioridad y el resto en diferido. Las
+                             medidas reales reservan el hueco antes de que baje
+                             la foto, para que las columnas no salten. --}}
+                        <figure class="sitio-galeria-item group">
+                            <img
+                                src="{{ asset("img/publico/proyectos/{$proyecto['slug']}.jpg") }}"
+                                alt="{{ $proyecto['alt'] }}"
+                                width="{{ $proyecto['ancho'] }}"
+                                height="{{ $proyecto['alto'] }}"
+                                @if ($indice < 5)
+                                    fetchpriority="high"
+                                @else
+                                    loading="lazy" decoding="async"
+                                @endif
+                                class="block h-auto w-full"
+                            >
+                            <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2.5 pt-8 font-texto text-sm font-semibold leading-tight text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                {{ $proyecto['titulo'] }}
+                            </figcaption>
+                        </figure>
+                    @endforeach
+                </div>
+            @endif
+        </div>
     </section>
 
     <x-publico.cta-contacto />

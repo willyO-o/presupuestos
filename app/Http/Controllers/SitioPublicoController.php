@@ -23,22 +23,16 @@ use Illuminate\View\View;
 class SitioPublicoController extends Controller
 {
     /**
-     * Portada: qué hacemos, cómo lo hacemos, para quién y una vitrina de
-     * proyectos que empuja a la galería completa.
+     * Portada, réplica de xtrapubli.com: qué hacemos, cómo lo hacemos, para
+     * quién, la vitrina de cuatro trabajos y el botón a la galería completa.
      */
     public function inicio(): View
     {
-        $proyectos = collect(config('sitio.proyectos'));
-
         return view('publico.inicio', [
             'servicios' => config('sitio.servicios'),
             'diferenciales' => config('sitio.diferenciales'),
             'publicoObjetivo' => config('sitio.publico_objetivo'),
-            'destacados' => $proyectos
-                ->whereIn('slug', config('sitio.destacados', []))
-                ->values()
-                ->all(),
-            'totalProyectos' => $proyectos->count(),
+            'vitrina' => config('sitio.vitrina'),
             'datosEstructurados' => $this->negocioJsonLd(),
         ]);
     }
@@ -67,7 +61,7 @@ class SitioPublicoController extends Controller
         $categoria = $filtro ? $categorias->get($filtro) : null;
 
         return view('publico.proyectos', [
-            'proyectos' => $proyectos->all(),
+            'proyectos' => $proyectos->map(fn (array $proyecto): array => $proyecto + $this->medidasFoto($proyecto['slug']))->all(),
             'categorias' => $this->categoriasConConteo($categorias, $todos),
             'filtro' => $filtro,
             'titulo' => $categoria ? $categoria['nombre'] : 'Proyectos y ejecuciones realizadas',
@@ -148,13 +142,33 @@ class SitioPublicoController extends Controller
     }
 
     /**
+     * Ancho y alto reales de la foto de un proyecto. La galería muestra cada
+     * foto en su proporción (columnas tipo mampostería, como el sitio
+     * original), así que el navegador necesita las medidas para reservar el
+     * hueco antes de que la imagen baje; sin ellas las columnas saltan (CLS).
+     * `getimagesize` solo lee la cabecera del archivo.
+     *
+     * @return array{ancho: int, alto: int}
+     */
+    private function medidasFoto(string $slug): array
+    {
+        $ruta = public_path("img/publico/proyectos/{$slug}.jpg");
+        $medidas = is_file($ruta) ? getimagesize($ruta) : false;
+
+        return [
+            'ancho' => $medidas[0] ?? 900,
+            'alto' => $medidas[1] ?? 900,
+        ];
+    }
+
+    /**
      * Agrega a cada categoría cuántos proyectos tiene, para el contador de los
      * filtros. Una categoría sin proyectos no se muestra: sería un enlace que
      * lleva a una página vacía.
      *
-     * @param  Collection<string, array{nombre: string, color: string, descripcion: string}>  $categorias
+     * @param  Collection<string, array{nombre: string, descripcion: string}>  $categorias
      * @param  Collection<int, array{categoria: string}>  $proyectos
-     * @return array<string, array{nombre: string, color: string, descripcion: string, total: int}>
+     * @return array<string, array{nombre: string, descripcion: string, total: int}>
      */
     private function categoriasConConteo(Collection $categorias, Collection $proyectos): array
     {
@@ -195,8 +209,8 @@ class SitioPublicoController extends Controller
                     'telephone' => $empresa['telefono'],
                     'email' => $empresa['email'],
                     'foundingDate' => $empresa['fundacion'],
-                    'image' => asset('img/publico/banner-ejecucion.jpg'),
-                    'logo' => asset('img/logo/logo.webp'),
+                    'image' => asset('img/publico/sitio/compartir.jpg'),
+                    'logo' => asset('img/publico/sitio/logo.webp'),
                     'priceRange' => 'BOB',
                     'address' => [
                         '@type' => 'PostalAddress',

@@ -221,7 +221,7 @@
                     </div>
 
                     {{-- ---------- Panel de resultado ---------- --}}
-                    <aside class="lg:sticky lg:top-24">
+                    <aside class="lg:sticky lg:top-6">
                         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                             <div class="border-b border-slate-100 bg-slate-50 px-5 py-3">
                                 <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700">Tu estimado</h2>

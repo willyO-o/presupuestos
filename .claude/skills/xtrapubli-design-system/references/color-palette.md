@@ -57,3 +57,21 @@ funcionar sobre fondo oscuro.
 5. Nunca introduzcas un quinto tono de azul o un turquesa distinto "a ojo": si `primary` e
    `info` no alcanzan, es señal de que falta un token — añádelo siguiendo el patrón
    (`--c-{nombre}`, `-dark`, `-soft`) en vez de escribir un hex suelto.
+
+## Sitio público (Blade): paleta de xtrapubli.com
+
+El sitio público no usa `app.css`. Tiene su propio Tailwind (`tailwind.publico.config.js`) y, desde el
+2026-10-29, la portada, la galería, la cabecera y el pie replican xtrapubli.com con sus colores exactos:
+
+| Token | Valor | Uso |
+|---|---|---|
+| `sitio-marino` | `#083791` | Fondo del hero, bajo la foto al 30 %. |
+| `sitio-azul` | `#006db1` | Secciones azules y franja de contacto. |
+| `sitio-verde` | `#37ca37` | Botón "Solicitar Cotización". |
+| `sitio-naranja` | `#f6ad55` | Botón "Ver más proyectos". |
+| `sitio-gris` | `#cbd5e0` | Tarjetas de "¿Qué Hacemos?". |
+| `sitio-play` | `#ff5e14` | Ícono de reproducir del banner. |
+| `sitio-sombra` | `#707070` | Sombra dura `2px 2px 2px` de las tarjetas. |
+
+`marca-*` (los mismos valores que `--brand-*` del panel) sigue en el cotizador, el seguimiento y las páginas de error.
+Detalle en `.ai/rules/views-publico.md`.

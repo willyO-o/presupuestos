@@ -13,6 +13,53 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-29 — Sitio público igual a xtrapubli.com
+
+**Qué cambió:**
+- La portada (`/`) replica xtrapubli.com sección por sección:
+  - hero azul con la foto, "Hacemos que tu Marca Venda!" y el botón verde "Solicitar Cotización";
+  - ¿Qué Hacemos? (tarjetas grises), ¿Cómo hacemos? (fondo azul), banner con fondo fijo y botón de reproducir;
+  - franja negra con el logo, ¿Para quién es?, Algunos Proyectos Realizados con el botón naranja que se mece;
+  - Un proveedor que responde, ¿Listo para ejecutar tu próxima campaña? con el QR, franja azul de contacto y pie con
+    copyright.
+- La galería (`/proyectos`) tiene las **40 fotos reales** del sitio original, en columnas y cada una en su proporción.
+  Reemplazan a las 20 anteriores, que eran imágenes de ejemplo y no trabajos de la empresa. Los filtros por categoría
+  se mantienen (se sumó "Material POP").
+- La cabecera, el bloque de contacto y el pie son los del original en todas las páginas públicas (cotizador,
+  seguimiento y errores incluidos).
+- Diferencias deliberadas con el original:
+  - el menú suma Cotizador, Mi pedido y Acceder;
+  - el pie suma el NIT;
+  - un solo `<h1>` por página;
+  - ortografía corregida ("Instalación", "Banners", "galería");
+  - el botón de reproducir del banner es solo adorno: en el original tampoco lleva a ningún lado.
+- Se quitó el botón flotante de WhatsApp, porque el original no lo tiene.
+
+**Por qué:** pedido del usuario: la sección pública tiene que verse 100 % igual a la página actual de la empresa, con
+sus imágenes y secciones.
+
+**Cómo:**
+- Imágenes:
+  - se descargaron del sitio original a `public/img/publico/sitio/` (íconos, fondos, logo, QR, vitrina) y
+    `public/img/publico/proyectos/` (galería, `{slug}.jpg`);
+  - quedaron optimizadas, con las PNG pasadas a JPG sobre fondo blanco.
+- Colores y fuentes:
+  - colores exactos del original en `tailwind.publico.config.js` → `sitio.*`;
+  - fuentes Montserrat + Barlow;
+  - clases `.sitio-*` en `publico.css`: tarjeta con sombra dura, botones, banner con fondo fijo y galería en columnas.
+- Textos en `config/sitio.php`:
+  - `servicios`, `diferenciales` y `publico_objetivo` llevan `imagen` en vez de `icono`;
+  - `destacados` se reemplazó por `vitrina`;
+  - `empresa.descripcion` es la meta description del original;
+  - nuevo `empresa.direccion_sitio`.
+- `SitioPublicoController::proyectos()` pasa el ancho y alto real de cada foto, para que las columnas no salten al
+  cargar.
+- Se borraron `tarjeta-proyecto`, `etiqueta`, `whatsapp-flotante`, los íconos SVG que ya no se usan y dos imágenes
+  viejas.
+- `SitioPublicoTest` se actualizó (secciones, menú, vitrina, 40 fotos con medidas, imágenes en disco, pie).
+
+---
+
 ## 2026-10-29 — Vista de detalle de la cotización rediseñada
 
 **Qué cambió:**

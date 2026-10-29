@@ -1,70 +1,63 @@
-{{-- Pie de página con los datos de contacto oficiales (los mismos que alimentan el JSON-LD). --}}
+{{--
+    Pie del sitio público, igual al de xtrapubli.com: una franja azul con los
+    cuatro datos de contacto y debajo el logo con el copyright.
+
+    Los datos salen de config('sitio.empresa'), los mismos que alimentan el
+    JSON-LD. El NIT no está en el sitio original: se agrega en una línea
+    discreta bajo el copyright porque el usuario pidió publicarlo (2026-10-24).
+    El nombre del propietario no se publica nunca.
+--}}
 @php
     $empresa = config('sitio.empresa');
+
+    // "591 765-7-8-9-10" se muestra como en el original: "591 - 765-7-8-9-10",
+    // con el número en negrita.
+    [$prefijo, $numero] = array_pad(explode(' ', $empresa['telefono_visible'], 2), 2, '');
 @endphp
 
-<footer class="bg-marca-azul text-white">
-    <div class="mx-auto max-w-contenido px-4 py-10 sm:px-6">
-        <div class="grid gap-8 md:grid-cols-4">
-            <div class="md:col-span-1">
-                <img
-                    src="{{ asset('img/logo/logo-blanco.png') }}"
-                    alt="{{ $empresa['nombre'] }}"
-                    width="150"
-                    height="50"
-                    loading="lazy"
-                    class="h-10 w-auto"
-                >
-                <p class="mt-3 text-xs leading-relaxed text-white/80">
-                    {{ $empresa['lema'] }}
-                </p>
-            </div>
+<footer>
+    <div class="bg-sitio-azul py-5 font-texto text-white">
+        <address class="mx-auto grid max-w-sitio gap-4 px-4 py-[15px] text-center not-italic sm:grid-cols-2 lg:grid-cols-[25.2fr_21.1fr_27.6fr_26.1fr] lg:items-center">
+            <p class="px-1.5 py-2.5 text-base leading-[1.3]">
+                <x-publico.icono nombre="pin" class="inline h-4 w-4 align-[-2px]" />
+                <strong>Centro de Operaciones:</strong>
+                {{ $empresa['ciudad'] }} - {{ $empresa['direccion_sitio'] }}
+            </p>
 
-            <address class="grid gap-5 not-italic md:col-span-3 md:grid-cols-3">
-                <div class="flex items-start gap-2.5 text-xs">
-                    <x-publico.icono nombre="ubicacion" class="mt-0.5 h-5 w-5 shrink-0 text-white/90" />
-                    <div>
-                        <span class="mb-0.5 block font-bold">Centro de operaciones</span>
-                        <span class="text-white/85">{{ $empresa['direccion'] }}<br>{{ $empresa['ciudad'] }}, {{ $empresa['departamento'] }}</span>
-                        @if (! empty($empresa['referencia']))
-                            <span class="mt-1 block text-white/70">{{ $empresa['referencia'] }}</span>
-                        @endif
-                    </div>
-                </div>
+            <p class="px-1.5 py-2.5 font-titulo text-base leading-[1.3]">
+                <a href="https://wa.me/{{ $empresa['whatsapp'] }}" target="_blank" rel="noopener noreferrer" class="hover:underline">
+                    <x-publico.icono nombre="whatsapp" class="inline h-4 w-4 align-[-2px]" />
+                    {{ $prefijo }} <strong>- {{ $numero }}</strong>
+                </a>
+            </p>
 
-                <div class="flex items-start gap-2.5 text-xs">
-                    <x-publico.icono nombre="telefono" class="mt-0.5 h-5 w-5 shrink-0 text-white/90" />
-                    <div>
-                        <span class="mb-0.5 block font-bold">Teléfono</span>
-                        <a href="tel:{{ $empresa['telefono'] }}" class="text-white/85 hover:underline">{{ $empresa['telefono_visible'] }}</a>
-                    </div>
-                </div>
+            <p class="px-1.5 py-2.5 text-base leading-[1.3]">
+                <x-publico.icono nombre="sobre" class="inline h-4 w-4 align-[-2px]" />
+                <strong>Email:</strong>
+                <a href="mailto:{{ $empresa['email'] }}" class="break-all hover:underline">{{ $empresa['email'] }}</a>
+            </p>
 
-                <div class="flex items-start gap-2.5 text-xs">
-                    <x-publico.icono nombre="correo" class="mt-0.5 h-5 w-5 shrink-0 text-white/90" />
-                    <div>
-                        <span class="mb-0.5 block font-bold">Correo</span>
-                        <a href="mailto:{{ $empresa['email'] }}" class="break-all text-white/85 hover:underline">{{ $empresa['email'] }}</a>
-                    </div>
-                </div>
-            </address>
-        </div>
+            <p class="px-1.5 py-2.5 text-base leading-[1.3]">
+                <x-publico.icono nombre="globo" class="inline h-4 w-4 align-[-2px]" />
+                <strong>Site:</strong>
+                <a href="{{ $empresa['web'] }}" class="font-titulo hover:underline">{{ str_replace('https://', '', $empresa['web']) }}</a>
+            </p>
+        </address>
     </div>
 
-    <div class="border-t border-white/15">
-        <div class="mx-auto flex max-w-contenido flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-white/80 sm:flex-row sm:px-6">
-            <p>
-                &copy; {{ date('Y') }} {{ $empresa['nombre'] }}. Todos los derechos reservados.
-                @if (! empty($empresa['nit']))
-                    <span class="block sm:inline">NIT {{ $empresa['nit'] }}</span>
-                @endif
-            </p>
-            <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1" aria-label="Enlaces del pie">
-                <a href="{{ $empresa['web'] }}" rel="noopener" class="hover:underline">{{ str_replace('https://', '', $empresa['web']) }}</a>
-                <a href="{{ route('proyectos') }}" class="hover:underline">Proyectos</a>
-                <a href="{{ route('seguimiento') }}" class="hover:underline">Seguimiento de pedido</a>
-                <a href="{{ route('login') }}" class="hover:underline">Acceso al sistema</a>
-            </nav>
-        </div>
+    <div class="bg-white px-4 py-2.5 text-center font-texto text-black">
+        <img
+            src="{{ asset('img/publico/sitio/logo.webp') }}"
+            alt="{{ $empresa['nombre'] }}"
+            width="800"
+            height="195"
+            loading="lazy"
+            decoding="async"
+            class="mx-auto h-auto w-[200px]"
+        >
+        <p class="mt-1 text-lg font-medium leading-[1.3]">Copyright {{ date('Y') }}. All rights reserved</p>
+        @if (! empty($empresa['nit']))
+            <p class="pb-1 text-xs text-slate-500">NIT {{ $empresa['nit'] }}</p>
+        @endif
     </div>
 </footer>

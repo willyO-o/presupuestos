@@ -6,8 +6,10 @@
 |--------------------------------------------------------------------------
 |
 | Todo el contenido editable de las dos páginas públicas (`/` y `/proyectos`)
-| vive acá: datos de contacto, servicios, diferenciales y la galería de
-| proyectos. La idea es que marketing pueda cambiar textos sin tocar Blade.
+| vive acá: datos de contacto, servicios, diferenciales, la vitrina y la
+| galería de proyectos. La idea es que marketing pueda cambiar textos sin
+| tocar Blade. Desde el 2026-10-29 los textos e imágenes son los de
+| xtrapubli.com (el sitio público lo replica tal cual).
 |
 | Los datos de contacto salen de `.env` porque cambian de un despliegue a
 | otro (staging no debería mandar WhatsApp al número real); el resto es
@@ -40,8 +42,9 @@ return [
         // Ruta del logo relativa a `public/`, tal como la lee FPDF en el
         // membrete de los PDF (por sistema de archivos, nunca por URL).
         'logo' => 'img/logo/logo.png',
-        'descripcion' => 'Diseñamos, fabricamos e implementamos exhibidores, material POP y '
-            .'soluciones visuales para marcas que necesitan presencia real en el punto de venta.',
+        // La meta description de xtrapubli.com: va al <head> de la portada y al JSON-LD.
+        'descripcion' => 'XtraPubli desarrolla exhibidores para puntos de venta, material POP, '
+            .'letreros luminosos y soluciones visuales para retail, marcas y negocios.',
         'fundacion' => '2015',
 
         // El número en formato E.164 sin signos, tal como lo pide wa.me.
@@ -65,6 +68,8 @@ return [
         'direccion' => 'C/ René Vargas Nro. 113, Z. Villa Ballivián',
         'referencia' => 'Entre C/ Álvarez Plata y C/ Catacora, planta baja (tienda externa), '
             .'frente al Colegio Técnico Humanístico José Ballivián',
+        // La misma dirección como la escribe xtrapubli.com en su pie.
+        'direccion_sitio' => 'Z/Ballivián C/R. Vargas 113',
         'ciudad' => 'El Alto',
         'departamento' => 'La Paz',
         'pais' => 'BO',
@@ -72,67 +77,67 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | ¿Qué hacemos? — las 4 líneas de servicio
+    | ¿Qué Hacemos? — las 4 líneas de servicio
     |--------------------------------------------------------------------------
     |
-    | `icono` es la clave que resuelve <x-publico.icono>; si se agrega un
-    | servicio nuevo hay que darle de alta el ícono ahí.
+    | Textos e íconos tal como están en xtrapubli.com (con la ortografía
+    | corregida). `imagen` es la ruta relativa a `public/`: son los mismos
+    | íconos azules del sitio original, descargados a `img/publico/sitio/`.
     |
     */
 
     'servicios' => [
         [
-            'icono' => 'exhibidor',
+            'imagen' => 'img/publico/sitio/servicio-exhibidores.png',
             'titulo' => 'Exhibidores',
             'descripcion' => 'Diseño y fabricación de exhibidores personalizados para destacar '
                 .'productos y potenciar campañas comerciales.',
         ],
         [
-            'icono' => 'pop',
+            'imagen' => 'img/publico/sitio/servicio-material-pop.png',
             'titulo' => 'Material POP',
-            'descripcion' => 'Banners, roll ups, back panels y stands: producción de material '
-                .'visual para campañas promocionales y activaciones de marca.',
+            'descripcion' => 'Banners, roll ups, back panels, stands y mucho más: producción de '
+                .'material visual para campañas promocionales y activaciones de marca.',
         ],
         [
-            'icono' => 'implementacion',
+            'imagen' => 'img/publico/sitio/servicio-implementaciones.png',
             'titulo' => 'Implementaciones',
             'descripcion' => 'Instalación y ejecución en punto de venta, con enfoque en '
                 .'cumplimiento y presentación profesional.',
         ],
         [
-            'icono' => 'produccion',
+            'imagen' => 'img/publico/sitio/servicio-produccion.png',
             'titulo' => 'Producción a escala',
-            'descripcion' => 'Capacidad para trabajar proyectos en volumen y campañas '
-                .'comerciales de alta exigencia.',
+            'descripcion' => 'Capacidad para trabajar proyectos en volumen y campañas.',
         ],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | ¿Cómo lo hacemos? — los 4 compromisos
+    | ¿Cómo hacemos? — los 4 compromisos
     |--------------------------------------------------------------------------
     */
 
     'diferenciales' => [
         [
-            'icono' => 'reloj',
-            'titulo' => 'Entregas a tiempo',
-            'descripcion' => 'Coordinamos tiempos de producción y montaje para cumplir la fecha comprometida.',
+            'imagen' => 'img/publico/sitio/compromiso-entregas.png',
+            'titulo' => 'Entregas a Tiempo',
+            'descripcion' => 'Coordinamos tiempos para garantizar entregas a tiempo.',
         ],
         [
-            'icono' => 'calidad',
+            'imagen' => 'img/publico/sitio/compromiso-calidad.png',
             'titulo' => 'Garantizamos calidad',
-            'descripcion' => 'Cuidamos cada detalle, desde la selección del material hasta los acabados.',
+            'descripcion' => 'Cuidamos cada detalle, desde el material y acabados.',
         ],
         [
-            'icono' => 'escudo',
-            'titulo' => 'Aseguramos la ejecución',
-            'descripcion' => 'Implementación profesional y seguimiento en todo el proceso.',
+            'imagen' => 'img/publico/sitio/compromiso-ejecucion.png',
+            'titulo' => 'Aseguramos ejecución',
+            'descripcion' => 'Implementación profesional.',
         ],
         [
-            'icono' => 'crecimiento',
+            'imagen' => 'img/publico/sitio/compromiso-venta.png',
             'titulo' => 'Pensamos en la venta',
-            'descripcion' => 'Cada pieza se diseña orientada a resultados comerciales tangibles.',
+            'descripcion' => 'Orientados a resultados comerciales.',
         ],
     ],
 
@@ -144,16 +149,58 @@ return [
 
     'publico_objetivo' => [
         [
-            'titulo' => 'Empresas de consumo masivo',
-            'descripcion' => 'Marcas con necesidad de ejecución en retail y puntos de venta físicos.',
+            'imagen' => 'img/publico/sitio/publico-empresas.png',
+            'titulo' => 'Empresas de productos masivos',
+            'descripcion' => 'Empresas de consumo masivo con necesidad de ejecución en retail y '
+                .'puntos de venta físicos.',
         ],
         [
+            'imagen' => 'img/publico/sitio/publico-marketing.png',
             'titulo' => 'Equipos de marketing y trade',
-            'descripcion' => 'Agencias y departamentos que buscan un aliado confiable para ejecuciones integrales.',
+            'descripcion' => 'Agencias y departamentos que buscan un aliado clave confiable.',
         ],
         [
-            'titulo' => 'Negocios en crecimiento',
-            'descripcion' => 'Empresas en expansión que necesitan construir presencia visual profesional.',
+            'imagen' => 'img/publico/sitio/publico-negocios.png',
+            'titulo' => 'Negocios en crecimiento y expansión',
+            'descripcion' => 'Ayudamos a negocios en crecimiento a construir presencia visual profesional.',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Algunos Proyectos Realizados — la vitrina de la portada
+    |--------------------------------------------------------------------------
+    |
+    | Las cuatro tarjetas de la portada, iguales a las de xtrapubli.com: cada
+    | imagen ya es un collage con su rótulo ("Islas Cabeceras", "Exhibidores",
+    | ...), por eso no salen de la galería (que muestra fotos sueltas).
+    |
+    */
+
+    'vitrina' => [
+        [
+            'imagen' => 'img/publico/sitio/vitrina-islas-cabeceras.jpg',
+            'alt' => 'Collage de islas y cabeceras promocionales en supermercados',
+            'descripcion' => 'Cabeceras e islas promocionales diseñadas para maximizar la '
+                .'visibilidad y presencia de marca en supermercados.',
+        ],
+        [
+            'imagen' => 'img/publico/sitio/vitrina-exhibidores.jpg',
+            'alt' => 'Collage de exhibidores personalizados',
+            'descripcion' => 'Exhibidores personalizados diseñados para destacar productos y '
+                .'fortalecer la presencia de marca en el punto de venta.',
+        ],
+        [
+            'imagen' => 'img/publico/sitio/vitrina-toldos-letreros.jpg',
+            'alt' => 'Collage de toldos y letreros en tiendas',
+            'descripcion' => 'Toldos retráctiles y toldos fijos en tiendas, diseñados para brindar '
+                .'visibilidad, protección y presencia de marca.',
+        ],
+        [
+            'imagen' => 'img/publico/sitio/vitrina-letras-3d.jpg',
+            'alt' => 'Collage de letras 3D y letreros luminosos',
+            'descripcion' => 'Fabricamos soluciones visuales para fachadas comerciales, creando '
+                .'letreros luminosos modernos que fortalecen la presencia e identidad de cada marca.',
         ],
     ],
 
@@ -163,55 +210,35 @@ return [
     |--------------------------------------------------------------------------
     |
     | La clave del array es el valor de `?categoria=` en /proyectos y también
-    | el `categoria` de cada proyecto de abajo. `color` es semántico: lo
-    | traduce a clases <x-publico.etiqueta>, para no meter CSS en el config.
+    | el `categoria` de cada proyecto de abajo.
     |
     */
 
     'categorias' => [
         'exhibidores' => [
             'nombre' => 'Exhibidores y muebles',
-            'color' => 'azul',
-            'descripcion' => 'Góndolas, islas, torres y exhibidores metálicos fabricados a medida.',
+            'descripcion' => 'Exhibidores de piso, islas, exhibidores de alambre y muebles fabricados a medida.',
         ],
         'fachadas' => [
-            'nombre' => 'Fachadas y letreros',
-            'color' => 'oscuro',
-            'descripcion' => 'Letreros corporativos, cajas luminosas y revestimiento de tiendas.',
+            'nombre' => 'Fachadas, letreros y toldos',
+            'descripcion' => 'Letreros luminosos y corpóreos, tótems, toldos y fachadas comerciales.',
         ],
         'vehicular' => [
             'nombre' => 'Rotulado vehicular',
-            'color' => 'turquesa',
-            'descripcion' => 'Branding de flotas con vinilo polimérico de alta durabilidad.',
+            'descripcion' => 'Rotulado de camiones, camionetas y buses.',
         ],
         'activaciones' => [
-            'nombre' => 'Stands y activaciones',
-            'color' => 'ambar',
-            'descripcion' => 'Módulos desarmables, gazebos y estructuras para campañas BTL.',
+            'nombre' => 'Stands y módulos',
+            'descripcion' => 'Stands de feria y módulos promocionales.',
         ],
         'implementaciones' => [
             'nombre' => 'Implementación en punto de venta',
-            'color' => 'verde',
-            'descripcion' => 'Montajes de alta complejidad e implementación integral de pasillos.',
+            'descripcion' => 'Instalación de letreros, gráficas y mobiliario en tiendas, edificios y supermercados.',
         ],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Proyectos destacados en la portada
-    |--------------------------------------------------------------------------
-    |
-    | Slugs (de `proyectos`) que se muestran en la vista previa de la portada.
-    | Se listan a mano y no se toman "los primeros" porque son la vitrina: se
-    | eligen por lo que mejor representa a la empresa, no por orden de carga.
-    |
-    */
-
-    'destacados' => [
-        'implementacion-de-pasillo',
-        'delizia-flota-vehicular',
-        'dismac-letrero-corporativo',
-        'frussion-cabecera-frutas',
+        'pop' => [
+            'nombre' => 'Material POP',
+            'descripcion' => 'Habladores y piezas gráficas para el punto de venta.',
+        ],
     ],
 
     /*
@@ -219,173 +246,294 @@ return [
     | Galería de proyectos
     |--------------------------------------------------------------------------
     |
-    | El orden de este array es el orden en que se muestran. `slug` tiene que
-    | coincidir con el nombre del archivo en `public/img/publico/proyectos/`,
-    | `categoria` con una clave de `categorias`, y `alt` describe la foto para
-    | lectores de pantalla y para Google Imágenes (no repetir el título).
+    | Las 40 fotos de la galería de xtrapubli.com, en el mismo orden. `slug`
+    | tiene que coincidir con el nombre del archivo en
+    | `public/img/publico/proyectos/` (`{slug}.jpg`), `categoria` con una clave
+    | de `categorias`, y `alt` describe la foto para lectores de pantalla y
+    | para Google Imágenes.
     |
     */
 
     'proyectos' => [
         [
-            'slug' => 'delizia-flota-vehicular',
-            'titulo' => 'Delizia - Flota Vehicular',
-            'detalle' => 'Branding y rotulado vinil',
-            'etiqueta' => 'Vehicular',
+            'slug' => 'delizia-helados-camion-furgon',
+            'titulo' => 'Delizia Helados - Camión furgón',
+            'detalle' => 'Rotulado integral del furgón',
             'categoria' => 'vehicular',
-            'alt' => 'Rotulación Camión Delizia',
+            'alt' => 'Camión furgón de Delizia Helados rotulado con la marca',
         ],
         [
-            'slug' => 'entel-modulo-desarmable',
-            'titulo' => 'Entel - Módulo Desarmable',
-            'detalle' => 'Punto de activación SIM',
-            'etiqueta' => 'Stand BTL',
-            'categoria' => 'activaciones',
-            'alt' => 'Módulo promocional Entel',
-        ],
-        [
-            'slug' => 'delizia-kefir-gondola',
-            'titulo' => 'Delizia Kéfir - Góndola',
-            'detalle' => 'Mueble metálico retail',
-            'etiqueta' => 'Exhibidor',
-            'categoria' => 'exhibidores',
-            'alt' => 'Exhibidor retail Delizia',
-        ],
-        [
-            'slug' => 'torre-beauty-care',
-            'titulo' => 'Torre Beauty & Care',
-            'detalle' => 'Acrílico y metal termoesmaltado',
-            'etiqueta' => 'Floor Stand',
-            'categoria' => 'exhibidores',
-            'alt' => 'Torre exhibidora blanca',
-        ],
-        [
-            'slug' => 'exhibidores-de-alambre',
-            'titulo' => 'Exhibidores de Alambre',
-            'detalle' => 'Canastillas regulables',
-            'etiqueta' => 'Metalmecánica',
-            'categoria' => 'exhibidores',
-            'alt' => 'Canastillos y estantes',
-        ],
-        [
-            'slug' => 'flota-pick-up-comercial',
-            'titulo' => 'Flota Pick-up Comercial',
-            'detalle' => 'Wrap con vinilo polimérico',
-            'etiqueta' => 'Vehicular',
+            'slug' => 'ice-fruit-camioneta',
+            'titulo' => 'Ice Fruit - Camioneta',
+            'detalle' => 'Rotulado vehicular en vinil',
             'categoria' => 'vehicular',
-            'alt' => 'Rotulación Camioneta Pickup',
+            'alt' => 'Camioneta pick-up rotulada con la marca Ice Fruit',
         ],
         [
-            'slug' => 'pulpin-cabecera-gondola',
-            'titulo' => 'Pulpín - Cabecera Góndola',
-            'detalle' => 'Branding de impacto visual',
-            'etiqueta' => 'Exhibidor',
-            'categoria' => 'exhibidores',
-            'alt' => 'Exhibidor Pulpin',
+            'slug' => 'bus-de-la-paz',
+            'titulo' => 'Bus de La Paz',
+            'detalle' => 'Rotulado de bus con ilustraciones',
+            'categoria' => 'vehicular',
+            'alt' => 'Bus blanco rotulado con las ilustraciones del Bus de La Paz',
         ],
         [
-            'slug' => 'carozzi-isla-central',
-            'titulo' => 'Carozzi - Isla Central',
-            'detalle' => 'Mueble 4 caras con cenefa',
-            'etiqueta' => 'Supermercado',
-            'categoria' => 'exhibidores',
-            'alt' => 'Torre Carozzi Supermercado',
-        ],
-        [
-            'slug' => 'kris-el-sabor-de-bolivia',
-            'titulo' => 'KRIS - "El Sabor de Bolivia"',
-            'detalle' => 'Estructura metálica termoformada',
-            'etiqueta' => 'Punto de Venta',
-            'categoria' => 'activaciones',
-            'alt' => 'Exhibidor KRIS',
-        ],
-        [
-            'slug' => 'nub-cilindro-luminoso',
-            'titulo' => 'NUB - Cilindro Luminoso',
-            'detalle' => 'Backlight publicitario 360°',
-            'etiqueta' => 'Tótem Led',
+            'slug' => 'dismac-servicio-tecnico',
+            'titulo' => 'Dismac - Servicio Técnico',
+            'detalle' => 'Fachada con letrero y caja de luz',
             'categoria' => 'fachadas',
-            'alt' => 'Tótem Cilíndrico Iluminado',
+            'alt' => 'Fachada de Dismac con el letrero de Servicio Técnico',
         ],
         [
-            'slug' => 'dismac-letrero-corporativo',
-            'titulo' => 'Dismac - Letrero Corporativo',
-            'detalle' => 'Alucobond y letras volumétricas',
-            'etiqueta' => 'Fachada',
+            'slug' => 'delizia-logo-corporeo',
+            'titulo' => 'Delizia - Logo corpóreo',
+            'detalle' => 'Letrero corpóreo para interior',
             'categoria' => 'fachadas',
-            'alt' => 'Fachada Corporativa Dismac',
+            'alt' => 'Logo corpóreo de Delizia sobre una pared de recepción',
         ],
         [
-            'slug' => 'huggies-gazebo-btl',
-            'titulo' => 'Huggies - Gazebo BTL',
-            'detalle' => 'Campaña y carpa publicitaria',
-            'etiqueta' => 'Activación',
-            'categoria' => 'activaciones',
-            'alt' => 'Toldo BTL Huggies',
-        ],
-        [
-            'slug' => 'bristar-bandejas-circulares',
-            'titulo' => 'Bristar - Bandejas Circulares',
-            'detalle' => 'Pintura electrostática al horno',
-            'etiqueta' => 'Exhibidor',
-            'categoria' => 'exhibidores',
-            'alt' => 'Exhibidor Bristar Circular',
-        ],
-        [
-            'slug' => 'delizia-logotipo-edificio',
-            'titulo' => 'Delizia - Logotipo Edificio',
-            'detalle' => 'Caja luminosa de gran formato',
-            'etiqueta' => 'Letrero Corp',
+            'slug' => 'entel-multicentro',
+            'titulo' => 'Entel Multicentro',
+            'detalle' => 'Instalación de letrero de fachada',
             'categoria' => 'fachadas',
-            'alt' => 'Branding Torre Delizia',
+            'alt' => 'Técnicos instalando el letrero de Entel Multicentro en una fachada',
         ],
         [
-            'slug' => 'kotex-identidad-comercial',
-            'titulo' => 'Kotex - Identidad Comercial',
-            'detalle' => 'Revestimiento de tienda retail',
-            'etiqueta' => 'Fachada',
+            'slug' => 'dismac-fachada-luminosa',
+            'titulo' => 'Dismac - Fachada luminosa',
+            'detalle' => 'Letreros luminosos y fachada comercial',
             'categoria' => 'fachadas',
-            'alt' => 'Fachada Tienda Kotex',
+            'alt' => 'Fachada de Dismac iluminada de noche con letreros luminosos',
         ],
         [
-            'slug' => 'frussion-cabecera-frutas',
-            'titulo' => 'Frussion - Cabecera Frutas',
-            'detalle' => 'Exhibición masiva de jugos',
-            'etiqueta' => 'Isla Retail',
-            'categoria' => 'exhibidores',
-            'alt' => 'Exhibidor Frussion',
+            'slug' => 'delizia-totem-torre-32',
+            'titulo' => 'Delizia Agencia - Tótem Torre 32',
+            'detalle' => 'Tótem de señalización exterior',
+            'categoria' => 'fachadas',
+            'alt' => 'Tótem de señalización Torre 32 con el logo de Delizia Agencia',
         ],
         [
-            'slug' => 'gondola-piramidal-amarilla',
-            'titulo' => 'Góndola Piramidal Amarilla',
-            'detalle' => 'Metal perforado y branding',
-            'etiqueta' => 'Fabricación',
-            'categoria' => 'exhibidores',
-            'alt' => 'Mueble Metálico XtraPubli',
+            'slug' => 'delizia-letras-corporeas',
+            'titulo' => 'Delizia Agencia - Letras corpóreas',
+            'detalle' => 'Producción de letreros en el taller',
+            'categoria' => 'fachadas',
+            'alt' => 'Letreros corpóreos de Delizia Agencia en producción en el taller',
         ],
         [
-            'slug' => 'bristar-tambos-promocionales',
-            'titulo' => 'Bristar - Tambos Promocionales',
-            'detalle' => 'Exhibidores circulares de oferta',
-            'etiqueta' => 'Tambos POP',
-            'categoria' => 'exhibidores',
-            'alt' => 'Tambos y canastillos Bristar',
-        ],
-        [
-            'slug' => 'montajes-de-alta-complejidad',
-            'titulo' => 'Montajes de Alta Complejidad',
-            'detalle' => 'Instalación con grúa pluma',
-            'etiqueta' => 'Instalación',
+            'slug' => 'delizia-instalacion-en-altura',
+            'titulo' => 'Delizia - Instalación en altura',
+            'detalle' => 'Montaje de letrero en edificio con grúa',
             'categoria' => 'implementaciones',
-            'alt' => 'Montaje de Letreros en Altura',
+            'alt' => 'Montaje con grúa de un letrero en la fachada de un edificio',
         ],
         [
-            'slug' => 'implementacion-de-pasillo',
-            'titulo' => 'Implementación de Pasillo',
-            'detalle' => 'Góndolas, cenefas y stop-stands',
-            'etiqueta' => 'Retail 360°',
+            'slug' => 'entel-modulo-promocional',
+            'titulo' => 'Entel - Módulo promocional',
+            'detalle' => 'Módulo para venta de tarjetas y chips',
+            'categoria' => 'activaciones',
+            'alt' => 'Módulo promocional de Entel para la venta de tarjetas y chips',
+        ],
+        [
+            'slug' => 'pulpin-letrero-tienda',
+            'titulo' => 'Pulpin - Letrero de tienda',
+            'detalle' => 'Letrero publicitario sobre fachada',
+            'categoria' => 'fachadas',
+            'alt' => 'Letrero publicitario de Pulpin sobre la fachada de una tienda',
+        ],
+        [
+            'slug' => 'dismac-implementacion-tienda',
+            'titulo' => 'Dismac - Implementación en tienda',
+            'detalle' => 'Instalación de gráficas en punto de venta',
             'categoria' => 'implementaciones',
-            'alt' => 'Pasillo completo de supermercado',
+            'alt' => 'Técnico de XtraPubli instalando gráficas en una tienda Dismac',
+        ],
+        [
+            'slug' => 'plenitud-letrero-toldo',
+            'titulo' => 'Plenitud - Letrero y toldo',
+            'detalle' => 'Señalización de tienda de barrio',
+            'categoria' => 'fachadas',
+            'alt' => 'Letrero y toldo de Plenitud sobre una tienda de barrio',
+        ],
+        [
+            'slug' => 'kris-toldo-almacen',
+            'titulo' => 'Kris - Toldo de almacén',
+            'detalle' => 'Toldo fijo con marca',
+            'categoria' => 'fachadas',
+            'alt' => 'Toldo de la marca Kris en la entrada de un almacén',
+        ],
+        [
+            'slug' => 'huggies-toldo-retractil',
+            'titulo' => 'Huggies - Toldo retráctil',
+            'detalle' => 'Toldo con marca para tienda',
+            'categoria' => 'fachadas',
+            'alt' => 'Toldo retráctil de Huggies instalado sobre una tienda',
+        ],
+        [
+            'slug' => 'kris-fachada-tienda',
+            'titulo' => 'Kris - Fachada de tienda',
+            'detalle' => 'Revestimiento gráfico de fachada',
+            'categoria' => 'fachadas',
+            'alt' => 'Fachada de tienda revestida con gráficas de Kris',
+        ],
+        [
+            'slug' => 'kotex-letrero-tienda',
+            'titulo' => 'Kotex - Letrero de tienda',
+            'detalle' => 'Letrero y toldo de marca',
+            'categoria' => 'fachadas',
+            'alt' => 'Letrero de Kotex sobre un puesto comercial',
+        ],
+        [
+            'slug' => 'frussion-fachada',
+            'titulo' => 'Frussion - Fachada de tienda',
+            'detalle' => 'Fachada intervenida con la marca',
+            'categoria' => 'fachadas',
+            'alt' => 'Fachada de tienda decorada con gráficas de Frussion',
+        ],
+        [
+            'slug' => 'bon-o-bon-exhibidor',
+            'titulo' => 'Bon o Bon - Exhibidor',
+            'detalle' => 'Exhibidor de piso con estantes',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor amarillo de Bon o Bon cargado de golosinas',
+        ],
+        [
+            'slug' => 'delizia-kefir-exhibidor',
+            'titulo' => 'Delizia Kéfir - Exhibidor',
+            'detalle' => 'Exhibidor de piso para supermercado',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor blanco de Delizia Kéfir en un supermercado',
+        ],
+        [
+            'slug' => 'carozzi-exhibidor',
+            'titulo' => 'Carozzi - Exhibidor',
+            'detalle' => 'Exhibidor de piso con repisas',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor blanco de Carozzi con repisas en un supermercado',
+        ],
+        [
+            'slug' => 'lazzaroni-exhibidor',
+            'titulo' => 'Lazzaroni - Exhibidor',
+            'detalle' => 'Exhibidor de bandejas metálicas',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor amarillo de Lazzaroni con bandejas',
+        ],
+        [
+            'slug' => 'bristar-venado-bandejas',
+            'titulo' => 'Bristar y Venado - Exhibidores de bandejas',
+            'detalle' => 'Exhibidores circulares de tres niveles',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidores circulares, azul de Bristar y rojo de Venado',
+        ],
+        [
+            'slug' => 'carozzi-isla',
+            'titulo' => 'Carozzi - Isla promocional',
+            'detalle' => 'Isla de cuatro caras',
+            'categoria' => 'exhibidores',
+            'alt' => 'Isla promocional de Carozzi con repisas en sus cuatro caras',
+        ],
+        [
+            'slug' => 'princesa-exhibidor',
+            'titulo' => 'Princesa - Exhibidor',
+            'detalle' => 'Exhibidor de góndola',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor amarillo de la marca Princesa en un supermercado',
+        ],
+        [
+            'slug' => 'exhibidor-cuidado-personal',
+            'titulo' => 'Exhibidor de cuidado personal',
+            'detalle' => 'Exhibidor escalonado de piso',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor blanco escalonado para productos de cuidado personal',
+        ],
+        [
+            'slug' => 'kris-exhibidor',
+            'titulo' => 'Kris - Exhibidor',
+            'detalle' => 'Exhibidor de piso con repisas',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor azul y rojo de Kris con repisas',
+        ],
+        [
+            'slug' => 'vemassa-carrito-bebidas',
+            'titulo' => 'Vemassa - Carrito de bebidas',
+            'detalle' => 'Exhibidor móvil con ruedas',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor con ruedas de Vemassa para bebidas',
+        ],
+        [
+            'slug' => 'vemassa-exhibidor-bebidas',
+            'titulo' => 'Vemassa - Exhibidor de bebidas',
+            'detalle' => 'Exhibidor de piso para botellas',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor naranja de Vemassa cargado con botellas de bebida',
+        ],
+        [
+            'slug' => 'venado-exhibidores-alambre',
+            'titulo' => 'Venado - Exhibidores de alambre',
+            'detalle' => 'Exhibidores metálicos con marca',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidores rojos de alambre con la marca Venado',
+        ],
+        [
+            'slug' => 'bristar-canastos',
+            'titulo' => 'Bristar - Canastos de alambre',
+            'detalle' => 'Canastos promocionales con base',
+            'categoria' => 'exhibidores',
+            'alt' => 'Canastos de alambre azules con la marca Bristar',
+        ],
+        [
+            'slug' => 'bristar-pulpin-exhibidores',
+            'titulo' => 'Bristar y Pulpin - Exhibidores',
+            'detalle' => 'Exhibidores de alambre y repisas',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidores de alambre, azules de Bristar y verde de Pulpin',
+        ],
+        [
+            'slug' => 'nub-cilindro',
+            'titulo' => 'NUB - Cilindro exhibidor',
+            'detalle' => 'Exhibidor cilíndrico impreso',
+            'categoria' => 'exhibidores',
+            'alt' => 'Cilindro exhibidor rosado con la marca NUB',
+        ],
+        [
+            'slug' => 'marcas-que-bolivia-ama',
+            'titulo' => 'Las marcas que Bolivia ama - Exhibidor',
+            'detalle' => 'Exhibidor escalonado de cajas',
+            'categoria' => 'exhibidores',
+            'alt' => 'Exhibidor rojo escalonado con las marcas Bristar, Pulpin y Kris',
+        ],
+        [
+            'slug' => 'finilager-stand-feria',
+            'titulo' => 'Finilager - Stand de feria',
+            'detalle' => 'Stand para exposición',
+            'categoria' => 'activaciones',
+            'alt' => 'Stand de Finilager armado en una feria',
+        ],
+        [
+            'slug' => 'mostrador-tematico',
+            'titulo' => 'Mostrador temático',
+            'detalle' => 'Mueble a medida para punto de venta',
+            'categoria' => 'exhibidores',
+            'alt' => 'Mostrador azul a rayas con un borde blanco en forma de gotas',
+        ],
+        [
+            'slug' => 'habladores-heladeria',
+            'titulo' => 'Habladores para heladería',
+            'detalle' => 'Piezas recortadas con los sabores',
+            'categoria' => 'pop',
+            'alt' => 'Habladores recortados con los sabores de helado vainilla, chirimoya y cassatta',
+        ],
+        [
+            'slug' => 'delizia-letrero-edificio',
+            'titulo' => 'Delizia - Letrero en edificio',
+            'detalle' => 'Letrero corpóreo en altura',
+            'categoria' => 'fachadas',
+            'alt' => 'Letrero corpóreo de Delizia en lo alto de un edificio de vidrio',
+        ],
+        [
+            'slug' => 'implementacion-supermercado',
+            'titulo' => 'Implementación de supermercado',
+            'detalle' => 'Mobiliario y señalética de sala de ventas',
+            'categoria' => 'implementaciones',
+            'alt' => 'Sala de supermercado con góndolas y señalética colgante instaladas',
         ],
     ],
 

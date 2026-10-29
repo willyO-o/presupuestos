@@ -1,69 +1,73 @@
 {{--
-    Cierre de conversión. Va en las dos páginas públicas: quien llega por la
-    portada y quien aterriza directo en la galería tienen que terminar el
-    scroll con el mismo par de botones.
---}}
-@php
-    $empresa = config('sitio.empresa');
-@endphp
+    Cierre de conversión, igual al de xtrapubli.com: foto oscurecida de fondo,
+    el botón verde de WhatsApp y el QR "Escríbenos / Scaneame" del original.
 
-<section id="contacto" class="relative overflow-hidden bg-marca-noche px-4 py-16 text-white sm:py-20">
-    {{-- Va como <img> y no como background-image de CSS: así se puede diferir
-         su carga y el navegador la encuentra en el preload scanner. --}}
+    Va en la portada, la galería y el cotizador: quien llega por cualquiera de
+    ellas termina el scroll con el mismo contacto. Lleva el ancla #contacto a
+    la que apunta "Contáctanos" del menú.
+--}}
+<section id="contacto" class="relative overflow-hidden bg-black pb-[55px] pt-10 text-white">
+    {{-- Va como <img> y no como background-image: así se difiere su carga. --}}
     <img
-        src="{{ asset('img/publico/fondo-contacto.jpg') }}"
+        src="{{ asset('img/publico/sitio/contacto-fondo.jpg') }}"
         alt=""
-        width="1408"
-        height="768"
+        width="1920"
+        height="1080"
         loading="lazy"
         decoding="async"
         aria-hidden="true"
-        class="absolute inset-0 h-full w-full object-cover opacity-20"
+        class="absolute inset-0 h-full w-full object-cover opacity-30"
     >
-    <div class="trama-plano pointer-events-none absolute inset-0 opacity-20" aria-hidden="true"></div>
-    <div class="absolute inset-0 bg-gradient-to-t from-marca-noche via-marca-noche/85 to-marca-noche" aria-hidden="true"></div>
 
-    <div class="relative z-10 mx-auto max-w-3xl text-center">
-        <h2 class="mb-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
+    <div class="relative mx-auto max-w-sitio px-4">
+        <h2 class="mx-auto max-w-[854px] px-1.5 pb-2.5 pt-6 text-center font-texto text-[32px] font-bold leading-[1.3] sm:pt-[67px] sm:text-[40px]">
             ¿Listo para ejecutar tu próxima campaña?
         </h2>
-        <p class="mb-2 text-sm font-medium text-slate-300">
-            Trabajemos juntos para que tu marca tenga impacto real en el punto de venta.
-        </p>
-        <p class="mb-8 text-sm font-light text-slate-400">
-            Fabricación e instalación a nivel nacional, con garantía técnica asegurada.
-        </p>
 
-        <div class="mx-auto max-w-md rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md sm:p-8">
-            <p class="mb-4 text-xs font-semibold uppercase tracking-widest text-marca-celeste">
-                Asesoría y cotizaciones
+        <div class="mx-auto mt-[15px] flex w-[96%] flex-col items-center border-2 border-black/70 px-1.5 py-[25px] text-center font-texto shadow-[0_0_8px_rgba(255,255,255,0.06)]">
+            <p class="text-xl leading-[1.3] sm:text-[21px]">
+                Trabajemos juntos para que tu marca tenga impacto real en el punto de venta.
+            </p>
+            <p class="mt-[25px] text-xl leading-[1.3] sm:text-[21px]">
+                Contáctanos para desarrollar tu próxima implementación.
             </p>
 
-            <div class="flex flex-col gap-3">
-                <x-publico.enlace-whatsapp
-                    mensaje="Hola XtraPubli, quiero cotizar un proyecto."
-                    class="flex w-full items-center justify-center gap-2 rounded-xl bg-marca-whatsapp px-4 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-marca-whatsapp-oscuro"
-                >
-                    <x-publico.icono nombre="whatsapp" class="h-5 w-5" />
-                    Escribir por WhatsApp
-                </x-publico.enlace-whatsapp>
+            <x-publico.enlace-whatsapp
+                mensaje="Hola XtraPubli, deseo solicitar una cotización."
+                class="sitio-boton-cta mt-5"
+            >
+                <span class="inline-flex items-center gap-1.5 text-xl sm:text-[22px]">
+                    <x-publico.icono nombre="whatsapp" class="h-6 w-6" />
+                    Solicitar Cotización
+                </span>
+                <span class="sitio-boton-cta-pie">o una visita a su oficina.</span>
+            </x-publico.enlace-whatsapp>
 
-                <a
-                    href="mailto:{{ $empresa['email'] }}?subject={{ rawurlencode('Solicitud de cotización') }}"
-                    class="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            <x-publico.enlace-whatsapp
+                mensaje="Hola XtraPubli, deseo solicitar una cotización."
+                class="mt-3 block"
+                aria-label="Escríbenos por WhatsApp (código QR)"
+            >
+                <img
+                    src="{{ asset('img/publico/sitio/qr-whatsapp.svg') }}"
+                    alt="Código QR para escribirnos por WhatsApp"
+                    width="290"
+                    height="290"
+                    loading="lazy"
+                    decoding="async"
+                    class="h-auto w-[250px]"
                 >
-                    <x-publico.icono nombre="correo" class="h-5 w-5 text-marca-celeste" />
-                    Enviar un correo
-                </a>
+            </x-publico.enlace-whatsapp>
 
-                <a
-                    href="tel:{{ $empresa['telefono'] }}"
-                    class="flex w-full items-center justify-center gap-2 px-4 py-2 text-xs font-medium text-slate-300 transition-colors hover:text-white"
-                >
-                    <x-publico.icono nombre="telefono" class="h-4 w-4" />
-                    O llámanos: {{ $empresa['telefono_visible'] }}
-                </a>
-            </div>
+            <img
+                src="{{ asset('img/publico/sitio/estrellas.png') }}"
+                alt="Cinco estrellas"
+                width="300"
+                height="58"
+                loading="lazy"
+                decoding="async"
+                class="mt-1 h-auto w-[100px]"
+            >
         </div>
     </div>
 </section>

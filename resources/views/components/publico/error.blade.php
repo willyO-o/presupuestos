@@ -112,7 +112,11 @@
             <p class="mt-8 text-xs text-slate-400">
                 ¿Buscabas algo puntual?
                 <a href="{{ route('cotizador') }}" class="font-semibold text-marca-azul hover:underline">Cotiza en línea</a>
-                o escríbenos por WhatsApp con el botón de abajo.
+                o
+                <x-publico.enlace-whatsapp
+                    mensaje="Hola XtraPubli, deseo solicitar una cotización."
+                    class="font-semibold text-marca-azul hover:underline"
+                >escríbenos por WhatsApp</x-publico.enlace-whatsapp>.
             </p>
         </div>
     </section>

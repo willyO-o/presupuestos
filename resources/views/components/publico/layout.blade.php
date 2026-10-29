@@ -25,7 +25,7 @@
     'titulo',
     'descripcion',
     'canonical' => null,
-    'imagen' => 'img/publico/banner-ejecucion.jpg',
+    'imagen' => 'img/publico/sitio/compartir.jpg',
     'datos' => null,
     'indexable' => true,
     'conJs' => false,
@@ -77,10 +77,11 @@
     <link rel="icon" type="image/png" href="{{ asset('img/logo/logo-mini.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('img/logo/logo-mini.png') }}">
 
-    {{-- Bunny Fonts en vez de Google Fonts: mismo catálogo, sin cookies ni
+    {{-- Las fuentes de xtrapubli.com (Montserrat y Barlow), servidas por
+         Bunny Fonts en vez de Google Fonts: mismo catálogo, sin cookies ni
          tracking (y ya es lo que usa el panel en app.blade.php). --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=montserrat:600,700,800|roboto:300,400,500,700&display=swap">
+    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=montserrat:400,600,700,700i,800|barlow:400,500,600,700&display=swap">
 
     {{-- Una sola llamada a @vite con las entradas que la página necesita: dos
          llamadas separadas inyectan el cliente de HMR dos veces en desarrollo. --}}
@@ -102,6 +103,5 @@
     </main>
 
     <x-publico.pie />
-    <x-publico.whatsapp-flotante />
 </body>
 </html>

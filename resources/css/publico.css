@@ -19,9 +19,6 @@
 @layer base {
     html {
         scroll-behavior: smooth;
-        /* El header es sticky (h-16): sin esto los anclajes #que-hacemos
-           dejan el título escondido detrás de la barra. */
-        scroll-padding-top: 4.5rem;
     }
 
     /* Respeta a quien pidió menos animación en su sistema operativo. */
@@ -68,24 +65,6 @@
             transparent 1px
         );
         background-size: 16px 16px;
-    }
-
-    /* Retícula tipo plano de taller para el bloque de contacto. */
-    .trama-plano {
-        background-image: repeating-linear-gradient(
-                0deg,
-                rgba(111, 203, 236, 0.25),
-                rgba(111, 203, 236, 0.25) 1px,
-                transparent 1px,
-                transparent 24px
-            ),
-            repeating-linear-gradient(
-                90deg,
-                rgba(111, 203, 236, 0.25),
-                rgba(111, 203, 236, 0.25) 1px,
-                transparent 1px,
-                transparent 24px
-            );
     }
 
     /* El menú móvil es un <details>: Safari y iOS pintan su propio triangulito
@@ -135,6 +114,116 @@
             rgba(28, 127, 196, 0.55) 0 4px,
             transparent 4px 8px
         );
+    }
+
+    /* ======================================================================
+       Réplica de xtrapubli.com (portada, galería, cabecera y pie).
+       Medidas, sombras y animaciones copiadas del CSS del sitio original.
+       ====================================================================== */
+
+    /* Tarjeta redondeada con la sombra dura del original (2px 2px 2px). */
+    .sitio-tarjeta {
+        @apply flex flex-col items-center justify-center rounded-[30px] px-[30px] py-2.5 text-center;
+        box-shadow: 2px 2px 2px 0 theme('colors.sitio.sombra');
+    }
+
+    .sitio-tarjeta-titulo {
+        @apply py-2.5 font-titulo text-xl font-bold leading-[1.3] text-black;
+    }
+
+    .sitio-tarjeta-texto {
+        @apply py-2.5 font-texto text-base leading-[1.3] text-black;
+    }
+
+    /* Raya corta centrada bajo los títulos de sección (10 % del ancho). */
+    .sitio-divisor {
+        @apply mx-auto block h-[5px] w-[113px] max-w-[30%];
+    }
+
+    /* Botón verde de WhatsApp: texto con sombra gris y sombra negra dura. */
+    .sitio-boton-cta {
+        @apply inline-flex flex-col items-center rounded-[30px] bg-sitio-verde px-[35px] py-4 text-center font-titulo font-bold leading-[1.3] text-white;
+        box-shadow: 2px 2px 2px 0 #000;
+        text-shadow: 2px 2px 2px theme('colors.sitio.sombra');
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* "Elevate" del original al pasar el mouse. */
+    .sitio-boton-cta:hover {
+        transform: translateY(-4px);
+        box-shadow: 2px 8px 10px 0 rgba(0, 0, 0, 0.45);
+    }
+
+    .sitio-boton-cta-pie {
+        @apply font-texto text-[15px] font-normal;
+        text-shadow: none;
+    }
+
+    /* Botón naranja "Ver más proyectos": se mece sin parar, como en el original. */
+    .sitio-boton-galeria {
+        @apply flex w-full flex-col items-center rounded-[25px] border border-white bg-sitio-naranja px-8 py-4 text-center font-texto font-semibold leading-[1.3] text-white;
+        box-shadow: 2px 2px 2px 0 theme('colors.sitio.sombra');
+        animation: sitio-mecerse 2s ease-out infinite;
+    }
+
+    @keyframes sitio-mecerse {
+        0%,
+        25%,
+        100% {
+            transform: rotate(0);
+        }
+
+        50% {
+            transform: rotate(2deg);
+        }
+
+        75% {
+            transform: rotate(-2deg);
+        }
+    }
+
+    /* Banner con fondo fijo (el `background-attachment: fixed` del original).
+       Se hace con una <img> fija recortada por `clip-path` en vez de un
+       background-image: así la imagen se carga en diferido y no hace falta un
+       style en línea. En pantallas táctiles `fixed` hace saltar el scroll, así
+       que ahí la imagen se desplaza con la sección. */
+    .sitio-parallax {
+        @apply relative overflow-hidden;
+        clip-path: inset(0);
+    }
+
+    .sitio-parallax-imagen {
+        @apply absolute inset-0 h-full w-full object-cover;
+    }
+
+    @media (min-width: 768px) and (hover: hover) {
+        .sitio-parallax-imagen {
+            position: fixed;
+            height: 100vh;
+        }
+    }
+
+    /* Galería: columnas tipo mampostería con las fotos en su proporción. */
+    .sitio-galeria {
+        columns: 2;
+        column-gap: 0.875rem;
+    }
+
+    @media (min-width: 640px) {
+        .sitio-galeria {
+            columns: 3;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .sitio-galeria {
+            columns: 5;
+        }
+    }
+
+    .sitio-galeria-item {
+        @apply relative mb-3.5 block overflow-hidden rounded-lg bg-slate-100;
+        break-inside: avoid;
     }
 
     /* Enlace que solo aparece al tabular: primer stop para lectores de pantalla. */
