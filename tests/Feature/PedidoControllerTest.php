@@ -345,6 +345,46 @@ test('measurements cannot be adjusted on a delivered pedido', function () {
     expect($detalle->fresh()->descripcion)->not->toBe('No debería guardarse');
 });
 
+test('the pedido page shows what was quoted for the items adjusted in production', function () {
+    // Pedido del usuario (2026-10-29): ajustó medidas y no veía dónde quedaba el cambio.
+    $pedido = Pedido::factory()->create();
+    $origen = CotizacionDetalle::factory()->create(['descripcion' => 'Isla promocional', 'ancho' => 2.50, 'alto' => 1.90, 'cantidad' => 4]);
+    $ajustado = PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'cotizacion_detalle_id' => $origen->id,
+        'descripcion' => 'Isla promocional',
+        'ancho' => 2.50,
+        'alto' => 1.90,
+        'cantidad' => 4,
+    ]);
+    $intacto = CotizacionDetalle::factory()->create(['descripcion' => 'Roll-up', 'ancho' => 0.85, 'alto' => 2.00, 'cantidad' => 2]);
+    PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'cotizacion_detalle_id' => $intacto->id,
+        'descripcion' => 'Roll-up',
+        'ancho' => 0.85,
+        'alto' => 2.00,
+        'cantidad' => 2,
+    ]);
+    $usuario = userWithPedidoGlobal('pedidos.ver', 'pedidos.actualizar_estado');
+
+    // Recién convertido, nada difiere de la cotización.
+    $this->actingAs($usuario)->get(route('pedidos.show', $pedido))
+        ->assertInertia(fn ($page) => $page->where('ajustes', []));
+
+    $this->actingAs($usuario)->put(route('pedidos.detalle.medidas', [$pedido, $ajustado]), [
+        'descripcion' => 'Isla promocional',
+        'ancho' => 2.80,
+        'alto' => 1.90,
+        'cantidad' => 4,
+    ])->assertSessionHasNoErrors();
+
+    $this->actingAs($usuario)->get(route('pedidos.show', $pedido))
+        ->assertInertia(fn ($page) => $page
+            ->has('ajustes', 1)
+            ->where("ajustes.{$ajustado->id}", ['descripcion' => 'Isla promocional', 'ancho' => 2.5, 'alto' => 1.9, 'cantidad' => 4]));
+});
+
 test('measurements of a detalle from another pedido are rejected', function () {
     $pedido = Pedido::factory()->create();
     $ajeno = PedidoDetalle::factory()->create();

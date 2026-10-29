@@ -89,7 +89,8 @@ class GeneradorPdf
         $pedido->loadMissing([
             'cotizacion.cliente',
             'cotizacion.empleado',
-            'detalles',
+            // Para marcar las líneas ajustadas en producción con lo cotizado.
+            'detalles.cotizacionDetalle',
         ]);
 
         return $this->entregar(

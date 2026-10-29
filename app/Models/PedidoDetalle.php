@@ -75,4 +75,35 @@ class PedidoDetalle extends Model
     {
         return $this->hasMany(PedidoDetalleMaterial::class);
     }
+
+    /**
+     * Lo que dice la cotización para este ítem, si producción lo ajustó
+     * ("Ajustar medidas reales"): descripción, medidas o cantidad distintas de
+     * la línea de origen. `null` si no hubo ajuste o la línea ya no existe.
+     *
+     * El ítem guarda lo que se fabrica; la cotización, lo que se prometió
+     * (ver `.ai/rules/controllers.md`). La pantalla del pedido y la orden de
+     * trabajo muestran las dos cosas con esto.
+     *
+     * @return array{descripcion: string, ancho: float|null, alto: float|null, cantidad: float}|null
+     */
+    public function cotizadoSiSeAjusto(): ?array
+    {
+        $origen = $this->cotizacionDetalle;
+
+        if ($origen === null) {
+            return null;
+        }
+
+        $comoDato = fn (Model $linea): array => [
+            'descripcion' => (string) $linea->descripcion,
+            'ancho' => $linea->ancho !== null ? (float) $linea->ancho : null,
+            'alto' => $linea->alto !== null ? (float) $linea->alto : null,
+            'cantidad' => (float) $linea->cantidad,
+        ];
+
+        $cotizado = $comoDato($origen);
+
+        return $cotizado === $comoDato($this) ? null : $cotizado;
+    }
 }

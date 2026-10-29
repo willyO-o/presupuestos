@@ -18,6 +18,7 @@ use App\Services\Reporte\PeriodoReporte;
 use App\Services\Reporte\PreguntasNegocioService;
 use App\Services\Reporte\PresupuestosRentabilidadService;
 use App\Services\Reporte\ResumenDashboardService;
+use App\Services\Reporte\ResumenSemanalService;
 use App\Services\Reporte\SimuladorDecisionesService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -116,13 +117,15 @@ class ReporteController extends Controller
     public function bi(Request $request, InteligenciaNegociosService $bi): Response
     {
         return $this->paginaBi($request, 'Reportes/Bi', 'Demanda y ventas',
-            fn (PeriodoReporte $periodo) => $bi->datos($request->user(), $periodo));
+            fn (PeriodoReporte $periodo) => $bi->datos($request->user(), $periodo),
+            'Demanda y ventas · Pedidos, productos y clientes');
     }
 
     public function biCostos(Request $request, CostosMaterialesService $costos): Response
     {
         return $this->paginaBi($request, 'Reportes/BiCostos', 'Costos y materiales',
-            fn (PeriodoReporte $periodo) => $costos->datos($request->user(), $periodo));
+            fn (PeriodoReporte $periodo) => $costos->datos($request->user(), $periodo),
+            'Costos y materiales · Precios, consumo y efecto de los aumentos');
     }
 
     public function biPreguntas(Request $request, PreguntasNegocioService $preguntas): Response
@@ -134,7 +137,8 @@ class ReporteController extends Controller
     public function biRentabilidad(Request $request, PresupuestosRentabilidadService $presupuestos): Response
     {
         return $this->paginaBi($request, 'Reportes/BiRentabilidad', 'Presupuestos y rentabilidad',
-            fn (PeriodoReporte $periodo) => $presupuestos->datos($request->user(), $periodo));
+            fn (PeriodoReporte $periodo) => $presupuestos->datos($request->user(), $periodo),
+            'Presupuestos y rentabilidad · Cotizaciones, aprobación y resultado calculado');
     }
 
     public function biAlertas(Request $request, AlertasNegocioService $alertas): Response
@@ -143,14 +147,18 @@ class ReporteController extends Controller
             fn (PeriodoReporte $periodo) => [
                 ...$alertas->datos($request->user(), $periodo),
                 'anomalias' => $this->anomalias($request),
-            ]);
+            ],
+            'Alertas · Qué requiere revisión y por qué');
     }
 
     /**
      * Resumen semanal redactado (pestaña "Resumen"). No usa el filtro de
      * fechas: cada resumen ya es una semana cerrada, y se elige del historial.
+     *
+     * `ultima_semana` (lunes de la última semana cerrada) le dice a la
+     * pantalla si el resumen abierto es el vigente o uno histórico.
      */
-    public function biResumen(Request $request, ServicioIa $ia): Response
+    public function biResumen(Request $request, ServicioIa $ia, ResumenSemanalService $resumenes): Response
     {
         $usuario = $request->user();
 
@@ -174,11 +182,13 @@ class ReporteController extends Controller
                     'titular' => $r->contenido['titular'] ?? '',
                     'origen' => $r->origen,
                 ])->values(),
+                'ultima_semana' => $resumenes->ultimaSemanaCompleta()->toDateString(),
                 'puede_generar' => $usuario->can('reportes.asistente'),
                 'ia' => $ia->estado('resumen_semanal'),
             ],
             'filters' => [],
             'pageTitle' => 'Inteligencia de negocios',
+            'pageSubtitle' => 'Resumen semanal · Qué cambió y qué conviene revisar',
             'breadcrumbs' => ['Reportes', 'Inteligencia de negocios', 'Resumen semanal'],
         ]);
     }
@@ -270,7 +280,8 @@ class ReporteController extends Controller
     public function biSimulador(Request $request, SimuladorDecisionesService $simulador): Response
     {
         return $this->paginaBi($request, 'Reportes/BiSimulador', 'Simulador de decisiones',
-            fn (PeriodoReporte $periodo) => $simulador->datos($request->user(), $periodo));
+            fn (PeriodoReporte $periodo) => $simulador->datos($request->user(), $periodo),
+            'Simulador · Pruebe cambios antes de decidir');
     }
 
     /**
@@ -279,7 +290,11 @@ class ReporteController extends Controller
      *
      * @param  callable(PeriodoReporte): array<string, mixed>  $datos
      */
-    private function paginaBi(Request $request, string $componente, string $seccion, callable $datos): Response
+    /**
+     * Página de una pestaña del BI con el filtro de fechas. `$subtitulo`
+     * reemplaza la ruta de navegación bajo el título (qué responde la pestaña).
+     */
+    private function paginaBi(Request $request, string $componente, string $seccion, callable $datos, ?string $subtitulo = null): Response
     {
         $periodo = PeriodoReporte::desdeFiltros(
             $request->query('desde'),
@@ -291,6 +306,7 @@ class ReporteController extends Controller
             'datos' => $datos($periodo),
             'filters' => $request->only(['desde', 'hasta']),
             'pageTitle' => 'Inteligencia de negocios',
+            'pageSubtitle' => $subtitulo,
             'breadcrumbs' => ['Reportes', 'Inteligencia de negocios', $seccion],
         ]);
     }

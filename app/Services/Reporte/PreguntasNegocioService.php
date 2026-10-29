@@ -26,10 +26,11 @@ use Illuminate\Support\Facades\DB;
  *
  * Definiciones que se repiten:
  * - **Venta** = cotización APROBADA o CONVERTIDA.
- * - **Ganancia bruta** = ingreso neto (sin IVA, con el descuento prorrateado)
+ * - **Resultado bruto** = ingreso neto (sin IVA, con el descuento prorrateado)
  *   − costo ajustado de la hoja de costos, antes de impuestos; **margen** =
- *   ganancia ÷ ingreso. Las líneas sin hoja (costo 0, anteriores al motor de
- *   margen) no entran: su margen sería 100 %.
+ *   resultado ÷ ingreso. Las líneas sin hoja (costo 0, anteriores al motor de
+ *   margen) no entran: su margen sería 100 %. En el código sigue llamándose
+ *   `ganancia`; en los textos, "resultado bruto" (no es la ganancia neta).
  * - **Costo real** = material registrado como consumo en el pedido. La mano
  *   de obra y los demás insumos son los presupuestados: no se registran
  *   horas reales trabajadas.
@@ -51,6 +52,36 @@ class PreguntasNegocioService
     ];
 
     private const UNIDADES = ['M2' => 'm²', 'METRO_LINEAL' => 'm', 'UNIDAD' => 'unidad'];
+
+    /**
+     * Qué representa el monto de una acción en "¿Qué acciones conviene revisar
+     * primero?", y su tipo: un costo que ya ocurrió (`observado`), ventas o
+     * descuentos en riesgo (`riesgo`), una estimación (`estimado`) o una
+     * diferencia frente a una referencia (`diferencia`). La pantalla colorea
+     * por tipo; así no se leen como si fueran la misma clase de dinero.
+     * El tercer valor es el frente de trabajo, con el que la pregunta 11
+     * arma su recomendación de por dónde empezar.
+     */
+    private const MONTOS = [
+        'costo_adicional' => ['Costo adicional calculado', 'observado', 'materiales'],
+        'exceso_material' => ['Exceso de material registrado', 'observado', 'materiales'],
+        'saldo_antiguo' => ['Saldo pendiente de cobro', 'observado', 'cobros'],
+        'margen_bajo' => ['Ventas con margen bajo', 'riesgo', 'comercial'],
+        'sobre_tope' => ['Descuentos por encima del tope', 'riesgo', 'comercial'],
+        'ahorro' => ['Ahorro estimado', 'estimado', 'materiales'],
+        'mejora' => ['Mejora estimada del resultado', 'estimado', 'precios'],
+        'bajo_sugerido' => ['Diferencia frente al sugerido', 'diferencia', 'comercial'],
+        'desvio_presupuesto' => ['Diferencia frente al presupuesto', 'diferencia', 'hojas'],
+    ];
+
+    /** Por dónde empezar, según el frente de las acciones de la pregunta 11. */
+    private const FRENTES = [
+        'materiales' => 'contrastar los precios y consumos de los materiales de mayor impacto',
+        'comercial' => 'revisar las autorizaciones comerciales',
+        'hojas' => 'actualizar las hojas de costos cuando corresponda',
+        'precios' => 'evaluar los precios con margen por debajo del promedio',
+        'cobros' => 'dar seguimiento a los cobros más antiguos',
+    ];
 
     public function __construct(private readonly CostosMaterialesService $costos) {}
 
@@ -123,29 +154,32 @@ class PreguntasNegocioService
             ->values();
 
         $base = sprintf(
-            'Con %s trabajos entregados que tienen consumo registrado y hoja de costos (%s de los %s entregados en el periodo).',
+            '%s de %s entregados (%s) tienen consumo registrado y hoja de costos. Importes por unidad, en Bs.',
             $this->numero($trabajos->count(), 0),
+            $this->cantidad($entregados, 'trabajo', 'trabajos'),
             $this->pct($entregados > 0 ? $trabajos->count() / $entregados * 100 : 0),
-            $this->numero($entregados, 0),
         );
         $aviso = 'La mano de obra es la presupuestada en la hoja de costos: no se registran horas reales trabajadas. No incluye el recargo por complejidad del tipo de proyecto.';
+        $interpretacion = 'No es un costo totalmente real: la mano de obra es presupuestada y no se registran horas reales. No incluye el recargo por complejidad del proyecto. *Obra y otros provienen de la hoja de costos.';
 
         if ($porProducto->isEmpty()) {
-            return $this->pregunta('costo_producto', 'costos', 'No hay trabajos entregados con consumo de material registrado en el periodo.', base: $base, aviso: $aviso);
+            return $this->pregunta('costo_producto', 'costos', 'No hay trabajos entregados con consumo de material registrado en el periodo.', base: $base, aviso: $aviso, interpretacion: $interpretacion);
         }
 
         $primero = $porProducto->first();
         $respuesta = sprintf(
-            'Producir 1 %s de %s cuesta %s: %s de material real y %s de mano de obra y otros insumos.',
-            $primero['unidad'],
+            'Para %s, el costo calculado es %s por %s: %s de material registrado y %s de mano de obra y otros presupuestados.',
             $primero['nombre'],
             $this->bs($primero['total'], 2),
+            $primero['unidad'],
             $this->bs($primero['material_real'], 2),
             $this->bs($primero['otros'], 2),
         );
 
         if ($primero['desvio'] !== null && abs($primero['desvio']) >= 1) {
-            $respuesta .= sprintf(' El costo del material varió %s respecto a lo presupuestado.', RedaccionPronostico::variacion($primero['desvio']));
+            $respuesta .= $primero['desvio'] > 0
+                ? sprintf(' El material supera en %s lo presupuestado.', $this->pct($primero['desvio']))
+                : sprintf(' El material queda %s por debajo de lo presupuestado.', $this->pct(abs($primero['desvio'])));
         }
 
         return $this->pregunta(
@@ -154,28 +188,37 @@ class PreguntasNegocioService
             $respuesta,
             columnas: [
                 ['titulo' => 'Producto', 'formato' => 'texto'],
-                ['titulo' => 'Trabajos', 'formato' => 'cantidad'],
-                ['titulo' => 'Por', 'formato' => 'texto'],
-                // Cortos: son 7 columnas y en el PDF no se parten.
-                ['titulo' => 'Mat. real', 'formato' => 'bs_exacto'],
-                ['titulo' => 'Mat. presup.', 'formato' => 'bs_exacto'],
-                ['titulo' => 'Obra y otros', 'formato' => 'bs_exacto'],
+                ['titulo' => 'Trabajos / unidad', 'formato' => 'texto'],
+                ['titulo' => 'Material registrado', 'formato' => 'bs_exacto'],
+                ['titulo' => 'Material previsto', 'formato' => 'bs_exacto'],
+                ['titulo' => 'Obra y otros*', 'formato' => 'bs_exacto'],
                 ['titulo' => 'Total', 'formato' => 'bs_exacto'],
             ],
             filas: $porProducto->take(self::TOP)->map(fn (array $p): array => [
-                $p['nombre'], $p['trabajos'], $p['unidad'], $p['material_real'], $p['material_presupuestado'], $p['otros'], $p['total'],
+                $p['nombre'], $this->numero($p['trabajos'], 0).' / '.$p['unidad'], $p['material_real'], $p['material_presupuestado'], $p['otros'], $p['total'],
             ])->all(),
             acciones: [
-                ['texto' => sprintf('Tomar el costo real como precio mínimo al cotizar: cobrar menos de %s por %s de %s implica vender a pérdida.', $this->bs($primero['total'], 2), $primero['unidad'], $primero['nombre']), 'impacto' => null],
+                $this->accion('Usar este costo como referencia al cotizar. Revisar mano de obra, otros costos y margen antes de fijar el precio de venta.'),
             ],
             base: $base,
             aviso: $aviso,
+            interpretacion: $interpretacion,
+            // Para la cuenta "material + obra y otros = costo" de la pantalla.
+            cifras: [
+                'producto' => $primero['nombre'],
+                'unidad' => $primero['unidad'],
+                'material' => $primero['material_real'],
+                'previsto' => $primero['material_presupuestado'],
+                'obra' => $primero['otros'],
+                'total' => $primero['total'],
+            ],
         );
     }
 
     /**
-     * 2. Materiales que subieron (variación y lo que costó la subida según lo
-     * consumido), el índice de costo y la tarifa de mano de obra presupuestada.
+     * 2. Materiales que subieron de precio y el costo adicional que generó la
+     * subida según lo consumido. Después, en una frase cada uno, la tendencia
+     * de los precios de materiales y la hora de mano de obra presupuestada.
      *
      * @param  array<string, mixed>  $costos
      * @return array<string, mixed>
@@ -188,43 +231,65 @@ class PreguntasNegocioService
             ->sortByDesc(fn (array $m): array => [$m['impacto'], $m['variacion_pct']])
             ->values();
         $manoDeObra = $this->tarifaManoDeObra($usuario, $periodo);
-        $base = sprintf('Precios de %s materiales con historial en el periodo; el impacto es el aumento de precio × la cantidad consumida.', $this->numero($costos['indice']['materiales'] ?? count($impacto['materiales']), 0));
-
-        if ($suben->isEmpty() && $manoDeObra === null) {
-            return $this->pregunta('costos_suben', 'costos', sprintf(
-                'Ningún material subió de precio en el periodo%s.',
-                $impacto['bajan'] > 0 ? " y {$impacto['bajan']} bajaron" : '',
-            ), base: $base);
-        }
+        $base = sprintf(
+            'Historial de precios de %s.%s Importes en Bs.',
+            $this->cantidad($costos['indice']['materiales'] ?? count($impacto['materiales']), 'material', 'materiales'),
+            $suben->count() > self::TOP ? sprintf(' Se muestran los %d de mayor impacto; el total incluye los %s.', self::TOP, $this->numero($suben->count(), 0)) : '',
+        );
+        $bajaron = match ((int) $impacto['bajan']) {
+            0 => ' y ninguno bajó',
+            1 => ' y 1 bajó',
+            default => " y {$impacto['bajan']} bajaron",
+        };
 
         $frases = [];
         $acciones = [];
+        $cifras = [];
+        $interpretacion = ['El costo adicional se calcula como aumento del precio × cantidad consumida; no equivale a una pérdida neta ni a un ahorro garantizado.'];
 
-        if ($suben->isNotEmpty()) {
+        if ($suben->isEmpty()) {
+            $frases[] = sprintf('Ningún material subió de precio en el periodo%s.', $impacto['bajan'] > 0 ? $bajaron : '');
+        } else {
             $primero = $suben->first();
+            $total = (float) $suben->sum('impacto');
             $frases[] = sprintf(
-                '%s %s de precio%s. El de mayor impacto es %s (%s): %s de costo adicional según lo consumido; en total, %s.',
+                '%s %s de precio%s.',
                 $this->numero($impacto['suben'], 0),
-                $impacto['suben'] === 1 ? 'material subió' : 'materiales subieron',
-                $impacto['bajan'] > 0 ? " y {$impacto['bajan']} bajaron" : ' y ninguno bajó',
-                $primero['material'],
-                RedaccionPronostico::variacion($primero['variacion_pct']),
-                $this->bs($primero['impacto']),
-                $this->bs((float) $suben->sum('impacto')),
+                $impacto['suben'] === 1 ? 'material aumentó' : 'materiales aumentaron',
+                $bajaron,
             );
-            $acciones[] = [
-                'texto' => sprintf('Negociar el precio de %s o evaluar otro proveedor: subió %s y generó %s de costo adicional.', $primero['material'], $this->pct($primero['variacion_pct']), $this->bs($primero['impacto'])),
-                'impacto' => $primero['impacto'] > 0 ? (float) $primero['impacto'] : null,
+            $frases[] = $suben->count() === 1
+                ? sprintf('El costo adicional calculado es %s y corresponde a %s, con un aumento de %s.', $this->bs($total), $primero['material'], $this->pct($primero['variacion_pct']))
+                : sprintf(
+                    'El costo adicional calculado es %s. %s tiene el mayor impacto: %s, con un aumento de %s.',
+                    $this->bs($total),
+                    $primero['material'],
+                    $this->bs($primero['impacto']),
+                    $this->pct($primero['variacion_pct']),
+                );
+            $acciones[] = $this->accion(
+                sprintf('Negociar el precio de %s o comparar proveedores.', $primero['material']),
+                $primero['impacto'] > 0 ? (float) $primero['impacto'] : null,
+                sprintf('Negociar %s o evaluar proveedor', $primero['material']),
+                'costo_adicional',
+            );
+            // Para los indicadores de la pantalla y la portada del informe.
+            $cifras = [
+                'materiales' => (int) $impacto['suben'],
+                'costo_adicional' => round($total, 2),
+                'mayor_material' => $primero['material'],
+                'mayor_aumento' => (float) $primero['variacion_pct'],
+                'mayor_costo' => (float) $primero['impacto'],
             ];
         }
 
         $mensual = $costos['indice']['variacion_mensual'] ?? null;
         if ($mensual !== null && abs($mensual) >= 0.1) {
-            $frases[] = sprintf('El índice de costo de materiales %s %s por mes.', $mensual > 0 ? 'sube' : 'baja', $this->pct(abs($mensual)));
+            $interpretacion[] = sprintf('En promedio, el precio de los materiales %s %s por mes.', $mensual > 0 ? 'sube' : 'baja', $this->pct(abs($mensual)));
         }
 
         if ($manoDeObra !== null && abs($manoDeObra['variacion']) >= 0.5) {
-            $frases[] = sprintf(
+            $interpretacion[] = sprintf(
                 'La hora de mano de obra presupuestada pasó de %s a %s (%s).',
                 $this->bs($manoDeObra['antes'], 2),
                 $this->bs($manoDeObra['ahora'], 2),
@@ -233,18 +298,18 @@ class PreguntasNegocioService
         }
 
         if ($suben->count() > 1) {
-            $acciones[] = ['texto' => 'Revisar los precios de venta de los productos que más usan esos materiales (ver "¿Qué pasaría si sube el precio de la materia prima?").', 'impacto' => null];
+            $acciones[] = $this->accion('Revisar los precios de venta de los productos que más usan estos materiales.');
         }
 
         return $this->pregunta(
             'costos_suben',
             'costos',
-            implode(' ', $frases) ?: 'Ningún material subió de precio en el periodo.',
+            implode(' ', $frases),
             columnas: [
                 ['titulo' => 'Material', 'formato' => 'texto'],
-                ['titulo' => 'Precio antes', 'formato' => 'bs_exacto'],
-                ['titulo' => 'Precio ahora', 'formato' => 'bs_exacto'],
-                ['titulo' => 'Variación', 'formato' => 'variacion'],
+                ['titulo' => 'Precio anterior', 'formato' => 'bs_exacto'],
+                ['titulo' => 'Precio actual', 'formato' => 'bs_exacto'],
+                ['titulo' => 'Aumento', 'formato' => 'variacion'],
                 ['titulo' => 'Costo adicional', 'formato' => 'bs'],
             ],
             filas: $suben->take(self::TOP)->map(fn (array $m): array => [
@@ -252,6 +317,8 @@ class PreguntasNegocioService
             ])->all(),
             acciones: $acciones,
             base: $base,
+            interpretacion: implode(' ', $interpretacion),
+            cifras: $cifras,
         );
     }
 
@@ -307,13 +374,16 @@ class PreguntasNegocioService
     {
         $tolerancia = (float) config('bi.preguntas.tolerancia_desvio');
         $base = sprintf(
-            'Con %s trabajos entregados que tienen consumo registrado y hoja de costos. Un trabajo se considera excedido si gastó más de %s sobre lo presupuestado.',
-            $this->numero($trabajos->count(), 0),
+            '%s con consumo registrado y hoja de costos. Importes en Bs.',
+            $trabajos->count() === 1 ? '1 trabajo entregado' : $this->numero($trabajos->count(), 0).' trabajos entregados',
+        );
+        $interpretacion = sprintf(
+            'Solo se comparan materiales: es lo único que se registra como consumo real. "Excedido" significa más de %s sobre lo previsto. Los importes están redondeados.',
             $this->pct($tolerancia * 100, 0),
         );
 
         if ($trabajos->isEmpty()) {
-            return $this->pregunta('gasto_presupuesto', 'costos', 'No hay trabajos entregados con consumo y hoja de costos para comparar en el periodo.', base: $base);
+            return $this->pregunta('gasto_presupuesto', 'costos', 'No hay trabajos entregados con consumo y hoja de costos para comparar en el periodo.', base: $base, interpretacion: $interpretacion);
         }
 
         $presupuestado = fn (object $t): float => $t->hoja_material * $t->cantidad_cotizada;
@@ -342,31 +412,38 @@ class PreguntasNegocioService
             ->values();
 
         $respuesta = sprintf(
-            '%s. En los trabajos comparables se gastaron %s en material frente a %s presupuestados (%s); %s de %s trabajos excedieron el presupuesto.',
-            $desvio > $tolerancia * 100 ? 'Sí' : ($desvio < -$tolerancia * 100 ? 'No, se gastó menos' : 'En general no'),
+            '%s En trabajos comparables, el material registrado suma %s frente a %s previstos: %s. De %s, %s el umbral de exceso definido por el sistema.',
+            $desvio > $tolerancia * 100 ? 'Sí.' : ($desvio < -$tolerancia * 100 ? 'No, costó menos.' : 'En general no.'),
             $this->bs($totalReal),
             $this->bs($totalPresupuestado),
-            RedaccionPronostico::variacion($desvio),
-            $this->numero($pasados, 0),
-            $this->numero($trabajos->count(), 0),
+            abs($desvio) < 0.05 ? 'lo mismo' : sprintf('%s %s', $this->pct(abs($desvio)), $desvio > 0 ? 'más' : 'menos'),
+            $this->cantidad($trabajos->count(), 'trabajo', 'trabajos'),
+            match ($pasados) {
+                0 => 'ninguno superó',
+                1 => '1 superó',
+                default => $this->numero($pasados, 0).' superaron',
+            },
         );
 
         $acciones = [];
         $peorProducto = $porProducto->first(fn (array $p): bool => $p['diferencia'] > 0 && ($p['desvio'] ?? 0) > $tolerancia * 100);
         if ($peorProducto) {
-            $acciones[] = [
-                'texto' => sprintf('Revisar la hoja de costos de %s: consume %s más de material de lo presupuestado (%s adicionales).', $peorProducto['nombre'], $this->pct($peorProducto['desvio']), $this->bs($peorProducto['diferencia'])),
-                'impacto' => $peorProducto['diferencia'],
-            ];
+            $acciones[] = $this->accion(
+                sprintf('Revisar la hoja de costos de %s: %s adicionales (%s).', $peorProducto['nombre'], $this->bs($peorProducto['diferencia']), RedaccionPronostico::variacion($peorProducto['desvio'])),
+                $peorProducto['diferencia'],
+                sprintf('Revisar hoja de %s', $peorProducto['nombre']),
+                'desvio_presupuesto',
+            );
         }
 
         $peorMaterial = $this->materialMasDesviado($usuario, $periodo, $tolerancia);
         if ($peorMaterial) {
-            $respuesta .= sprintf(' El material con mayor exceso es %s (%s).', $peorMaterial['nombre'], RedaccionPronostico::variacion($peorMaterial['desvio']));
-            $acciones[] = [
-                'texto' => sprintf('Controlar cortes y sobrantes de %s en el taller, o ajustar su cantidad en los materiales del producto: se usa %s más de lo previsto.', $peorMaterial['nombre'], $this->pct($peorMaterial['desvio'])),
-                'impacto' => $peorMaterial['diferencia'],
-            ];
+            $acciones[] = $this->accion(
+                sprintf('Revisar cortes, sobrantes y cantidades previstas de %s: consumo %s mayor al previsto.', $peorMaterial['nombre'], $this->pct($peorMaterial['desvio'])),
+                $peorMaterial['diferencia'],
+                sprintf('Revisar cortes y sobrantes de %s', $peorMaterial['nombre']),
+                'exceso_material',
+            );
         }
 
         return $this->pregunta(
@@ -375,19 +452,19 @@ class PreguntasNegocioService
             $respuesta,
             columnas: [
                 ['titulo' => 'Producto', 'formato' => 'texto'],
-                ['titulo' => 'Trabajos', 'formato' => 'cantidad'],
-                ['titulo' => 'Excedidos', 'formato' => 'cantidad'],
-                ['titulo' => 'Presupuestado', 'formato' => 'bs'],
-                ['titulo' => 'Real', 'formato' => 'bs'],
+                ['titulo' => 'Trabajos / excedidos', 'formato' => 'texto'],
+                ['titulo' => 'Previsto', 'formato' => 'bs'],
+                ['titulo' => 'Registrado', 'formato' => 'bs'],
                 ['titulo' => 'Diferencia', 'formato' => 'bs'],
-                ['titulo' => 'Desvío', 'formato' => 'variacion'],
+                ['titulo' => 'Variación', 'formato' => 'variacion'],
             ],
             filas: $porProducto->take(self::TOP)->map(fn (array $p): array => [
-                $p['nombre'], $p['trabajos'], $p['pasados'], $p['presupuestado'], $p['real'], $p['diferencia'], $p['desvio'],
+                $p['nombre'], $this->numero($p['trabajos'], 0).' / '.$this->numero($p['pasados'], 0), $p['presupuestado'], $p['real'], $p['diferencia'], $p['desvio'],
             ])->all(),
             acciones: $acciones,
             base: $base,
             aviso: 'Solo se compara el material: es lo único que se registra como consumo real.',
+            interpretacion: $interpretacion,
         );
     }
 
@@ -444,10 +521,11 @@ class PreguntasNegocioService
         $consumo = $costos['consumo'];
         $total = (float) $consumo['total'];
         $corte = (float) config('bi.preguntas.pareto');
-        $base = sprintf('Material registrado como consumo en los pedidos del periodo: %s en %s materiales.', $this->bs($total), $this->numero($consumo['materiales_distintos'], 0));
+        $base = sprintf('Consumo registrado en pedidos del periodo: %s en %s.', $this->bs($total), $this->cantidad($consumo['materiales_distintos'], 'material', 'materiales'));
+        $interpretacion = '"Parte acumulada" suma la participación de los materiales hasta esa fila. El ahorro es un escenario, no un resultado garantizado.';
 
         if ($total <= 0) {
-            return $this->pregunta('materiales_pesan', 'costos', 'No hay consumo de material registrado en el periodo.', base: $base);
+            return $this->pregunta('materiales_pesan', 'costos', 'No hay consumo de material registrado en el periodo.', base: $base, interpretacion: $interpretacion);
         }
 
         $acumulado = 0.0;
@@ -468,13 +546,18 @@ class PreguntasNegocioService
         $ahorro = (float) config('bi.preguntas.ahorro_negociable');
         $nombres = $principales->take(3)->pluck('nombre')->all();
 
-        $respuesta = sprintf(
-            '%s de %s materiales son el %s del gasto en material: %s.',
-            $this->numero($principales->count(), 0),
-            $this->numero($consumo['materiales_distintos'], 0),
-            $this->pct($parte),
-            $this->enumerar($nombres),
-        );
+        $distintos = $this->numero($consumo['materiales_distintos'], 0);
+        $respuesta = match (true) {
+            $principales->count() === 1 => sprintf('1 de %s materiales concentra el %s del gasto registrado: %s.', $distintos, $this->pct($parte), $nombres[0]),
+            $principales->count() <= 3 => sprintf('%s de %s materiales concentran el %s del gasto registrado: %s.', $principales->count(), $distintos, $this->pct($parte), $this->enumerar($nombres)),
+            default => sprintf('%s de %s materiales concentran el %s del gasto registrado. Los tres principales son %s.', $principales->count(), $distintos, $this->pct($parte), $this->enumerar($nombres)),
+        };
+        $cuales = match (count($nombres)) {
+            1 => 'el material principal',
+            2 => 'los dos materiales principales',
+            default => 'los tres materiales principales',
+        };
+        $ahorroBs = round($principales->take(3)->sum('costo') * $ahorro, 2);
 
         return $this->pregunta(
             'materiales_pesan',
@@ -482,21 +565,24 @@ class PreguntasNegocioService
             $respuesta,
             columnas: [
                 ['titulo' => 'Material', 'formato' => 'texto'],
-                ['titulo' => 'Gasto real', 'formato' => 'bs'],
+                ['titulo' => 'Gasto registrado (Bs)', 'formato' => 'bs'],
                 ['titulo' => 'Parte del gasto', 'formato' => 'porcentaje'],
-                ['titulo' => 'Acumulado', 'formato' => 'porcentaje'],
+                ['titulo' => 'Parte acumulada', 'formato' => 'porcentaje'],
             ],
             filas: $principales->take(8)->map(fn (array $m): array => [$m['nombre'], $m['costo'], $m['parte'], $m['acumulado']])->all(),
-            acciones: [[
-                'texto' => sprintf(
-                    'Concentrar la negociación con proveedores en %s: una rebaja de %s en ellos ahorra %s en un periodo como este.',
-                    $this->enumerar($nombres),
+            acciones: [$this->accion(
+                sprintf(
+                    'Concentrar la negociación en %s. Una rebaja de %s representaría un ahorro estimado de %s si se mantuvieran las cantidades del periodo.',
+                    $cuales,
                     $this->pct($ahorro * 100, 0),
-                    $this->bs($principales->take(3)->sum('costo') * $ahorro),
+                    $this->bs($ahorroBs),
                 ),
-                'impacto' => round($principales->take(3)->sum('costo') * $ahorro, 2),
-            ]],
+                $ahorroBs,
+                sprintf('Evaluar rebaja de %s en %s', $this->pct($ahorro * 100, 0), str_replace('los ', '', $cuales)),
+                'ahorro',
+            )],
             base: $base,
+            interpretacion: $interpretacion,
         );
     }
 
@@ -513,10 +599,10 @@ class PreguntasNegocioService
      */
     private function productosRentables(Collection $lineas): array
     {
-        $base = 'Ventas del periodo con hoja de costos. Ganancia bruta = ingreso sin IVA − costo de la hoja, antes de impuestos (el mismo cálculo del Panorama). La tabla muestra los 5 de mayor ganancia y, además, los que se mencionan en la respuesta o en "Qué hacer".';
+        $interpretacion = 'Resultado bruto = ingreso sin IVA − costo de la hoja, antes de impuestos. Se basa en la hoja de costos: no es la ganancia neta ni un resultado medido con costos reales.';
 
         if ($lineas->isEmpty()) {
-            return $this->pregunta('productos_rentables', 'ganancias', 'No hay ventas con hoja de costos en el periodo.', base: $base);
+            return $this->pregunta('productos_rentables', 'ganancias', 'No hay ventas con hoja de costos en el periodo.', base: 'Ventas del periodo con hoja de costos.', interpretacion: $interpretacion);
         }
 
         $minimo = (int) config('bi.preguntas.minimo_ventas');
@@ -525,12 +611,12 @@ class PreguntasNegocioService
         $mejorMargen = $lineas->where('ventas', '>=', $minimo)->sortByDesc('margen')->first();
         $margenTotal = $this->margen((float) $lineas->sum('ingreso'), (float) $lineas->sum('costo'));
 
-        $respuesta = sprintf('%s es el producto que más ganancia genera: %s (margen %s).', $primero['nombre'], $this->bs($primero['ganancia']), $this->pct($primero['margen']));
+        $respuesta = sprintf('%s aporta el mayor resultado bruto calculado: %s, con margen de %s.', $primero['nombre'], $this->bs($primero['ganancia']), $this->pct($primero['margen']));
 
         if ($mejorMargen && $mejorMargen['nombre'] !== $primero['nombre']) {
-            $respuesta .= sprintf(' El de mejor margen es %s (%s), aunque aporta menos porque tiene menos ventas.', $mejorMargen['nombre'], $this->pct($mejorMargen['margen']));
+            $respuesta .= sprintf(' El mayor margen lo tiene %s (%s), aunque aporta menos porque tiene menos ventas.', $mejorMargen['nombre'], $this->pct($mejorMargen['margen']));
         } elseif ($mejorMargen) {
-            $respuesta .= ' Además es el de mejor margen.';
+            $respuesta .= ' También presenta el mayor margen entre los productos analizados.';
         }
 
         $acciones = [];
@@ -542,24 +628,29 @@ class PreguntasNegocioService
             ->first();
         if ($flojo) {
             $impacto = round($flojo['ingreso'] * ($margenTotal - $flojo['margen']) / 100, 2);
-            $acciones[] = [
-                'texto' => sprintf('Revisar el precio de %s: tiene ventas altas (%s) pero un margen de %s, %s puntos por debajo del promedio. Llevarlo al promedio representaría %s adicionales.', $flojo['nombre'], $this->bs($flojo['ingreso']), $this->pct($flojo['margen']), $this->numero($margenTotal - $flojo['margen'], 1), $this->bs($impacto)),
-                'impacto' => $impacto,
-            ];
+            $acciones[] = $this->accion(
+                sprintf('Evaluar el precio de %s: ventas de %s y margen de %s, %s puntos por debajo del promedio. Llevarlo al promedio representaría %s adicionales bajo los supuestos del cálculo.', $flojo['nombre'], $this->bs($flojo['ingreso']), $this->pct($flojo['margen']), $this->numero($margenTotal - $flojo['margen'], 1), $this->bs($impacto)),
+                $impacto,
+                sprintf('Evaluar precio de %s', $flojo['nombre']),
+                'mejora',
+            );
         }
 
         if ($mejorMargen && $mejorMargen['nombre'] !== $primero['nombre']) {
-            $acciones[] = ['texto' => sprintf('Ofrecer %s con mayor frecuencia en las propuestas: tiene un margen de %s.', $mejorMargen['nombre'], $this->pct($mejorMargen['margen'])), 'impacto' => null];
+            $acciones[] = $this->accion(sprintf('Ofrecer %s con mayor frecuencia en las propuestas: tiene un margen de %s.', $mejorMargen['nombre'], $this->pct($mejorMargen['margen'])));
         }
+
+        $filas = $this->filasConMencionados($porGanancia, [$primero, $mejorMargen, $flojo]);
 
         return $this->pregunta(
             'productos_rentables',
             'ganancias',
             $respuesta,
             columnas: $this->columnasRentabilidad('Producto'),
-            filas: $this->filasConMencionados($porGanancia, [$primero, $mejorMargen, $flojo]),
+            filas: $filas,
             acciones: $acciones,
-            base: $base,
+            base: 'Ventas del periodo con hoja de costos.'.$this->alcanceTabla($porGanancia->count(), count($filas), 'productos'),
+            interpretacion: $interpretacion,
         );
     }
 
@@ -583,10 +674,11 @@ class PreguntasNegocioService
             ->get()
             ->map(fn (object $c): array => $this->rentabilidad($c->nombre, (float) $c->ingreso, (float) $c->costo, (int) $c->ventas));
 
-        $base = 'Ventas del periodo con hoja de costos, por cliente. Ganancia bruta antes de impuestos. La tabla muestra los 5 de mayor ganancia y, además, los que se mencionan en la respuesta o en "Qué hacer".';
+        $interpretacion = 'Un mayor resultado en bolivianos no implica necesariamente un mayor porcentaje de margen.';
+        $cierre = ' El resultado usa el costo de la hoja, antes de impuestos.';
 
         if ($clientes->isEmpty()) {
-            return $this->pregunta('clientes_rentables', 'ganancias', 'No hay ventas con hoja de costos en el periodo.', base: $base);
+            return $this->pregunta('clientes_rentables', 'ganancias', 'No hay ventas con hoja de costos en el periodo.', base: 'Ventas del periodo con hoja de costos, agrupadas por cliente.', interpretacion: $interpretacion.$cierre);
         }
 
         $porGanancia = $clientes->sortByDesc('ganancia')->values();
@@ -594,14 +686,14 @@ class PreguntasNegocioService
         $masCompra = $clientes->sortByDesc('ingreso')->first();
         $margenTotal = $this->margen((float) $clientes->sum('ingreso'), (float) $clientes->sum('costo'));
 
-        $respuesta = sprintf('%s es el cliente que más ganancia genera: %s (margen %s).', $primero['nombre'], $this->bs($primero['ganancia']), $this->pct($primero['margen']));
+        $respuesta = sprintf('%s aporta el mayor resultado bruto calculado: %s, con margen de %s.', $primero['nombre'], $this->bs($primero['ganancia']), $this->pct($primero['margen']));
 
         if ($masCompra['nombre'] !== $primero['nombre']) {
             $puesto = $porGanancia->search(fn (array $c): bool => $c['nombre'] === $masCompra['nombre']) + 1;
-            $respuesta .= sprintf(' El cliente con más compras, %s, ocupa el %s.º lugar en ganancia: su margen es %s.', $masCompra['nombre'], $puesto, $this->pct($masCompra['margen']));
+            $respuesta .= sprintf(' El cliente con más compras, %s, ocupa el %s.º lugar en resultado: su margen es %s.', $masCompra['nombre'], $puesto, $this->pct($masCompra['margen']));
         }
 
-        $acciones = [['texto' => sprintf('Cuidar a %s con seguimiento postventa y prioridad en entregas: es quien más ganancia aporta.', $primero['nombre']), 'impacto' => null]];
+        $acciones = [$this->accion(sprintf('Dar seguimiento postventa a %s y cuidar el cumplimiento de sus entregas, considerando su aporte al resultado.', $primero['nombre']))];
 
         $flojo = $clientes->sortByDesc('ingreso')->take(self::TOP)
             ->filter(fn (array $c): bool => $margenTotal !== null && $c['margen'] < $margenTotal - 5)
@@ -609,20 +701,31 @@ class PreguntasNegocioService
             ->first();
         if ($flojo) {
             $impacto = round($flojo['ingreso'] * ($margenTotal - $flojo['margen']) / 100, 2);
-            array_unshift($acciones, [
-                'texto' => sprintf('Revisar las condiciones comerciales de %s: tiene compras altas (%s) pero un margen de %s, %s puntos por debajo del promedio (%s).', $flojo['nombre'], $this->bs($flojo['ingreso']), $this->pct($flojo['margen']), $this->numero($margenTotal - $flojo['margen'], 1), $this->bs($impacto)),
-                'impacto' => $impacto,
-            ]);
+            array_unshift($acciones, $this->accion(
+                sprintf('Revisar las condiciones comerciales de %s: compras de %s y margen de %s, %s puntos por debajo del promedio. Llevarlo al promedio representaría %s adicionales bajo los supuestos del cálculo.', $flojo['nombre'], $this->bs($flojo['ingreso']), $this->pct($flojo['margen']), $this->numero($margenTotal - $flojo['margen'], 1), $this->bs($impacto)),
+                $impacto,
+                sprintf('Revisar condiciones comerciales de %s', $flojo['nombre']),
+                'mejora',
+            ));
         }
+
+        // Un ejemplo de la tabla: el de mejor margen, si no es el primero.
+        $ejemplo = $porGanancia->take(self::TOP)->sortByDesc('margen')->first();
+        if ($ejemplo['nombre'] !== $primero['nombre'] && $ejemplo['margen'] > $primero['margen']) {
+            $interpretacion .= sprintf(' Por ejemplo, %s tiene un margen de %s.', $ejemplo['nombre'], $this->pct($ejemplo['margen']));
+        }
+
+        $filas = $this->filasConMencionados($porGanancia, [$primero, $masCompra, $flojo]);
 
         return $this->pregunta(
             'clientes_rentables',
             'ganancias',
             $respuesta,
             columnas: $this->columnasRentabilidad('Cliente'),
-            filas: $this->filasConMencionados($porGanancia, [$primero, $masCompra, $flojo]),
+            filas: $filas,
             acciones: $acciones,
-            base: $base,
+            base: 'Ventas del periodo con hoja de costos, agrupadas por cliente.'.$this->alcanceTabla($porGanancia->count(), count($filas), 'clientes'),
+            interpretacion: $interpretacion.$cierre,
         );
     }
 
@@ -656,35 +759,46 @@ class PreguntasNegocioService
         $margenSin = $this->margen((float) $porVendedor->sum('ingreso_sin'), (float) $porVendedor->sum('costo_sin'));
         $manual = $this->preciosAMano($usuario, $periodo);
 
-        $base = sprintf('%s ventas del periodo. El precio sugerido es el del motor de margen: costo ajustado × (1 + margen del tipo de proyecto).', $this->numero($ventas, 0));
+        $base = sprintf('%s del periodo. Precio sugerido = costo ajustado × (1 + margen del tipo de proyecto), según el motor del sistema.', $this->cantidad($ventas, 'venta', 'ventas'));
+        $interpretacion = 'El promedio actual no determina por sí solo el descuento óptimo. La diferencia de margen entre los dos grupos no demuestra que se deba únicamente al descuento. No sumar diferencias sin revisar posibles superposiciones.';
 
         if ($ventas === 0) {
-            return $this->pregunta('descuentos', 'ganancias', 'No hay ventas en el periodo.', base: $base);
+            return $this->pregunta('descuentos', 'ganancias', 'No hay ventas en el periodo.', base: $base, interpretacion: $interpretacion);
         }
 
         $frases = [$conDescuento === 0
             ? 'No se otorgaron descuentos en el periodo.'
-            : sprintf('Se descontaron %s en %s de %s ventas (%s de descuento en promedio).', $this->bs($descontado), $this->numero($conDescuento, 0), $this->numero($ventas, 0), $this->pct($promedio))];
+            : sprintf('Se otorgaron %s en descuentos en %s de %s ventas, con descuento promedio de %s.', $this->bs($descontado), $this->numero($conDescuento, 0), $this->numero($ventas, 0), $this->pct($promedio))];
 
         if ($margenCon !== null && $margenSin !== null) {
-            $frases[] = sprintf('Las ventas con descuento tienen un margen de %s, frente a %s de las que no lo tienen.', $this->pct($margenCon), $this->pct($margenSin));
+            $frases[] = sprintf('El margen fue %s en ventas con descuento y %s en las demás.', $this->pct($margenCon), $this->pct($margenSin));
         }
 
+        $lineas = $manual['lineas_debajo'] === 1 ? '1 línea' : $this->numero($manual['lineas_debajo'], 0).' líneas';
         if ($manual['lineas_debajo'] > 0) {
-            $frases[] = sprintf('Además, %s con precio ingresado manualmente %s %s por debajo del precio sugerido.', $manual['lineas_debajo'] === 1 ? '1 línea' : $this->numero($manual['lineas_debajo'], 0).' líneas', $manual['lineas_debajo'] === 1 ? 'quedó' : 'quedaron', $this->bs($manual['debajo']));
+            $frases[] = sprintf('Además, %s con precio manual %s %s por debajo del sugerido.', $lineas, $manual['lineas_debajo'] === 1 ? 'quedó' : 'quedaron', $this->bs($manual['debajo']));
         }
 
         $acciones = [];
         if ($conDescuento > 0 && $margenCon !== null && $margenSin !== null && $margenSin - $margenCon >= 2) {
             $exceso = $this->descuentoSobreTope($usuario, $periodo, $promedio / 100);
-            $acciones[] = [
-                'texto' => sprintf('Poner un tope de descuento de %s (el promedio actual) y pedir aprobación por encima: lo descontado por encima de ese tope suma %s.', $this->pct($promedio), $this->bs($exceso)),
-                'impacto' => $exceso > 0 ? $exceso : null,
-            ];
+            $acciones[] = $this->accion(
+                sprintf('Evaluar un tope de descuento de %s y aprobación para superarlo: los descuentos por encima de ese valor suman %s.', $this->pct($promedio), $this->bs($exceso)),
+                $exceso > 0 ? $exceso : null,
+                sprintf('Evaluar tope de descuento de %s', $this->pct($promedio)),
+                'sobre_tope',
+            );
         }
 
         if ($manual['lineas_debajo'] > 0) {
-            $acciones[] = ['texto' => sprintf('Revisar los precios ingresados manualmente: %s quedaron por debajo del sugerido.', $this->bs($manual['debajo'])), 'impacto' => $manual['debajo']];
+            $acciones[] = $this->accion(
+                $manual['lineas_debajo'] === 1
+                    ? sprintf('Revisar la línea con precio manual y su diferencia de %s.', $this->bs($manual['debajo']))
+                    : sprintf('Revisar las %s de precios manuales y su diferencia de %s.', $lineas, $this->bs($manual['debajo'])),
+                $manual['debajo'],
+                'Revisar precios manuales',
+                'bajo_sugerido',
+            );
         }
 
         $nombres = $this->nombresDeVendedores($porVendedor->pluck('id'));
@@ -696,9 +810,9 @@ class PreguntasNegocioService
             columnas: [
                 ['titulo' => 'Vendedor', 'formato' => 'texto'],
                 ['titulo' => 'Ventas con descuento', 'formato' => 'cantidad'],
-                ['titulo' => 'Descontado', 'formato' => 'bs'],
-                ['titulo' => 'Descuento promedio', 'formato' => 'porcentaje'],
-                ['titulo' => 'Margen con descuento', 'formato' => 'porcentaje'],
+                ['titulo' => 'Descontado (Bs)', 'formato' => 'bs'],
+                ['titulo' => 'Descuento medio', 'formato' => 'porcentaje'],
+                ['titulo' => 'Margen', 'formato' => 'porcentaje'],
             ],
             filas: $porVendedor
                 ->filter(fn (object $v): bool => (int) $v->con_descuento > 0)
@@ -713,6 +827,7 @@ class PreguntasNegocioService
                 ])->values()->all(),
             acciones: $acciones,
             base: $base,
+            interpretacion: $interpretacion,
         );
     }
 
@@ -776,8 +891,9 @@ class PreguntasNegocioService
             ->get();
 
         $semaforo = config('margen.semaforo');
-        $base = sprintf(
-            'Ventas con hoja de costos. Rojo = rentabilidad real (después de impuestos) menor a %s del costo; amarillo, entre %s y %s.',
+        $base = 'Ventas con hoja de costos. Estos umbrales usan el costo como base y no son directamente comparables con el margen bruto sobre ingresos de las preguntas 5 y 6.';
+        $interpretacion = sprintf(
+            'Rojo no significa necesariamente pérdida: es la categoría del sistema para rentabilidad calculada después de impuestos menor al %s del costo. Amarillo corresponde a entre %s y %s.',
             $this->pct($semaforo['umbral_amarillo'] * 100, 0),
             $this->pct($semaforo['umbral_amarillo'] * 100, 0),
             $this->pct($semaforo['umbral_verde'] * 100, 0),
@@ -785,25 +901,32 @@ class PreguntasNegocioService
 
         $ventas = (int) $porVendedor->sum('ventas');
         if ($ventas === 0) {
-            return $this->pregunta('margen_bajo', 'ganancias', 'No hay ventas con hoja de costos en el periodo.', base: $base);
+            return $this->pregunta('margen_bajo', 'ganancias', 'No hay ventas con hoja de costos en el periodo.', base: $base, interpretacion: $interpretacion);
         }
 
         $amarillas = (int) $porVendedor->sum('amarillas');
         $rojas = (int) $porVendedor->sum('rojas');
         $bajas = $amarillas + $rojas;
+        $bsRojo = round((float) $porVendedor->sum('bs_rojo'), 2);
 
+        $partes = array_filter([
+            $amarillas > 0 ? sprintf('%s en amarillo, por %s', $this->numero($amarillas, 0), $this->bs((float) $porVendedor->sum('bs_amarillo'))) : null,
+            $rojas > 0 ? sprintf('%s en rojo, por %s', $this->numero($rojas, 0), $this->bs($bsRojo)) : null,
+        ]);
         $respuesta = $bajas === 0
-            ? sprintf('Ninguna: las %s ventas del periodo se cerraron en verde.', $this->numero($ventas, 0))
+            ? sprintf('Ninguna: las %s ventas del periodo quedaron en verde.', $this->numero($ventas, 0))
             : sprintf(
-                '%s de %s ventas (%s) se cerraron con margen bajo: %s en amarillo (%s) y %s en rojo (%s).',
+                '%s de %s ventas (%s) %s con margen bajo: %s.',
                 $this->numero($bajas, 0),
                 $this->numero($ventas, 0),
                 $this->pct($bajas / $ventas * 100),
-                $this->numero($amarillas, 0),
-                $this->bs((float) $porVendedor->sum('bs_amarillo')),
-                $this->numero($rojas, 0),
-                $this->bs((float) $porVendedor->sum('bs_rojo')),
+                $bajas === 1 ? 'quedó' : 'quedaron',
+                implode(', y ', $partes),
             );
+
+        if ($rojas > 0) {
+            $interpretacion .= sprintf(' Los %s son ventas en rojo, no una pérdida por ese importe.', $this->bs($bsRojo));
+        }
 
         $nombres = $this->nombresDeVendedores($porVendedor->pluck('id'));
         $filas = $porVendedor
@@ -813,14 +936,17 @@ class PreguntasNegocioService
 
         $acciones = [];
         if ($rojas > 0) {
-            $acciones[] = [
-                'texto' => sprintf('No aceptar trabajos en rojo sin la aprobación de gerencia: en el periodo se vendieron %s en rojo.', $this->bs((float) $porVendedor->sum('bs_rojo'))),
-                'impacto' => round((float) $porVendedor->sum('bs_rojo'), 2),
-            ];
+            $acciones[] = $this->accion(
+                'Solicitar revisión de gerencia antes de aceptar ventas clasificadas en rojo.',
+                $bsRojo,
+                'Revisar aprobación de ventas en rojo',
+                'margen_bajo',
+            );
         }
         if ($filas->isNotEmpty()) {
             $v = $filas->first();
-            $acciones[] = ['texto' => sprintf('Revisar con %s sus %s ventas con margen bajo.', $nombres($v->id), $this->numero((int) $v->amarillas + (int) $v->rojas, 0)), 'impacto' => null];
+            $cuantas = (int) $v->amarillas + (int) $v->rojas;
+            $acciones[] = $this->accion(sprintf('Revisar con %s %s clasificadas con margen bajo.', $nombres($v->id), $cuantas === 1 ? 'la venta' : 'las '.$this->numero($cuantas, 0).' ventas'));
         }
 
         return $this->pregunta(
@@ -830,15 +956,18 @@ class PreguntasNegocioService
             columnas: [
                 ['titulo' => 'Vendedor', 'formato' => 'texto'],
                 ['titulo' => 'Ventas', 'formato' => 'cantidad'],
-                ['titulo' => 'En amarillo', 'formato' => 'cantidad'],
-                ['titulo' => 'En rojo', 'formato' => 'cantidad'],
-                ['titulo' => 'Vendido con margen bajo', 'formato' => 'bs'],
+                ['titulo' => 'Amarillo', 'formato' => 'cantidad'],
+                ['titulo' => 'Rojo', 'formato' => 'cantidad'],
+                ['titulo' => 'Vendido con margen bajo (Bs)', 'formato' => 'bs'],
             ],
             filas: $filas->take(self::TOP)->map(fn (object $v): array => [
                 $nombres($v->id), (int) $v->ventas, (int) $v->amarillas, (int) $v->rojas, round((float) $v->bs_amarillo + (float) $v->bs_rojo, 2),
             ])->all(),
             acciones: $acciones,
             base: $base,
+            interpretacion: $interpretacion,
+            // Para la portada del informe.
+            cifras: ['ventas' => $ventas, 'rojas' => $rojas, 'vendido_rojo' => $bsRojo],
         );
     }
 
@@ -860,10 +989,11 @@ class PreguntasNegocioService
         $ingreso = (float) $lineas->sum('ingreso');
         $costo = (float) $lineas->sum('costo');
         $costoBase = (float) $lineas->sum('costo_base');
-        $base = 'Ventas del periodo con hoja de costos. "Materia prima" son los insumos de tipo material de la hoja; la mano de obra, la impresión y los servicios no cambian.';
+        $base = 'Ventas del periodo con hoja de costos. Cambia solo el precio de los insumos de tipo material; la mano de obra, la impresión y los servicios se mantienen constantes.';
+        $interpretacion = 'Es una simulación: no es una pérdida ya ocurrida. Los ajustes deben revisarse antes de aplicarlos.';
 
         if ($ingreso <= 0 || $costoBase <= 0) {
-            return $this->pregunta('materia_prima', 'escenarios', 'No hay ventas con hoja de costos en el periodo para simular.', base: $base);
+            return $this->pregunta('materia_prima', 'escenarios', 'No hay ventas con hoja de costos en el periodo para simular.', base: $base, interpretacion: $interpretacion);
         }
 
         $parte = (float) $lineas->sum('material_base') / $costoBase;
@@ -874,10 +1004,10 @@ class PreguntasNegocioService
             'subir_precio' => round($parte * $subida, 1),
         ];
 
-        $filas = [['Hoy', $margenHoy, 0.0, 0.0]];
+        $filas = [['Situación actual', $margenHoy, 0.0, 0.0]];
         foreach (config('bi.preguntas.escenarios_materia_prima') as $subida) {
             $e = $escenario((float) $subida);
-            $filas[] = [sprintf('Materia prima +%s %%', $subida), $e['margen'], $e['perdida'], $e['subir_precio']];
+            $filas[] = [sprintf('Materiales +%s %%', $subida), $e['margen'], $e['perdida'], $e['subir_precio']];
         }
 
         $mensual = $costos['indice']['variacion_mensual'] ?? null;
@@ -885,7 +1015,7 @@ class PreguntasNegocioService
         if ($mensual !== null && $mensual > 0) {
             $probable = ((1 + $mensual / 100) ** $meses - 1) * 100;
             $e = $escenario($probable);
-            $filas[] = [sprintf('Probable en %d meses (tendencia %s/mes)', $meses, RedaccionPronostico::variacion($mensual)), $e['margen'], $e['perdida'], $e['subir_precio']];
+            $filas[] = [sprintf('A %d meses, si continúa %s mensual', $meses, RedaccionPronostico::variacion($mensual)), $e['margen'], $e['perdida'], $e['subir_precio']];
         }
 
         $diez = $escenario(10);
@@ -894,20 +1024,21 @@ class PreguntasNegocioService
             ->filter(fn (array $p): bool => $p['costo_base'] > 0)
             ->sortByDesc(fn (array $p): float => $p['material_base'] / $p['costo_base'])
             ->take(2)
-            ->map(fn (array $p): string => sprintf('%s (el material es el %s de su costo)', $p['nombre'], $this->pct($p['material_base'] / $p['costo_base'] * 100, 0)))
             ->values()
+            ->map(fn (array $p, int $i): string => sprintf(
+                $i === 0 ? '%s (materiales: %s del costo)' : '%s (%s)',
+                $p['nombre'],
+                $this->pct($p['material_base'] / $p['costo_base'] * 100, 0),
+            ))
             ->all();
 
         $respuesta = sprintf(
-            'Si la materia prima sube 10 %%, el margen bruto bajaría de %s a %s y se perderían %s en un periodo como este. Para no perder margen alcanzaría con subir los precios %s.',
+            'Con un aumento de 10 %% en materiales, manteniendo los demás supuestos, el margen bruto calculado bajaría de %s a %s. El resultado sería %s menor. Para mantener el margen, el ajuste de precios estimado es de %s.',
             $this->pct($margenHoy),
             $this->pct($diez['margen']),
             $this->bs($diez['perdida']),
             $this->pct($diez['subir_precio']),
         );
-        if ($expuestos !== []) {
-            $respuesta .= ' Los más expuestos: '.$this->enumerar($expuestos).'.';
-        }
 
         return $this->pregunta(
             'materia_prima',
@@ -916,18 +1047,21 @@ class PreguntasNegocioService
             columnas: [
                 ['titulo' => 'Escenario', 'formato' => 'texto'],
                 ['titulo' => 'Margen bruto', 'formato' => 'porcentaje'],
-                ['titulo' => 'Ganancia que se pierde', 'formato' => 'bs'],
-                ['titulo' => 'Subir precios', 'formato' => 'porcentaje'],
+                ['titulo' => 'Reducción estimada (Bs)', 'formato' => 'bs'],
+                ['titulo' => 'Ajuste de precios estimado', 'formato' => 'porcentaje'],
             ],
             filas: $filas,
             // Sin "dinero en juego": es una hipótesis, no algo que ya pasó, y
-            // no debe ganarle en "Decisiones" a lo que sí se midió.
-            acciones: [[
-                'texto' => sprintf('Si se confirma una subida, ajustar los precios en la misma proporción: %s por cada 10 %% que suba la materia prima. Sin ajustar, con +10 %% se perderían %s.', $this->pct($diez['subir_precio']), $this->bs($diez['perdida'])),
-                'impacto' => null,
-            ]],
+            // no debe ganarle en "Acciones" a lo que sí se midió.
+            acciones: [$this->accion(
+                'Si se confirma un aumento, evaluar el ajuste de precios calculado y su efecto comercial.'
+                    .($expuestos !== [] ? ' Revisar especialmente '.$this->enumerar($expuestos).'.' : ''),
+            )],
             base: $base,
-            aviso: sprintf('Hoy la materia prima es el %s del costo de lo vendido.', $this->pct($parte * 100)),
+            aviso: sprintf('Hoy los materiales representan el %s del costo de lo vendido.', $this->pct($parte * 100)),
+            interpretacion: $interpretacion.sprintf(' Los materiales representan el %s del costo de lo vendido.', $this->pct($parte * 100)),
+            // Para el cuadro "Escenarios" de la pregunta 11.
+            cifras: ['subida' => 10, 'margen_hoy' => $margenHoy, 'margen' => $diez['margen'], 'reduccion' => $diez['perdida']],
         );
     }
 
@@ -955,10 +1089,11 @@ class PreguntasNegocioService
                 'entregado_sin_pago' => $p->estado === 'ENTREGADO' && (float) ($p->pagos_sum_monto ?? 0) <= 0,
             ]);
 
-        $base = 'Pedidos del periodo (sin los cancelados). La antigüedad se cuenta desde la fecha del pedido, como en el Reporte financiero.';
+        $base = 'Pedidos del periodo, sin los cancelados. Este alcance puede diferir de otros reportes que incluyan todas las fechas.';
+        $interpretacion = 'La antigüedad se cuenta desde la fecha del pedido, no desde el vencimiento: un pedido antiguo no necesariamente está atrasado. Los porcentajes pueden no sumar 100 % por redondeo.';
 
         if ($pedidos->isEmpty()) {
-            return $this->pregunta('cobranza', 'escenarios', 'No hay pedidos en el periodo.', base: $base);
+            return $this->pregunta('cobranza', 'escenarios', 'No hay pedidos en el periodo.', base: $base, interpretacion: $interpretacion);
         }
 
         $vendido = (float) $pedidos->sum('total');
@@ -980,30 +1115,35 @@ class PreguntasNegocioService
         }
 
         $viejos = end($filas);
+        $dias = (int) end($tramos);
         $respuesta = $saldo <= 0
-            ? sprintf('Todo: los %s pedidos del periodo están cobrados.', $this->numero($pedidos->count(), 0))
+            ? sprintf('Se cobró todo: %s del periodo no tienen saldo pendiente.', $pedidos->count() === 1 ? 'el pedido' : 'los '.$this->numero($pedidos->count(), 0).' pedidos')
             : sprintf(
-                'Se ha cobrado el %s de lo vendido: faltan %s en %s %s.%s',
+                'Se cobró el %s del importe analizado. Quedan %s en %s.%s',
                 $this->pct(($vendido - $saldo) / $vendido * 100),
                 $this->bs($saldo),
-                $this->numero($pendientes->count(), 0),
-                $pendientes->count() === 1 ? 'pedido' : 'pedidos',
-                $viejos[2] > 0 ? sprintf(' %s tienen más de %d días.', $this->bs($viejos[2]), end($tramos)) : '',
+                $this->cantidad($pendientes->count(), 'pedido', 'pedidos'),
+                $viejos[2] > 0 ? sprintf(' De ese saldo, %s corresponden a pedidos con más de %d días desde su fecha.', $this->bs($viejos[2]), $dias) : '',
             );
 
         $acciones = [];
         if ($viejos[2] > 0) {
-            $acciones[] = ['texto' => sprintf('Cobrar primero los %s pedidos con más de %d días: suman %s.', $this->numero($viejos[1], 0), end($tramos), $this->bs($viejos[2])), 'impacto' => $viejos[2]];
+            $acciones[] = $this->accion(
+                sprintf('Revisar %s con más de %d días (%s) según los plazos acordados.', $viejos[1] === 1 ? 'el pedido' : 'los '.$this->numero($viejos[1], 0).' pedidos', $dias, $this->bs($viejos[2])),
+                $viejos[2],
+                sprintf('Cobrar pedidos con más de %d días', $dias),
+                'saldo_antiguo',
+            );
         }
 
         $deudor = $pendientes->groupBy('cliente')->map(fn (Collection $g): float => (float) $g->sum('saldo'))->sortDesc();
         if ($deudor->isNotEmpty()) {
-            $acciones[] = ['texto' => sprintf('El cliente con mayor deuda es %s: %s.', $deudor->keys()->first(), $this->bs($deudor->first())), 'impacto' => null];
+            $acciones[] = $this->accion(sprintf('Dar seguimiento a %s, con %s pendientes.', $deudor->keys()->first(), $this->bs($deudor->first())));
         }
 
         $sinPago = $pedidos->where('entregado_sin_pago', true)->count();
         if ($sinPago > 0) {
-            $acciones[] = ['texto' => sprintf('Pedir un anticipo al aprobar: %s sin ningún pago.', $sinPago === 1 ? '1 pedido se entregó' : $this->numero($sinPago, 0).' pedidos se entregaron'), 'impacto' => null];
+            $acciones[] = $this->accion(sprintf('Evaluar anticipos: %s sin pago.', $sinPago === 1 ? '1 pedido se entregó' : $this->numero($sinPago, 0).' pedidos se entregaron'));
         }
 
         return $this->pregunta(
@@ -1011,14 +1151,24 @@ class PreguntasNegocioService
             'escenarios',
             $respuesta,
             columnas: [
-                ['titulo' => 'Antigüedad', 'formato' => 'texto'],
+                ['titulo' => 'Antigüedad desde el pedido', 'formato' => 'texto'],
                 ['titulo' => 'Pedidos', 'formato' => 'cantidad'],
-                ['titulo' => 'Por cobrar', 'formato' => 'bs'],
-                ['titulo' => 'Parte', 'formato' => 'porcentaje'],
+                ['titulo' => 'Saldo por cobrar (Bs)', 'formato' => 'bs'],
+                ['titulo' => 'Parte del saldo', 'formato' => 'porcentaje'],
             ],
             filas: $saldo > 0 ? $filas : [],
             acciones: $acciones,
             base: $base,
+            interpretacion: $interpretacion,
+            // Para el cuadro "Cobros" de la pregunta 11 y la portada del
+            // informe. `pedidos` son los que tienen saldo, no todos.
+            cifras: [
+                'por_cobrar' => round($saldo, 2),
+                'pedidos' => $pendientes->count(),
+                'cobrado' => $vendido > 0 ? round(($vendido - $saldo) / $vendido * 100, 1) : null,
+                'antiguo' => (float) $viejos[2],
+                'dias' => (int) end($tramos),
+            ],
         );
     }
 
@@ -1028,7 +1178,10 @@ class PreguntasNegocioService
 
     /**
      * 11. Las acciones de las demás preguntas, ordenadas por el dinero que
-     * mueven. No hay recomendaciones propias: cada una repite su cifra.
+     * mueven (`priorizadas`). No hay recomendaciones con cifras propias: cada
+     * una repite la suya, dice qué representa ese monto y de qué pregunta sale
+     * (`origen` y `numero`), para poder ir a los datos que la originan. Su
+     * única acción propia dice por dónde empezar, según los frentes.
      *
      * @param  list<array<string, mixed>>  $preguntas
      * @return array<string, mixed>
@@ -1036,32 +1189,49 @@ class PreguntasNegocioService
     private function decisiones(array $preguntas): array
     {
         $acciones = collect($preguntas)
-            ->flatMap(fn (array $p): array => array_map(fn (array $a): array => $a + ['origen' => $p['corto']], $p['acciones']))
+            ->flatMap(fn (array $p, int $indice): array => array_map(
+                fn (array $a): array => $a + ['origen' => $p['clave'], 'numero' => $indice + 1],
+                $p['acciones'],
+            ))
             ->filter(fn (array $a): bool => $a['impacto'] !== null && $a['impacto'] > 0)
             ->sortByDesc('impacto')
             ->take(8)
             ->values();
 
-        $respuesta = $acciones->isEmpty()
-            ? 'Con los datos del periodo no surge ninguna acción con un monto involucrado.'
-            : sprintf(
-                '%s acciones concretas, ordenadas de mayor a menor monto involucrado. La primera: %s',
-                $this->numero($acciones->count(), 0),
-                lcfirst($acciones->first()['texto']),
-            );
+        $respuesta = match ($acciones->count()) {
+            0 => 'Con los datos del periodo no surge ninguna acción con un monto involucrado.',
+            1 => 'Se identifica 1 acción con monto involucrado. Su monto no debe interpretarse como ahorro garantizado.',
+            default => sprintf('Se identifican %s acciones, ordenadas por monto involucrado. Los montos representan conceptos distintos y no deben sumarse ni interpretarse como ahorro garantizado.', $this->numero($acciones->count(), 0)),
+        };
 
-        return $this->pregunta(
+        // Por dónde empezar: los frentes de las acciones, en el orden en que
+        // aparecen (el de más monto primero).
+        $frentes = $acciones->pluck('frente')->filter()->unique()->take(3)->map(fn (string $f): string => self::FRENTES[$f])->values()->all();
+        $recomendacion = $frentes === [] ? [] : [$this->accion(
+            'Comenzar por '.array_shift($frentes).'.'.($frentes !== [] ? ' Después, '.$this->enumerar($frentes).'.' : ''),
+        )];
+
+        return [...$this->pregunta(
             'decisiones',
             'decisiones',
             $respuesta,
             columnas: [
-                ['titulo' => 'Acción', 'formato' => 'texto'],
-                ['titulo' => 'Proviene de', 'formato' => 'texto'],
-                ['titulo' => 'Monto involucrado', 'formato' => 'bs'],
+                ['titulo' => 'Acción sugerida', 'formato' => 'texto'],
+                ['titulo' => 'Qué representa', 'formato' => 'texto'],
+                ['titulo' => 'Monto (Bs)', 'formato' => 'bs'],
+                ['titulo' => 'Origen', 'formato' => 'texto'],
             ],
-            filas: $acciones->map(fn (array $a): array => [$a['texto'], $a['origen'], $a['impacto']])->all(),
-            base: 'Cada acción sale de una de las preguntas anteriores y repite su cifra: no hay recomendaciones sin un número detrás. "Monto involucrado" es lo que representa cada una en un periodo como este; no se suman entre sí porque algunas se superponen.',
-        );
+            filas: $acciones->map(fn (array $a): array => [
+                $a['titulo'] ?? $a['texto'],
+                $a['concepto'] ?? 'Monto involucrado',
+                $a['impacto'],
+                "Pregunta {$a['numero']}",
+            ])->all(),
+            acciones: $recomendacion,
+            base: 'Cada acción proviene de una pregunta anterior y conserva su cifra. No se calcularon ahorros nuevos.',
+            aviso: $acciones->isEmpty() ? null : 'Los montos tienen significados distintos y algunas acciones se superponen. No deben sumarse ni interpretarse como ahorro garantizado.',
+            interpretacion: 'Algunas acciones se superponen. El orden por importe no reemplaza la evaluación de viabilidad, tiempo y efecto comercial. Las estimaciones dependen de mantener los supuestos del análisis.',
+        ), 'priorizadas' => $acciones->all()];
     }
 
     /* -----------------------------------------------------------------
@@ -1199,9 +1369,16 @@ class PreguntasNegocioService
      * -------------------------------------------------------------- */
 
     /**
+     * `interpretacion`: los límites del cálculo, para "Cómo interpretar el
+     * resultado" (PDF) y el plegable de la pantalla. `aviso` es la advertencia
+     * corta que la pantalla muestra a la vista (solo algunas preguntas).
+     * `cifras`: los números clave de la respuesta, sueltos, para los
+     * indicadores de la pantalla y la portada del informe; vacío si no hay.
+     *
      * @param  list<array{titulo: string, formato: string}>  $columnas
      * @param  list<list<mixed>>  $filas
-     * @param  list<array{texto: string, impacto: float|null}>  $acciones
+     * @param  list<array{texto: string, impacto: float|null, titulo: string|null, concepto: string|null, tipo: string|null, frente: string|null}>  $acciones
+     * @param  array<string, int|float|string|null>  $cifras
      * @return array<string, mixed>
      */
     private function pregunta(
@@ -1213,6 +1390,8 @@ class PreguntasNegocioService
         array $acciones = [],
         ?string $base = null,
         ?string $aviso = null,
+        ?string $interpretacion = null,
+        array $cifras = [],
     ): array {
         [$pregunta, $corto] = self::PREGUNTAS[$clave];
 
@@ -1226,25 +1405,43 @@ class PreguntasNegocioService
             'acciones' => $acciones,
             'base' => $base,
             'aviso' => $aviso,
+            'interpretacion' => $interpretacion,
+            'cifras' => $cifras,
         ];
     }
 
-    /** Texto de cada pregunta y su rótulo corto (para "Proviene de"). */
+    /**
+     * Una acción sugerida. Las que tienen monto (`impacto`) pasan a la
+     * pregunta 11, donde se muestran con su rótulo corto (`titulo`) y con
+     * qué representa ese monto (`concepto`, una clave de MONTOS).
+     *
+     * @return array{texto: string, impacto: float|null, titulo: string|null, concepto: string|null, tipo: string|null, frente: string|null}
+     */
+    private function accion(string $texto, ?float $impacto = null, ?string $titulo = null, ?string $concepto = null): array
+    {
+        [$rotulo, $tipo, $frente] = $concepto !== null ? self::MONTOS[$concepto] : [null, null, null];
+
+        return ['texto' => $texto, 'impacto' => $impacto, 'titulo' => $titulo, 'concepto' => $rotulo, 'tipo' => $tipo, 'frente' => $frente];
+    }
+
+    /**
+     * Texto de cada pregunta y su rótulo corto (el del índice). Redacción
+     * del informe que pasó el usuario (2026-10-29): "costo calculado" y
+     * "resultado bruto" en vez de "costo real" y "ganancia", porque la mano
+     * de obra es la presupuestada y el resultado sale de la hoja de costos.
+     */
     public const PREGUNTAS = [
-        // "Según los registros disponibles": la mano de obra es la
-        // presupuestada (no se registran horas), así que no es un costo
-        // totalmente real; el aviso de la pregunta lo explica.
-        'costo_producto' => ['¿Cuál es el costo por producto según los registros disponibles?', 'Costo por producto'],
-        'costos_suben' => ['¿Qué costos están aumentando?', 'Aumento de materiales'],
-        'gasto_presupuesto' => ['¿Se está gastando más de lo presupuestado?', 'Gasto frente al presupuesto'],
-        'materiales_pesan' => ['¿En qué materiales se concentra la mayor parte del gasto?', 'Materiales de mayor gasto'],
-        'productos_rentables' => ['¿Qué producto genera mayor rentabilidad?', 'Productos con mayor margen'],
-        'clientes_rentables' => ['¿Qué clientes generan más ganancia?', 'Clientes con mayor aporte'],
-        'descuentos' => ['¿Cuánto cuestan los descuentos y los precios ingresados manualmente?', 'Descuentos y precios manuales'],
-        'margen_bajo' => ['¿Qué trabajos se están vendiendo con margen bajo?', 'Ventas con margen bajo'],
-        'materia_prima' => ['¿Qué pasaría si sube el precio de la materia prima?', 'Si sube la materia prima'],
-        'cobranza' => ['¿Cuánto de lo vendido ya se ha cobrado?', 'Pagos pendientes'],
-        'decisiones' => ['¿Qué decisiones ayudarían a reducir los costos y mejorar las ganancias?', 'Acciones sugeridas'],
+        'costo_producto' => ['¿Cuál es el costo calculado por producto?', 'Costo por producto'],
+        'costos_suben' => ['¿Qué materiales están subiendo de precio?', 'Aumento de materiales'],
+        'gasto_presupuesto' => ['¿El material utilizado costó más de lo previsto?', 'Gasto frente al presupuesto'],
+        'materiales_pesan' => ['¿En qué materiales se concentra el gasto?', 'Materiales de mayor gasto'],
+        'productos_rentables' => ['¿Qué productos aportan más al resultado bruto?', 'Productos con mayor margen'],
+        'clientes_rentables' => ['¿Qué clientes aportan más al resultado bruto?', 'Clientes con mayor aporte'],
+        'descuentos' => ['¿Cómo influyen los descuentos y los precios manuales?', 'Descuentos y precios manuales'],
+        'margen_bajo' => ['¿Qué ventas quedaron clasificadas con margen bajo?', 'Ventas con margen bajo'],
+        'materia_prima' => ['¿Qué cambiaría si aumenta el precio de los materiales?', 'Si sube la materia prima'],
+        'cobranza' => ['¿Cuánto se cobró y cuánto falta recibir?', 'Pagos pendientes'],
+        'decisiones' => ['¿Qué acciones conviene revisar primero?', 'Acciones sugeridas'],
     ];
 
     /**
@@ -1278,10 +1475,40 @@ class PreguntasNegocioService
         return [
             ['titulo' => $quien, 'formato' => 'texto'],
             ['titulo' => 'Ventas', 'formato' => 'cantidad'],
-            ['titulo' => 'Ingresos', 'formato' => 'bs'],
-            ['titulo' => 'Ganancia bruta', 'formato' => 'bs'],
+            ['titulo' => 'Ingresos (Bs)', 'formato' => 'bs'],
+            ['titulo' => 'Resultado bruto (Bs)', 'formato' => 'bs'],
             ['titulo' => 'Margen', 'formato' => 'porcentaje'],
         ];
+    }
+
+    /**
+     * Qué filas muestra una tabla de rentabilidad: las de mayor resultado y,
+     * si las hay, las que la respuesta o la acción nombran más abajo.
+     */
+    private function alcanceTabla(int $total, int $mostradas, string $quienes): string
+    {
+        if ($total <= self::TOP) {
+            return '';
+        }
+
+        $extra = $mostradas - self::TOP;
+
+        return sprintf(
+            ' Se muestran los %d %s con mayor resultado%s.',
+            self::TOP,
+            $quienes,
+            match (true) {
+                $extra === 1 => ' y el señalado en la respuesta o la recomendación',
+                $extra > 1 => ' y los señalados en la respuesta o la recomendación',
+                default => '',
+            },
+        );
+    }
+
+    /** "1 pedido", "67 pedidos". */
+    private function cantidad(int $numero, string $singular, string $plural): string
+    {
+        return $numero === 1 ? "1 {$singular}" : $this->numero($numero, 0)." {$plural}";
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Services\Pdf\Documentos;
 
 use App\Models\Pedido;
+use App\Models\PedidoDetalle;
 use Illuminate\Support\Carbon;
 
 /**
@@ -99,7 +100,7 @@ class PedidoPdf extends Documento
             ],
             $this->pedido->detalles->values()->map(fn ($linea, $indice): array => [
                 (string) ($indice + 1),
-                $linea->descripcion,
+                $this->trabajo($linea),
                 $this->medidas($linea->ancho, $linea->alto),
                 $this->numero($linea->cantidad, 0),
                 str_replace('_', ' ', $linea->estado_item),
@@ -108,7 +109,7 @@ class PedidoPdf extends Documento
 
         $this->recuadro([
             ['tipo' => 'titulo', 'texto' => 'Medidas de producción'],
-            ['tipo' => 'nota', 'texto' => 'Las medidas de arriba son las comprometidas con el cliente. Si la pieza terminada difiere, se registran las medidas REALES en el sistema (Pedidos → Ajustar medidas reales); el precio acordado no cambia por eso.'],
+            ['tipo' => 'nota', 'texto' => 'Las medidas de arriba son las de producción. Si un ítem se ajustó en el sistema (Pedidos → Ajustar medidas reales), su línea lo indica junto a lo que dice la cotización. La cotización y el precio acordado no cambian por un ajuste.'],
         ]);
 
         $this->totales([
@@ -129,6 +130,38 @@ class PedidoPdf extends Documento
             ['texto' => $this->pedido->numero_pedido, 'negrita' => true],
             ['texto' => '.'],
         ]);
+    }
+
+    /**
+     * Descripción del trabajo; si producción lo ajustó, con lo cotizado debajo
+     * para que el taller sepa que la medida cambió a propósito.
+     *
+     * @return string|array{texto: string, nota: string}
+     */
+    private function trabajo(PedidoDetalle $linea): string|array
+    {
+        $cotizado = $linea->cotizadoSiSeAjusto();
+
+        if ($cotizado === null) {
+            return $linea->descripcion;
+        }
+
+        $partes = [];
+
+        if ($cotizado['descripcion'] !== $linea->descripcion) {
+            $partes[] = $cotizado['descripcion'];
+        }
+
+        if ($cotizado['ancho'] && $cotizado['alto']) {
+            $partes[] = $this->numero($cotizado['ancho']).' × '.$this->numero($cotizado['alto']).' m';
+        }
+
+        $partes[] = 'cant. '.$this->numero($cotizado['cantidad'], 0);
+
+        return [
+            'texto' => $linea->descripcion,
+            'nota' => 'Ajustado en producción. Cotizado: '.implode(', ', $partes).'.',
+        ];
     }
 
     private function medidas(mixed $ancho, mixed $alto): string|array

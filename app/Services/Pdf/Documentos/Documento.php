@@ -287,8 +287,9 @@ abstract class Documento extends FPDF
         // páginas al cerrar el documento, y sobrevive a la conversión.
         $derecha = sprintf('%s · Página %d de {nb}', $this->titulo, $this->PageNo());
 
+        // Con tramo vacío ('') el pie dice solo "Empresa | Título".
         if ($this->tramoPie !== null) {
-            $izquierda = sprintf('%s | %s | %s', $this->empresa['nombre'], $this->titulo, $this->tramoPie);
+            $izquierda = implode(' | ', array_filter([$this->empresa['nombre'], $this->titulo, $this->tramoPie], fn (string $parte): bool => $parte !== ''));
             $derecha = sprintf('Página %d de {nb}', $this->PageNo());
         }
 
@@ -528,12 +529,17 @@ abstract class Documento extends FPDF
         $relleno = match ($tono) {
             'destacado' => [237, 245, 251],
             'aviso' => [254, 246, 230],
+            'exito' => [234, 246, 241],
+            // Lo que hay que atender primero (prioridad alta).
+            'alerta' => [253, 237, 237],
             default => self::FONDO,
         };
 
         $borde = match ($tono) {
             'destacado' => [186, 216, 238],
             'aviso' => [246, 221, 172],
+            'exito' => [190, 228, 211],
+            'alerta' => [245, 200, 198],
             default => self::BORDE,
         };
 
@@ -1085,9 +1091,22 @@ abstract class Documento extends FPDF
                     $pegar = false;
                 }
 
+                $previa = null;
+
                 foreach (preg_split('/\s+/u', trim($parrafo), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $palabra) {
                     $texto = $this->t($palabra);
 
+                    // "5,1 %" no se parte: el signo ("%", "%." o "%),") va
+                    // pegado a su número, con el espacio, y baja de renglón
+                    // con él en vez de quedar solo al principio del siguiente.
+                    if ($previa !== null && str_starts_with($palabra, '%')) {
+                        $palabras[$previa]['texto'] .= ' '.$texto;
+                        $palabras[$previa]['ancho'] = $this->GetStringWidth($palabras[$previa]['texto']);
+
+                        continue;
+                    }
+
+                    $previa = count($palabras);
                     $palabras[] = [
                         'texto' => $texto,
                         'estilo' => $estilo,
@@ -1231,30 +1250,58 @@ abstract class Documento extends FPDF
         $alto = $resumen ? 7.0 : 5.0;
 
         if ($resumen) {
-            $this->setRelleno(self::CELESTE);
-            $this->Rect(self::MARGEN_LATERAL, $y, $this->anchoUtil(), $alto, 'F');
-            $this->fuente(8.5, '', self::TEXTO);
-        } else {
-            $this->fuente(7, 'B', self::SUAVE);
+            $this->cabeceraResumen(array_values($columnas), $anchos, $y);
+
+            return;
         }
 
+        $this->fuente(7, 'B', self::SUAVE);
         $this->SetX(self::MARGEN_LATERAL);
 
         foreach (array_values($columnas) as $indice => $columna) {
-            $titulo = $resumen ? $columna['titulo'] : mb_strtoupper($columna['titulo'], 'UTF-8');
+            $this->Cell($anchos[$indice], $alto, $this->t(mb_strtoupper($columna['titulo'], 'UTF-8')), 0, 0, $columna['alineacion'] ?? 'L');
+        }
 
-            // La cabecera resumida lleva el mismo respiro que las celdas, para
-            // que el título quede alineado con el texto de su columna.
-            $this->SetX($this->GetX() + ($resumen ? self::RESPIRO : 0));
-            $this->Cell(
-                $anchos[$indice] - ($resumen ? 2 * self::RESPIRO : 0),
-                $alto,
-                $this->t($titulo),
-                0,
-                0,
-                $columna['alineacion'] ?? 'L',
-            );
-            $this->SetX($this->GetX() + ($resumen ? self::RESPIRO : 0));
+        $this->setTrazo(self::AZUL);
+        $this->SetLineWidth(0.45);
+        $this->Line(self::MARGEN_LATERAL, $y + $alto, $this->w - self::MARGEN_LATERAL, $y + $alto);
+        $this->SetLineWidth(0.2);
+
+        $this->SetXY(self::MARGEN_LATERAL, $y + $alto);
+    }
+
+    /**
+     * Cabecera de la tabla corta de un informe: franja celeste con los títulos
+     * en texto normal. Un título que no entra en su columna ("Ajuste de
+     * precios estimado") baja de renglón y la franja crece, en vez de pisarse
+     * con el de al lado. Con títulos de un renglón queda igual que siempre.
+     *
+     * @param  list<array{titulo: string, alineacion?: string}>  $columnas
+     * @param  list<float>  $anchos
+     */
+    private function cabeceraResumen(array $columnas, array $anchos, float $y): void
+    {
+        $this->fuente(8.5, '', self::TEXTO);
+        $altoLinea = $this->altoLinea(8.5);
+        $altos = array_map(
+            fn (array $columna, int $indice): float => $this->flujo($anchos[$indice] - 2 * self::RESPIRO, [['texto' => $columna['titulo']]], $altoLinea, dibujar: false),
+            $columnas,
+            array_keys($columnas),
+        );
+        $alto = max(7.0, max($altos) + 3.0);
+
+        $this->setRelleno(self::CELESTE);
+        $this->Rect(self::MARGEN_LATERAL, $y, $this->anchoUtil(), $alto, 'F');
+
+        $x = self::MARGEN_LATERAL;
+
+        foreach ($columnas as $indice => $columna) {
+            // Centrado en la franja, con el mismo respiro que las celdas para
+            // que quede alineado con el texto de su columna.
+            $this->SetXY($x + self::RESPIRO, $y + ($alto - $altos[$indice]) / 2);
+            $this->fuente(8.5, '', self::TEXTO);
+            $this->flujo($anchos[$indice] - 2 * self::RESPIRO, [['texto' => $columna['titulo']]], $altoLinea, $columna['alineacion'] ?? 'L');
+            $x += $anchos[$indice];
         }
 
         $this->setTrazo(self::AZUL);
@@ -1456,6 +1503,11 @@ abstract class Documento extends FPDF
 
         return match ($bloque['tipo']) {
             'titulo' => $this->bloqueSimple($bloque['texto'], $ancho, 9, 'B', self::OSCURO, $alineacion, $dibujar),
+            // Título y texto de los recuadros que se leen como parte del
+            // cuerpo ("Respuesta breve", "Acción sugerida"): más grandes que
+            // una nota. El encabezado deja un respiro antes del texto.
+            'encabezado' => $this->bloqueSimple($bloque['texto'], $ancho, 10.5, 'B', self::AZUL_OSCURO, $alineacion, $dibujar) + $this->respiro(1.5, $dibujar),
+            'texto' => $this->bloqueTexto($bloque, $ancho, $alineacion, $dibujar),
             'rotulo' => $this->bloqueSimple(mb_strtoupper($bloque['texto'], 'UTF-8'), $ancho, 7, 'B', self::TENUE, $alineacion, $dibujar),
             'rango' => $this->bloqueSimple($bloque['texto'], $ancho, 13, 'B', self::AZUL_OSCURO, $alineacion, $dibujar),
             'formula' => $this->bloqueSimple($bloque['texto'], $ancho, 10, 'B', self::AZUL_OSCURO, $alineacion, $dibujar),
@@ -1472,6 +1524,30 @@ abstract class Documento extends FPDF
         $this->fuente($tamano, $estilo, $color);
 
         return $this->flujo($ancho, [['texto' => $texto]], $this->altoLinea($tamano), $alineacion, $dibujar);
+    }
+
+    /**
+     * Texto de cuerpo dentro de un recuadro: admite `trozos` con negrita.
+     *
+     * @param  array<string, mixed>  $bloque
+     */
+    private function bloqueTexto(array $bloque, float $ancho, string $alineacion, bool $dibujar): float
+    {
+        $this->fuente(9.5, '', self::TEXTO);
+
+        $trozos = $bloque['trozos'] ?? [['texto' => (string) ($bloque['texto'] ?? '')]];
+
+        return $this->flujo($ancho, $trozos, $this->altoLinea(9.5), $alineacion, $dibujar);
+    }
+
+    /** Espacio vertical dentro de un recuadro; devuelve cuánto ocupa. */
+    private function respiro(float $milimetros, bool $dibujar): float
+    {
+        if ($dibujar) {
+            $this->SetY($this->GetY() + $milimetros);
+        }
+
+        return $milimetros;
     }
 
     /**

@@ -26,6 +26,20 @@ export const RECOMENDACIONES = {
     ROJO: 'NO ACEPTAR',
 };
 
+/**
+ * La recomendación en palabras de oración ("Aceptar", "Revisar precio",
+ * "No aceptar") para insignias y textos: el semáforo se nombra por lo que hay
+ * que hacer, no por su color (pedido del usuario, 2026-10-29).
+ *
+ * @param {'VERDE'|'AMARILLO'|'ROJO'} estado
+ * @returns {string}
+ */
+export function textoRecomendacion(estado) {
+    const texto = (RECOMENDACIONES[estado] ?? '').toLowerCase();
+
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 export const CLASES_SEMAFORO = {
     VERDE: 'semaforo semaforo-verde',
     AMARILLO: 'semaforo semaforo-amarillo',

@@ -92,6 +92,13 @@ const props = defineProps({
      */
     inicioProyeccion: { type: String, default: null },
     /**
+     * Línea vertical rotulada sobre UNA categoría: `{ etiqueta, texto }`. Para
+     * avisar que el valor de ese punto es parcial (el mes en curso, que
+     * todavía no termina) y no se lea como una caída. El texto también se
+     * agrega al título del tooltip. Solo en gráficos verticales.
+     */
+    marcaEje: { type: Object, default: null },
+    /**
      * El eje de valores cuenta cosas enteras (pedidos, presupuestos): sin
      * esto ECharts reparte pasos de 0,5 y, redondeados, se leen repetidos.
      */
@@ -177,6 +184,11 @@ const coloresSerie = computed(() => {
 });
 
 const hayEjeDerecho = computed(() => props.series.some((s) => s.eje === 'derecho'));
+
+/** La marca solo se dibuja si su categoría está en el eje (y el eje es horizontal). */
+const marcaVisible = computed(() => Boolean(
+    props.marcaEje && !props.horizontal && props.labels.includes(props.marcaEje.etiqueta),
+));
 
 function formatoDe(serie) {
     return serie?.eje === 'derecho' && props.formatoDerecho ? props.formatoDerecho : props.formato;
@@ -412,13 +424,32 @@ function marcas(listas) {
             animation: false,
             lineStyle: { color: tema.value?.eje, width: 1, type: [4, 4] },
             // En barras horizontales la línea es vertical: con 'insideEndTop'
-            // el rótulo saldría girado encima de las barras.
-            label: { color: tema.value?.eje, fontSize: 11, position: props.horizontal ? 'end' : 'insideEndTop', formatter: (p) => p.name },
+            // el rótulo saldría girado encima de las barras. El fondo de la
+            // tarjeta detrás del rótulo: una serie que pasa cerca no lo tapa.
+            label: {
+                color: tema.value?.eje,
+                fontSize: 11,
+                position: props.horizontal ? 'end' : 'insideEndTop',
+                backgroundColor: tema.value?.superficie,
+                padding: [1, 3],
+                formatter: (p) => p.name,
+            },
             data: umbrales.map((u) => (props.horizontal ? { xAxis: u.valor, name: u.nombre } : { yAxis: u.valor, name: u.nombre })),
         };
     });
 
     const primera = listas.find((s) => !s.meta.piso);
+
+    if (marcaVisible.value && primera) {
+        // Se suma a los umbrales de la primera serie (si los hay): un markLine por serie.
+        primera.markLine ??= { silent: true, symbol: 'none', animation: false, data: [] };
+        primera.markLine.data.push({
+            xAxis: props.marcaEje.etiqueta,
+            name: props.marcaEje.texto,
+            lineStyle: { color: tema.value?.eje, width: 1, type: [3, 3] },
+            label: { show: true, position: 'end', color: tema.value?.eje, fontSize: 11, formatter: (p) => p.name },
+        });
+    }
 
     if (props.inicioProyeccion && primera && props.labels.includes(props.inicioProyeccion)) {
         primera.markArea = {
@@ -471,7 +502,11 @@ function contenidoTooltip(puntos) {
         })
         .join('');
 
-    return filas ? `<div class="chart-tooltip-title">${escapar(props.labels[fila])}</div>${filas}` : '';
+    const titulo = marcaVisible.value && props.labels[fila] === props.marcaEje.etiqueta
+        ? `${props.labels[fila]} · ${props.marcaEje.texto}`
+        : props.labels[fila];
+
+    return filas ? `<div class="chart-tooltip-title">${escapar(titulo)}</div>${filas}` : '';
 }
 
 function opcion() {
@@ -499,7 +534,7 @@ function opcion() {
         grid: {
             left: 4,
             right: hayEjeDerecho.value ? 4 : 12,
-            top: props.inicioProyeccion || props.umbrales.length ? 24 : 12,
+            top: props.inicioProyeccion || props.umbrales.length || marcaVisible.value ? 24 : 12,
             bottom: 4,
             outerBoundsMode: 'same',
             outerBoundsContain: 'axisLabel',
@@ -579,7 +614,7 @@ onBeforeUnmount(() => {
 });
 
 // El tema entra acá: al pasar a oscuro se rehacen colores de ejes y grilla.
-watch([tema, () => props.series, () => props.labels, () => props.umbrales, () => [...ocultas]], async () => {
+watch([tema, () => props.series, () => props.labels, () => props.umbrales, () => props.marcaEje, () => [...ocultas]], async () => {
     await nextTick();
     redibujar();
 }, { deep: true });

@@ -2,6 +2,7 @@
 
 use App\Models\Area;
 use App\Models\Cliente;
+use App\Models\Cotizacion;
 use App\Models\Empleado;
 use App\Models\Pedido;
 use App\Models\Sucursal;
@@ -134,12 +135,14 @@ test('el texto automatico usa las cifras de la proyeccion', function () {
         ->and($pedidos['resumen']['mes_proyeccion'])->toBe($septiembre)
         ->and($pedidos['resumen']['tendencia'])->toBe('Sube 28,6 % al mes')
         ->and($pedidos['resumen']['confiabilidad'])->toBe('Alta')
+        // Redacción del informe modelo (2026-10-29): prudente y con el mes
+        // en palabras.
         ->and(implode(' ', $pedidos['lectura']))
-        ->toContain('Qué pasó: entre')
-        ->toContain('el promedio fue de 7 pedidos por mes')
-        ->toContain('Cómo viene: va en aumento')
-        ->toContain("para {$septiembre} unos 18 pedidos")
-        ->toContain('Confianza en la estimación: alta.')
+        ->toContain('Resultados registrados: de enero de 2026 a junio de 2026, la demanda promedió 7 pedidos al mes. En junio fue de 12 pedidos.')
+        ->toContain('Tendencia: el modelo calcula un aumento de 2,0 pedidos por mes (+28,6 % mensual).')
+        ->toContain('18 pedidos para septiembre de 2026')
+        ->toContain('no son límites garantizados')
+        ->toContain('Cómo usar la estimación: como una referencia confiable')
         ->and($informe['conclusiones'][0])->toBe('Pedidos: en promedio 7 pedidos por mes; van en aumento (+28,6 % al mes).');
 });
 
@@ -246,8 +249,92 @@ test('la conclusion de precio contra costo no dice crece cuando los dos bajan', 
     ]);
 
     // Los dos bajan, pero el precio más: el margen se achica.
-    expect($conclusiones(-0.5, -0.3))->toBe(['Precios y costos: el precio de los trabajos se está quedando atrás de lo que cuesta hacerlos, así que cada trabajo deja un poco menos de ganancia.'])
-        ->and($conclusiones(2.0, 1.0))->toBe(['Precios y costos: los precios acompañan a los costos, así que la ganancia de cada trabajo se mantiene.']);
+    expect($conclusiones(-0.5, -0.3))->toBe(['Precios y costos: el precio de los trabajos va por detrás de su costo, así que la rentabilidad tiende a achicarse.'])
+        ->and($conclusiones(2.0, 1.0))->toBe(['Precios y costos: el precio de los trabajos le gana a su costo, así que la rentabilidad se sostiene o crece.'])
+        // Una décima de diferencia (redondeada, como se muestra) es ruido: lo
+        // mismo que dice la pestaña.
+        ->and($conclusiones(-0.62, -0.52))->toBe(['Precios y costos: se mueven parecido, así que la relación entre precio y costo se mantiene.']);
+
+    expect(RedaccionPronostico::precioFrenteACosto(-0.62, -0.52))->toBe([
+        'comparacion' => 'parecido',
+        'lectura' => 'El precio promedio baja 0,6 % por mes y el costo, 0,5 %. Se mueven parecido: la relación entre precio y costo se mantiene.',
+    ]);
+});
+
+test('el informe de alertas tiene resumen de revision, una hoja por prioridad y no lleva anexo', function () {
+    // Una en rojo (11 % del costo) y una en amarillo que se ve "30,0 %" pero
+    // es 29,96 %: la nota del límite lo explica.
+    Cotizacion::factory()->create([
+        'fecha' => '2026-03-10', 'estado' => 'PENDIENTE', 'codigo_verificacion' => 'COT-ROJA',
+        'costo_ajustado' => 1000, 'utilidad_real' => 110, 'estado_margen' => 'ROJO',
+    ]);
+    Cotizacion::factory()->create([
+        'fecha' => '2026-04-10', 'estado' => 'PENDIENTE', 'codigo_verificacion' => 'COT-LIMITE',
+        'costo_ajustado' => 1000, 'utilidad_real' => 299.6, 'estado_margen' => 'AMARILLO',
+    ]);
+
+    $informe = app(InformeProyeccionesService::class)->armar($this->usuario, $this->periodo, ['alertas']);
+    $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
+
+    expect($texto)
+        ->toContain('INFORME DE ALERTAS')
+        ->toContain('Alertas que requieren atención')
+        ->toContain('2 alertas en el periodo')
+        ->toContain('1 de prioridad alta:')
+        ->toContain('Qué revisar primero')
+        ->toContain('Criterios para interpretar las alertas')
+        ->toContain('Presupuestos en rojo')
+        ->toContain('COT-ROJA')
+        ->toContain('Presupuestos cuyo precio conviene revisar')
+        ->toContain('Nota sobre el límite del semáforo')
+        ->toContain('sin redondear, su rentabilidad es 29,96 %')
+        ->toContain('Alcance del documento')
+        ->toContain('| Informe de alertas')
+        // Pedido del usuario: el informe de alertas no lleva anexo ni la
+        // portada general de estimaciones.
+        ->not->toContain('Anexo metodológico')
+        ->not->toContain('En pocas palabras')
+        ->not->toContain('QUÉ ESPERAR EN LOS PRÓXIMOS MESES');
+});
+
+test('el informe de presupuestos y rentabilidad abre con un resumen y sigue los tres bloques de la pestana', function () {
+    // Cuatro meses con presupuestos aprobados y hoja de costos (alcanza para
+    // estimar la rentabilidad) y uno pendiente.
+    foreach (['2026-01-10', '2026-02-10', '2026-03-10', '2026-04-10'] as $i => $fecha) {
+        Cotizacion::factory()->aprobada()->create([
+            'fecha' => $fecha, 'subtotal' => 1400 + $i * 50, 'descuento' => 0, 'total' => 1582,
+            'costo_ajustado' => 1000, 'utilidad_real' => 300 - $i * 20, 'estado_margen' => 'VERDE',
+        ]);
+    }
+    Cotizacion::factory()->create(['fecha' => '2026-05-10', 'estado' => 'PENDIENTE', 'total' => 500]);
+
+    $informe = app(InformeProyeccionesService::class)->armar($this->usuario, $this->periodo, ['rentabilidad']);
+    $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
+    $cuerpo = substr($texto, 0, strpos($texto, 'Anexo metodológico'));
+
+    expect($texto)
+        ->toContain('RESUMEN PARA LA GERENCIA')
+        ->toContain('Lo principal')
+        ->toContain('Por cada Bs 100 de costo ajustado, el resultado calculado es Bs')
+        ->toContain('Qué revisar')
+        ->toContain('Dar seguimiento al presupuesto pendiente.')
+        ->toContain('BLOQUE 1 DE 3')
+        ->toContain('Qué se cotizó y cuánto se aprobó')
+        ->toContain('BLOQUE 2 DE 3')
+        ->toContain('Tasa de aprobación')
+        ->toContain('Mes a mes')
+        ->toContain('BLOQUE 3 DE 3')
+        ->toContain('Cómo salieron los 5 presupuestos emitidos')
+        ->toContain('Semáforo del sistema: verde por encima de 30,0 %')
+        ->toContain('Ficha de cada estimación')
+        // El pie lleva el nombre de la pestaña, no "Informe del negocio".
+        ->toContain('| Presupuestos y rentabilidad')
+        // La portada general no va: el resumen la reemplaza.
+        ->not->toContain('En pocas palabras')
+        // Los mismos nombres que la pantalla.
+        ->and($cuerpo)->not->toContain('Ganancia')
+        ->and($cuerpo)->toContain('Monto aprobado')
+        ->and($cuerpo)->toContain('Resultado calculado del mes');
 });
 
 test('cada pestana del BI abre el informe con su propia seccion', function () {

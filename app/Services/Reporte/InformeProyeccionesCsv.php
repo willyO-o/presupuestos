@@ -9,7 +9,8 @@ namespace App\Services\Reporte;
  * mes a mes, real y proyectada, en formato largo (una fila por mes e
  * indicador, se filtra o se arma una tabla dinámica sin rehacer nada); (2)
  * la ficha del método de cada uno; (3) las alertas; (4) las preguntas para
- * decidir, cada una con su respuesta, su tabla y qué hacer.
+ * decidir, cada una con su respuesta, su tabla, qué hacer, cómo interpretarla
+ * y los datos utilizados.
  *
  * Formato pensado para Excel en español: separador `;`, coma decimal, sin
  * separador de miles y BOM UTF-8 (sin BOM, Excel abre los acentos como
@@ -102,6 +103,10 @@ final class InformeProyeccionesCsv
 
                 foreach ($pregunta['acciones'] as $accion) {
                     $fila(['Qué hacer', $accion['texto'], self::numero($accion['impacto'])]);
+                }
+
+                if ($pregunta['interpretacion'] ?? null) {
+                    $fila(['Cómo interpretar', $pregunta['interpretacion']]);
                 }
 
                 if ($pregunta['base']) {

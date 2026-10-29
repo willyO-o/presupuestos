@@ -15,6 +15,14 @@ use Illuminate\Support\Carbon;
 class NotaEntregaPdf extends Documento
 {
     /**
+     * Alto de la fila con la foto de evidencia, en mm. Unas tres veces la
+     * miniatura de antes (pedido del usuario, 2026-10-29): la foto tiene que
+     * notarse al firmar, no ser un sello. Una foto horizontal 3:2 sale de
+     * unos 52 × 35 mm; una vertical, de unos 26 × 35 mm.
+     */
+    private const ALTO_EVIDENCIA_ENTREGA = 38.0;
+
+    /**
      * @param  array<string, mixed>  $empresa
      */
     public function __construct(
@@ -79,17 +87,18 @@ class NotaEntregaPdf extends Documento
         $this->tabla(
             [
                 ['titulo' => '#', 'ancho' => 5],
-                ['titulo' => 'Descripción del trabajo entregado', 'ancho' => 45],
-                ['titulo' => 'Cant.', 'ancho' => 10, 'alineacion' => 'R'],
-                ['titulo' => 'Ubicación', 'ancho' => 25],
-                ['titulo' => 'Evidencia', 'ancho' => 15, 'alineacion' => 'C'],
+                ['titulo' => 'Descripción del trabajo entregado', 'ancho' => 36],
+                ['titulo' => 'Cant.', 'ancho' => 8, 'alineacion' => 'R'],
+                ['titulo' => 'Ubicación', 'ancho' => 22],
+                // 29 % de 192 mm: entra la foto horizontal entera con su respiro.
+                ['titulo' => 'Evidencia', 'ancho' => 29, 'alineacion' => 'C'],
             ],
             $this->nota->detalles->values()->map(fn ($linea, $indice): array => [
                 (string) ($indice + 1),
                 $linea->descripcion,
                 $this->numero($linea->cantidad_entregada, 0),
                 $linea->ubicacion ?? '—',
-                ['texto' => '—', 'imagen' => $linea->fotoRuta()],
+                ['texto' => '—', 'imagen' => $linea->fotoRuta(), 'alto_imagen' => self::ALTO_EVIDENCIA_ENTREGA],
             ])->all(),
         );
 

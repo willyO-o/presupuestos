@@ -4,27 +4,92 @@ import { Head } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import AyudaInfo from '@/Components/AyudaInfo.vue';
+import AvisoMesIncompleto from '@/Components/Reporte/AvisoMesIncompleto.vue';
+import BiBloque from '@/Components/Reporte/BiBloque.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
 import BiKpi from '@/Components/Reporte/BiKpi.vue';
+import ConfiabilidadPronostico from '@/Components/Reporte/ConfiabilidadPronostico.vue';
 import MetodoPronostico from '@/Components/Reporte/MetodoPronostico.vue';
 import { seriesProyectadas } from '@/Utils/SerieProyectada.js';
 import { money, moneyCorto, numero, porcentaje } from '@/Utils/FormatoReporte.js';
 
 defineOptions({ layout: MainDashboardLayout });
 
+/**
+ * Presupuestos y rentabilidad, en tres bloques que se leen de arriba abajo:
+ *
+ * 1. Qué se cotizó y cuánto se aprobó: montos emitidos y aprobados por mes,
+ *    con la estimación del emitido.
+ * 2. Aprobaciones y relación entre precio y costo: cantidades por mes y el
+ *    precio promedio frente al costo promedio.
+ * 3. Rentabilidad y resultado: el porcentaje sobre el costo y el monto en
+ *    bolivianos, que son indicadores distintos y van por separado.
+ *
+ * "Resultado calculado" es la `utilidad_real` del motor de margen: precio
+ * sin IVA − costo ajustado − IT − IUE. No es dinero cobrado.
+ */
 const props = defineProps({
     datos: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
 });
 
 const futuros = computed(() => props.datos.meses_proyeccion);
-
 const vacioFuturo = computed(() => Array(futuros.value.length).fill(null));
 const labelsConFuturo = computed(() => [...props.datos.labels, ...futuros.value]);
+const inicioFuturo = computed(() => futuros.value[0] ?? null);
 
-/* ----- Pronóstico de presupuestos ---------------------------------------- */
+const resumen = computed(() => props.datos.resumen);
+const rentabilidadDatos = computed(() => props.datos.rentabilidad);
 
-const pronostico = computed(() => {
+function entero(value) {
+    return numero(value, 0);
+}
+
+/** Monto para una nota: "Bs" y la cifra no se separan al partir el renglón. */
+function montoJunto(value) {
+    return money(value).replace(' ', '\u00a0');
+}
+
+function pct(value) {
+    return porcentaje(value);
+}
+
+/** El último mes del periodo no terminó: se marca en cada gráfico mensual. */
+const marcaMes = computed(() => (props.datos.periodo.mes_incompleto && props.datos.labels.length
+    ? { etiqueta: props.datos.labels.at(-1), texto: 'Mes incompleto' }
+    : null));
+
+const nombreMesIncompleto = computed(() => {
+    const palabra = props.datos.periodo.mes_incompleto?.mes?.split(' ')[0] ?? '';
+
+    return palabra.charAt(0).toUpperCase() + palabra.slice(1);
+});
+
+/* ----- Indicadores de arriba ------------------------------------------------ */
+
+const tonoRentabilidad = computed(() => {
+    const valor = rentabilidadDatos.value.rentabilidad_promedio;
+    const { verde, amarillo } = rentabilidadDatos.value.umbrales;
+
+    if (valor === null) {
+        return 'info';
+    }
+
+    return valor > verde ? 'success' : valor > amarillo ? 'warning' : 'danger';
+});
+
+const rentabilidadEstimada = computed(() => rentabilidadDatos.value.proyeccion_porcentaje.at(-1)?.valor ?? null);
+
+/** "Por cada Bs 100 de costo…": el porcentaje del indicador, en bolivianos. */
+const porCadaCien = computed(() => {
+    const r = rentabilidadDatos.value.rentabilidad_promedio;
+
+    return r === null ? null : money(r);
+});
+
+/* ----- 1. Qué se cotizó y cuánto se aprobó -------------------------------------- */
+
+const montos = computed(() => {
     const p = props.datos.pronostico;
 
     return {
@@ -32,12 +97,13 @@ const pronostico = computed(() => {
         series: [
             { nombre: 'Monto emitido', datos: [...p.monto_emitido, ...vacioFuturo.value], area: true },
             { nombre: 'Monto aprobado', datos: [...p.monto_aprobado, ...vacioFuturo.value] },
-            ...seriesProyectadas(p.monto_emitido, p.proyeccion_emitido, p.metodo, 'Proyección emitido'),
+            ...seriesProyectadas(p.monto_emitido, p.proyeccion_emitido, p.metodo, 'Estimación del emitido'),
         ],
     };
 });
 
-/** Cantidad emitida contra aprobada, mes a mes. */
+/* ----- 2. Aprobaciones y relación entre precio y costo ---------------------------- */
+
 const cantidades = computed(() => {
     const p = props.datos.pronostico;
 
@@ -50,7 +116,18 @@ const cantidades = computed(() => {
     };
 });
 
-/* ----- Tendencia precio vs costo ----------------------------------------- */
+/** "768 ÷ (1.521 − 31) = 51,5 %": de dónde sale la tasa de aprobación. */
+const cuentaAprobacion = computed(() => {
+    const r = resumen.value;
+
+    if (r.tasa_conversion === null) {
+        return null;
+    }
+
+    return r.pendientes
+        ? `${entero(r.aprobados)} ÷ (${entero(r.emitidos)} − ${entero(r.pendientes)}) = ${porcentaje(r.tasa_conversion)}`
+        : `${entero(r.aprobados)} ÷ ${entero(r.emitidos)} = ${porcentaje(r.tasa_conversion)}`;
+});
 
 const tendencia = computed(() => ({
     labels: props.datos.labels,
@@ -62,32 +139,22 @@ const tendencia = computed(() => ({
 }));
 
 /**
- * Lectura en una frase de las dos pendientes: si el precio va por detrás del
- * costo, el margen se achica aunque se venda más.
+ * Lectura del precio frente al costo, en palabras. La calcula el servidor
+ * (RedaccionPronostico::precioFrenteACosto), con la misma regla que el informe.
  */
-const lecturaTendencia = computed(() => {
-    const { variacion_ticket: precio, variacion_costo: costo } = props.datos.tendencia;
+const lecturaTendencia = computed(() => props.datos.tendencia.lectura
+    ?? 'Se necesitan al menos 3 meses con presupuestos (y con hoja de costos) para comparar tendencias.');
 
-    if (precio === null || costo === null) {
-        return 'Se necesitan al menos 3 meses con presupuestos (y con hoja de costos) para comparar tendencias.';
-    }
-
-    // "Va por detrás", no "crece más lento": las dos pendientes pueden ser negativas.
-    return costo > precio
-        ? 'El precio promedio va por detrás del costo: el margen se está achicando. Revisar precios o márgenes por tipo de proyecto.'
-        : 'El precio promedio acompaña al costo o le gana: el margen se sostiene.';
-});
-
-/* ----- Rentabilidad ------------------------------------------------------- */
+/* ----- 3. Rentabilidad y resultado -------------------------------------------------- */
 
 const rentabilidad = computed(() => {
-    const r = props.datos.rentabilidad;
+    const r = rentabilidadDatos.value;
 
     return {
         labels: labelsConFuturo.value,
         series: [
             { nombre: 'Rentabilidad', datos: [...r.porcentaje, ...vacioFuturo.value] },
-            ...seriesProyectadas(r.porcentaje, r.proyeccion_porcentaje, r.metodo),
+            ...seriesProyectadas(r.porcentaje, r.proyeccion_porcentaje, r.metodo, 'Estimación'),
         ],
         umbrales: [
             { valor: r.umbrales.verde, nombre: `Verde ${r.umbrales.verde} %` },
@@ -96,198 +163,243 @@ const rentabilidad = computed(() => {
     };
 });
 
-const utilidad = computed(() => {
-    const r = props.datos.rentabilidad;
+const resultado = computed(() => {
+    const r = rentabilidadDatos.value;
 
     return {
         labels: labelsConFuturo.value,
         series: [
-            { nombre: 'Utilidad real', tipo: 'bar', datos: [...r.utilidad, ...vacioFuturo.value] },
-            ...seriesProyectadas(r.utilidad, r.proyeccion_utilidad, r.metodo_utilidad),
+            { nombre: 'Resultado calculado', tipo: 'bar', datos: [...r.utilidad, ...vacioFuturo.value] },
+            ...seriesProyectadas(r.utilidad, r.proyeccion_utilidad, r.metodo_utilidad, 'Estimación'),
         ],
     };
 });
 
-const inicioFuturo = computed(() => futuros.value[0] ?? null);
+/** Cómo salieron los presupuestos emitidos en el semáforo del motor de margen. */
+const semaforo = computed(() => {
+    const s = rentabilidadDatos.value.semaforo;
+    const { verde, amarillo } = rentabilidadDatos.value.umbrales;
 
-const rentabilidadProyectada = computed(() => props.datos.rentabilidad.proyeccion_porcentaje.at(-1)?.valor ?? null);
-
-const tonoRentabilidad = computed(() => {
-    const valor = props.datos.rentabilidad.rentabilidad_promedio;
-    const { verde, amarillo } = props.datos.rentabilidad.umbrales;
-
-    if (valor === null) {
-        return 'info';
-    }
-
-    return valor > verde ? 'success' : valor > amarillo ? 'warning' : 'danger';
+    return {
+        total: s.VERDE + s.AMARILLO + s.ROJO + s.SIN_COSTO,
+        zonas: [
+            { clase: 'semaforo-verde', cantidad: s.VERDE, texto: `Aceptar · más de ${numero(verde, 0)} %` },
+            { clase: 'semaforo-amarillo', cantidad: s.AMARILLO, texto: `Revisar precio · ${numero(amarillo, 0)} a ${numero(verde, 0)} %` },
+            { clase: 'semaforo-rojo', cantidad: s.ROJO, texto: `No aceptar · hasta ${numero(amarillo, 0)} %` },
+        ],
+        sinCosto: s.SIN_COSTO,
+    };
 });
 
-function pct(value) {
-    return porcentaje(value);
-}
+/* ----- Qué revisar ------------------------------------------------------------------ */
+
+/** Los arma el servidor (PresupuestosRentabilidadService::queRevisar): el informe dice lo mismo. */
+const queRevisar = computed(() => props.datos.que_revisar ?? []);
 </script>
 
 <template>
     <Head title="Presupuestos y rentabilidad" />
 
     <div class="page-stack">
-        <BiEncabezado :periodo="datos.periodo" :filters="filters" />
+        <BiEncabezado :periodo="datos.periodo" :filters="filters">
+            <template v-if="datos.periodo.mes_incompleto" #aviso>
+                <AvisoMesIncompleto :mes="datos.periodo.mes_incompleto">Los montos cotizados no son dinero cobrado.</AvisoMesIncompleto>
+            </template>
+        </BiEncabezado>
 
         <div class="row">
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Presupuestos emitidos" ayuda="bi-rentabilidad.kpi-emitidos" icono="fa-solid fa-file-invoice" tono="primary"
-                    :valor="String(datos.resumen.emitidos)" :variacion="datos.pronostico.variacion_mensual"
-                    :nota="`${money(datos.resumen.monto_emitido)} en total`" />
+                <BiKpi etiqueta="Presupuestos emitidos" ayuda="bi-rentabilidad.kpi-emitidos" icono="fa-solid fa-file-invoice"
+                    tono="primary" :valor="entero(resumen.emitidos)" :nota="`Monto emitido: ${montoJunto(resumen.monto_emitido)}`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Tasa de aprobación" ayuda="bi-rentabilidad.kpi-aprobacion" icono="fa-solid fa-handshake" tono="success"
-                    :valor="porcentaje(datos.resumen.tasa_conversion)"
-                    :nota="`${datos.resumen.aprobados} aprobados · ${datos.resumen.pendientes} pendientes (no cuentan)`" />
+                <BiKpi etiqueta="Aprobación entre presupuestos decididos" ayuda="bi-rentabilidad.kpi-aprobacion"
+                    icono="fa-solid fa-handshake" tono="success" :valor="porcentaje(resumen.tasa_conversion)"
+                    :nota="`${entero(resumen.aprobados)} aprobados · ${entero(resumen.pendientes)} pendientes excluidos`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Rentabilidad sobre costo" ayuda="bi-rentabilidad.kpi-rentabilidad" icono="fa-solid fa-percent" :tono="tonoRentabilidad"
-                    :valor="porcentaje(datos.rentabilidad.rentabilidad_promedio)"
-                    :variacion="datos.rentabilidad.variacion_mensual"
-                    :nota="`Utilidad real ${money(datos.rentabilidad.utilidad_total)}`" />
+                <BiKpi etiqueta="Rentabilidad calculada sobre costo" ayuda="bi-rentabilidad.kpi-rentabilidad"
+                    icono="fa-solid fa-percent" :tono="tonoRentabilidad" :valor="porcentaje(rentabilidadDatos.rentabilidad_promedio)"
+                    :nota="`Resultado calculado: ${montoJunto(rentabilidadDatos.utilidad_total)}`" />
             </div>
             <div class="col-lg-3 col-md-6">
-                <BiKpi etiqueta="Rentabilidad proyectada" ayuda="bi-rentabilidad.kpi-proyectada" icono="fa-solid fa-binoculars" tono="info"
-                    :valor="porcentaje(rentabilidadProyectada)"
-                    :nota="rentabilidadProyectada === null ? 'Faltan meses con datos' : `Estimada para ${futuros.at(-1)}`" />
+                <BiKpi :etiqueta="futuros.length ? `Rentabilidad estimada para ${futuros.at(-1)}` : 'Rentabilidad estimada'"
+                    ayuda="bi-rentabilidad.kpi-proyectada" icono="fa-solid fa-binoculars" tono="info"
+                    :valor="porcentaje(rentabilidadEstimada)"
+                    :nota="rentabilidadEstimada === null ? 'Faltan meses con datos' : 'Proyección del modelo; no garantizada'" />
             </div>
         </div>
 
-        <!-- Pronóstico de presupuestos -->
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <span class="card-title">Pronóstico de presupuestos <AyudaInfo clave="bi-rentabilidad.pronostico" /></span>
-                    <p class="card-subtitle">
-                        Monto emitido y aprobado por mes, con la tendencia del monto emitido a {{ futuros.length }} meses
-                        <span v-if="!datos.pronostico.proyeccion_emitido.length">· se necesitan al menos 3 meses en el periodo para proyectar</span>
+        <div v-if="porCadaCien" class="bi-definicion">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <p>
+                <strong>¿Qué significa {{ porcentaje(rentabilidadDatos.rentabilidad_promedio) }} sobre costo?</strong>
+                Por cada Bs 100 de costo ajustado, el resultado calculado (ya descontados IT e IUE) es {{ porCadaCien }}.
+                No equivale al margen sobre las ventas<template v-if="rentabilidadDatos.margen_sobre_precio !== null">:
+                    sobre el precio sin IVA, el resultado es el {{ porcentaje(rentabilidadDatos.margen_sobre_precio) }}</template>.
+            </p>
+        </div>
+
+        <!-- ==================== 1. QUÉ SE COTIZÓ Y CUÁNTO SE APROBÓ ==================== -->
+        <BiBloque :numero="1" titulo="Qué se cotizó y cuánto se aprobó"
+            subtitulo="El monto de los presupuestos emitidos y aprobados cada mes, y hacia dónde va lo emitido.">
+            <div class="card">
+                <div class="card-header bi-cabecera-con-aviso">
+                    <div>
+                        <span class="card-title">Montos cotizados y aprobados por mes <AyudaInfo clave="bi-rentabilidad.pronostico" /></span>
+                        <p class="card-subtitle">
+                            Historial y estimación del monto emitido · Bolivianos
+                            <span v-if="!datos.pronostico.proyeccion_emitido.length">· se necesitan al menos 3 meses en el periodo para estimar</span>
+                        </p>
+                    </div>
+                    <ConfiabilidadPronostico :metodo="datos.pronostico.metodo" />
+                </div>
+                <div class="card-body">
+                    <BaseChart titulo="Montos cotizados y aprobados por mes" :labels="montos.labels" :series="montos.series"
+                        :formato="moneyCorto" :formato-tooltip="money" :alto="300" :inicio-proyeccion="inicioFuturo"
+                        :marca-eje="marcaMes" vacio="No hay presupuestos emitidos en el periodo." />
+                    <p class="bi-nota">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span>La estimación corresponde al monto emitido, no a ventas futuras aseguradas.</span>
                     </p>
+                    <MetodoPronostico :metodo="datos.pronostico.metodo" />
                 </div>
             </div>
-            <div class="card-body">
-                <BaseChart titulo="Pronóstico de presupuestos" :labels="pronostico.labels" :series="pronostico.series"
-                    :formato="moneyCorto" :alto="300" :inicio-proyeccion="inicioFuturo"
-                    vacio="No hay presupuestos emitidos en el periodo." />
-                <MetodoPronostico :metodo="datos.pronostico.metodo" />
-            </div>
-        </div>
+        </BiBloque>
 
-        <div class="row">
-            <div class="col-lg-6">
+        <!-- ==================== 2. APROBACIONES Y PRECIO FRENTE A COSTO ==================== -->
+        <BiBloque :numero="2" titulo="Aprobaciones y relación entre precio y costo"
+            subtitulo="Cuántos presupuestos se emitieron y aprobaron, y si el precio acompaña al costo.">
+            <div class="bi-demanda-par">
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Presupuestos por mes <AyudaInfo clave="bi-rentabilidad.cantidades" /></span>
+                            <span class="card-title">Cantidad de presupuestos por mes <AyudaInfo clave="bi-rentabilidad.cantidades" /></span>
                             <p class="card-subtitle">Cantidad emitida y aprobada</p>
                         </div>
                     </div>
                     <div class="card-body">
-                        <BaseChart titulo="Presupuestos por mes" tipo="bar" :labels="cantidades.labels"
-                            :series="cantidades.series" :formato="(v) => numero(v, 0)" :alto="260" enteros
+                        <BaseChart titulo="Cantidad de presupuestos por mes" tipo="bar" :labels="cantidades.labels"
+                            :series="cantidades.series" :formato="entero" :alto="260" enteros :marca-eje="marcaMes"
                             vacio="No hay presupuestos emitidos en el periodo." />
+                        <p v-if="cuentaAprobacion" class="bi-nota">
+                            <i class="fa-solid fa-calculator" aria-hidden="true"></i>
+                            <span>
+                                La tasa de aprobación
+                                <template v-if="resumen.pendientes">excluye los {{ entero(resumen.pendientes) }} pendientes</template>
+                                <template v-else>cuenta todos los presupuestos</template>:
+                                <strong>{{ cuentaAprobacion }}</strong>.
+                            </span>
+                        </p>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-6">
+
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span class="card-title">Tendencia: precio vs. costo <AyudaInfo clave="bi-rentabilidad.tendencia" /></span>
-                            <p class="card-subtitle">Precio promedio por presupuesto (sin IVA) contra su costo ajustado promedio</p>
+                            <span class="card-title">Precio y costo promedio por presupuesto <AyudaInfo clave="bi-rentabilidad.tendencia" /></span>
+                            <p class="card-subtitle">Precio sin IVA frente a costo ajustado, de los mismos presupuestos</p>
                         </div>
                     </div>
                     <div class="card-body">
-                        <BaseChart titulo="Tendencia de precio y costo promedio" :labels="tendencia.labels"
-                            :series="tendencia.series" :formato="moneyCorto" :alto="220"
+                        <BaseChart titulo="Precio y costo promedio por presupuesto" :labels="tendencia.labels"
+                            :series="tendencia.series" :formato="moneyCorto" :formato-tooltip="money" :alto="260"
                             vacio="No hay presupuestos emitidos en el periodo." />
                         <p class="bi-aviso mt-3 mb-0">
-                            <i class="fa-solid fa-circle-info"></i>
-                            <span>{{ lecturaTendencia }}</span>
+                            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                            <span>{{ lecturaTendencia }} El gráfico no confirma por sí solo la causa: conviene revisar la composición de los trabajos.</span>
                         </p>
                     </div>
                 </div>
             </div>
-        </div>
+        </BiBloque>
 
-        <!-- Proyección de rentabilidad -->
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <span class="card-title">Proyección de rentabilidad</span>
-                    <p class="card-subtitle">
-                        Utilidad real ÷ costo ajustado de los presupuestos aprobados, contra los umbrales del semáforo
-                    </p>
+        <!-- ==================== 3. RENTABILIDAD Y RESULTADO ==================== -->
+        <BiBloque :numero="3" titulo="Rentabilidad y resultado: indicadores distintos"
+            subtitulo="La rentabilidad es un porcentaje sobre el costo; el resultado, un monto en bolivianos.">
+            <p v-if="rentabilidadDatos.excluidos_sin_costo" class="bi-aviso">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                <span>
+                    {{ rentabilidadDatos.excluidos_sin_costo }}
+                    {{ rentabilidadDatos.excluidos_sin_costo === 1 ? 'presupuesto aprobado no tiene' : 'presupuestos aprobados no tienen' }}
+                    hoja de costos (son anteriores al motor de margen) y no entran en estos cálculos: su resultado aparecería
+                    como el 100 % del precio. Se analizan {{ entero(rentabilidadDatos.analizados) }}.
+                </span>
+            </p>
+
+            <div class="bi-demanda-par">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-title">Rentabilidad sobre costo (%) <AyudaInfo clave="bi-rentabilidad.rentabilidad" /></span>
+                            <p class="card-subtitle">Resultado calculado ÷ costo ajustado × 100, de los presupuestos aprobados</p>
+                        </div>
+                    </div>
+                    <div class="card-body bi-rentabilidad-cuerpo">
+                        <BaseChart titulo="Rentabilidad sobre costo" :labels="rentabilidad.labels" :series="rentabilidad.series"
+                            :formato="pct" :alto="260" :umbrales="rentabilidad.umbrales" :inicio-proyeccion="inicioFuturo"
+                            :marca-eje="marcaMes" unir-huecos vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
+
+                        <div class="bi-semaforo">
+                            <p class="bi-semaforo-titulo">
+                                Cómo salieron los {{ entero(semaforo.total) }} presupuestos emitidos
+                                <AyudaInfo clave="bi-rentabilidad.semaforo" />
+                            </p>
+                            <ul class="bi-semaforo-zonas">
+                                <li v-for="z in semaforo.zonas" :key="z.clase">
+                                    <span class="semaforo" :class="z.clase"><span class="semaforo-punto"></span>{{ entero(z.cantidad) }}</span>
+                                    <span>{{ z.texto }}</span>
+                                </li>
+                                <li v-if="semaforo.sinCosto">
+                                    <span class="fw-semibold">{{ entero(semaforo.sinCosto) }}</span>
+                                    <span>sin hoja de costos</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <p v-if="marcaMes" class="bi-nota mt-0">
+                            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                            <span>{{ nombreMesIncompleto }} es parcial: su rentabilidad puede cambiar al completarse los registros.</span>
+                        </p>
+                        <ConfiabilidadPronostico :metodo="rentabilidadDatos.metodo" />
+                        <MetodoPronostico :metodo="rentabilidadDatos.metodo" />
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-title">Resultado calculado por mes (Bs) <AyudaInfo clave="bi-rentabilidad.utilidad" /></span>
+                            <p class="card-subtitle">Importe calculado por el sistema, ya descontados IT e IUE; no equivale a cobros recibidos</p>
+                        </div>
+                    </div>
+                    <div class="card-body bi-rentabilidad-cuerpo">
+                        <BaseChart titulo="Resultado calculado por mes" :labels="resultado.labels" :series="resultado.series"
+                            :formato="moneyCorto" :formato-tooltip="money" :alto="260" :inicio-proyeccion="inicioFuturo"
+                            :marca-eje="marcaMes" vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
+                        <ConfiabilidadPronostico :metodo="rentabilidadDatos.metodo_utilidad" />
+                        <MetodoPronostico :metodo="rentabilidadDatos.metodo_utilidad" />
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <p v-if="datos.rentabilidad.excluidos_sin_costo" class="bi-aviso mb-3">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <span>
-                        {{ datos.rentabilidad.excluidos_sin_costo }} presupuesto(s) aprobado(s) del periodo no tienen hoja de
-                        costos (son anteriores al motor de margen) y no entran en este cálculo: su utilidad aparecería
-                        como el 100 % del precio. Se analizan {{ datos.rentabilidad.analizados }}.
+
+            <section class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                        Qué revisar <AyudaInfo clave="bi-rentabilidad.que-revisar" />
                     </span>
-                </p>
-                <div class="row">
-                    <div class="col-lg-7">
-                        <p class="chart-heading">Rentabilidad por mes <AyudaInfo clave="bi-rentabilidad.rentabilidad" /></p>
-                        <BaseChart titulo="Rentabilidad por mes" :labels="rentabilidad.labels" :series="rentabilidad.series"
-                            :formato="pct" :alto="280" :umbrales="rentabilidad.umbrales" :inicio-proyeccion="inicioFuturo"
-                            unir-huecos vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
-                        <MetodoPronostico :metodo="datos.rentabilidad.metodo" />
-                    </div>
-                    <div class="col-lg-5">
-                        <p class="chart-heading">Utilidad real por mes <AyudaInfo clave="bi-rentabilidad.utilidad" /></p>
-                        <BaseChart titulo="Utilidad real por mes" :labels="utilidad.labels" :series="utilidad.series"
-                            :formato="moneyCorto" :alto="280" :inicio-proyeccion="inicioFuturo"
-                            vacio="Ningún presupuesto aprobado del periodo tiene hoja de costos." />
-                        <MetodoPronostico :metodo="datos.rentabilidad.metodo_utilidad" />
-                    </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <span class="card-title">Semáforo de los presupuestos del periodo <AyudaInfo clave="bi-rentabilidad.semaforo" /></span>
-                    <p class="card-subtitle">Cómo salieron todos los presupuestos emitidos según el motor de margen</p>
-                </div>
-            </div>
-            <div class="card-body">
-                <!-- Cuatro números sueltos: fila de KPIs, no un gráfico. -->
-                <div class="row">
-                    <div class="col-lg-3 col-6">
-                        <div class="reporte-kpi">
-                            <span class="reporte-kpi-value">{{ datos.rentabilidad.semaforo.VERDE }}</span>
-                            <span class="semaforo semaforo-verde"><span class="semaforo-punto"></span>Aceptar</span>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-6">
-                        <div class="reporte-kpi">
-                            <span class="reporte-kpi-value">{{ datos.rentabilidad.semaforo.AMARILLO }}</span>
-                            <span class="semaforo semaforo-amarillo"><span class="semaforo-punto"></span>Revisar precio</span>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-6">
-                        <div class="reporte-kpi">
-                            <span class="reporte-kpi-value">{{ datos.rentabilidad.semaforo.ROJO }}</span>
-                            <span class="semaforo semaforo-rojo"><span class="semaforo-punto"></span>No aceptar</span>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-6">
-                        <div class="reporte-kpi">
-                            <span class="reporte-kpi-value">{{ datos.rentabilidad.semaforo.SIN_COSTO }}</span>
-                            <span class="reporte-kpi-label">Sin hoja de costos</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                <ol class="card-body bi-pasos">
+                    <li v-for="(paso, i) in queRevisar" :key="paso.titulo" class="bi-paso">
+                        <span class="resumen-accion-numero" aria-hidden="true">{{ i + 1 }}</span>
+                        <span class="resumen-accion-cuerpo">
+                            <strong class="resumen-accion">{{ paso.titulo }}</strong>
+                            <span class="resumen-motivo">{{ paso.detalle }}</span>
+                        </span>
+                    </li>
+                </ol>
+            </section>
+        </BiBloque>
     </div>
 </template>

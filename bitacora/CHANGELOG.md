@@ -13,6 +13,520 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-29 — Vista de detalle de la cotización rediseñada
+
+**Qué cambió:**
+- La pantalla de una cotización sigue la imagen que pasó el usuario:
+  - **resumen arriba:** tres tarjetas con el cliente, el total cotizado (qué incluye y hasta cuándo es válido) y el
+    estado (con enlace al pedido si ya se convirtió);
+  - **acciones:** "Volver a cotizaciones", Imprimir, Descargar PDF, Ver PDF y, según el estado, Editar, Aprobar,
+    Rechazar, Convertir o Ver pedido;
+  - **documento** ("Detalle de la cotización"): medidas por unidad con m², la nota "Las medidas corresponden a cada
+    unidad" y el total en franja;
+  - **análisis de rentabilidad (solo uso interno, debajo del documento):**
+    - costo ajustado, resultado calculado y rentabilidad sobre costo;
+    - qué significa por cada Bs 100;
+    - la resta paso a paso;
+    - el resultado por producto;
+    - "Ver hoja de costos" y "Ver fórmula y criterios del semáforo".
+- **El descuento queda a la vista** en la resta (subtotal, descuento, precio sin IVA), con una nota cuando la cotización
+  tiene descuento: cada producto se evalúa antes del descuento y el total después. Por eso un producto puede decir
+  "Aceptar" y el total "No aceptar".
+- **La recomendación se nombra por lo que hay que hacer** ("Aceptar según el sistema"), no "zona verde", como en el
+  Simulador.
+- **Al imprimir sale solo el documento**, sin resumen, botones ni análisis.
+
+**Por qué:**
+- El usuario pidió esta vista para que se entienda mejor.
+- En los datos reales, muchas cotizaciones con descuento mostraban productos en "Aceptar" y un total en "No aceptar",
+  sin explicación.
+
+**Cómo:**
+- `Cotizaciones/Show.vue` reescrito; los montos siguen llegando del servidor (`calcularMontos`, `margenPorLinea`).
+- `CotizacionController::show` agrega `config.semaforo` para los criterios.
+- Nuevo `textoRecomendacion()` en `Utils/MotorMargen.js`, que ahora usa también el Simulador.
+- Clases en app.css §22; el análisis y la tabla de productos van lado a lado solo desde 2xl, para que los montos no se
+  partan con el menú abierto.
+- El test de la pantalla verifica el desglose por línea y las tasas y umbrales.
+
+---
+
+## 2026-10-29 — Foto de evidencia más grande en el PDF de la nota de entrega
+
+**Qué cambió:**
+- La foto de evidencia de cada línea de la nota de entrega sale unas tres veces más grande:
+  - una foto horizontal pasa de unos 18 × 12 mm a unos 52 × 35 mm;
+  - una vertical, a unos 26 × 35 mm.
+- La columna "Evidencia" pasa del 15 % al 29 % del ancho. Descripción (36 %), Cant. (8 %) y Ubicación (22 %) ceden
+  espacio.
+- Las líneas sin foto siguen con su guion.
+
+**Por qué:**
+- El usuario pidió agrandar la imagen "al doble o triple": como miniatura no se notaba qué se había entregado.
+
+**Cómo:**
+- `NotaEntregaPdf` pasa `alto_imagen` = 38 mm (`ALTO_EVIDENCIA_ENTREGA`) en la celda de la foto y reparte de nuevo el
+  ancho de las columnas.
+- El ajuste de la imagen dentro de la celda (sin deformarla) sigue en `Documento::evidencia()`; el alto por defecto de
+  `Documento` no cambia.
+- Test nuevo: lee del PDF el tamaño con que se dibuja la foto (entre 33 y 37 mm de alto, más de 50 mm de ancho).
+
+---
+
+## 2026-10-29 — "Ajustar medidas reales" del pedido: campos legibles y el ajuste a la vista
+
+**Qué cambió:**
+- **Campos legibles:** en el modal "Medidas reales de producción", Ancho, Alto y Cantidad ocupaban un centímetro y no
+  dejaban ver su valor. Ahora van en una fila de tres campos.
+- **El modal explica a dónde va el cambio:** se guarda en el pedido y se ve en la pantalla, en la orden de trabajo
+  (PDF) y en las próximas notas de entrega. La cotización y el precio acordado no cambian. Además muestra lo que dice
+  la cotización como referencia.
+- **Aviso de descripción desactualizada:** si la descripción trae la medida escrita ("… 3,00 × 1,87 m") y no coincide
+  con el ancho/alto, el modal lo avisa y ofrece "Cambiar a 3,40 × 1,87 m".
+- **En el pedido:** el ítem ajustado lleva la insignia "Medidas ajustadas" y un recuadro con lo que decía la
+  cotización.
+- **En la orden de trabajo (PDF):**
+  - la línea ajustada dice "Ajustado en producción. Cotizado: 2,50 × 1,90 m, cant. 4.";
+  - la nota de "Medidas de producción" ya no afirma que las medidas son "las comprometidas con el cliente", porque
+    tras un ajuste no lo son.
+
+**Por qué:**
+- El usuario probó el ajuste y no veía los cambios en el modal ni en la "nota de pedido".
+- El ajuste se guardaba, pero los campos del modal no se leían y ningún documento marcaba qué había cambiado.
+- La descripción con la medida vieja hacía parecer que nada había cambiado.
+
+**Cómo:**
+- La causa del modal: usaba `.col-4`, que no existe en la grilla del proyecto, y cada columna ocupaba 1/12. Se
+  reemplazó por `.pedido-medidas-campos` (app.css §24).
+- Nuevo `PedidoDetalle::cotizadoSiSeAjusto()`: devuelve la línea de la cotización si difiere del ítem, o null.
+  - `PedidoController::show` lo pasa como prop `ajustes`.
+  - `PedidoPdf::trabajo()` lo usa para la nota de la línea; `GeneradorPdf::pedido` carga `detalles.cotizacionDetalle`.
+- Clases `.pedido-ajuste` (+ `-referencia`) y `.pedido-ajuste-accion`; catálogo y `.ai/rules/controllers.md`
+  actualizados.
+- Tests nuevos: la pantalla trae lo cotizado solo de los ítems ajustados, y la orden de trabajo marca solo la línea
+  ajustada.
+- En la base local, 0 de 2020 ítems quedan marcados sin haber sido ajustados.
+
+---
+
+## 2026-10-29 — Pestaña "Simulador" en tres pasos y "Aceptar" en lugar de "zona verde"
+
+**Qué cambió:**
+- El Simulador sigue la imagen que pasó el usuario y se lee en tres pasos numerados:
+  - **1. "Revise los datos de partida":** costo ajustado, precio sin IVA y presupuestos aprobados por mes (promedio de
+    los presupuestos aprobados con hoja de costos del periodo), y "Cómo definir el precio": mantener el ingresado, el
+    margen sugerido del sistema o el margen mínimo de un tipo de proyecto;
+  - **2. "Cambie los supuestos":** variación del costo de materiales (con la casilla para trasladarla al precio), ajuste
+    del precio, descuento y variación de presupuestos aprobados. Cada uno tiene su barra y una casilla para escribir el
+    porcentaje, y abajo están los botones "Calcular escenario" y "Restablecer";
+  - **3. "Compare el resultado":**
+    - la insignia del estado ("Sin cambios aplicados", "Escenario calculado" o "Hay cambios sin calcular");
+    - la recomendación del sistema;
+    - un recuadro que explica qué pasó con la rentabilidad, qué significa por cada Bs 100 de costo y cuánto margen
+      queda;
+    - tres indicadores (resultado por presupuesto, rentabilidad sobre costo, resultado mensual);
+    - la tabla Base / Escenario / Diferencia;
+    - "Ver fórmulas, impuestos y supuestos del sistema", con las tasas y los umbrales de la configuración.
+- Abajo, los gráficos "¿Qué pasa con la rentabilidad si cambia el costo de materiales?" y "¿Cómo se distribuye el
+  precio sin IVA?", con el precio mínimo para cada recomendación.
+- Arriba, el aviso "Esta simulación no modifica las cotizaciones ni garantiza resultados futuros" y el subtítulo
+  "Simulador · Pruebe cambios antes de decidir".
+- **"Aceptar" en lugar de "zona verde"** (pedido del usuario): el semáforo se nombra por su recomendación ("Aceptar",
+  "Revisar precio", "No aceptar") en la insignia, el recuadro, la tabla, las líneas del gráfico ("Aceptar 30 %",
+  "Revisar precio 15 %") y las ayudas.
+- "Utilidad real" pasa a "Resultado calculado".
+- La tabla ya no pinta de verde una baja del IT o del IUE, que bajan porque bajó el resultado.
+- En el teléfono, la tabla entra sin la columna Base.
+
+**Por qué:**
+- El usuario pidió esta vista para que el simulador se entienda paso a paso.
+- Antes se leía "zona verde" o "para volver a verde", que no dicen qué hacer con el presupuesto.
+
+**Cómo:**
+- `BiSimulador.vue` reescrito:
+  - los pasos 1 y 2 editan un borrador y "Calcular escenario" lo aplica (y lleva al paso 3 si no está a la vista);
+  - todos los números siguen saliendo de `evaluarMargen()` (Utils/MotorMargen.js);
+  - el texto de la recomendación sale de `RECOMENDACIONES`.
+- `BiBloque` suma la prop `tarjeta` (el bloque es la tarjeta, con el número adentro) y los slots `ayuda` y `etiqueta`
+  junto al título.
+- Los rótulos de los umbrales de `BaseChart` llevan el fondo de la tarjeta, para que una serie cercana no los tape.
+- CSS en app.css §47; las clases viejas del simulador se reemplazaron.
+- Ayudas `bi-simulador.*` reescritas y tres nuevas para los indicadores.
+- `ReporteController::biSimulador` con su subtítulo.
+- Tests nuevos: el subtítulo y los datos de la pantalla, y que la página y sus ayudas no vuelvan a decir "zona verde".
+
+---
+
+## 2026-10-29 — Informe PDF de Alertas con la forma del modelo y sin anexo metodológico
+
+**Qué cambió:**
+- El PDF que se genera desde la pestaña Alertas es ahora un "Informe de alertas" (así dicen el membrete y el pie), con
+  la forma del modelo que pasó el usuario:
+  - **hoja 1, "Alertas que requieren atención":** conteos por prioridad con su composición, qué revisar primero,
+    criterios para interpretar las alertas (solo los de los tipos presentes) y cómo leer las tablas;
+  - **"Prioridad alta":** tabla de presupuestos en rojo con su acción sugerida (recuadro rojizo) y el pedido con
+    sobrecosto, con los datos que respaldan la alerta;
+  - **"Prioridad media":** tabla de presupuestos en amarillo con su acción sugerida;
+  - **al final:** la nota del límite del semáforo y el alcance del documento.
+- Ya no lleva la portada general de estimaciones ni el anexo metodológico (pedido del usuario: no hay proyecciones que
+  explicar).
+- **Nota del límite:** donde el modelo pedía "comprobar el valor sin redondear", el informe lo dice. Por ejemplo, el
+  "30,0 %" en amarillo es 29,96 %.
+- La ventana "Generar informe" describe este contenido cuando solo se marca Alertas.
+
+**Por qué:**
+- El usuario pasó un PDF modelo para el informe de alertas y pidió quitar el anexo.
+
+**Cómo:**
+- `AlertasNegocioService` agrega a las alertas de margen `resultado` y `rentabilidad` sin redondear.
+- `InformeProyeccionesService::seccionAlertas` pasa las alertas completas (sin el enlace) y los umbrales.
+- `InformeProyeccionesPdf`: `soloAlertas()` e `informeAlertas()`, más `grupoAlertas()` (tabla o detalle por tipo:
+  margen, sobrecosto, precios viejos, aumento de material, tendencia), `notaLimiteSemaforo()` y `alcanceAlertas()`.
+- `Documento::recuadro` suma el tono `alerta`.
+- El informe general sigue con su tabla de alertas y su anexo.
+- Test nuevo.
+
+---
+
+## 2026-10-29 — Pestaña "Alertas" con dos pestañas y una fila por alerta (diseño del usuario)
+
+**Qué cambió:**
+- Reemplaza los tres bloques del rediseño anterior, siguiendo la imagen que pasó el usuario.
+- Tres tarjetas arriba: alertas de costo y rentabilidad, prioridad alta ("Revisar primero") y media ("Revisar precio y
+  condiciones").
+- Dos pestañas que no se suman, con el aviso de que son análisis distintos: "Costo y rentabilidad (25)" y "Anomalías
+  estadísticas (N sin revisar)".
+- Cada alerta es una fila:
+  - prioridad y tipo ("Rentabilidad sobre costo baja");
+  - qué hacer como título ("Revisar precio antes de aceptar el presupuesto"), con el código y el cliente;
+  - las cifras: resultado calculado y rentabilidad, o en el sobrecosto barras de material registrado frente al
+    presupuestado;
+  - la nota del umbral;
+  - "Qué revisar";
+  - el botón "Ver presupuesto/pedido".
+- La lista tiene buscador (presupuesto, pedido o cliente), filtros de prioridad y tipo, y páginas de cinco. Debajo:
+  "¿Qué significan los colores?" (plegable), las otras reglas con "Ver criterios del sistema" (las fichas de las cinco
+  reglas, con conteo) y un resumen de las anomalías con "Ejecutar análisis estadístico".
+- Subtítulo: "Alertas · Qué requiere revisión y por qué".
+
+**Por qué:**
+- El usuario pidió que la pestaña se entienda mejor. Cada alerta ahora dice qué hacer, con qué cifras y qué revisar,
+  en lugar de un título técnico y un párrafo.
+
+**Cómo:**
+- `AlertasNegocioService` agrega a cada alerta `tipo_etiqueta`, `accion`, `referencia`, `cliente`, `metricas` /
+  `comparacion`, `nota`, `que_revisar` y `enlace` (método `presentacion()`). `titulo` y `detalle` siguen iguales para el
+  PDF, el CSV y el asistente. Las alertas de precio y tendencia ahora enlazan a Costos y materiales.
+- La pantalla filtra y pagina en el navegador (las 25 llegan juntas). La pestaña de anomalías se abre directo con
+  `#anomalias` o `?anomalias=`.
+- CSS §46 reescrito: la fila es una grilla con áreas nombradas, con el mapa definido también para el teléfono (sin él,
+  las partes se superponían). De §26 se borró la lista vieja `.bi-alerta*` (queda `.bi-alertas-vacio`).
+- Ayudas `bi-alertas.*` reescritas; se quitó `kpi-anomalias`. Tests nuevos de los campos de la fila.
+
+---
+
+## 2026-10-29 — Informe PDF de "Presupuestos y rentabilidad" con resumen para la gerencia y redacción del modelo
+
+**Qué cambió:**
+- **Hoja 1, "Resumen para la gerencia":** el informe de esta pestaña ya no usa la portada general. Su primera hoja trae:
+  - "Lo principal": emitidos, aprobación 51,5 % = 768 ÷ (1.521 − 31), rentabilidad 34,9 % sobre costo, que es 23,1 %
+    sobre el precio sin IVA, resultado calculado y precio frente a costo;
+  - "Antes de comparar cifras";
+  - "Qué esperar";
+  - "Qué revisar";
+  - "Cómo está organizado".
+- **Cuerpo:** sigue los tres bloques de la pantalla. El bloque 2 es nuevo en el PDF: tasa de aprobación con su cuenta,
+  gráfico de precio frente a costo y tabla mes a mes. El semáforo de los presupuestos va dentro del bloque 3.
+- **Nombres:** los de la pantalla ("Monto aprobado", "Rentabilidad sobre costo", "Resultado calculado del mes") en lugar
+  de "Ventas" y "Ganancia".
+- **Lectura de cada indicador, para todo el informe:** sigue el PDF modelo que pasó el usuario:
+  - "Resultados registrados"
+  - "Tendencia: el modelo calcula…"
+  - "Proyección: … no son límites garantizados"
+  - "Octubre incompleto: …"
+  - "Cómo usar la estimación"
+  - el semáforo dice si el rango alcanza otra zona.
+- **Arreglos en todos los informes:**
+  - el rótulo "Verde" del gráfico ya no queda tapado ("erde");
+  - las tablas de estimación no se parten entre páginas;
+  - la nota de cierre va antes del anexo, en vez de quedar sola en una hoja casi vacía.
+
+**Por qué:**
+- El usuario pidió algo similar (al informe de Preguntas y a la pantalla nueva) para este informe, con un PDF modelo
+  de redacción más prudente.
+- El PDF contradecía a la pantalla en dos puntos:
+  - decía 34,3 % (promedio de los meses) donde la pantalla dice 34,9 % (periodo completo);
+  - decía que el precio "se queda atrás" del costo por una décima de diferencia.
+
+**Cómo:**
+- `RedaccionPronostico`:
+  - `lectura()` toma un `sujeto` por indicador;
+  - `precioFrenteACosto()` es la única regla de precio y costo (redondeo a un decimal, umbral 0,2), y la usan la
+    pestaña, el PDF y las conclusiones generales.
+- `PresupuestosRentabilidadService` agrega `tendencia.comparacion`, `tendencia.lectura` y `que_revisar`. La pantalla
+  dejó de calcularlos en JavaScript.
+- `InformeProyeccionesService::seccionRentabilidad` agrega `resumen`, `meses`, `semaforo_presupuestos`, `precio_costo`
+  y el número de bloque de cada indicador. `InformeProyeccionesPdf` suma `seccionRentabilidad()`,
+  `resumenRentabilidad()`, `aprobacionYPrecio()`, `semaforoPresupuestos()` y `nuevoBloque()`, que empieza un bloque en
+  la misma hoja si queda lugar.
+- Tests actualizados para la redacción nueva, y uno nuevo para el informe de esta pestaña.
+
+---
+
+## 2026-10-29 — Pestaña "Alertas" en tres bloques: qué se revisa, el detalle y las anomalías
+
+**Qué cambió:**
+- Sin imagen de referencia, la pestaña siguió el mismo esquema que las anteriores. Arriba hay una franja que dice cómo
+  se calculan las alertas y su alcance (antes era una nota con rutas de `config/`). Las cuatro tarjetas son activas,
+  prioridad alta, prioridad media y una nueva, "Anomalías sin revisar".
+- **1. "Qué se revisa y qué encontró":** una ficha por cada una de las cinco reglas, con su umbral en palabras y
+  cuántas alertas dio: roja si hay de prioridad alta, ámbar si solo medias, verde "Sin alertas" si no encontró nada.
+  "Ver las N" filtra el detalle por ese tipo y baja hasta él.
+- **2. "Detalle de las alertas":** filtro por tipo con conteos, interruptor "Solo prioridad alta", las 10 primeras y
+  "Ver las N alertas".
+- **3. "Anomalías detectadas":** la revisión diaria, que antes estaba arriba de todo, con la etiqueta "No usa el
+  filtro de fechas" y "Revisar ahora" en la cabecera. Conserva el ancla `#anomalias`.
+- **Textos:** "Alta" y "Media" pasaron a "Prioridad alta" y "Prioridad media", y el estado "Nuevas" a "Sin revisar".
+  En `AlertasNegocioService`, "Utilidad real" pasó a "Resultado calculado", como en Presupuestos y rentabilidad, y la
+  recomendación ya no va en mayúsculas ("El semáforo recomienda: no aceptar.").
+
+**Por qué:**
+- El usuario pidió seguir con la siguiente pestaña.
+- Antes no se veía qué controla el sistema cuando una regla no daba alertas, y la lista de 25 no tenía forma de
+  acotarse por prioridad.
+
+**Cómo:**
+- La página arma las fichas a partir de las alertas y los umbrales que ya mandaba el servidor. El único cambio de
+  datos son los textos del servicio, con un test que los fija.
+- En el teléfono, el botón "Ver" de cada alerta baja bajo el texto.
+- CSS §46. Ayudas `bi-alertas.*` reescritas y `bi-alertas.kpi-anomalias` nueva. Subtítulo de la pestaña en
+  `ReporteController`.
+
+---
+
+## 2026-10-29 — Pestaña "Presupuestos y rentabilidad" en tres bloques, con la rentabilidad explicada
+
+**Qué cambió:**
+- La pestaña sigue el diseño que pasó el usuario. El filtro avisa que el último mes está incompleto y que lo cotizado
+  no es dinero cobrado.
+- Cuatro tarjetas con nombres claros:
+  - "Aprobación entre presupuestos decididos";
+  - "Rentabilidad calculada sobre costo";
+  - "Rentabilidad estimada para Ene-2027";
+  - la cuarta, de presupuestos emitidos, lleva el monto emitido debajo.
+- El recuadro "¿Qué significa 34,9 % sobre costo?" dice que por cada Bs 100 de costo quedan Bs 34,94 de resultado
+  calculado (ya descontados IT e IUE), y que sobre el precio sin IVA es el 23,1 %.
+- **1. "Qué se cotizó y cuánto se aprobó":** montos emitidos y aprobados, con la estimación del emitido, "Mes
+  incompleto" y la aclaración de que no son ventas aseguradas.
+- **2. "Aprobaciones y relación entre precio y costo":** cantidades por mes con la cuenta de la tasa (768 ÷ (1.521 −
+  31) = 51,5 %), y el precio frente al costo con una lectura en números.
+- **3. "Rentabilidad y resultado: indicadores distintos":** el porcentaje sobre costo y el monto en bolivianos, cada
+  uno con su confiabilidad. El semáforo de los presupuestos emitidos pasó adentro de la tarjeta de rentabilidad. Cierra
+  "Qué revisar" en tres pasos con cifras del periodo.
+- **Términos:** "Utilidad real" pasó a llamarse "Resultado calculado" en pantalla.
+
+**Por qué:**
+- El usuario pidió que la pestaña se entienda. El 34,9 % se leía como margen sobre las ventas (es sobre el costo), y la
+  tasa de aprobación no decía que excluye los pendientes.
+
+**Cómo:**
+- `PresupuestosRentabilidadService` agrega `rentabilidad.margen_sobre_precio`: resultado ÷ (subtotal − descuento) de
+  los mismos presupuestos. Tiene test.
+- `AvisoMesIncompleto.vue` es un componente nuevo; Demanda y ventas ahora lo usa.
+- La lectura precio/costo compara las pendientes redondeadas a un decimal, con un umbral de 0,2 puntos: con −0,6 frente
+  a −0,5 % por mes dice "se mueven parecido" y no "va por detrás".
+- CSS §45. Ayudas `bi-rentabilidad.*` reescritas y `bi-rentabilidad.que-revisar` nueva (define el resultado calculado y
+  el costo ajustado). Subtítulo de la pestaña en `ReporteController`.
+
+---
+
+## 2026-10-29 — Pestaña "Costos y materiales" en tres bloques, y febrero ya no toma el precio de marzo
+
+**Qué cambió:**
+- La pestaña sigue el diseño que pasó el usuario. Arriba hay una franja que explica el alcance (precios de toda la
+  empresa, consumo de las sucursales visibles) y cuatro tarjetas con nombres claros: "Aumento del índice de precios",
+  "Costo del material consumido", "Costo adicional por variación de precios" y "Materiales con historial de precios"
+  (cuántos subieron o bajaron).
+- **1. "Cómo cambian los precios":** el índice con una bajada que lo traduce ("113,6 representa un aumento de 13,6 %, no
+  un precio en bolivianos"), el precio del material elegido y "Qué significa para este material" (precio actual,
+  tendencia, estimación con su rango y una sugerencia).
+- **2. "Cuánto costó el material consumido":** el costo por mes con "Mes incompleto" y promedio opcional, los materiales
+  con mayor costo registrado frente a lo presupuestado (5 primeros, con "Ver los 10") y "Qué revisar" en tres pasos. El
+  segundo paso nombra el material con la mayor diferencia.
+- **3. "Qué efecto tienen las subidas de precio":** costo adicional en bolivianos por material (antes era la variación
+  en %), el detalle (5 primeros, con "Ver los 21") y una franja con el material a priorizar.
+- **Confiabilidad:** cada proyección lleva su recuadro: ajuste, error en la prueba y, si otro método acertó más, cuál.
+- **Corrección:** `CostosMaterialesService::preciosMensuales` armaba el cierre de cada mes con
+  `createFromFormat('Y-m')`, que toma el día de hoy. Del 29 al 31 de cada mes, "febrero 29" desbordaba a marzo, y lo mismo
+  pasaba con los meses de 30 días. Así, febrero mostraba el precio de marzo en el índice y en cada material. Era el test
+  "el indice de costo arrastra…" que fallaba hace días.
+
+**Por qué:**
+- El usuario pidió títulos y bloques para que la pestaña se entienda mejor.
+- El recuadro de confiabilidad dice, junto al gráfico, cuándo una estimación es débil. Por ejemplo, la del consumo se
+  equivocó 49,7 % y Holt solo 9,2 %.
+
+**Cómo:**
+- `ConfiabilidadPronostico.vue` es un componente nuevo (sale del cálculo que tenía Demanda y ventas, que ahora lo usa).
+- Las clases genéricas se renombraron: `.bi-cabecera-con-aviso`, `.bi-col-opcional` y `.bi-sugerencia`.
+- Se reusan `BiBloque`, `BiInterruptor`, `.resumen-acciones` y `.margen-panel`. CSS §44.
+- La corrección usa `createFromFormat('!Y-m')`. Test nuevo con la fecha fija en un 31; sin la corrección, falla.
+- Ayudas `bi-costos.*` reescritas y `bi-costos.que-revisar` nueva. `ReporteController` agrega el subtítulo de la pestaña.
+
+---
+
+## 2026-10-29 — Pestaña "Demanda y ventas" ordenada en tres bloques numerados
+
+**Qué cambió:**
+- **Bloque 1, "Pedidos futuros":** gráfico de pedidos con la estimación y su rango. Al lado, un recuadro con qué tan
+  confiable es: ajuste y cuánto se equivocó al probarla con los últimos 3 meses. El promedio de 3 meses queda opcional
+  (interruptor) y el mes en curso se marca "Mes incompleto".
+- **Bloque 2, "Qué se vende y quién compra":**
+  - productos y categorías (5 primeros, con "Ver los 10");
+  - una franja que aclara que los rankings usan monto aprobado;
+  - la tabla de clientes (5 primeros, con "Ver los 10 principales") y el aviso "Revisar seguimiento" de los que no
+    compran hace más de 60 días;
+  - la tarjeta "¿Qué tan concentradas están las ventas?" (barra partida, "11 de 40 clientes concentran el 80 %" y un
+    consejo). La curva de Pareto se abre desde ahí.
+- **Bloque 3, "Comportamiento histórico":** pedidos por mes y año, con el promedio opcional y la marca del mes en curso.
+  El gráfico de evolución de precios de materiales se reemplazó por un enlace a "Costos y materiales" con un resumen.
+- **Filtro:** avisa que el último mes está incompleto. La página tiene subtítulo propio.
+
+**Por qué:**
+- El usuario pidió separar la pestaña por bloques, como en su imagen, para que se entienda mejor. Antes eran seis
+  tarjetas seguidas sin orden de lectura.
+- La confiabilidad de la proyección estaba escondida en "Cómo se calcula". La evolución de precios repetía, más
+  pobre, lo que ya muestra Costos y materiales.
+
+**Cómo:**
+- Solo cambió la presentación: `InteligenciaNegociosService` manda los mismos datos.
+- Componentes nuevos:
+  - `BiBloque.vue` (número, título, bajada y slot de acción);
+  - `BiInterruptor.vue` (switch accesible con `v-model`).
+- Componentes ajustados:
+  - `BiEncabezado` ganó el slot `aviso`;
+  - `BaseChart` ganó la prop `marca-eje` (línea vertical rotulada, que también se suma al tooltip).
+- El promedio va como última serie para que prenderlo no cambie los colores de las demás.
+- `ReporteController::paginaBi` acepta un subtítulo opcional.
+- CSS §43 nuevo. De §36 se borró el ranking en lista viejo (queda `.bi-cliente-variacion`); la tabla reusa
+  `.panorama-ranking`.
+- Ayudas actualizadas: `bi.clientes-curva` es nueva y se quitó `bi.evolucion-costos`. Test nuevo en
+  ReporteControllerTest.
+
+---
+
+## 2026-10-29 — Pestaña "Resumen semanal" rediseñada: tarjetas, atención/favorables y comparación elegible
+
+**Qué cambió:**
+- La pestaña sigue el diseño que pasó el usuario. Arriba hay una barra con "Semana analizada" y "Sucursal" (selectores
+  que reemplazan la lista "Semanas anteriores" y los botones de alcance) y el botón "Actualizar resumen". Al lado se ve
+  el badge "Resumen histórico" cuando no es la última semana cerrada, y cuándo y cómo se redactó.
+- Siguen el titular en una caja de color y cuatro tarjetas: ventas, cobros, monto presupuestado y entregas a tiempo,
+  con su cambio contra el promedio de 4 semanas.
+- "Riesgos" pasa a llamarse "Qué requiere atención" y "Lo más destacado", "Resultados favorables". Cada punto lleva un
+  título corto ("Menor monto vendido") y, debajo, la frase redactada tal cual.
+- La tabla de indicadores tiene "Comparar con: 4 semanas / Semana anterior / Año anterior" y muestra el valor de
+  referencia. Las acciones van numeradas, con un botón a la pantalla donde se hacen. El contexto tiene barras por familia
+  y una aclaración de qué base usan sus porcentajes.
+
+**Por qué:**
+- El usuario pidió que la vista se pareciera a su imagen, manteniendo la redacción original del análisis por IA.
+- Antes las cifras de apoyo estaban mezcladas con el texto en dos columnas, y para ver otra semana había que bajar
+  hasta el historial.
+
+**Cómo:**
+- Solo cambió la presentación. `ResumenSemanalService`, el agente `RedactorResumenSemanal` y lo guardado en `bi_resumen`
+  no se tocaron: titular, riesgos, destacados y acciones se muestran como los escribió la IA (o la plantilla).
+- Lo que agrega la pantalla sale de los indicadores que cita cada frase (`kpis`): el título según hacia dónde se movió
+  y las aclaraciones de rentabilidad (sobre costo, variación relativa) y costo de material (no es ahorro por sí solo).
+- El botón de cada acción se elige por palabras de la acción (`DESTINOS`) y solo aparece si el usuario tiene el permiso
+  de esa pantalla.
+- `ReporteController::biResumen` manda `ultima_semana` (para el badge) y el subtítulo de la página. `BiKpi` ganó la prop
+  `sufijo` (por defecto "por mes"). En el teléfono la tabla oculta la columna de referencia para que el cambio entre.
+- CSS §33 reescrito (se borraron `.resumen-cabecera-*`, `-alcance*`, `-historial*`, `-cuerpo`). Test nuevo en
+  BiIaPantallasTest.
+
+---
+
+## 2026-10-29 — Informe "Preguntas para decidir" con formato de resumen para la gerencia
+
+**Qué cambió:**
+- El PDF de la pestaña Preguntas sigue el informe modelo que pasó el usuario: hoja 1 "Resumen para la gerencia"
+  (qué conviene revisar primero: materiales, ventas en rojo y cobros; cómo está organizado; "Antes de comparar
+  cifras") y una hoja por pregunta con Respuesta breve (primera oración en negrita), Datos que respaldan la
+  respuesta, Acción sugerida, Cómo interpretar el resultado y Datos utilizados. Pie "XtraPubli | Preguntas para
+  decidir"; el anexo ya no muestra una "Ficha de cada estimación" vacía.
+- Redacción del modelo, también en pantalla: "costo calculado", "material registrado/previsto", "resultado bruto"
+  (no "ganancia"), "rojo no significa pérdida"; títulos nuevos de las preguntas 1, 3–10 y columnas con "(Bs)".
+- **Bug**: el cuadro "Cobros" de la pregunta 11 decía 699 pedidos; eran 67 (los que tienen saldo).
+- En todos los PDF, un "%" ya no queda solo al principio de un renglón, y los títulos largos de las tablas de
+  resumen bajan de renglón en vez de pisarse.
+
+**Por qué:**
+- Pedido del usuario: el informe tiene que leerlo la gerencia sin conocer el sistema y sin sobredimensionar
+  cifras (mano de obra presupuestada, estimaciones, montos que no se suman).
+
+**Cómo:**
+- `PreguntasNegocioService`: textos nuevos, campo `interpretacion` en cada pregunta (PDF, CSV y plegable de la
+  pantalla), más `cifras` (preguntas 1, 2, 8 y 10). La 11 guarda sus 8 acciones en `priorizadas` y su acción
+  propia ("Comenzar por…") sale de los frentes de MONTOS. Los cálculos no cambian.
+- `InformeProyeccionesPdf`: si el informe es solo de Preguntas, la portada de estimaciones se reemplaza por el
+  resumen; anchos de columna según el contenido; cifras sin "Bs". `Documento`: tono `exito`, bloques
+  `encabezado`/`texto`, `cabeceraResumen()` y el "%" pegado a su número. Revisado el PDF con la base demo.
+
+---
+
+## 2026-10-29 — Pregunta 2: "¿Qué materiales están subiendo de precio?" con indicadores y detalle
+
+**Qué cambió:**
+- La pregunta 2 sigue el diseño del usuario: respuesta breve redactada para leerse de un vistazo ("21 materiales
+  aumentaron de precio y ninguno bajó. Lona FrontLight 13oz tuvo el mayor impacto…"), tres indicadores (materiales
+  con aumento, costo adicional calculado, mayor impacto), "¿Cuáles generan mayor costo adicional?" en gráfico o
+  tabla y, al lado, "Detalle de los precios" (precio anterior, actual y aumento).
+- La tendencia de precios dejó de llamarse "índice de costo" ("En conjunto, los precios de los materiales suben…")
+  y la hora de mano de obra queda como frase aparte ("Fuera de los materiales…"). "1 bajó" en singular.
+- En todas las preguntas: la primera oración de la respuesta va en negrita, las acciones van numeradas, el plegable
+  se llama "Cómo se calcula y qué datos utiliza" y el botón de volver muestra el nombre de la pregunta anterior.
+
+**Por qué:**
+- Pedido del usuario, con una imagen: que la pregunta 2 se lea como la 11, con las cifras a la vista.
+
+**Cómo:**
+- `PreguntasNegocioService::costosQueSuben()`: nueva redacción, columnas "Precio anterior / Precio actual /
+  Aumento" (también en PDF/CSV) y `cifras` para los indicadores. Los cálculos no cambian.
+- La 2 y la 11 tienen cuerpo propio: `Components/Reporte/PreguntaAumentoMateriales.vue` y `PreguntaAcciones.vue`
+  (la 11 salió de la página tal cual). CSS en app.css §42 (`.aumento-*`). Tests en `PreguntasNegocioTest`.
+
+---
+
+## 2026-10-29 — Pregunta 11: acciones vinculadas a los datos que las originan
+
+**Qué cambió:**
+- La pregunta 11 pasó a "¿Qué acciones conviene revisar primero?" y sigue el diseño del usuario: una tabla con
+  Orden, Acción sugerida (rótulo corto), **Qué representa el monto** (etiqueta de color), Monto y "Ver pregunta N",
+  que abre la pregunta de la que sale cada acción. Arriba, el aviso "no deben sumarse ni interpretarse como ahorro
+  garantizado"; abajo, la nota de que son estimaciones.
+- Colores del monto: naranja = costo que ya ocurrió (costo adicional, exceso de material, saldo por cobrar), rojo =
+  ventas o descuentos en riesgo, verde = estimación (ahorro, mejora del resultado), azul = diferencia frente a una
+  referencia (precio sugerido, presupuesto).
+- Debajo, dos cuadros de lectura rápida: "Escenarios" (+10 % en materiales → margen hoy → margen nuevo → reducción
+  estimada, enlaza a la 9) y "Cobros" (por cobrar, pedidos del periodo, % cobrado y saldo de más de 90 días, enlaza a la 10).
+- Todas las preguntas muestran su número en el título ("11. ¿…?") y el índice ya no lleva punto tras el número.
+
+**Por qué:**
+- Pedido del usuario, con una imagen: que la pregunta 11 se relacione con los datos de las demás y se entienda qué
+  es cada monto, porque mezclaba costos ocurridos, estimaciones y diferencias como si fueran lo mismo.
+
+**Cómo:**
+- `PreguntasNegocioService`: cada acción se arma con `accion()` (texto, impacto, `titulo` corto y `concepto`, una
+  clave de `MONTOS` que da rótulo y tipo). `decisiones()` guarda las 8 acciones en su `acciones` con `origen` (clave)
+  y `numero`; su tabla (PDF/CSV) es Acción sugerida / Qué representa el monto / Monto / Detalle ("Pregunta N").
+  Las preguntas 9 y 10 exponen `cifras` para los cuadros. Los cálculos no cambian.
+- PDF: "Lo primero que conviene hacer" toma la frase completa de `acciones`; CSV: la 11 no repite los "Qué hacer".
+- CSS en app.css §42 (`.acciones-*`, `.preguntas-bajada`). Tests nuevos en `PreguntasNegocioTest`.
+
+---
+
 ## 2026-10-28 — Preguntas para decidir: una pregunta a la vez
 
 **Qué cambió:**

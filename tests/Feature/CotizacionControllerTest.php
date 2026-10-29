@@ -77,7 +77,12 @@ test('the show page renders the cotizacion with its detalle', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Cotizaciones/Show')
-            ->has('cotizacion.detalles', 2));
+            ->has('cotizacion.detalles', 2)
+            ->has('margen', 2)
+            // "Ver fórmula y criterios del semáforo" usa las tasas y umbrales de la configuración.
+            ->where('config.impuestos.it', config('margen.impuestos.it'))
+            ->where('config.semaforo.umbral_verde', config('margen.semaforo.umbral_verde'))
+            ->where('config.semaforo.umbral_amarillo', config('margen.semaforo.umbral_amarillo')));
 });
 
 test('the edit page renders for a pending cotizacion', function () {

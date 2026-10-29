@@ -11,6 +11,8 @@ defineOptions({ layout: MainDashboardLayout });
 
 const props = defineProps({
     pedido: { type: Object, required: true },
+    /** Lo cotizado de cada ítem ajustado en producción, por id del ítem (vacío llega como []). */
+    ajustes: { type: [Object, Array], default: () => ({}) },
     costos: { type: Object, required: true },
     cobranza: { type: Object, required: true },
     metodosPago: { type: Array, default: () => [] },
@@ -34,6 +36,15 @@ const cancelable = computed(() => !['ENTREGADO', 'CANCELADO'].includes(props.ped
 
 function money(value) {
     return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** "2.50 × 1.90 m · cant. 4", con el mismo formato de medidas que el resto de la pantalla. */
+function resumenLinea(linea) {
+    const medidas = linea.ancho && linea.alto
+        ? `${Number(linea.ancho).toFixed(2)} × ${Number(linea.alto).toFixed(2)} m · `
+        : '';
+
+    return `${medidas}cant. ${Number(linea.cantidad)}`;
 }
 
 function fecha(value) {
@@ -98,6 +109,37 @@ function abrir(tipo, detalle) {
 function cerrar() {
     modal.value = null;
     detalleActivo.value = null;
+}
+
+/**
+ * La descripción suele traer las medidas escritas ("Bastidor lona 3,00 × 1,87 m").
+ * Si el ancho o el alto cambian y el texto no, la orden de trabajo diría dos
+ * medidas distintas: se avisa y se ofrece corregir el texto con un clic.
+ */
+const MEDIDAS_EN_TEXTO = /(\d+(?:[.,]\d+)?)\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*m\b/;
+
+const formatoMedida = (valor) => Number(valor).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const descripcionDesactualizada = computed(() => {
+    const coincidencia = MEDIDAS_EN_TEXTO.exec(medidasForm.descripcion ?? '');
+    const ancho = Number(medidasForm.ancho);
+    const alto = Number(medidasForm.alto);
+
+    if (modal.value !== 'medidas' || !coincidencia || !(ancho > 0) || !(alto > 0)) {
+        return null;
+    }
+
+    const enTexto = (grupo) => Number(grupo.replace(',', '.'));
+
+    if (enTexto(coincidencia[1]) === ancho && enTexto(coincidencia[2]) === alto) {
+        return null;
+    }
+
+    return { actual: coincidencia[0], nueva: `${formatoMedida(ancho)} × ${formatoMedida(alto)} m` };
+});
+
+function corregirDescripcion() {
+    medidasForm.descripcion = medidasForm.descripcion.replace(MEDIDAS_EN_TEXTO, descripcionDesactualizada.value.nueva);
 }
 
 function enviarMedidas() {
@@ -381,9 +423,14 @@ async function cancelarPedido() {
     <div v-for="detalle in pedido.detalles" :key="detalle.id" class="card mb-4 pedido-item">
         <div class="card-header">
             <span class="card-title">{{ detalle.descripcion }}</span>
-            <span class="badge" :class="estadoBadge[detalle.estado_item] ?? 'badge-soft-secondary'">
-                {{ detalle.estado_item }}
-            </span>
+            <div class="d-flex flex-wrap gap-2">
+                <span v-if="ajustes[detalle.id]" class="badge badge-soft-warning">
+                    <i class="fa-solid fa-ruler-combined"></i> Medidas ajustadas
+                </span>
+                <span class="badge" :class="estadoBadge[detalle.estado_item] ?? 'badge-soft-secondary'">
+                    {{ detalle.estado_item }}
+                </span>
+            </div>
         </div>
         <div class="card-body">
             <p class="fs-sm text-muted mb-3">
@@ -394,6 +441,20 @@ async function cancelarPedido() {
                 · Costo material presupuestado:
                 {{ costoItem(detalle.id).estimado === null ? '—' : money(costoItem(detalle.id).estimado) }}
                 · Real: {{ money(costoItem(detalle.id).real) }}
+            </p>
+
+            <!-- Lo que se fabrica difiere de lo cotizado: se muestran las dos cosas. -->
+            <p v-if="ajustes[detalle.id]" class="pedido-ajuste">
+                <i class="fa-solid fa-ruler-combined"></i>
+                <span>
+                    <strong>En producción se ajustó este ítem.</strong>
+                    Según la cotización:
+                    <template v-if="ajustes[detalle.id].descripcion !== detalle.descripcion">
+                        {{ ajustes[detalle.id].descripcion }} ·
+                    </template>
+                    {{ resumenLinea(ajustes[detalle.id]) }}. Arriba están las medidas con las que se fabrica; la
+                    cotización y el precio acordado no cambian.
+                </span>
             </p>
 
             <!-- Tracker de etapas -->
@@ -468,46 +529,63 @@ async function cancelarPedido() {
         <form v-if="modal === 'medidas'" @submit.prevent="enviarMedidas">
             <div class="card-body">
                 <p class="fs-sm text-muted mb-3">
-                    Lo que el taller está fabricando de verdad. La cotización no se toca: queda como
-                    documento histórico de lo que se le prometió al cliente, y el precio acordado no cambia.
+                    Registre lo que el taller fabrica de verdad. El cambio queda en este pedido: se ve aquí, en la
+                    orden de trabajo (PDF) y en las próximas notas de entrega. La cotización no se modifica (es el
+                    documento de lo que se prometió al cliente) y el precio acordado tampoco.
+                </p>
+                <p v-if="detalleActivo?.cotizacion_detalle" class="pedido-ajuste pedido-ajuste-referencia">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>
+                        <strong>Según la cotización:</strong>
+                        {{ detalleActivo.cotizacion_detalle.descripcion }} ·
+                        {{ resumenLinea(detalleActivo.cotizacion_detalle) }}
+                    </span>
                 </p>
                 <div class="form-group">
-                    <label class="form-label">Descripción</label>
-                    <input v-model="medidasForm.descripcion" type="text" class="form-control"
+                    <label class="form-label" for="medidas-descripcion">Descripción</label>
+                    <input id="medidas-descripcion" v-model="medidasForm.descripcion" type="text" class="form-control"
                         :class="{ 'is-invalid': medidasForm.errors.descripcion }" required />
                     <p v-if="medidasForm.errors.descripcion" class="form-error">
                         {{ medidasForm.errors.descripcion }}
                     </p>
+                    <p v-if="descripcionDesactualizada" class="pedido-ajuste mt-2 mb-0" role="status">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>
+                            La descripción todavía dice <strong>{{ descripcionDesactualizada.actual }}</strong>.
+                            <button type="button" class="pedido-ajuste-accion" @click="corregirDescripcion">
+                                Cambiar a {{ descripcionDesactualizada.nueva }}
+                            </button>
+                        </span>
+                    </p>
                 </div>
-                <div class="row">
-                    <div class="col-4">
-                        <div class="form-group">
-                            <label class="form-label">Ancho (m)</label>
-                            <input v-model="medidasForm.ancho" v-decimal="2" type="text" inputmode="decimal"
-                                class="form-control" placeholder="0.00" />
-                        </div>
+                <div class="pedido-medidas-campos">
+                    <div class="form-group">
+                        <label class="form-label" for="medidas-ancho">Ancho (m)</label>
+                        <input id="medidas-ancho" v-model="medidasForm.ancho" v-decimal="2" type="text"
+                            inputmode="decimal" class="form-control" :class="{ 'is-invalid': medidasForm.errors.ancho }"
+                            placeholder="0.00" />
+                        <p v-if="medidasForm.errors.ancho" class="form-error">{{ medidasForm.errors.ancho }}</p>
                     </div>
-                    <div class="col-4">
-                        <div class="form-group">
-                            <label class="form-label">Alto (m)</label>
-                            <input v-model="medidasForm.alto" v-decimal="2" type="text" inputmode="decimal"
-                                class="form-control" placeholder="0.00" />
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="medidas-alto">Alto (m)</label>
+                        <input id="medidas-alto" v-model="medidasForm.alto" v-decimal="2" type="text"
+                            inputmode="decimal" class="form-control" :class="{ 'is-invalid': medidasForm.errors.alto }"
+                            placeholder="0.00" />
+                        <p v-if="medidasForm.errors.alto" class="form-error">{{ medidasForm.errors.alto }}</p>
                     </div>
-                    <div class="col-4">
-                        <div class="form-group">
-                            <label class="form-label">Cantidad</label>
-                            <input v-model="medidasForm.cantidad" v-decimal="2" type="text" inputmode="decimal"
-                                class="form-control" :class="{ 'is-invalid': medidasForm.errors.cantidad }" required />
-                            <p v-if="medidasForm.errors.cantidad" class="form-error">
-                                {{ medidasForm.errors.cantidad }}
-                            </p>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="medidas-cantidad">Cantidad</label>
+                        <input id="medidas-cantidad" v-model="medidasForm.cantidad" v-decimal="2" type="text"
+                            inputmode="decimal" class="form-control" :class="{ 'is-invalid': medidasForm.errors.cantidad }"
+                            required />
+                        <p v-if="medidasForm.errors.cantidad" class="form-error">
+                            {{ medidasForm.errors.cantidad }}
+                        </p>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Motivo del ajuste</label>
-                    <textarea v-model="medidasForm.motivo" class="form-control" rows="2"
+                    <label class="form-label" for="medidas-motivo">Motivo del ajuste</label>
+                    <textarea id="medidas-motivo" v-model="medidasForm.motivo" class="form-control" rows="2"
                         placeholder="El cliente amplió el frente, la pared medía distinto..."></textarea>
                     <p class="fs-xs text-muted mt-1 mb-0">Queda anotado en la bitácora del ítem.</p>
                 </div>

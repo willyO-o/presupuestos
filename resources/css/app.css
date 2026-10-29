@@ -2431,13 +2431,201 @@
     @apply mt-5 border-t pt-4;
 }
 
+/* --- Vista de detalle (Show.vue): resumen, documento y análisis interno --- */
+
+/* Resumen arriba: cliente, total cotizado y estado. */
+.cotizacion-resumen {
+    @apply grid grid-cols-1 gap-4 md:grid-cols-3 sm:gap-6;
+}
+
+.cotizacion-resumen-cuerpo {
+    @apply min-w-0;
+}
+
+.cotizacion-resumen-cliente {
+    @apply break-words text-lg;
+}
+
+.cotizacion-resumen-nota {
+    color: var(--text-muted);
+    @apply mb-0 mt-1 text-xs;
+}
+
+.cotizacion-resumen-estado {
+    @apply mt-1 text-[0.8125rem];
+}
+
+/* Documento: título de la tarjeta, marca, rótulos y fecha/vendedor separados por una línea. */
+.cotizacion-doc-titulo {
+    color: var(--text-heading);
+    @apply mb-3 text-base font-bold;
+}
+
+.cotizacion-doc-marca {
+    color: var(--c-primary);
+    @apply mb-0 text-xl font-bold;
+}
+
+/* A la derecha de la marca; en el teléfono baja y se alinea con ella. */
+.cotizacion-doc-numero {
+    @apply text-left sm:text-right;
+}
+
+.cotizacion-doc-tipo {
+    color: var(--text-muted);
+    @apply mb-1 text-xs font-semibold uppercase tracking-wide;
+}
+
+.cotizacion-doc-rotulo {
+    color: var(--text-muted);
+    @apply mb-1 text-xs font-semibold uppercase;
+}
+
+.cotizacion-doc-meta-detalles {
+    border-color: var(--border-subtle);
+    @apply sm:border-l sm:pl-6;
+}
+
+.cotizacion-doc-totals .cotizacion-total-grand {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary-dark);
+    border-top: 0;
+    @apply mt-2 rounded-lg px-3 py-2.5 text-lg;
+}
+
+.dark .cotizacion-doc-totals .cotizacion-total-grand {
+    color: var(--text-heading);
+}
+
+/* Análisis de rentabilidad (interno). */
+.cotizacion-analisis-cabecera {
+    @apply items-start;
+}
+
+.cotizacion-analisis {
+    @apply flex flex-col gap-4;
+}
+
+.cotizacion-analisis-kpis {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-3 sm:gap-4;
+}
+
+.cotizacion-analisis-kpis .stat-card {
+    box-shadow: none;
+    @apply p-4;
+}
+
+/* Lado a lado solo en pantallas anchas: con el menú abierto, la tabla de
+   productos (9 columnas) no entra en 7/12 y los montos se partían. */
+.cotizacion-analisis-paneles {
+    @apply grid grid-cols-1 items-start gap-4 2xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)];
+}
+
+/* Apilada, la resta no se estira a todo el ancho: el monto quedaría lejos de su concepto. */
+.cotizacion-analisis-paneles > .margen-panel:first-child {
+    @apply w-full max-w-2xl 2xl:max-w-none;
+}
+
+/* Montos y porcentajes en un renglón; la descripción del producto sí se parte. */
+.cotizacion-analisis-productos td:not(:first-child) {
+    @apply whitespace-nowrap;
+}
+
+.cotizacion-analisis-subtitulo {
+    color: var(--text-heading);
+    @apply mb-2 mt-0 text-sm font-semibold;
+}
+
+.margen-panel .margen-row.cotizacion-analisis-resultado {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary-dark);
+    border-top: 0;
+    @apply mt-1 rounded-md px-2 font-bold;
+}
+
+.dark .margen-panel .margen-row.cotizacion-analisis-resultado {
+    color: var(--text-heading);
+}
+
+.cotizacion-analisis-pie {
+    color: var(--text-muted);
+    @apply mb-0 mt-2 text-xs;
+}
+
+/* Fila de desplegables: cerrados van lado a lado; el que se abre ocupa todo el ancho. */
+.cotizacion-analisis-pie-fila {
+    @apply grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,18rem)];
+}
+
+.cotizacion-analisis-pie-fila > details[open] {
+    grid-column: 1 / -1;
+}
+
+.cotizacion-analisis-aclaracion {
+    color: var(--text-muted);
+    @apply m-0 self-center text-xs leading-relaxed;
+}
+
+.cotizacion-desplegable {
+    border: 1px solid var(--border-subtle);
+    @apply rounded-lg px-3 py-2.5;
+}
+
+.cotizacion-desplegable > summary {
+    color: var(--text-heading);
+    list-style: none;
+    @apply flex cursor-pointer items-center gap-2 text-[0.8125rem] font-semibold;
+}
+
+.cotizacion-desplegable > summary::-webkit-details-marker {
+    display: none;
+}
+
+.cotizacion-desplegable > summary i {
+    color: var(--c-primary);
+    transition: transform 150ms ease;
+    @apply text-xs;
+}
+
+.cotizacion-desplegable[open] > summary i {
+    transform: rotate(90deg);
+}
+
+/* "Ver parámetros del nivel": sin recuadro, bajo la tabla de productos. */
+.cotizacion-desplegable-simple {
+    border: 0;
+    @apply mt-2 px-0 py-1;
+}
+
+.cotizacion-desplegable-simple > summary {
+    color: var(--c-primary);
+    @apply font-medium;
+}
+
+.cotizacion-desplegable-cuerpo {
+    @apply mt-3;
+}
+
+.cotizacion-desplegable-lista {
+    color: var(--text-body);
+    @apply mb-0 mt-2 list-disc pl-5 text-xs leading-relaxed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cotizacion-desplegable > summary i {
+        transition: none;
+    }
+}
+
 @media print {
 
     .app-shell .sidebar,
     .app-shell .topbar,
     .app-footer,
     .page-title-box,
-    .cotizacion-actions {
+    .cotizacion-actions,
+    .cotizacion-resumen,
+    .cotizacion-doc-titulo {
         display: none !important;
     }
 
@@ -2566,6 +2754,45 @@
 .pedido-consumo-lista {
     color: var(--text-muted);
     @apply m-0 list-disc pl-5 text-xs;
+}
+
+/* "Ajustar medidas reales": ancho, alto y cantidad en una fila. */
+.pedido-medidas-campos {
+    @apply grid grid-cols-3 gap-3;
+}
+
+/* Ítem ajustado en producción: lo cotizado al lado de lo que se fabrica. */
+.pedido-ajuste {
+    background-color: var(--c-warning-soft);
+    border: 1px solid color-mix(in srgb, var(--c-warning) 30%, transparent);
+    color: var(--text-body);
+    @apply mb-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-snug;
+}
+
+.pedido-ajuste i {
+    color: var(--c-warning-dark);
+    @apply mt-0.5;
+}
+
+.dark .pedido-ajuste i {
+    color: var(--c-warning);
+}
+
+/* En el modal es solo la referencia: tono neutro, no de aviso. */
+.pedido-ajuste-referencia {
+    background-color: var(--c-primary-soft);
+    border-color: color-mix(in srgb, var(--c-primary) 15%, transparent);
+}
+
+.pedido-ajuste-referencia i,
+.dark .pedido-ajuste-referencia i {
+    color: var(--c-primary);
+}
+
+/* "Cambiar a 3,40 × 1,87 m": corrige la medida escrita en la descripción. */
+.pedido-ajuste-accion {
+    color: var(--c-primary);
+    @apply cursor-pointer border-0 bg-transparent p-0 text-xs font-semibold underline;
 }
 
 /* ==========================================================================
@@ -2983,57 +3210,7 @@
     @apply pointer-events-none opacity-50;
 }
 
-/* --- Alertas de costo y margen --- */
-.bi-alertas {
-    @apply m-0 flex list-none flex-col gap-3 p-0;
-}
-
-.bi-alerta {
-    border-color: var(--border-subtle);
-    @apply flex flex-wrap items-start gap-3 rounded-lg border p-3 sm:flex-nowrap;
-}
-
-.bi-alerta-icono {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
-}
-
-.bi-alerta-alta .bi-alerta-icono {
-    background: var(--c-danger-soft);
-    color: var(--c-danger);
-}
-
-.bi-alerta-media .bi-alerta-icono {
-    background: var(--c-warning-soft);
-    color: var(--c-warning);
-}
-
-.bi-alerta-cuerpo {
-    @apply min-w-0 flex-1;
-}
-
-.bi-alerta-encabezado {
-    @apply mb-1 flex flex-wrap items-center gap-2;
-}
-
-.bi-alerta-tipo {
-    color: var(--text-muted);
-    @apply text-xs uppercase tracking-wide;
-}
-
-.bi-alerta-titulo {
-    color: var(--text-heading);
-    @apply mb-0.5 text-sm font-semibold;
-}
-
-.bi-alerta-detalle {
-    color: var(--text-muted);
-    @apply mb-0 text-sm;
-}
-
-.bi-alerta-accion {
-    @apply shrink-0 self-center;
-}
-
+/* --- Alertas: estado vacío (las filas están en §46) --- */
 .bi-alertas-vacio {
     color: var(--text-muted);
     @apply flex flex-col items-center gap-2 py-8 text-center text-sm;
@@ -3044,65 +3221,7 @@
     @apply text-3xl;
 }
 
-/* --- Simulador de decisiones --- */
-.bi-simulador-controles {
-    @apply flex flex-col gap-4;
-}
-
-.bi-control-encabezado {
-    color: var(--text-body);
-    @apply mb-1 flex items-center justify-between gap-2 text-sm;
-}
-
-.bi-control-encabezado output {
-    color: var(--text-heading);
-    font-variant-numeric: tabular-nums;
-    @apply font-semibold;
-}
-
-.bi-range {
-    accent-color: var(--c-primary);
-    @apply w-full cursor-pointer;
-}
-
-.bi-control-check {
-    color: var(--text-muted);
-    @apply mt-2 flex cursor-pointer items-center gap-2 text-xs;
-}
-
-.bi-check {
-    accent-color: var(--c-primary);
-}
-
-/* Veredicto del escenario: el color repite el semáforo, el texto lo explica. */
-.bi-veredicto {
-    @apply mb-4 rounded-lg px-4 py-3;
-}
-
-.bi-veredicto-verde {
-    background: var(--c-success-soft);
-    border-color: var(--c-success);
-}
-
-.bi-veredicto-amarillo {
-    background: var(--c-warning-soft);
-    border-color: var(--c-warning);
-}
-
-.bi-veredicto-rojo {
-    background: var(--c-danger-soft);
-    border-color: var(--c-danger);
-}
-
-.bi-veredicto-titulo {
-    color: var(--text-heading);
-    @apply mb-1 text-sm font-semibold;
-}
-
-.bi-veredicto-detalle {
-    color: var(--text-muted);
-    @apply mb-0 text-xs;
-}
+/* --- Simulador de decisiones: en §47 --- */
 
 /* ==========================================================================
    27. PORTAL DEL CLIENTE (Layouts/ClientePortalLayout, Pages/Portal, Pages/Verificar)
@@ -5079,7 +5198,12 @@
     }
 }
 
-/* --- Resumen semanal --- */
+/* --- Resumen semanal (Pages/Reportes/BiResumen.vue) ---
+   De arriba abajo: barra de semana y sucursal, titular, cuatro tarjetas
+   (BiKpi), "Qué requiere atención" | "Resultados favorables", tabla de
+   indicadores, acciones | contexto. El texto redactado se muestra tal cual;
+   lo que agrega la pantalla (títulos cortos, aclaraciones, enlaces) sale de
+   los indicadores que cita cada frase. */
 .resumen-vacio {
     color: var(--text-muted);
     @apply flex flex-col items-center gap-3 py-10 text-center text-sm;
@@ -5100,86 +5224,117 @@
     @apply m-0 text-lg font-semibold;
 }
 
-/* Titular arriba a todo el ancho; origen, alcances y acción debajo. Al
-   lado, los botones de alcance le comían el ancho al titular. */
-.resumen-cabecera-fila {
-    @apply flex flex-col gap-4;
+/* Selectores a la izquierda; cuándo y cómo se redactó, a la derecha
+   (debajo en pantallas chicas). Los campos no crecen: si no, empujan el
+   estado fuera de la fila. */
+.resumen-filtro {
+    @apply flex flex-wrap items-end gap-x-6 gap-y-4;
 }
 
-.resumen-cabecera-texto {
-    @apply flex min-w-0 flex-1 flex-col gap-2;
+.resumen-filtro-campo {
+    flex: 0 1 19rem;
+    @apply flex min-w-0 items-end gap-3;
 }
 
-.resumen-semana {
+/* Los nombres de sucursal son cortos; la semana necesita el ancho. */
+.resumen-filtro-campo-corto {
+    flex-basis: 14rem;
+}
+
+.resumen-filtro-icono {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-base;
+}
+
+.resumen-filtro-control {
+    @apply min-w-0 flex-1;
+}
+
+.resumen-filtro-estado {
     color: var(--text-muted);
-    @apply m-0 text-sm;
+    border-color: var(--border-subtle);
+    @apply flex flex-col items-start gap-1 text-xs leading-snug lg:ml-auto lg:items-end lg:border-l lg:pl-6;
 }
 
-.resumen-semana strong {
-    color: var(--text-heading);
-    @apply font-semibold;
+.resumen-filtro-aviso {
+    @apply m-0 w-full;
+}
+
+/* Titular: la frase que resume la semana, en la caja de color de las
+   respuestas del BI (mismo lenguaje que .preguntas-respuesta). */
+.resumen-titular-caja {
+    background-color: var(--c-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--c-primary) 14%, transparent);
+    @apply flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl px-4 py-4 sm:px-6 sm:py-5;
+}
+
+.resumen-titular-icono {
+    background-color: color-mix(in srgb, var(--c-primary) 14%, var(--card-bg));
+    color: var(--c-primary);
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl;
+}
+
+.resumen-titular-cuerpo {
+    flex: 1 1 22rem;
+    @apply min-w-0;
+}
+
+.resumen-titular-eyebrow {
+    color: var(--c-primary-dark);
+    @apply m-0 mb-1 flex flex-wrap items-center gap-1.5 text-xs font-semibold;
 }
 
 .resumen-titular {
-    color: var(--text-heading);
+    color: var(--c-primary-dark);
     text-wrap: balance;
-    max-width: 60ch;
-    @apply m-0 text-xl font-semibold leading-snug sm:text-2xl;
+    max-width: 52rem;
+    @apply m-0 text-xl font-bold leading-snug sm:text-2xl;
 }
 
-.resumen-origen {
-    @apply m-0 flex flex-wrap items-center gap-2;
-}
-
-.resumen-origen .badge {
-    @apply inline-flex items-center gap-1.5;
-}
-
-.resumen-cabecera-acciones {
-    @apply flex flex-wrap items-center justify-between gap-2;
-}
-
-.resumen-alcances {
-    background-color: var(--page-bg);
-    @apply inline-flex flex-wrap gap-1 rounded-lg p-1;
-}
-
-.resumen-alcance {
+.dark .resumen-titular-eyebrow {
     color: var(--text-muted);
-    @apply rounded-md border-0 bg-transparent px-2.5 py-1 text-xs font-medium transition-colors;
 }
 
-.resumen-alcance:hover {
+.dark .resumen-titular {
     color: var(--text-heading);
 }
 
-.resumen-alcance.is-active {
-    background-color: var(--card-bg);
-    color: var(--c-primary);
-    box-shadow: 0 1px 2px rgba(20, 22, 26, 0.08);
+.resumen-titular-nota {
+    color: var(--text-muted);
+    flex: 0 1 17rem;
+    @apply m-0 flex items-start gap-2 text-xs leading-relaxed;
 }
 
-.resumen-cuerpo {
-    @apply grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2;
+.resumen-titular-nota i {
+    @apply mt-0.5;
 }
 
-.resumen-lectura,
-.resumen-evidencia {
-    @apply flex min-w-0 flex-col gap-4 sm:gap-6;
+.resumen-tarjetas {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4;
 }
 
-.resumen-lectura > .card,
-.resumen-evidencia > .card {
-    @apply mb-0;
+.resumen-grilla {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2;
 }
 
+/* El color del ícono del título dice de qué lado está la tarjeta. */
+.card-title > i.resumen-icono-atencion {
+    color: var(--c-danger);
+}
+
+.card-title > i.resumen-icono-favorable {
+    color: var(--c-success);
+}
+
+/* --- Puntos: qué requiere atención / resultados favorables --- */
 .resumen-puntos {
     @apply m-0 flex list-none flex-col gap-1;
 }
 
 .resumen-punto {
     color: var(--text-body);
-    @apply flex items-start gap-3 rounded-lg px-2 py-2 text-sm leading-relaxed transition-colors;
+    @apply flex items-start gap-3 rounded-lg px-2 py-2.5 text-sm leading-relaxed transition-colors;
 }
 
 .resumen-punto[tabindex]:hover,
@@ -5194,7 +5349,7 @@
 }
 
 .resumen-punto-icono {
-    @apply mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs;
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm;
 }
 
 .resumen-punto-bueno {
@@ -5212,34 +5367,43 @@
     color: var(--c-warning-dark);
 }
 
-.resumen-punto-accion {
-    background-color: var(--c-primary-soft);
-    color: var(--c-primary);
+/* Título corto (del indicador citado) arriba; la frase redactada debajo. */
+.resumen-punto-cuerpo {
+    @apply flex min-w-0 flex-col gap-0.5;
 }
 
-.resumen-accion {
+.resumen-punto-titulo {
     color: var(--text-heading);
-    @apply block font-semibold;
+    @apply font-semibold;
 }
 
-.resumen-motivo {
+.resumen-punto-nota {
     color: var(--text-muted);
-    @apply block text-xs;
+    @apply text-xs;
+}
+
+.resumen-punto-vacio {
+    color: var(--text-muted);
+    @apply m-0 px-2 py-2 text-sm;
+}
+
+/* --- Indicadores de la semana --- */
+.resumen-comparar {
+    @apply flex flex-wrap items-center gap-2;
 }
 
 .resumen-kpis tbody tr {
     transition: background-color 150ms ease;
 }
 
-/* El nombre del indicador hace salto de línea: si no, empuja las columnas
-   de variación fuera de la tarjeta. */
-/* Sin el ancho mínimo de 640 px de .table-dashboard: vive en media
-   columna (y en el panel del asistente) y si no, se corta. */
+/* Sin el ancho mínimo de 640 px de .table-dashboard: en un teléfono la
+   tabla entra completa (y en el panel del asistente también). */
 .table-dashboard.resumen-kpis,
 .table-dashboard.ia-resultado-tabla {
     min-width: 0;
 }
 
+/* El nombre del indicador hace salto de línea; las cifras, no. */
 .table-dashboard.resumen-kpis tbody td:first-child {
     white-space: normal;
     min-width: 8rem;
@@ -5249,9 +5413,10 @@
     white-space: nowrap;
 }
 
-.table-dashboard.resumen-kpis thead th,
-.table-dashboard.resumen-kpis tbody td {
-    @apply px-2 text-xs;
+/* En el teléfono se oculta el valor de referencia: así el cambio, que es
+   lo que se lee, entra sin desplazar la tabla. */
+.resumen-kpis-referencia {
+    @apply hidden sm:table-cell;
 }
 
 .resumen-kpis tbody tr.is-evidencia td {
@@ -5283,6 +5448,64 @@
     color: var(--c-success);
 }
 
+/* Aclaración bajo una tabla o una lista. */
+.resumen-nota {
+    color: var(--text-muted);
+    @apply mb-0 mt-3 flex items-start gap-2 text-xs leading-relaxed;
+}
+
+.resumen-nota i {
+    @apply mt-0.5;
+}
+
+/* --- Acciones sugeridas: numeradas, con enlace a donde se hacen --- */
+.resumen-acciones {
+    @apply m-0 flex list-none flex-col;
+}
+
+.resumen-accion-item {
+    @apply flex flex-wrap items-start gap-x-3 gap-y-2 py-3 sm:flex-nowrap;
+}
+
+.resumen-accion-item:first-child {
+    @apply pt-0;
+}
+
+.resumen-accion-item:last-child {
+    @apply pb-0;
+}
+
+.resumen-accion-item + .resumen-accion-item {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.resumen-accion-numero {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold;
+}
+
+.resumen-accion-cuerpo {
+    flex: 1 1 12rem;
+    @apply min-w-0 text-sm leading-relaxed;
+}
+
+.resumen-accion {
+    color: var(--text-heading);
+    @apply block font-semibold;
+}
+
+.resumen-motivo {
+    color: var(--text-muted);
+    @apply block text-xs;
+}
+
+/* En el teléfono el botón baja y se alinea con el texto (7 + 3 = 10). */
+.resumen-accion-enlace {
+    @apply ml-10 shrink-0 whitespace-nowrap sm:ml-0 sm:self-center;
+}
+
+/* --- Contexto de las cotizaciones --- */
 .resumen-contexto {
     color: var(--text-body);
     @apply flex flex-col gap-3 text-sm;
@@ -5290,43 +5513,68 @@
 
 .resumen-contexto-titulo {
     color: var(--text-heading);
-    @apply mb-1 font-semibold;
+    @apply m-0 block font-semibold;
 }
 
+.resumen-familias {
+    @apply m-0 flex list-none flex-col gap-3 p-0;
+}
+
+/* Nombre | barra | cifra en una fila; en el teléfono la barra baja. */
 .resumen-familia {
-    @apply mb-2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        'nombre cifra'
+        'barra barra';
+    @apply items-center gap-x-3 gap-y-1 text-xs;
 }
 
-.resumen-familia-fila {
-    @apply flex justify-between gap-3 text-xs;
+@media (min-width: 640px) {
+    .resumen-familia {
+        grid-template-columns: minmax(0, 10rem) minmax(0, 1fr) auto;
+        grid-template-areas: 'nombre barra cifra';
+    }
 }
 
-.resumen-historial {
-    @apply m-0 flex list-none flex-col gap-1;
+.resumen-familia-nombre {
+    grid-area: nombre;
+    @apply leading-snug;
 }
 
-.resumen-historial-item {
-    color: var(--text-body);
-    @apply flex w-full flex-col gap-0.5 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-sm transition-colors sm:flex-row sm:items-baseline sm:gap-4;
+.resumen-familia-barra {
+    grid-area: barra;
+    @apply mt-0 block;
 }
 
-.resumen-historial-item:hover {
-    background-color: var(--page-bg);
+.resumen-familia-cifra {
+    grid-area: cifra;
+    @apply whitespace-nowrap text-right;
 }
 
-.resumen-historial-item.is-active {
+.resumen-contexto-pie {
+    border-top: 1px solid var(--border-subtle);
+    @apply mt-1 flex flex-wrap items-center justify-between gap-3 pt-4;
+}
+
+.resumen-vendedor {
+    @apply m-0 flex min-w-0 items-start gap-3;
+}
+
+.resumen-vendedor-icono {
     background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm;
 }
 
-.resumen-historial-semana {
-    color: var(--text-heading);
-    font-variant-numeric: tabular-nums;
-    @apply shrink-0 font-semibold sm:w-64;
+.resumen-anomalias {
+    @apply no-underline;
 }
 
-.resumen-historial-titular {
+/* Advertencia final: el texto es una lectura automática, no una causa. */
+.resumen-pie {
     color: var(--text-muted);
-    @apply min-w-0;
+    @apply m-0 flex items-start justify-center gap-2 text-center text-xs;
 }
 
 /* --- Anomalías detectadas --- */
@@ -6009,79 +6257,10 @@
     @apply flex items-center gap-2.5;
 }
 
-/* --- Ranking "Clientes que más compran" --- */
-.bi-clientes-concentracion {
-    color: var(--text-body);
-    background-color: var(--c-primary-soft);
-    @apply m-0 rounded-full px-3 py-1 text-xs;
-}
-
-.bi-clientes-concentracion strong {
-    color: var(--c-primary);
-}
-
-.bi-clientes {
-    @apply m-0 grid list-none gap-x-8 gap-y-4 p-0 lg:grid-cols-2;
-}
-
-.bi-cliente {
-    @apply flex min-w-0 items-center gap-3;
-}
-
-.bi-cliente-puesto {
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-    @apply w-5 shrink-0 text-end text-xs font-bold;
-}
-
-.bi-cliente-cuerpo {
-    @apply min-w-0 flex-1;
-}
-
-.bi-cliente-fila {
-    @apply flex items-baseline gap-3;
-}
-
-.bi-cliente-nombre {
-    color: var(--text-heading);
-    @apply min-w-0 flex-1 truncate text-[0.8125rem] font-semibold;
-}
-
-.bi-cliente-monto {
-    color: var(--text-heading);
-    font-variant-numeric: tabular-nums;
-    @apply shrink-0 text-[0.8125rem] font-bold;
-}
-
-.bi-cliente-barra {
-    background-color: var(--c-primary-soft);
-    @apply my-1.5 h-1.5 overflow-hidden rounded-full;
-}
-
-.bi-cliente-barra span {
-    background-image: linear-gradient(90deg, color-mix(in srgb, var(--c-primary) 75%, #ffffff), var(--c-primary));
-    @apply block h-full rounded-full;
-}
-
-.bi-cliente-meta {
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-    @apply flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.6875rem];
-}
-
-/* Un cliente grande que hace mucho no compra: el mismo aviso que la
-   detección de anomalías, a la vista en el ranking. */
-.bi-cliente-meta .is-alerta {
-    color: var(--c-warning-dark);
-    @apply font-semibold;
-}
-
-.bi-cliente-parte {
-    @apply ms-auto;
-}
-
+/* --- Ranking de clientes del BI (Pages/Reportes/Bi.vue, tabla en §43) ---
+   Variación de cada cliente frente al periodo anterior. */
 .bi-cliente-variacion {
-    @apply inline-flex items-center gap-1 rounded-full px-1.5 py-px font-semibold;
+    @apply inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[0.6875rem] font-semibold;
 }
 
 .bi-cliente-variacion.is-sube {
@@ -6101,12 +6280,6 @@
 
 .dark .bi-cliente-variacion.is-sube { color: var(--c-success); }
 .dark .bi-cliente-variacion.is-baja { color: var(--c-danger); }
-.dark .bi-cliente-meta .is-alerta { color: var(--c-warning); }
-
-.bi-cliente-otros .bi-cliente-nombre,
-.bi-cliente-otros .bi-cliente-monto {
-    color: var(--text-muted);
-}
 
 /* ==========================================================================
    37. PANORAMA DEL BI (Pages/Reportes/BiPanorama.vue,
@@ -7254,7 +7427,9 @@ button.panorama-top-item:hover {
    Índice a la izquierda (buscador + grupos) y la pregunta abierta a la
    derecha: respuesta breve, cuenta del costo (solo "Costo por producto"),
    aviso, tabla/gráfico, acción sugerida, cómo se calcula y Siguiente.
-   Reusa .decision-* de §38 y .financiero-vista/.panorama-vista.
+   La pregunta 11 (Acciones) lleva su propia tabla y los cuadros de
+   escenarios y cobros (.acciones-*). Reusa .decision-orden de §38 y
+   .financiero-vista/.panorama-vista.
    ========================================================================== */
 
 .preguntas-vista {
@@ -7367,21 +7542,33 @@ button.panorama-top-item:hover {
 
 .preguntas-respuesta {
     background-color: var(--c-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--c-primary) 14%, transparent);
     color: var(--text-body);
-    @apply flex items-start gap-3 rounded-xl px-4 py-3 text-sm leading-relaxed;
+    @apply flex items-start gap-4 rounded-xl px-4 py-4 sm:px-5;
 }
 
-.preguntas-respuesta > i {
+.preguntas-respuesta-icono {
+    background-color: color-mix(in srgb, var(--c-primary) 14%, var(--card-bg));
     color: var(--c-primary);
-    @apply mt-0.5 text-xl;
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl;
 }
 
 .preguntas-respuesta-titulo {
     color: var(--c-primary-dark);
-    @apply font-bold;
+    @apply text-xs font-bold;
 }
 
 .dark .preguntas-respuesta-titulo {
+    color: var(--text-heading);
+}
+
+/* La primera oración (lo que contesta) en negrita; el resto, normal. */
+.preguntas-respuesta-texto {
+    color: var(--c-primary-dark);
+    @apply pt-1 text-[0.9375rem] leading-relaxed sm:text-base;
+}
+
+.dark .preguntas-respuesta-texto {
     color: var(--text-heading);
 }
 
@@ -7465,28 +7652,39 @@ button.panorama-top-item:hover {
 }
 
 .preguntas-accion {
-    background-color: color-mix(in srgb, var(--c-success) 10%, var(--card-bg));
+    background-color: color-mix(in srgb, var(--c-success) 8%, var(--card-bg));
     border: 1px solid color-mix(in srgb, var(--c-success) 22%, transparent);
     color: var(--text-body);
-    @apply flex items-start gap-3 rounded-xl px-4 py-3 text-[0.8125rem] leading-relaxed;
+    @apply flex items-start gap-4 rounded-xl px-4 py-4 text-[0.8125rem] leading-relaxed sm:px-5;
 }
 
-.preguntas-accion > i {
+.preguntas-accion-icono {
+    background-color: color-mix(in srgb, var(--c-success) 16%, var(--card-bg));
     color: var(--c-success);
-    @apply mt-0.5 text-xl;
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl;
 }
 
 .preguntas-accion-titulo {
-    color: var(--c-success-dark);
-    @apply font-bold;
+    color: var(--text-heading);
+    @apply text-[0.9375rem] font-bold;
 }
 
-.dark .preguntas-accion-titulo {
-    color: var(--c-success);
+.preguntas-accion ol {
+    @apply m-0 mt-2 flex list-none flex-col gap-2 p-0;
 }
 
-.preguntas-accion ul {
-    @apply m-0 flex list-none flex-col gap-1 p-0;
+.preguntas-accion li {
+    @apply flex items-start gap-2.5;
+}
+
+.preguntas-accion-numero {
+    background-color: var(--c-success-dark);
+    font-variant-numeric: tabular-nums;
+    @apply mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-bold text-white;
+}
+
+.dark .preguntas-accion-numero {
+    background-color: var(--c-success);
 }
 
 .preguntas-calculo {
@@ -7499,19 +7697,32 @@ button.panorama-top-item:hover {
     @apply flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[0.8125rem] font-semibold;
 }
 
-.preguntas-calculo-boton i {
-    color: var(--text-muted);
-    @apply text-xs transition-transform;
+.preguntas-calculo-info {
+    color: var(--c-primary);
+    @apply text-sm;
 }
 
-.preguntas-calculo-boton i.is-abierto {
+.preguntas-calculo-flecha {
+    color: var(--text-muted);
+    @apply ml-auto text-xs transition-transform;
+}
+
+.preguntas-calculo-flecha.is-abierto {
     @apply rotate-180;
 }
 
 .preguntas-calculo-texto {
     color: var(--text-muted);
-    border-top: 1px solid var(--border-subtle);
-    @apply flex items-start gap-2.5 px-4 py-3 text-xs leading-relaxed;
+    @apply px-4 pb-3 pl-[2.6rem] text-xs leading-relaxed;
+}
+
+/* Padding y no margen: `.preguntas-detalle p` anula el margen de los <p>. */
+.preguntas-calculo-texto p + p {
+    @apply pt-2;
+}
+
+.preguntas-calculo-texto strong {
+    color: var(--text-heading);
 }
 
 .preguntas-pie {
@@ -7522,6 +7733,1394 @@ button.panorama-top-item:hover {
     @apply inline-flex items-center gap-2;
 }
 
-button.decision-origen {
-    @apply cursor-pointer bg-transparent p-0 text-left;
+/* --- Pregunta 11 (Acciones): bajada, tabla de acciones y lecturas rápidas --- */
+/* Padding y no margen: `.preguntas-detalle p` anula el margen de los <p>. */
+.preguntas-bajada {
+    color: var(--text-muted);
+    @apply flex items-start gap-2 pt-1.5 text-sm leading-relaxed;
+}
+
+.preguntas-bajada i {
+    color: var(--c-primary);
+    @apply mt-1 text-xs;
+}
+
+.acciones-caja {
+    border: 1px solid var(--border-subtle);
+    @apply rounded-xl p-3 sm:p-4;
+}
+
+.acciones-tabla .decision-orden {
+    @apply mx-auto rounded-md;
+}
+
+.acciones-tabla td.acciones-titulo {
+    color: var(--text-heading);
+    @apply min-w-[14rem] text-[0.8125rem] leading-snug;
+}
+
+.acciones-tabla .badge {
+    @apply whitespace-nowrap;
+}
+
+.acciones-tabla td.acciones-monto {
+    color: var(--text-heading);
+    @apply whitespace-nowrap font-bold;
+}
+
+.acciones-ver {
+    color: var(--c-primary);
+    @apply inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap bg-transparent p-0 text-[0.8125rem] font-semibold;
+}
+
+.acciones-ver:hover,
+.acciones-ver:focus-visible {
+    color: var(--c-primary-dark);
+    @apply underline underline-offset-2;
+}
+
+.dark .acciones-ver:hover,
+.dark .acciones-ver:focus-visible {
+    color: var(--text-heading);
+}
+
+.acciones-ver i {
+    @apply text-[0.6875rem];
+}
+
+.acciones-nota {
+    color: var(--text-muted);
+    @apply flex items-center gap-2 pt-3 text-xs;
+}
+
+.acciones-lecturas {
+    @apply grid gap-4 md:grid-cols-2;
+}
+
+.acciones-lectura {
+    border: 1px solid var(--border-subtle);
+    @apply flex flex-col overflow-hidden rounded-xl;
+}
+
+.acciones-lectura-cabecera {
+    background-color: color-mix(in srgb, var(--c-primary) 6%, var(--card-bg));
+    border-bottom: 1px solid var(--border-subtle);
+    @apply flex items-center gap-3 px-4 py-3;
+}
+
+.acciones-lectura-cabecera h3 {
+    color: var(--text-heading);
+    @apply m-0 text-[0.9375rem] font-bold leading-snug;
+}
+
+.acciones-lectura-icono {
+    background-color: var(--c-primary);
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm text-white;
+}
+
+.acciones-escenario {
+    @apply flex flex-1 flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4;
+}
+
+.acciones-escenario p {
+    color: var(--text-body);
+    @apply flex flex-col text-[0.8125rem] leading-snug;
+}
+
+.acciones-escenario strong {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply text-base font-bold;
+}
+
+.acciones-escenario > i {
+    color: var(--text-muted);
+    @apply text-sm;
+}
+
+.acciones-cobros {
+    @apply flex flex-1 flex-col gap-1 px-4 py-4;
+}
+
+.acciones-cobros-monto {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply text-2xl font-bold leading-tight;
+}
+
+.acciones-cobros p {
+    color: var(--text-body);
+    @apply text-[0.8125rem];
+}
+
+.acciones-cobros p.acciones-cobros-antiguo {
+    border-top: 1px solid var(--border-subtle);
+    @apply mt-2 pt-2;
+}
+
+.acciones-cobros-antiguo strong {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.acciones-lectura-pie {
+    border-top: 1px solid var(--border-subtle);
+    @apply flex flex-wrap items-center justify-between gap-2 px-4 py-2.5;
+}
+
+.acciones-lectura-pie p {
+    color: var(--text-muted);
+    @apply flex items-center gap-2 text-xs;
+}
+
+.acciones-cuerpo {
+    @apply flex flex-col gap-4;
+}
+
+/* --- Pregunta 2 (Aumento de materiales): indicadores, gráfico y precios --- */
+.aumento-cuerpo {
+    @apply flex flex-col gap-4;
+}
+
+/* auto-fit y no breakpoints: el ancho lo decide la columna de la pregunta,
+   que con el índice al lado es mucho más angosta que la pantalla. */
+.aumento-kpis {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    @apply grid gap-3;
+}
+
+.aumento-kpis .bi-kpi {
+    box-shadow: none;
+    @apply p-4;
+}
+
+/* "Mayor impacto" es el nombre de un material: que baje de renglón. */
+.aumento-kpis .stat-value {
+    @apply break-words;
+}
+
+.aumento-paneles {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    @apply grid items-start gap-4;
+}
+
+.aumento-panel {
+    border: 1px solid var(--border-subtle);
+    @apply min-w-0 rounded-xl p-4;
+}
+
+/* La tabla base pide 640 px; acá son 2 o 4 columnas cortas. */
+.table-dashboard.aumento-tabla {
+    @apply min-w-[20rem];
+}
+
+.aumento-tabla td.text-end {
+    @apply whitespace-nowrap;
+}
+
+.aumento-nota {
+    color: var(--text-muted);
+    @apply pt-3 text-xs;
+}
+
+/* ==========================================================================
+   43. DEMANDA Y VENTAS POR BLOQUES (Pages/Reportes/Bi.vue,
+       Components/Reporte/BiBloque.vue, Components/Reporte/BiInterruptor.vue)
+   --------------------------------------------------------------------------
+   La pestaña se lee en tres bloques numerados: pedidos futuros, qué se
+   vende y quién compra, comportamiento histórico. La tabla de clientes
+   reusa .panorama-ranking (§41) y la variación de cada cliente,
+   .bi-cliente-variacion (§36). La barra de concentración no es un gráfico:
+   es un medidor (como .reporte-progress).
+   ========================================================================== */
+
+/* --- Bloque numerado (BiBloque.vue) --- */
+.bi-bloque {
+    @apply flex flex-col gap-4;
+}
+
+.bi-bloque + .bi-bloque {
+    @apply mt-2 sm:mt-3;
+}
+
+.bi-bloque-cabecera {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-2;
+}
+
+.bi-bloque-numero {
+    background-color: var(--c-primary);
+    box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--c-primary) 70%, transparent);
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base font-bold text-white;
+}
+
+.bi-bloque-texto {
+    flex: 1 1 18rem;
+    @apply min-w-0;
+}
+
+.bi-bloque-titulo {
+    color: var(--text-heading);
+    @apply m-0 text-lg font-bold leading-snug sm:text-xl;
+}
+
+.bi-bloque-subtitulo {
+    color: var(--text-muted);
+    @apply m-0 mt-0.5 text-sm;
+}
+
+/* En el teléfono baja y se alinea con el título (9 + 4 = 13 → 3,25 rem). */
+.bi-bloque-accion {
+    @apply w-full pl-[3.25rem] sm:ms-auto sm:w-auto sm:pl-0;
+}
+
+.bi-bloque-cuerpo {
+    @apply flex flex-col gap-4 sm:gap-6;
+}
+
+/* --- Interruptor encendido/apagado (BiInterruptor.vue) --- */
+.bi-interruptor {
+    color: var(--text-body);
+    @apply inline-flex items-center gap-2.5 rounded-full border-0 bg-transparent p-0 text-left text-xs font-medium;
+}
+
+.bi-interruptor:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 3px;
+}
+
+.bi-interruptor-pista {
+    background-color: color-mix(in srgb, var(--text-muted) 35%, transparent);
+    transition: background-color 150ms ease;
+    @apply relative inline-block h-5 w-9 shrink-0 rounded-full;
+}
+
+.bi-interruptor-perilla {
+    background-color: #ffffff;
+    box-shadow: 0 1px 2px rgba(20, 22, 26, 0.25);
+    transition: transform 150ms ease;
+    @apply absolute left-0.5 top-0.5 h-4 w-4 rounded-full;
+}
+
+.bi-interruptor.is-activo .bi-interruptor-pista {
+    background-color: var(--c-primary);
+}
+
+.bi-interruptor.is-activo .bi-interruptor-perilla {
+    transform: translateX(1rem);
+}
+
+/* --- Avisos en recuadro: mes incompleto (en el filtro) y clientes a revisar --- */
+.bi-filtro-aviso {
+    @apply w-full xl:w-auto xl:max-w-sm;
+}
+
+.bi-mes-incompleto,
+.bi-clientes-seguimiento {
+    background-color: var(--c-warning-soft);
+    border: 1px solid color-mix(in srgb, var(--c-warning) 30%, transparent);
+    color: var(--text-body);
+    @apply m-0 flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-snug;
+}
+
+.bi-mes-incompleto i,
+.bi-clientes-seguimiento i,
+.bi-mes-incompleto strong,
+.bi-clientes-seguimiento strong {
+    color: var(--c-warning-dark);
+}
+
+.bi-mes-incompleto i,
+.bi-clientes-seguimiento i {
+    @apply mt-0.5;
+}
+
+.dark .bi-mes-incompleto i,
+.dark .bi-clientes-seguimiento i,
+.dark .bi-mes-incompleto strong,
+.dark .bi-clientes-seguimiento strong {
+    color: var(--c-warning);
+}
+
+/* Nota al pie de un gráfico; con -franja, suelta entre tarjetas. */
+.bi-nota {
+    color: var(--text-muted);
+    @apply mb-0 mt-3 flex items-start gap-2 text-xs leading-relaxed;
+}
+
+.bi-nota i {
+    @apply mt-0.5;
+}
+
+.bi-nota-franja {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    @apply mt-0 rounded-xl px-4 py-3;
+}
+
+/* "Ver los 10 productos", "Ver la curva…": enlace de texto que despliega. */
+.bi-ver-mas {
+    color: var(--c-primary);
+    @apply mt-3 inline-flex items-center gap-2 border-0 bg-transparent p-0 text-[0.8125rem] font-semibold;
+}
+
+.bi-ver-mas:hover {
+    text-decoration: underline;
+}
+
+/* --- Confiabilidad de una proyección junto al título (ConfiabilidadPronostico.vue;
+   la cabecera de la tarjeta lleva .bi-cabecera-con-aviso) --- */
+.bi-cabecera-con-aviso {
+    @apply items-start;
+}
+
+.bi-confiabilidad {
+    border: 1px solid transparent;
+    color: var(--text-body);
+    @apply flex max-w-md items-start gap-2.5 rounded-lg px-3 py-2 text-xs leading-snug;
+}
+
+.bi-confiabilidad p {
+    @apply m-0;
+}
+
+.bi-confiabilidad strong {
+    @apply mb-0.5 block text-[0.8125rem];
+}
+
+.bi-confiabilidad i {
+    @apply mt-0.5 text-sm;
+}
+
+.bi-confiabilidad-warning {
+    background-color: var(--c-warning-soft);
+    border-color: color-mix(in srgb, var(--c-warning) 30%, transparent);
+}
+
+.bi-confiabilidad-warning i,
+.bi-confiabilidad-warning strong {
+    color: var(--c-warning-dark);
+}
+
+.bi-confiabilidad-info {
+    background-color: var(--c-info-soft);
+    border-color: color-mix(in srgb, var(--c-info) 30%, transparent);
+}
+
+.bi-confiabilidad-info i,
+.bi-confiabilidad-info strong {
+    color: var(--c-info-dark);
+}
+
+.bi-confiabilidad-success {
+    background-color: var(--c-success-soft);
+    border-color: color-mix(in srgb, var(--c-success) 30%, transparent);
+}
+
+.bi-confiabilidad-success i,
+.bi-confiabilidad-success strong {
+    color: var(--c-success-dark);
+}
+
+.dark .bi-confiabilidad-warning i,
+.dark .bi-confiabilidad-warning strong {
+    color: var(--c-warning);
+}
+
+.dark .bi-confiabilidad-info i,
+.dark .bi-confiabilidad-info strong {
+    color: var(--c-info);
+}
+
+.dark .bi-confiabilidad-success i,
+.dark .bi-confiabilidad-success strong {
+    color: var(--c-success);
+}
+
+/* --- 2. Qué se vende y quién compra --- */
+.bi-demanda-par {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2;
+}
+
+.bi-demanda-clientes {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)];
+}
+
+/* En el teléfono encabezados y "Hace N días" pueden partirse: así la
+   tabla entra sin desplazarse. */
+.bi-clientes-tabla th {
+    @apply md:whitespace-nowrap;
+}
+
+/* Columna de tabla que se oculta en el teléfono para que entre lo que se
+   mira primero (en clientes: cliente, monto y última compra). */
+.bi-col-opcional {
+    @apply hidden md:table-cell;
+}
+
+/* Título con una etiqueta al lado ("Historial completo"): baja entera de
+   renglón en vez de apretarse. */
+.card-title.bi-titulo-etiqueta {
+    @apply flex-wrap gap-y-1.5;
+}
+
+.bi-titulo-etiqueta .badge {
+    @apply whitespace-nowrap;
+}
+
+.bi-cliente-ultima {
+    @apply md:whitespace-nowrap;
+}
+
+/* Un cliente grande que hace mucho no compra: el mismo aviso que la
+   detección de anomalías, a la vista en el ranking. */
+.bi-cliente-ultima.is-alerta {
+    color: var(--c-warning-dark) !important;
+    @apply font-semibold;
+}
+
+.dark .bi-cliente-ultima.is-alerta {
+    color: var(--c-warning) !important;
+}
+
+.bi-clientes-otros td {
+    color: var(--text-muted);
+}
+
+.bi-clientes-pie {
+    @apply mt-4 flex flex-wrap items-center justify-between gap-3;
+}
+
+.bi-clientes-seguimiento {
+    @apply max-w-xl;
+}
+
+.bi-concentracion {
+    @apply flex flex-col gap-4;
+}
+
+.bi-concentracion-barra {
+    @apply flex h-9 overflow-hidden rounded-lg text-xs font-bold;
+}
+
+.bi-concentracion-barra > span {
+    @apply flex items-center justify-center text-white;
+}
+
+.bi-concentracion-barra > span + span {
+    border-left: 2px solid var(--card-bg);
+}
+
+.bi-concentracion-principales {
+    background-color: var(--c-primary);
+}
+
+.bi-concentracion-otros {
+    background-color: var(--c-secondary);
+}
+
+.bi-concentracion-leyenda {
+    color: var(--text-body);
+    @apply m-0 flex list-none flex-col gap-1.5 p-0 text-[0.8125rem];
+}
+
+.bi-concentracion-leyenda li {
+    @apply flex items-center gap-2;
+}
+
+.bi-concentracion-leyenda strong {
+    color: var(--text-heading);
+}
+
+.bi-concentracion-punto {
+    @apply inline-block h-2.5 w-2.5 shrink-0 rounded-full;
+}
+
+.bi-concentracion-dato,
+.bi-sugerencia {
+    color: var(--text-body);
+    @apply m-0 flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-[0.8125rem] leading-snug;
+}
+
+.bi-concentracion-dato {
+    background-color: var(--c-primary-soft);
+}
+
+.bi-concentracion-dato i {
+    color: var(--c-primary);
+    @apply mt-0.5;
+}
+
+/* Sugerencia de qué hacer con lo que muestra la tarjeta (verde, con
+   ícono). Con -franja va suelta entre tarjetas, a todo el ancho. */
+.bi-sugerencia {
+    background-color: var(--c-success-soft);
+}
+
+.bi-sugerencia i {
+    color: var(--c-success-dark);
+    @apply mt-0.5;
+}
+
+.dark .bi-sugerencia i {
+    color: var(--c-success);
+}
+
+.bi-sugerencia-franja {
+    border: 1px solid color-mix(in srgb, var(--c-success) 25%, transparent);
+    @apply rounded-xl px-4 py-3;
+}
+
+.bi-concentracion .bi-ver-mas {
+    @apply mt-0 self-start;
+}
+
+/* --- 3. Enlace a Costos y materiales --- */
+.bi-enlace {
+    color: var(--text-body);
+    transition: border-color 150ms ease;
+    @apply flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 no-underline;
+}
+
+.bi-enlace:hover {
+    border-color: color-mix(in srgb, var(--c-primary) 40%, var(--card-border));
+}
+
+.bi-enlace:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.bi-enlace-icono {
+    background-color: var(--c-primary-soft);
+    color: var(--c-primary);
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-base;
+}
+
+.bi-enlace-texto {
+    color: var(--text-muted);
+    flex: 1 1 16rem;
+    @apply flex min-w-0 flex-col gap-0.5 text-xs;
+}
+
+.bi-enlace-texto strong {
+    color: var(--c-primary-dark);
+    @apply text-sm;
+}
+
+.dark .bi-enlace-texto strong {
+    color: var(--text-heading);
+}
+
+.bi-enlace-accion {
+    color: var(--c-primary);
+    @apply inline-flex items-center gap-2 text-[0.8125rem] font-semibold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bi-interruptor-pista,
+    .bi-interruptor-perilla,
+    .bi-enlace {
+        transition: none;
+    }
+}
+
+/* ==========================================================================
+   44. COSTOS Y MATERIALES POR BLOQUES (Pages/Reportes/BiCostos.vue)
+   --------------------------------------------------------------------------
+   Mismo esquema que Demanda y ventas (§43): BiBloque, BiInterruptor,
+   ConfiabilidadPronostico (.bi-confiabilidad), .bi-nota, .bi-sugerencia y
+   .bi-col-opcional. "Qué revisar" reusa la lista numerada .resumen-acciones
+   (§33) y "Qué significa para este material", .margen-panel. Acá solo van
+   las grillas de cada par de tarjetas y el pie de la tabla de impacto.
+   ========================================================================== */
+
+.bi-costos-material,
+.bi-costos-consumo {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)];
+}
+
+.bi-costos-impacto {
+    @apply grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)];
+}
+
+.bi-costos-lectura {
+    @apply flex flex-col gap-3;
+}
+
+.bi-costos-lectura .bi-nota {
+    @apply mt-0;
+}
+
+/* Sin el ancho mínimo de 640 px de .table-dashboard: en el teléfono quedan
+   material, aumento y costo adicional, y entran sin desplazar. */
+.table-dashboard.bi-costos-tabla {
+    min-width: 0;
+}
+
+.bi-costos-tabla th {
+    @apply md:whitespace-nowrap;
+}
+
+.bi-costos-tabla-pie {
+    @apply mt-4 flex flex-col items-start gap-3;
+}
+
+/* ==========================================================================
+   45. PRESUPUESTOS Y RENTABILIDAD POR BLOQUES (Pages/Reportes/BiRentabilidad.vue)
+   --------------------------------------------------------------------------
+   Mismo esquema que §43 y §44 (BiBloque, ConfiabilidadPronostico,
+   AvisoMesIncompleto, .bi-nota, .bi-demanda-par). Acá: la definición de
+   "X % sobre costo", el semáforo de los presupuestos dentro de la tarjeta
+   de rentabilidad y los pasos de "Qué revisar" en una fila.
+   ========================================================================== */
+
+/* "¿Qué significa 34,9 % sobre costo?": el indicador traducido a bolivianos. */
+.bi-definicion {
+    background-color: var(--c-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--c-primary) 15%, transparent);
+    color: var(--text-body);
+    @apply flex items-start gap-3 rounded-xl px-4 py-3 text-[0.8125rem] leading-relaxed;
+}
+
+.bi-definicion i {
+    color: var(--c-primary);
+    @apply mt-1 text-base;
+}
+
+.bi-definicion p {
+    @apply m-0;
+}
+
+.bi-definicion strong {
+    color: var(--c-primary-dark);
+    @apply block text-sm;
+}
+
+.dark .bi-definicion strong {
+    color: var(--text-heading);
+}
+
+.bi-rentabilidad-cuerpo {
+    @apply flex flex-col gap-3;
+}
+
+.bi-rentabilidad-cuerpo .bi-confiabilidad {
+    @apply max-w-none;
+}
+
+/* Semáforo de los presupuestos emitidos, bajo el gráfico de rentabilidad. */
+.bi-semaforo {
+    border-top: 1px solid var(--border-subtle);
+    @apply pt-3;
+}
+
+.bi-semaforo-titulo {
+    color: var(--text-heading);
+    @apply mb-2 mt-0 flex items-center gap-1.5 text-[0.8125rem] font-semibold;
+}
+
+.bi-semaforo-zonas {
+    color: var(--text-muted);
+    @apply m-0 flex list-none flex-wrap gap-x-5 gap-y-2 p-0 text-xs;
+}
+
+.bi-semaforo-zonas li {
+    @apply flex items-center gap-2;
+}
+
+/* "Qué revisar" en una fila de pasos (en el teléfono, uno debajo del otro). */
+.bi-pasos {
+    @apply m-0 grid list-none grid-cols-1 gap-4 md:grid-cols-3 md:gap-6;
+}
+
+.bi-paso {
+    @apply flex items-start gap-3;
+}
+
+.bi-paso + .bi-paso {
+    border-color: var(--border-subtle);
+    @apply border-t pt-4 md:border-l md:border-t-0 md:pl-6 md:pt-0;
+}
+
+/* ==========================================================================
+   46. ALERTAS: DOS PESTAÑAS Y UNA FILA POR ALERTA (Pages/Reportes/BiAlertas.vue)
+   --------------------------------------------------------------------------
+   Dos pestañas que no se suman ("Costo y rentabilidad" y "Anomalías
+   estadísticas", sobre .nav-tabs). Cada alerta es una fila: prioridad y
+   tipo | qué hacer, presupuesto o pedido y cliente | cifras (o barras de
+   registrado frente a presupuestado) | qué revisar | botón. En pantallas
+   medianas va en dos renglones y en el teléfono, apilada. "Ver criterios
+   del sistema" reusa las fichas .bi-regla.
+   ========================================================================== */
+
+.bi-alertas-panel {
+    scroll-margin-top: 5rem;
+}
+
+.bi-alertas-pestanas {
+    border-bottom: 1px solid var(--border-subtle);
+    @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pr-5;
+}
+
+.nav-tabs.bi-alertas-tabs {
+    @apply border-b-0;
+}
+
+.bi-alertas-diferencia {
+    @apply my-2 ml-5 max-w-2xl;
+}
+
+.bi-alertas-cabecera {
+    @apply mb-4 flex flex-wrap items-end justify-between gap-4;
+}
+
+.bi-alertas-titulo {
+    color: var(--text-heading);
+    @apply m-0 flex flex-wrap items-center gap-2 text-lg font-bold;
+}
+
+.bi-alertas-bajada {
+    color: var(--text-muted);
+    @apply m-0 mt-1 text-sm;
+}
+
+.bi-alertas-filtros {
+    @apply flex flex-wrap items-end gap-3;
+}
+
+.bi-alertas-filtros select.form-control {
+    @apply min-w-[9rem] max-w-[15rem];
+}
+
+.bi-alertas-buscar {
+    @apply relative m-0 block w-full sm:w-72;
+}
+
+.bi-alertas-buscar i {
+    color: var(--text-muted);
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs;
+}
+
+.bi-alertas-buscar .form-control {
+    @apply pl-9;
+}
+
+/* --- Fila de una alerta --- */
+.bi-alertas-filas {
+    @apply m-0 flex list-none flex-col gap-3 p-0;
+}
+
+/* Las áreas se nombran también en el teléfono: sin mapa, las partes con
+   `grid-area` se apilan todas en la misma celda. */
+.bi-alerta-fila {
+    border: 1px solid var(--border-subtle);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        'estado'
+        'cuerpo'
+        'datos'
+        'revisar'
+        'boton';
+    gap: 0.75rem;
+    @apply rounded-xl p-4;
+}
+
+@media (min-width: 768px) {
+    .bi-alerta-fila {
+        grid-template-columns: 10rem minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            'estado cuerpo datos'
+            'estado revisar boton';
+        align-items: center;
+        column-gap: 1.25rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .bi-alerta-fila {
+        grid-template-columns: 10rem minmax(0, 1.2fr) minmax(0, 1.25fr) minmax(0, 1fr) auto;
+        grid-template-areas: 'estado cuerpo datos revisar boton';
+    }
+
+    .bi-alerta-fila-estado {
+        border-right: 1px solid var(--border-subtle);
+        @apply self-stretch pr-4;
+    }
+
+    .bi-alerta-fila-datos {
+        border-left: 1px solid var(--border-subtle);
+        @apply pl-4;
+    }
+}
+
+.bi-alerta-fila-estado {
+    grid-area: estado;
+    @apply flex items-start gap-3;
+}
+
+.bi-alerta-fila-icono {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm;
+}
+
+.bi-alerta-fila.is-alta .bi-alerta-fila-icono {
+    background-color: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.bi-alerta-fila.is-media .bi-alerta-fila-icono {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+}
+
+.bi-alerta-fila-etiquetas {
+    @apply flex min-w-0 flex-col items-start gap-1.5;
+}
+
+.bi-alerta-fila-tipo {
+    background-color: var(--page-bg);
+    color: var(--text-muted);
+    @apply inline-flex items-start gap-1.5 rounded-md px-2 py-1 text-[0.6875rem] leading-snug;
+}
+
+.bi-alerta-fila-tipo i {
+    @apply mt-0.5;
+}
+
+.bi-alerta-fila-cuerpo {
+    grid-area: cuerpo;
+    @apply min-w-0;
+}
+
+.bi-alerta-fila-accion {
+    color: var(--text-heading);
+    @apply m-0 text-sm font-semibold leading-snug;
+}
+
+.bi-alerta-fila-ref {
+    color: var(--text-body);
+    font-variant-numeric: tabular-nums;
+    @apply m-0 mt-1 text-xs;
+}
+
+.bi-alerta-fila-cliente {
+    color: var(--text-muted);
+    @apply m-0 text-xs;
+}
+
+.bi-alerta-fila-datos {
+    grid-area: datos;
+    @apply min-w-0;
+}
+
+.bi-alerta-fila-metricas {
+    @apply m-0 grid grid-cols-2 gap-3;
+}
+
+/* Las cifras alineadas abajo aunque un rótulo ocupe dos renglones. */
+.bi-alerta-fila-metricas > div {
+    @apply flex flex-col justify-end;
+}
+
+.bi-alerta-fila-metricas dt {
+    color: var(--text-muted);
+    @apply text-[0.6875rem];
+}
+
+.bi-alerta-fila-metricas dd {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply m-0 whitespace-nowrap text-base font-bold;
+}
+
+.bi-alerta-fila-nota {
+    color: var(--text-muted);
+    @apply m-0 mt-1.5 text-[0.6875rem] leading-snug;
+}
+
+/* Registrado frente a presupuestado: la barra mayor ocupa todo el ancho. */
+.bi-alerta-fila-barras {
+    @apply flex flex-col gap-2;
+}
+
+.bi-alerta-fila-barra-fila {
+    color: var(--text-muted);
+    @apply flex items-baseline justify-between gap-3 text-[0.6875rem];
+}
+
+.bi-alerta-fila-barra-fila strong {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply whitespace-nowrap text-sm;
+}
+
+.bi-alerta-fila-pista {
+    background-color: var(--border-subtle);
+    @apply mt-1 block h-2 overflow-hidden rounded-full;
+}
+
+.bi-alerta-fila-pista > span {
+    @apply block h-full rounded-full;
+}
+
+.bi-alerta-fila-pista .is-registrado {
+    background-color: var(--c-danger);
+}
+
+.bi-alerta-fila-pista .is-previsto {
+    background-color: var(--c-secondary);
+}
+
+.bi-alerta-fila-revisar {
+    background-color: var(--page-bg);
+    color: var(--text-muted);
+    grid-area: revisar;
+    @apply m-0 rounded-lg px-3 py-2 text-xs leading-snug;
+}
+
+.bi-alerta-fila-revisar strong {
+    color: var(--text-heading);
+    @apply block;
+}
+
+.bi-alerta-fila-accion-boton {
+    grid-area: boton;
+    @apply justify-self-start md:justify-self-end;
+}
+
+.bi-alerta-fila-accion-boton .btn {
+    @apply whitespace-nowrap;
+}
+
+/* --- Páginas, colores y criterios --- */
+.bi-alertas-paginacion {
+    color: var(--text-muted);
+    @apply mt-4 flex flex-wrap items-center justify-between gap-3 text-xs;
+}
+
+.bi-alertas-paginas {
+    @apply flex items-center gap-1.5;
+}
+
+.bi-alertas-paginas button {
+    border: 1px solid var(--border-subtle);
+    background-color: var(--card-bg);
+    color: var(--text-body);
+    @apply flex h-8 min-w-[2rem] items-center justify-center rounded-lg px-2 text-xs font-semibold transition-colors;
+}
+
+.bi-alertas-paginas button:hover:not(:disabled) {
+    border-color: var(--c-primary);
+    color: var(--c-primary);
+}
+
+.bi-alertas-paginas button.is-activa {
+    background-color: var(--c-primary);
+    border-color: var(--c-primary);
+    @apply text-white;
+}
+
+.bi-alertas-paginas button:disabled {
+    @apply cursor-not-allowed opacity-40;
+}
+
+.bi-alertas-puntos {
+    @apply px-1;
+}
+
+.bi-alertas-colores {
+    background-color: color-mix(in srgb, var(--c-primary-soft) 60%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, var(--c-primary) 15%, transparent);
+    @apply mt-4 rounded-xl;
+}
+
+.bi-alertas-colores summary {
+    color: var(--text-body);
+    @apply flex cursor-pointer list-none items-start gap-3 p-3 text-xs leading-relaxed;
+}
+
+.bi-alertas-colores summary::-webkit-details-marker {
+    display: none;
+}
+
+.bi-alertas-colores summary > i:first-child {
+    color: var(--c-primary);
+    @apply mt-0.5 text-base;
+}
+
+.bi-alertas-colores summary strong {
+    color: var(--text-heading);
+    @apply text-sm;
+}
+
+.bi-alertas-colores-flecha {
+    color: var(--text-muted);
+    transition: transform 150ms ease;
+    @apply ml-auto mt-1;
+}
+
+.bi-alertas-colores[open] .bi-alertas-colores-flecha {
+    transform: rotate(180deg);
+}
+
+.bi-alertas-colores p {
+    color: var(--text-muted);
+    @apply m-0 px-3 pb-3 pl-10 text-xs leading-relaxed;
+}
+
+.bi-alertas-otras {
+    color: var(--text-muted);
+    @apply m-0 mt-3 flex items-start gap-2 text-xs leading-relaxed;
+}
+
+.bi-alertas-otras > i {
+    @apply mt-0.5;
+}
+
+.bi-alertas-enlace {
+    color: var(--c-primary);
+    @apply cursor-pointer border-0 bg-transparent p-0 text-xs font-semibold underline;
+}
+
+.bi-alertas-criterios {
+    @apply mt-4;
+}
+
+/* Fichas de "Ver criterios del sistema": una por regla, verde si no dio nada. */
+.bi-reglas {
+    @apply m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 xl:grid-cols-5;
+}
+
+.bi-regla {
+    @apply flex flex-col gap-1.5 p-4;
+}
+
+.bi-regla-cabecera {
+    @apply mb-1 flex items-center justify-between gap-3;
+}
+
+.bi-regla-icono {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-base;
+}
+
+.bi-regla-cantidad {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply text-2xl font-bold leading-none;
+}
+
+.bi-regla-nombre {
+    color: var(--text-heading);
+    @apply m-0 text-sm font-semibold leading-snug;
+}
+
+.bi-regla-que {
+    color: var(--text-muted);
+    @apply m-0 flex-1 text-xs leading-relaxed;
+}
+
+.bi-regla-estado {
+    @apply m-0 mt-1 inline-flex items-center gap-1.5 text-xs font-semibold;
+}
+
+.bi-regla-ver {
+    @apply mt-1 self-start;
+}
+
+.bi-regla-success .bi-regla-icono {
+    background-color: var(--c-success-soft);
+    color: var(--c-success-dark);
+}
+
+.bi-regla-success .bi-regla-estado {
+    color: var(--c-success-dark);
+}
+
+.bi-regla-warning .bi-regla-icono {
+    background-color: var(--c-warning-soft);
+    color: var(--c-warning-dark);
+}
+
+.dark .bi-regla-success .bi-regla-icono,
+.dark .bi-regla-success .bi-regla-estado {
+    color: var(--c-success);
+}
+
+.dark .bi-regla-warning .bi-regla-icono {
+    color: var(--c-warning);
+}
+
+/* --- Resumen de las anomalías, bajo la pestaña de costo y rentabilidad --- */
+.bi-anomalias-resumen .card-body {
+    @apply flex flex-wrap items-center justify-between gap-4;
+}
+
+.bi-anomalias-resumen-texto {
+    flex: 1 1 20rem;
+}
+
+.bi-anomalias-resumen-texto p {
+    color: var(--text-muted);
+    @apply mt-1 text-sm;
+}
+
+.bi-anomalias-resumen-accion {
+    color: var(--text-muted);
+    border-color: var(--border-subtle);
+    @apply flex max-w-xs flex-col items-start gap-1.5 text-xs md:border-l md:pl-6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bi-alertas-colores-flecha {
+        transition: none;
+    }
+}
+
+/* ==========================================================================
+   47. SIMULADOR EN TRES PASOS (Pages/Reportes/BiSimulador.vue)
+   --------------------------------------------------------------------------
+   Cada paso es un BiBloque con `tarjeta` (el número y el título van dentro
+   de la tarjeta): 1. datos de partida y 2. supuestos lado a lado
+   (.bi-demanda-par), 3. el resultado a lo ancho. Los avisos en recuadro
+   reusan .bi-aviso; las notas al pie, .bi-nota; "Ver fórmulas", .bi-ver-mas.
+   ========================================================================== */
+
+/* --- Bloque como tarjeta (BiBloque con `tarjeta`) --- */
+.bi-bloque.bi-bloque-tarjeta {
+    @apply mt-0 p-4 sm:p-5;
+}
+
+.bi-bloque-titulo-linea {
+    @apply flex flex-wrap items-center gap-x-3 gap-y-1;
+}
+
+.bi-bloque-tarjeta .bi-bloque-titulo {
+    @apply text-base sm:text-lg;
+}
+
+/* Dentro de la tarjeta hay menos ancho: el título no baja bajo el número. */
+.bi-bloque-tarjeta .bi-bloque-texto {
+    flex-basis: 12rem;
+}
+
+/* El paso 3 queda debajo de los controles: "Calcular escenario" lo trae a la
+   vista sin que lo tape la barra superior. */
+.bi-simulador-resultado {
+    scroll-margin-top: 5.5rem;
+}
+
+/* --- Paso 1: datos de partida --- */
+.bi-simulador-campos {
+    @apply grid grid-cols-1 gap-4;
+}
+
+.bi-campo-nota {
+    color: var(--text-muted);
+    @apply mb-0 mt-1 text-xs;
+}
+
+/* --- Paso 2: supuestos (barra y casilla de porcentaje) --- */
+.bi-supuestos {
+    @apply flex flex-col gap-5;
+}
+
+.bi-supuesto {
+    grid-template-columns: minmax(0, 1fr) 5.5rem;
+    grid-template-areas:
+        'etiqueta valor'
+        'barra valor'
+        'casilla casilla';
+    @apply grid items-center gap-x-4 gap-y-1;
+}
+
+.bi-supuesto-etiqueta {
+    grid-area: etiqueta;
+    color: var(--text-body);
+    @apply text-sm font-medium;
+}
+
+.bi-supuesto .bi-range {
+    grid-area: barra;
+}
+
+.bi-range {
+    accent-color: var(--c-primary);
+    @apply w-full cursor-pointer;
+}
+
+.bi-supuesto-valor {
+    grid-area: valor;
+    @apply relative;
+}
+
+.bi-supuesto-valor .form-control {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    font-variant-numeric: tabular-nums;
+    @apply pr-7 text-right font-semibold;
+}
+
+/* Sin las flechas del navegador: la barra de al lado ya sube y baja. */
+.bi-supuesto-valor .form-control::-webkit-outer-spin-button,
+.bi-supuesto-valor .form-control::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.bi-supuesto-valor span {
+    color: var(--text-muted);
+    @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm;
+}
+
+.bi-supuesto-casilla {
+    grid-area: casilla;
+    color: var(--text-body);
+    @apply mt-1.5 flex cursor-pointer items-start gap-2 text-xs;
+}
+
+.bi-supuesto-casilla input {
+    @apply mt-0.5 shrink-0;
+}
+
+.bi-supuesto-casilla small {
+    color: var(--text-muted);
+    @apply mt-0.5 block text-[0.6875rem];
+}
+
+.bi-check {
+    accent-color: var(--c-primary);
+}
+
+.bi-simulador-botones {
+    @apply flex flex-wrap items-center gap-2 sm:gap-3;
+}
+
+.bi-simulador-pendiente {
+    color: var(--c-warning-dark);
+    @apply text-xs font-medium;
+}
+
+.dark .bi-simulador-pendiente {
+    color: var(--c-warning);
+}
+
+/* --- Paso 3: veredicto (el color repite la recomendación, el texto la explica) --- */
+.bi-veredicto {
+    border: 1px solid transparent;
+    @apply flex items-start gap-3 rounded-xl px-4 py-3;
+}
+
+.bi-veredicto-icono {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base text-white;
+}
+
+.bi-veredicto-verde {
+    background-color: var(--c-success-soft);
+    border-color: color-mix(in srgb, var(--c-success) 30%, transparent);
+}
+
+.bi-veredicto-verde .bi-veredicto-icono {
+    background-color: var(--c-success);
+}
+
+.bi-veredicto-amarillo {
+    background-color: var(--c-warning-soft);
+    border-color: color-mix(in srgb, var(--c-warning) 30%, transparent);
+}
+
+.bi-veredicto-amarillo .bi-veredicto-icono {
+    background-color: var(--c-warning);
+}
+
+.bi-veredicto-rojo {
+    background-color: var(--c-danger-soft);
+    border-color: color-mix(in srgb, var(--c-danger) 30%, transparent);
+}
+
+.bi-veredicto-rojo .bi-veredicto-icono {
+    background-color: var(--c-danger);
+}
+
+.bi-veredicto-titulo {
+    color: var(--text-heading);
+    @apply m-0 text-sm font-semibold sm:text-[0.9375rem];
+}
+
+.bi-veredicto-detalle {
+    color: var(--text-body);
+    @apply m-0 mt-0.5 text-xs sm:text-[0.8125rem];
+}
+
+/* Indicadores dentro de la tarjeta del paso 3: sin sombra, como recuadros. */
+.bi-simulador-kpis {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-3 sm:gap-4;
+}
+
+.bi-simulador-kpis .bi-kpi {
+    box-shadow: none;
+    @apply p-4;
+}
+
+/* En el teléfono entra sin desplazarse: sin la columna Base (.bi-col-opcional),
+   la diferencia ya dice cuánto cambió. */
+.table-dashboard.bi-simulador-tabla {
+    @apply min-w-0 md:min-w-[640px];
+}
+
+/* Filas de resultado (por presupuesto y mensual) en franja celeste. */
+.bi-simulador-tabla .is-destacada td {
+    background-color: var(--c-primary-soft);
+    color: var(--text-heading);
+    @apply font-semibold;
+}
+
+/* "Ver fórmulas" a la izquierda y la aclaración del volumen a la derecha. */
+.bi-simulador-pie {
+    @apply flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6;
+}
+
+.bi-simulador-pie .bi-aviso {
+    @apply lg:max-w-sm;
+}
+
+.bi-formulas {
+    flex: 1 1 auto;
+    @apply min-w-0;
+}
+
+.bi-formulas > summary {
+    list-style: none;
+    @apply mt-0 cursor-pointer;
+}
+
+.bi-formulas > summary::-webkit-details-marker {
+    display: none;
+}
+
+.bi-formulas > summary i {
+    transition: transform 150ms ease;
+}
+
+.bi-formulas[open] > summary i {
+    transform: rotate(180deg);
+}
+
+.bi-formulas-lista {
+    @apply m-0 mt-3 grid grid-cols-1 gap-x-6 gap-y-2.5 text-xs md:grid-cols-2;
+}
+
+.bi-formulas-lista dt {
+    color: var(--text-heading);
+    @apply font-semibold;
+}
+
+.bi-formulas-lista dd {
+    color: var(--text-body);
+    @apply m-0 leading-relaxed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bi-formulas > summary i {
+        transition: none;
+    }
 }

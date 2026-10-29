@@ -19,8 +19,10 @@ const props = defineProps({
     icono: { type: String, default: 'fa-solid fa-chart-simple' },
     /** primary | success | warning | danger | info (clases `.stat-icon-*`). */
     tono: { type: String, default: 'primary' },
-    /** Variación en % por mes (o null para no mostrar tendencia). */
+    /** Variación en % (o null para no mostrar tendencia). */
     variacion: { type: Number, default: null },
+    /** Contra qué es la variación: por defecto, la pendiente mensual. */
+    sufijo: { type: String, default: 'por mes' },
     subirEsBueno: { type: Boolean, default: true },
     /** Texto chico bajo el número (contexto o aclaración). */
     nota: { type: String, default: '' },
@@ -69,7 +71,7 @@ const iconoTendencia = computed(() => ({
             <p class="stat-value mb-0">{{ valor }}</p>
             <p v-if="direccion" class="bi-tendencia" :class="claseTendencia">
                 <i :class="iconoTendencia"></i>
-                {{ direccion === 'estable' ? 'Estable' : `${formatoVariacion(variacion)} por mes` }}
+                {{ direccion === 'estable' ? 'Estable' : `${formatoVariacion(variacion)} ${sufijo}` }}
             </p>
             <p v-if="nota" class="bi-kpi-nota">{{ nota }}</p>
         </div>

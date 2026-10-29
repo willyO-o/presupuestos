@@ -64,6 +64,8 @@ Reglas: el precio NO se recalcula (lo acordado con el cliente no cambia porque l
 
 Antes de "simplificar" quitando esas columnas: leerlas de la cotización rompería el caso de uso. Tests en `PedidoControllerTest` ("production measurements can diverge…").
 
+Lo ajustado se muestra junto a lo cotizado con `PedidoDetalle::cotizadoSiSeAjusto()` (null si el ítem coincide con su línea de cotización): prop `ajustes` de Pedidos/Show (insignia "Medidas ajustadas" y recuadro) y nota de la línea en la orden de trabajo (`PedidoPdf`). Las notas de entrega ya emitidas no cambian; las nuevas se precargan desde `pedido_detalle`. La descripción suele traer la medida escrita ("… 3,00 × 1,87 m"): el modal avisa si no coincide con el ancho/alto y ofrece corregirla.
+
 Aparte: `Pedido::visiblePara()` falla cerrado (`whereRaw('1=0')`) si el usuario no tiene ficha de empleado — un usuario sin vincular ve CERO pedidos. `PedidoController::index` manda `sinFichaEmpleado` para explicarlo en pantalla, y `EmpleadoSeeder` vincula las cuentas sembradas. No cambiar el fallo cerrado por uno abierto.
 
 ## El alcance por sucursal se configura en Usuarios (no en Empleados)

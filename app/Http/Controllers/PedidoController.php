@@ -133,6 +133,11 @@ class PedidoController extends Controller
 
         return inertia('Pedidos/Show', [
             'pedido' => $pedido,
+            // Lo cotizado de cada ítem que producción ajustó (id del ítem => línea de la cotización).
+            'ajustes' => $pedido->detalles
+                ->mapWithKeys(fn (PedidoDetalle $detalle): array => [$detalle->id => $detalle->cotizadoSiSeAjusto()])
+                ->filter()
+                ->all(),
             'costos' => $this->comparativaCostos($pedido),
             'cobranza' => [
                 'total' => (float) $pedido->total,

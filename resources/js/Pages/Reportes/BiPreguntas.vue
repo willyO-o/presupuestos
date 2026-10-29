@@ -5,13 +5,20 @@ import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import AyudaInfo from '@/Components/AyudaInfo.vue';
 import BiEncabezado from '@/Components/Reporte/BiEncabezado.vue';
-import { formateador, money, porcentaje } from '@/Utils/FormatoReporte.js';
+import PreguntaAcciones from '@/Components/Reporte/PreguntaAcciones.vue';
+import PreguntaAumentoMateriales from '@/Components/Reporte/PreguntaAumentoMateriales.vue';
+import { formateador, money, numero, porcentaje } from '@/Utils/FormatoReporte.js';
 
 /**
  * Preguntas para decidir: el BI contestado en castellano, UNA pregunta a la
  * vez. A la izquierda el índice (con buscador); a la derecha la pregunta
  * elegida: respuesta breve, su tabla (o gráfico), el aviso, qué hacer y con
  * qué datos se respondió.
+ *
+ * Dos preguntas tienen cuerpo propio: la 2 (`PreguntaAumentoMateriales`:
+ * indicadores, gráfico y detalle de precios) y la 11 (`PreguntaAcciones`: el
+ * resumen de las demás, cada acción con qué representa su monto y un enlace a
+ * la pregunta de la que sale, más los cuadros de escenarios y cobros).
  *
  * Todo lo arma `PreguntasNegocioService` (las mismas cifras salen en el PDF y
  * el CSV del informe); acá solo se maqueta. La pregunta abierta viaja en el
@@ -29,17 +36,18 @@ const props = defineProps({
  * datos usa, el título de la tabla y qué columna se grafica.
  */
 const PRESENTACION = {
-    costo_producto: { ayuda: 'bi-preguntas.costo-producto', etiqueta: 'Costo con datos reales y presupuestados', tituloTabla: 'Comparación por producto', grafico: 'Total' },
-    costos_suben: { ayuda: 'bi-preguntas.costos-suben', etiqueta: 'Precios de compra registrados', tituloTabla: 'Materiales que subieron', grafico: 'Costo adicional' },
-    gasto_presupuesto: { ayuda: 'bi-preguntas.gasto-presupuesto', etiqueta: 'Material real frente al presupuestado', tituloTabla: 'Desvío por producto', grafico: 'Diferencia' },
-    materiales_pesan: { ayuda: 'bi-preguntas.materiales-pesan', etiqueta: 'Consumo real de material', tituloTabla: 'Gasto por material', grafico: 'Gasto real' },
-    productos_rentables: { ayuda: 'bi-preguntas.productos-rentables', etiqueta: 'Ganancia antes de impuestos', tituloTabla: 'Productos con mayor ganancia', grafico: 'Ganancia bruta' },
-    clientes_rentables: { ayuda: 'bi-preguntas.clientes-rentables', etiqueta: 'Ganancia antes de impuestos', tituloTabla: 'Clientes con mayor ganancia', grafico: 'Ganancia bruta' },
-    descuentos: { ayuda: 'bi-preguntas.descuentos', etiqueta: 'Descuentos y precios registrados', tituloTabla: 'Descuentos por vendedor', grafico: 'Descontado' },
-    margen_bajo: { ayuda: 'bi-preguntas.margen-bajo', etiqueta: 'Semáforo de rentabilidad', tituloTabla: 'Margen bajo por vendedor', grafico: 'Vendido con margen bajo' },
-    materia_prima: { ayuda: 'bi-preguntas.materia-prima', etiqueta: 'Simulación sobre las ventas del período', tituloTabla: 'Escenarios', grafico: 'Ganancia que se pierde' },
-    cobranza: { ayuda: 'bi-preguntas.cobranza', etiqueta: 'Pagos registrados', tituloTabla: 'Saldo por antigüedad', grafico: 'Por cobrar' },
-    decisiones: { ayuda: 'bi-preguntas.decisiones', etiqueta: 'Acciones con su monto', tituloTabla: 'Acciones ordenadas por monto', grafico: null },
+    costo_producto: { ayuda: 'bi-preguntas.costo-producto', etiqueta: 'Costo con datos registrados y presupuestados', tituloTabla: 'Comparación por producto', grafico: 'Total' },
+    // Con cuerpo propio (PreguntaAumentoMateriales): sin tabla ni gráfico genéricos.
+    costos_suben: { ayuda: 'bi-preguntas.costos-suben', etiqueta: null, tituloTabla: null, grafico: null },
+    gasto_presupuesto: { ayuda: 'bi-preguntas.gasto-presupuesto', etiqueta: 'Material registrado frente al previsto', tituloTabla: 'Diferencia por producto', grafico: 'Diferencia' },
+    materiales_pesan: { ayuda: 'bi-preguntas.materiales-pesan', etiqueta: 'Consumo registrado de material', tituloTabla: 'Gasto por material', grafico: 'Gasto registrado (Bs)' },
+    productos_rentables: { ayuda: 'bi-preguntas.productos-rentables', etiqueta: 'Resultado antes de impuestos', tituloTabla: 'Productos con mayor resultado', grafico: 'Resultado bruto (Bs)' },
+    clientes_rentables: { ayuda: 'bi-preguntas.clientes-rentables', etiqueta: 'Resultado antes de impuestos', tituloTabla: 'Clientes con mayor resultado', grafico: 'Resultado bruto (Bs)' },
+    descuentos: { ayuda: 'bi-preguntas.descuentos', etiqueta: 'Descuentos y precios registrados', tituloTabla: 'Descuentos por vendedor', grafico: 'Descontado (Bs)' },
+    margen_bajo: { ayuda: 'bi-preguntas.margen-bajo', etiqueta: 'Semáforo de rentabilidad', tituloTabla: 'Margen bajo por vendedor', grafico: 'Vendido con margen bajo (Bs)' },
+    materia_prima: { ayuda: 'bi-preguntas.materia-prima', etiqueta: 'Simulación sobre las ventas del período', tituloTabla: 'Escenarios', grafico: 'Reducción estimada (Bs)' },
+    cobranza: { ayuda: 'bi-preguntas.cobranza', etiqueta: 'Pagos registrados', tituloTabla: 'Saldo por antigüedad', grafico: 'Saldo por cobrar (Bs)' },
+    decisiones: { ayuda: 'bi-preguntas.decisiones', etiqueta: null, tituloTabla: 'Acciones ordenadas por monto', grafico: null },
 };
 
 const numeradas = computed(() => props.datos.preguntas.map((p, i) => ({ ...p, numero: i + 1, ...PRESENTACION[p.clave] })));
@@ -108,12 +116,17 @@ watch(abierta, () => {
     verCalculo.value = false;
 });
 
-function celda(valor, formato) {
+/** Una columna "… (Bs)" ya dice la moneda: la cifra va sin el "Bs". */
+function celda(valor, columna) {
     if (valor === null || valor === undefined) {
         return '—';
     }
 
-    return formato === 'texto' ? valor : formateador(formato)(valor);
+    if (columna.formato === 'bs' && columna.titulo.endsWith('(Bs)')) {
+        return numero(valor, 0);
+    }
+
+    return columna.formato === 'texto' ? valor : formateador(columna.formato)(valor);
 }
 
 /** El gráfico usa la columna de PRESENTACION; sin ella, la tabla sola. */
@@ -136,34 +149,76 @@ const grafico = computed(() => {
 });
 
 /**
- * Costo por producto: la cuenta de su primera fila escrita como suma
- * (material registrado + obra y otros = costo calculado), con las mismas
- * columnas de la tabla. Las demás preguntas no tienen una cuenta así.
+ * Costo por producto: la cuenta del primer producto escrita como suma
+ * (material registrado + obra y otros = costo calculado), con las `cifras`
+ * de la pregunta. Las demás preguntas no tienen una cuenta así.
  */
 const cuentaCosto = computed(() => {
     const p = pregunta.value;
 
-    if (p.clave !== 'costo_producto' || !p.tabla.filas.length) {
+    if (p.clave !== 'costo_producto' || !p.cifras?.producto) {
         return null;
     }
 
-    const columna = (titulo) => p.tabla.columnas.findIndex((c) => c.titulo === titulo);
-    const fila = p.tabla.filas[0];
-    const unidad = fila[columna('Por')];
-    const real = fila[columna('Mat. real')];
-    const presupuestado = fila[columna('Mat. presup.')];
-    const desvio = presupuestado ? ((real - presupuestado) / presupuestado) * 100 : null;
+    const { producto, unidad, material, previsto, obra, total } = p.cifras;
+    const desvio = previsto ? ((material - previsto) / previsto) * 100 : null;
 
     return {
-        producto: fila[0],
+        producto,
         unidad,
-        material: real,
-        obra: fila[columna('Obra y otros')],
-        total: fila[columna('Total')],
+        material,
+        obra,
+        total,
         desvio: desvio === null || Math.abs(desvio) < 0.05
             ? null
             : `El material registrado ${desvio > 0 ? 'supera' : 'está'} en ${porcentaje(Math.abs(desvio), 1)} ${desvio > 0 ? 'al' : 'por debajo del'} material presupuestado.`,
     };
+});
+
+/**
+ * Bajada de la pregunta 11: la tabla es la respuesta; la bajada dice cuántas
+ * acciones hay y que cada una enlaza a sus datos (el aviso naranja ya dice
+ * que no se suman). La respuesta del servicio, más larga, va al PDF.
+ */
+const bajadaAcciones = computed(() => {
+    const cuantas = pregunta.value.priorizadas?.length ?? 0;
+
+    if (cuantas === 0) {
+        return pregunta.value.respuesta;
+    }
+
+    return cuantas === 1
+        ? '1 acción con monto involucrado. Se vincula con los datos que la originan.'
+        : `${cuantas} acciones ordenadas por monto involucrado. Cada una se vincula con los datos que la originan.`;
+});
+
+/**
+ * La respuesta en dos partes: la primera oración, que va destacada, y el
+ * resto. Corta en un punto seguido de mayúscula o número, así "S.R.L. es…"
+ * o "Bs 1.450,00" no parten la frase.
+ */
+const respuesta = computed(() => {
+    const texto = pregunta.value.respuesta ?? '';
+    const partes = /^(.+?[.!?])\s+(?=[A-ZÁÉÍÓÚÑ¿¡0-9])(.+)$/su.exec(texto);
+
+    return partes ? { titular: partes[1], resto: partes[2] } : { titular: texto, resto: '' };
+});
+
+/**
+ * Pregunta 11: los cuadros de lectura rápida de "Si sube la materia prima"
+ * y "Pagos pendientes", con las `cifras` que esas preguntas exponen. Sin
+ * datos en su pregunta, el cuadro no sale.
+ */
+const escenario = computed(() => {
+    const p = numeradas.value.find((q) => q.clave === 'materia_prima');
+
+    return p?.cifras?.margen_hoy != null ? p : null;
+});
+
+const cobros = computed(() => {
+    const p = numeradas.value.find((q) => q.clave === 'cobranza');
+
+    return p?.cifras?.pedidos ? p : null;
 });
 </script>
 
@@ -191,7 +246,7 @@ const cuentaCosto = computed(() => {
                             <li v-for="p in g.preguntas" :key="p.clave">
                                 <button type="button" class="preguntas-menu-item" :class="{ 'is-activa': p.clave === pregunta.clave }"
                                     :aria-current="p.clave === pregunta.clave ? 'true' : null" :title="p.pregunta" @click="abrir(p.clave)">
-                                    <span class="preguntas-menu-numero">{{ p.numero }}.</span>
+                                    <span class="preguntas-menu-numero">{{ p.numero }}</span>
                                     <span>{{ p.corto }}</span>
                                 </button>
                             </li>
@@ -211,19 +266,27 @@ const cuentaCosto = computed(() => {
                     </p>
 
                     <div class="preguntas-cabecera">
-                        <h2 :id="`titulo-${pregunta.clave}`" class="preguntas-titulo">
-                            {{ pregunta.pregunta }} <AyudaInfo v-if="pregunta.ayuda" :clave="pregunta.ayuda" />
-                        </h2>
-                        <span class="preguntas-etiqueta">
+                        <div>
+                            <h2 :id="`titulo-${pregunta.clave}`" class="preguntas-titulo">
+                                {{ pregunta.numero }}. {{ pregunta.pregunta }} <AyudaInfo v-if="pregunta.ayuda" :clave="pregunta.ayuda" />
+                            </h2>
+                            <!-- Acciones: la respuesta es una bajada del título; la tabla es la respuesta. -->
+                            <p v-if="pregunta.clave === 'decisiones'" class="preguntas-bajada">
+                                <i class="fa-solid fa-link" aria-hidden="true"></i> {{ bajadaAcciones }}
+                            </p>
+                        </div>
+                        <span v-if="pregunta.etiqueta" class="preguntas-etiqueta">
                             <i class="fa-solid fa-chart-simple" aria-hidden="true"></i> {{ pregunta.etiqueta }}
                         </span>
                     </div>
 
-                    <div class="preguntas-respuesta">
-                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    <div v-if="pregunta.clave !== 'decisiones'" class="preguntas-respuesta">
+                        <span class="preguntas-respuesta-icono"><i class="fa-regular fa-lightbulb" aria-hidden="true"></i></span>
                         <div>
                             <p class="preguntas-respuesta-titulo">Respuesta breve</p>
-                            <p>{{ pregunta.respuesta }}</p>
+                            <p class="preguntas-respuesta-texto">
+                                <strong>{{ respuesta.titular }}</strong> {{ respuesta.resto }}
+                            </p>
                         </div>
                     </div>
 
@@ -264,24 +327,12 @@ const cuentaCosto = computed(() => {
                         <span>{{ pregunta.aviso }}</span>
                     </p>
 
-                    <!-- Decisiones: lista de acciones con su origen y monto. -->
-                    <ol v-if="pregunta.clave === 'decisiones' && pregunta.tabla.filas.length" class="decisiones-lista preguntas-bloque">
-                        <li v-for="(fila, i) in pregunta.tabla.filas" :key="i" class="decision">
-                            <span class="decision-orden">{{ i + 1 }}</span>
-                            <div class="decision-cuerpo">
-                                <p class="decision-texto">{{ fila[0] }}</p>
-                                <button type="button" class="decision-origen"
-                                    @click="abrir(numeradas.find((p) => p.corto === fila[1])?.clave ?? pregunta.clave)">
-                                    <i class="fa-solid fa-arrow-turn-up" aria-hidden="true"></i>
-                                    {{ fila[1] }}
-                                </button>
-                            </div>
-                            <span class="decision-monto">
-                                <small>Monto involucrado</small>
-                                {{ celda(fila[2], 'bs') }}
-                            </span>
-                        </li>
-                    </ol>
+                    <!-- Preguntas con cuerpo propio: Acciones (11) y Aumento de materiales (2). -->
+                    <PreguntaAcciones v-if="pregunta.clave === 'decisiones'" :pregunta="pregunta" :escenario="escenario" :cobros="cobros"
+                        class="preguntas-bloque" @abrir="abrir" />
+
+                    <PreguntaAumentoMateriales v-else-if="pregunta.clave === 'costos_suben' && pregunta.tabla.filas.length"
+                        :pregunta="pregunta" class="preguntas-bloque" />
 
                     <section v-else-if="pregunta.tabla.filas.length" class="preguntas-bloque preguntas-tabla-caja">
                         <header class="preguntas-tabla-cabecera">
@@ -311,7 +362,7 @@ const cuentaCosto = computed(() => {
                                     <tr v-for="(fila, i) in pregunta.tabla.filas" :key="i">
                                         <td v-for="(valor, j) in fila" :key="j"
                                             :class="pregunta.tabla.columnas[j].formato === 'texto' ? { 'fw-semibold': j === 0 } : 'text-end chart-table-num'">
-                                            {{ celda(valor, pregunta.tabla.columnas[j].formato) }}
+                                            {{ celda(valor, pregunta.tabla.columnas[j]) }}
                                         </td>
                                     </tr>
                                 </tbody>
@@ -322,29 +373,34 @@ const cuentaCosto = computed(() => {
                     <p v-else class="pregunta-vacia preguntas-bloque">Sin datos para esta pregunta en el periodo elegido.</p>
 
                     <div v-if="pregunta.acciones.length && pregunta.clave !== 'decisiones'" class="preguntas-accion">
-                        <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+                        <span class="preguntas-accion-icono"><i class="fa-solid fa-bullseye" aria-hidden="true"></i></span>
                         <div>
                             <p class="preguntas-accion-titulo">{{ pregunta.acciones.length === 1 ? 'Acción sugerida' : 'Acciones sugeridas' }}</p>
-                            <ul>
-                                <li v-for="(a, i) in pregunta.acciones" :key="i">{{ a.texto }}</li>
-                            </ul>
+                            <ol>
+                                <li v-for="(a, i) in pregunta.acciones" :key="i">
+                                    <span class="preguntas-accion-numero" aria-hidden="true">{{ i + 1 }}</span>
+                                    <span>{{ a.texto }}</span>
+                                </li>
+                            </ol>
                         </div>
                     </div>
 
-                    <div v-if="pregunta.base" class="preguntas-calculo">
+                    <div v-if="pregunta.base || pregunta.interpretacion" class="preguntas-calculo">
                         <button type="button" class="preguntas-calculo-boton" :aria-expanded="verCalculo" @click="verCalculo = !verCalculo">
-                            <i class="fa-solid fa-chevron-down" :class="{ 'is-abierto': verCalculo }" aria-hidden="true"></i>
-                            Ver cómo se calcula y qué incluye
+                            <i class="fa-solid fa-circle-info preguntas-calculo-info" aria-hidden="true"></i>
+                            Cómo se calcula y qué datos utiliza
+                            <i class="fa-solid fa-chevron-down preguntas-calculo-flecha" :class="{ 'is-abierto': verCalculo }" aria-hidden="true"></i>
                         </button>
-                        <p v-show="verCalculo" class="preguntas-calculo-texto">
-                            <i class="fa-solid fa-database" aria-hidden="true"></i>
-                            <span>{{ pregunta.base }}</span>
-                        </p>
+                        <div v-show="verCalculo" class="preguntas-calculo-texto">
+                            <p v-if="pregunta.interpretacion"><strong>Cómo interpretar el resultado.</strong> {{ pregunta.interpretacion }}</p>
+                            <p v-if="pregunta.base"><strong>Datos utilizados.</strong> {{ pregunta.base }}</p>
+                        </div>
                     </div>
 
                     <nav class="preguntas-pie" aria-label="Otras preguntas">
-                        <button v-if="anterior" type="button" class="btn btn-soft-secondary" @click="abrir(anterior.clave)">
-                            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Anterior
+                        <button v-if="anterior" type="button" class="btn btn-soft-secondary" :aria-label="`Anterior: ${anterior.corto}`"
+                            @click="abrir(anterior.clave)">
+                            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> {{ anterior.corto }}
                         </button>
                         <span v-else></span>
                         <button v-if="siguiente" type="button" class="btn btn-primary" @click="abrir(siguiente.clave)">

@@ -129,7 +129,8 @@ class CotizacionController extends Controller
             // (no se imprime en el documento del cliente), por eso viaja
             // aparte y no dentro del detalle.
             'margen' => $this->margenPorLinea($cotizacion),
-            'config' => ['impuestos' => config('margen.impuestos')],
+            // Tasas y umbrales para "Ver fórmula y criterios del semáforo".
+            'config' => ['impuestos' => config('margen.impuestos'), 'semaforo' => config('margen.semaforo')],
             'pageTitle' => "Cotización {$cotizacion->codigo_verificacion}",
             'breadcrumbs' => ['Ventas', 'Cotizaciones', $cotizacion->codigo_verificacion],
         ]);

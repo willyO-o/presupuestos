@@ -98,6 +98,7 @@ class InformeProyeccionesService
                 $this->indicador($periodo, [
                     'clave' => 'pedidos',
                     'titulo' => 'Pedidos por mes',
+                    'sujeto' => 'la demanda',
                     'descripcion' => 'Cantidad de órdenes de trabajo que se registraron cada mes.',
                     'formato' => 'cantidad',
                     'unidad' => 'pedidos',
@@ -128,6 +129,7 @@ class InformeProyeccionesService
                 $this->indicador($periodo, [
                     'clave' => 'indice_costo',
                     'titulo' => 'Precio de los materiales',
+                    'sujeto' => 'el índice de precios de materiales',
                     'descripcion' => 'Cuánto cuestan los materiales comparado con el inicio del periodo: 100 = el mismo precio; 110 = 10 % más caros. Es de toda la empresa.',
                     'formato' => 'indice',
                     'historico' => $costos['indice']['serie'],
@@ -139,6 +141,7 @@ class InformeProyeccionesService
                 $this->indicador($periodo, [
                     'clave' => 'consumo',
                     'titulo' => 'Gasto en materiales',
+                    'sujeto' => 'el gasto en materiales',
                     'descripcion' => 'Lo que costó el material que producción registró como usado en los pedidos de cada mes.',
                     'formato' => 'bs',
                     'historico' => $costos['consumo']['serie'],
@@ -171,6 +174,15 @@ class InformeProyeccionesService
     /**
      * @return array<string, mixed>
      */
+    /**
+     * Presupuestos y rentabilidad, con los mismos nombres y bloques que la
+     * pestaña: 1) monto cotizado y aprobado, 2) aprobación y precio frente a
+     * costo (`resumen`, `meses`, `precio_costo`), 3) rentabilidad sobre costo
+     * y resultado calculado (`semaforo_presupuestos`). `que_revisar` sale del
+     * mismo servicio que la pantalla.
+     *
+     * @return array<string, mixed>
+     */
     private function seccionRentabilidad(User $usuario, PeriodoReporte $periodo): array
     {
         $datos = $this->rentabilidad->datos($usuario, $periodo);
@@ -182,8 +194,10 @@ class InformeProyeccionesService
             'indicadores' => [
                 $this->indicador($periodo, [
                     'clave' => 'monto_emitido',
+                    'bloque' => 1,
                     'titulo' => 'Monto cotizado',
-                    'descripcion' => 'Suma de todas las cotizaciones emitidas cada mes, se hayan aprobado o no.',
+                    'sujeto' => 'el monto cotizado',
+                    'descripcion' => 'Suma de todos los presupuestos emitidos cada mes, se hayan aprobado o no. No es dinero cobrado.',
                     'formato' => 'bs',
                     'historico' => $pronostico['monto_emitido'],
                     'media_movil' => $pronostico['media_movil'],
@@ -193,8 +207,10 @@ class InformeProyeccionesService
                 ]),
                 $this->indicador($periodo, [
                     'clave' => 'monto_aprobado',
-                    'titulo' => 'Ventas',
-                    'descripcion' => 'Suma de las cotizaciones que el cliente aprobó cada mes (incluidas las que ya pasaron a pedido).',
+                    'bloque' => 1,
+                    'titulo' => 'Monto aprobado',
+                    'sujeto' => 'el monto aprobado',
+                    'descripcion' => 'Suma de los presupuestos que el cliente aprobó cada mes (incluidos los que ya pasaron a pedido). No es dinero cobrado.',
                     'formato' => 'bs',
                     'historico' => $pronostico['monto_aprobado'],
                     'proyeccion' => $pronostico['proyeccion_aprobado'],
@@ -203,8 +219,10 @@ class InformeProyeccionesService
                 ]),
                 $this->indicador($periodo, [
                     'clave' => 'rentabilidad',
-                    'titulo' => 'Ganancia por cada Bs 100 de costo',
-                    'descripcion' => 'De cada Bs 100 que cuesta hacer los trabajos aprobados, cuántos quedan de ganancia después de impuestos. Solo cuentan las cotizaciones con hoja de costos.',
+                    'bloque' => 3,
+                    'titulo' => 'Rentabilidad sobre costo',
+                    'sujeto' => 'la rentabilidad sobre costo',
+                    'descripcion' => 'De cada Bs 100 de costo ajustado de los trabajos aprobados, cuánto queda de resultado calculado, ya descontados IT e IUE. Solo cuentan los presupuestos con hoja de costos.',
                     'formato' => 'porcentaje',
                     'historico' => $rentabilidad['porcentaje'],
                     'proyeccion' => $rentabilidad['proyeccion_porcentaje'],
@@ -218,8 +236,10 @@ class InformeProyeccionesService
                 ]),
                 $this->indicador($periodo, [
                     'clave' => 'utilidad',
-                    'titulo' => 'Ganancia del mes',
-                    'descripcion' => 'Ganancia en bolivianos, después de costos e impuestos, de las cotizaciones aprobadas cada mes (solo las que tienen hoja de costos).',
+                    'bloque' => 3,
+                    'titulo' => 'Resultado calculado del mes',
+                    'sujeto' => 'el resultado calculado',
+                    'descripcion' => 'Resultado en bolivianos de los presupuestos aprobados cada mes: precio sin IVA menos costo ajustado, IT e IUE (solo los que tienen hoja de costos). No es dinero cobrado.',
                     'formato' => 'bs',
                     'historico' => $rentabilidad['utilidad'],
                     'proyeccion' => $rentabilidad['proyeccion_utilidad'],
@@ -231,9 +251,28 @@ class InformeProyeccionesService
                 'ticket' => $datos['tendencia']['variacion_ticket'],
                 'costo' => $datos['tendencia']['variacion_costo'],
             ],
+            'resumen' => [
+                ...$datos['resumen'],
+                'rentabilidad' => $rentabilidad['rentabilidad_promedio'],
+                'margen_sobre_precio' => $rentabilidad['margen_sobre_precio'],
+                'resultado' => $rentabilidad['utilidad_total'],
+                'analizados' => $rentabilidad['analizados'],
+            ],
+            'semaforo_presupuestos' => ['conteo' => $rentabilidad['semaforo'], 'umbrales' => $umbrales],
+            'precio_costo' => $datos['tendencia']['lectura'],
+            'que_revisar' => $datos['que_revisar'],
+            // Mes a mes, para el bloque 2: cuántos se emitieron y aprobaron, y
+            // el precio frente al costo promedio de los mismos presupuestos.
+            'meses' => array_map(fn (string $mes, int $i): array => [
+                'mes' => $mes,
+                'emitidos' => $pronostico['emitidos'][$i],
+                'aprobados' => $pronostico['aprobados'][$i],
+                'precio' => $datos['tendencia']['ticket'][$i],
+                'costo' => $datos['tendencia']['costo'][$i],
+            ], $datos['labels'], array_keys($datos['labels'])),
             'notas' => $rentabilidad['excluidos_sin_costo'] > 0
                 ? [sprintf(
-                    'Hay %d cotizaciones aprobadas sin hoja de costos (son anteriores al cálculo de márgenes): no se pueden usar para medir la ganancia. Se analizaron %d.',
+                    'Hay %d presupuestos aprobados sin hoja de costos (son anteriores al cálculo de márgenes): no se pueden usar para medir la rentabilidad. Se analizaron %d.',
                     $rentabilidad['excluidos_sin_costo'],
                     $rentabilidad['analizados'],
                 )]
@@ -248,13 +287,12 @@ class InformeProyeccionesService
     {
         $datos = $this->alertas->datos($usuario, $periodo);
 
+        // Completas (sin el enlace): el informe de la pestaña arma sus tablas
+        // con la referencia, el cliente y las cifras de cada una.
         return [
-            'alertas' => array_map(fn (array $a): array => [
-                'severidad' => $a['severidad'],
-                'titulo' => $a['titulo'],
-                'detalle' => $a['detalle'],
-            ], $datos['alertas']),
+            'alertas' => array_map(fn (array $a): array => collect($a)->except('url')->all(), $datos['alertas']),
             'resumen_alertas' => $datos['resumen'],
+            'umbrales' => $datos['umbrales'],
         ];
     }
 
@@ -274,6 +312,9 @@ class InformeProyeccionesService
         return $datos + [
             'labels' => $periodo->meses()->values()->all(),
             'meses_proyeccion' => $periodo->mesesSiguientes(config('bi.meses_proyeccion')),
+            // Cómo se lo nombra en la lectura ("el monto cotizado promedió…").
+            'sujeto' => 'el indicador',
+            'bloque' => null,
             'media_movil' => null,
             'umbrales' => [],
             'semaforo' => null,

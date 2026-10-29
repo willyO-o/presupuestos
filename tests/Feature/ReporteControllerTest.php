@@ -87,6 +87,80 @@ test('each reporte requires its own permission', function () {
         ->assertOk()->assertInertia(fn ($page) => $page->component('Reportes/Bi')->has('datos.demanda.proyeccion'));
 });
 
+test('demanda y ventas dice que responde y avisa el mes incompleto', function () {
+    $this->travelTo(now()->setDate(2026, 10, 28));
+
+    $this->actingAs(userWithReporte('reportes.bi'))
+        ->get(route('reportes.bi', ['desde' => '2025-11-01', 'hasta' => '2026-10-28']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Reportes/Bi')
+            ->where('pageSubtitle', 'Demanda y ventas · Pedidos, productos y clientes')
+            ->where('datos.periodo.mes_incompleto.dias', 28)
+            ->where('datos.periodo.mes_incompleto.de', 31));
+
+    // Las pestañas sin subtítulo propio siguen mostrando la ruta de navegación.
+    $this->actingAs(userWithReporte('reportes.bi'))
+        ->get(route('reportes.bi.preguntas'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('pageSubtitle', null));
+});
+
+test('el simulador dice que responde y trae la base y las reglas del semaforo', function () {
+    $this->actingAs(userWithReporte('reportes.bi'))
+        ->get(route('reportes.bi.simulador'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Reportes/BiSimulador')
+            ->where('pageSubtitle', 'Simulador · Pruebe cambios antes de decidir')
+            ->where('breadcrumbs', ['Reportes', 'Inteligencia de negocios', 'Simulador de decisiones'])
+            ->has('datos.base.costo')
+            ->has('datos.base.precio')
+            ->has('datos.base.volumen_mensual')
+            ->where('datos.config.semaforo.umbral_verde', config('margen.semaforo.umbral_verde'))
+            ->where('datos.config.semaforo.umbral_amarillo', config('margen.semaforo.umbral_amarillo')));
+});
+
+test('alertas dice que responde y trae lo que leen sus tres bloques', function () {
+    $this->actingAs(userWithReporte('reportes.bi'))
+        ->get(route('reportes.bi.alertas'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Reportes/BiAlertas')
+            ->where('pageSubtitle', 'Alertas · Qué requiere revisión y por qué')
+            ->has('datos.alertas')
+            ->has('datos.umbrales.margen_verde')
+            ->has('datos.anomalias.conteo'));
+});
+
+test('presupuestos y rentabilidad dice que responde y trae la rentabilidad sobre el precio', function () {
+    $this->actingAs(userWithReporte('reportes.bi'))
+        ->get(route('reportes.bi.rentabilidad'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Reportes/BiRentabilidad')
+            ->where('pageSubtitle', 'Presupuestos y rentabilidad · Cotizaciones, aprobación y resultado calculado')
+            ->has('datos.rentabilidad.margen_sobre_precio')
+            ->has('datos.rentabilidad.semaforo')
+            // La lectura de precio y costo y los pasos los arma el servidor:
+            // la pantalla y el informe PDF dicen lo mismo.
+            ->has('datos.tendencia.lectura')
+            ->has('datos.que_revisar'));
+});
+
+test('costos y materiales dice que responde y manda lo que leen sus tres bloques', function () {
+    $this->actingAs(userWithReporte('reportes.bi'))
+        ->get(route('reportes.bi.costos'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Reportes/BiCostos')
+            ->where('pageSubtitle', 'Costos y materiales · Precios, consumo y efecto de los aumentos')
+            ->has('datos.indice.metodo')
+            ->has('datos.materiales')
+            ->has('datos.consumo.por_material')
+            ->has('datos.impacto.materiales'));
+});
+
 test('super-admin can open every reporte', function () {
     Role::findOrCreate('super-admin', 'web');
     $user = User::factory()->create();

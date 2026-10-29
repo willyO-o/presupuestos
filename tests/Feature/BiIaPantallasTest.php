@@ -2,12 +2,14 @@
 
 use App\Models\Area;
 use App\Models\BiAnomalia;
+use App\Models\BiResumen;
 use App\Models\CategoriaProducto;
 use App\Models\Empleado;
 use App\Models\FamiliaProducto;
 use App\Models\Sucursal;
 use App\Models\User;
 use Database\Seeders\FamiliaProductoSeeder;
+use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Permission;
 
 /**
@@ -37,6 +39,31 @@ test('la pestaña Resumen abre aunque todavía no haya resúmenes', function () 
             ->where('datos.resumen', null)
             ->where('datos.puede_generar', false)
             ->where('datos.ia.disponible', false));
+});
+
+test('la pestaña Resumen dice si el resumen abierto es el de la ultima semana cerrada', function () {
+    Carbon::setTestNow(Carbon::parse('2026-10-28 10:00', 'America/La_Paz'));
+
+    $viejo = BiResumen::query()->create([
+        'semana_inicio' => '2026-10-05',
+        'semana_fin' => '2026-10-11',
+        'hechos' => ['semana' => ['inicio' => '2026-10-05', 'etiqueta' => 'Semana 41'], 'kpis' => [], 'contexto' => []],
+        'contenido' => ['titular' => 'Semana con menos ventas.', 'destacados' => [], 'riesgos' => [], 'recomendaciones' => []],
+        'origen' => 'PLANTILLA',
+    ]);
+
+    $this->actingAs(usuarioBi('reportes.bi'))
+        ->get(route('reportes.bi.resumen', ['resumen' => $viejo->id]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Reportes/BiResumen')
+            ->where('datos.resumen.id', $viejo->id)
+            ->where('datos.resumen.semana.inicio', '2026-10-05')
+            // Lunes de la semana del 19 al 25: la última cerrada al 28 de octubre.
+            ->where('datos.ultima_semana', '2026-10-19')
+            ->where('pageSubtitle', 'Resumen semanal · Qué cambió y qué conviene revisar'));
+
+    Carbon::setTestNow();
 });
 
 test('generar el resumen a mano pide el permiso del asistente', function () {

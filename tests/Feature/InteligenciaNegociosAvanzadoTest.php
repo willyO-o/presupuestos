@@ -16,6 +16,8 @@ use App\Services\Reporte\CostosMaterialesService;
 use App\Services\Reporte\PeriodoReporte;
 use App\Services\Reporte\PresupuestosRentabilidadService;
 use App\Services\Reporte\SimuladorDecisionesService;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
 use Spatie\Permission\Models\Permission;
 
 /**
@@ -109,6 +111,17 @@ test('el indice de costo arrastra el ultimo precio y proyecta la tendencia', fun
         ->and($indice['variacion_mensual'])->toBeGreaterThan(0.0);
 });
 
+test('el indice no se corre de mes cuando hoy es 29, 30 o 31', function () {
+    // Con el día de hoy colado en la fecha, "febrero 31" desbordaba a marzo
+    // y febrero mostraba el precio de marzo.
+    $this->travelTo(Carbon::parse('2026-05-31 10:00'));
+    materialConPrecios();
+
+    $indice = app(CostosMaterialesService::class)->datos($this->usuario, $this->periodo)['indice'];
+
+    expect($indice['serie'])->toBe([100.0, 110.0, 121.0, 121.0]);
+});
+
 test('el impacto de una variacion es la diferencia de precio por lo consumido', function () {
     $material = materialConPrecios();
 
@@ -189,6 +202,18 @@ test('la rentabilidad deja afuera los presupuestos sin hoja de costos', function
         ->and($datos['pronostico']['proyeccion_emitido'])->toHaveCount(3);
 });
 
+test('el mismo resultado se lee sobre el costo y sobre el precio sin IVA', function () {
+    // Precio sin IVA 1.500 − 100 = 1.400; costo 1.000; resultado 280.
+    Cotizacion::factory()->aprobada()->create([
+        'fecha' => '2026-02-10', 'subtotal' => 1500, 'descuento' => 100, 'costo_ajustado' => 1000, 'utilidad_real' => 280,
+    ]);
+
+    $rentabilidad = app(PresupuestosRentabilidadService::class)->datos($this->usuario, $this->periodo)['rentabilidad'];
+
+    expect($rentabilidad['rentabilidad_promedio'])->toBe(28.0)
+        ->and($rentabilidad['margen_sobre_precio'])->toBe(20.0);
+});
+
 test('la tendencia compara precio y costo de los mismos presupuestos y sin IVA', function () {
     // Febrero: 1.000 − 100 de descuento = 900 sin IVA (el total con IVA es
     // 1.044), costo 600. El de 2.000 no tiene hoja de costos: no entra en
@@ -253,7 +278,17 @@ test('alerta los presupuestos vivos con margen bajo pero no los ya convertidos',
 
     expect($alertas)->toHaveCount(2)
         ->and($alertas->first()['severidad'])->toBe('alta')
-        ->and($alertas->first()['url'])->toBe(route('cotizaciones.show', $roja));
+        ->and($alertas->first()['url'])->toBe(route('cotizaciones.show', $roja))
+        // Mismo nombre que en Presupuestos y rentabilidad, y la recomendación en minúsculas.
+        ->and($alertas->first()['detalle'])->toContain('Resultado calculado Bs')
+        ->and($alertas->first()['detalle'])->toContain('El semáforo recomienda: no aceptar.')
+        // Lo que lee la fila de la pantalla: qué hacer, las cifras y por qué.
+        ->and($alertas->first()['accion'])->toBe('Revisar precio antes de aceptar el presupuesto')
+        ->and($alertas->first()['tipo_etiqueta'])->toBe('Rentabilidad sobre costo baja')
+        ->and($alertas->first()['referencia'])->toBe($roja->codigo_verificacion)
+        ->and(array_column($alertas->first()['metricas'], 'etiqueta'))->toBe(['Resultado calculado', 'Rentabilidad sobre costo'])
+        ->and($alertas->first()['nota'])->toBe('Está por debajo del umbral de 15 % definido por el sistema.')
+        ->and($alertas->first()['enlace'])->toBe('Ver presupuesto');
 });
 
 test('alerta un presupuesto pendiente cuyos materiales subieron y lo re-evalua con el motor', function () {
@@ -294,7 +329,14 @@ test('alerta el sobrecosto de material de un pedido frente a lo presupuestado', 
     expect($alerta)->not->toBeNull()
         ->and($alerta['severidad'])->toBe('alta')
         ->and($alerta['valor'])->toBe(50.0)
-        ->and($alerta['url'])->toBe(route('pedidos.show', $pedido));
+        ->and($alerta['url'])->toBe(route('pedidos.show', $pedido))
+        // La fila compara lo registrado con lo presupuestado en barras.
+        ->and($alerta['accion'])->toBe('El material registrado superó el presupuesto en 50,0 %')
+        ->and($alerta['comparacion'])->toBe([
+            ['etiqueta' => 'Material registrado', 'valor' => 150.0, 'texto' => 'Bs 150,00'],
+            ['etiqueta' => 'Material presupuestado', 'valor' => 100.0, 'texto' => 'Bs 100,00'],
+        ])
+        ->and($alerta['enlace'])->toBe('Ver pedido');
 });
 
 test('alerta la tendencia sostenida del costo de materiales', function () {
@@ -333,6 +375,18 @@ test('sin datos el simulador ofrece una base de ejemplo con el margen sugerido',
 
     expect($datos['base']['desde_datos'])->toBeFalse()
         ->and($datos['base']['precio'])->toBe(round(1000 * (1 + config('cotizacion.margen_sugerido')), 2));
+});
+
+test('el simulador nombra la recomendacion del semaforo y no su color', function () {
+    // Pedido del usuario (2026-10-29): "Aceptar" en vez de "zona verde".
+    $pagina = File::get(resource_path('js/Pages/Reportes/BiSimulador.vue'));
+    preg_match_all("/'bi-simulador\.[a-z-]+': \{.*?\n    \},/s", File::get(resource_path('js/Data/Ayudas.js')), $ayudas);
+
+    expect($ayudas[0])->not->toBeEmpty()
+        ->and($pagina.implode("\n", $ayudas[0]))->not->toMatch('/zona (verde|amarilla|roja)|\b(para|de|a) (verde|amarillo)\b/iu')
+        // La recomendación sale del motor (textoRecomendacion), no se reescribe en la página.
+        ->and($pagina)->toContain('textoRecomendacion')
+        ->and($pagina)->toContain('según el sistema');
 });
 
 /*

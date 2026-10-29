@@ -151,13 +151,17 @@ final class RedaccionPronostico
 
     /**
      * Lectura en prosa de un indicador del informe, para quien NO es analista
-     * (pedido del usuario): qué pasó, cómo viene, qué se espera, el mes en
-     * curso, el semáforo (si aplica) y cuánta confianza merece. Sin R², MAPE
-     * ni nombres de métodos: eso queda en el anexo (ficha()).
+     * (pedido del usuario), con la redacción prudente del informe modelo
+     * (2026-10-29): "Resultados registrados", "Tendencia: el modelo
+     * calcula…", "Proyección: …no son límites garantizados", el mes en curso,
+     * el semáforo (si aplica, diciendo si el rango cruza de zona) y "Cómo
+     * usar la estimación". Sin R², MAPE ni nombres de métodos: eso queda en
+     * el anexo (ficha()).
      *
      * Cada cifra sale del indicador ya calculado; acá solo se elige la
      * frase. Por eso se puede auditar: todo número del párrafo está en la
-     * tabla y en el gráfico de al lado.
+     * tabla y en el gráfico de al lado. El indicador declara su `sujeto`
+     * ("el monto cotizado", "la demanda"), siempre en singular.
      *
      * @param  array<string, mixed>  $indicador  Ver InformeProyeccionesService::indicador().
      * @param  array{mes: string, dias: int, de: int}|null  $mesIncompleto
@@ -168,6 +172,7 @@ final class RedaccionPronostico
         $metodo = $indicador['metodo'];
         $tramo = self::tramoUsado($indicador);
         $formato = fn (?float $v): string => self::conUnidad($v, $indicador);
+        $sujeto = $indicador['sujeto'] ?? 'el indicador';
 
         if ($tramo === []) {
             return ['No hubo datos de este indicador en el periodo.'];
@@ -176,11 +181,12 @@ final class RedaccionPronostico
         $ultimo = $tramo[count($tramo) - 1];
 
         $parrafos = [sprintf(
-            'Qué pasó: entre %s y %s el promedio fue de %s por mes; en %s, el último mes analizado, fue de %s%s.',
-            $tramo[0]['mes'],
-            $ultimo['mes'],
+            'Resultados registrados: de %s a %s, %s promedió %s al mes. En %s fue de %s%s.',
+            self::mesLargo($tramo[0]['mes']),
+            self::mesLargo($ultimo['mes']),
+            $sujeto,
             $formato(self::promedio($tramo)),
-            $ultimo['mes'],
+            self::nombreDelMes($ultimo['mes']),
             $formato($ultimo['valor']),
             // El índice dicho en palabras: 115,9 pts = 15,9 % más caros.
             $indicador['formato'] === 'indice' && abs($ultimo['valor'] - 100) >= 0.5
@@ -190,7 +196,7 @@ final class RedaccionPronostico
 
         if (! ($metodo['suficiente'] ?? false)) {
             $parrafos[] = sprintf(
-                'Qué se espera: todavía no hay meses suficientes para estimarlo (hacen falta al menos %d).',
+                'Proyección: todavía no hay meses suficientes para estimarlo (hacen falta al menos %d).',
                 $metodo['minimo'] ?? Pronostico::MINIMO_PUNTOS,
             );
 
@@ -202,40 +208,116 @@ final class RedaccionPronostico
         $proyeccion = $indicador['proyeccion'];
         $meses = $indicador['meses_proyeccion'];
         $final = $proyeccion[count($proyeccion) - 1];
+        $mesFinal = $meses[count($proyeccion) - 1];
 
         $parrafos[] = sprintf(
-            'Qué se espera: si todo sigue igual, para %s se esperan unos %s y para %s unos %s. Lo más probable es que el resultado real quede entre %s y %s.',
-            $meses[0],
+            'Proyección: si continúa esa tendencia, se estiman %s para %s y %s para %s. Para %s, el rango estimado es de %s a %s; no son límites garantizados.',
             $formato($proyeccion[0]['valor']),
-            $meses[count($proyeccion) - 1],
+            self::mesLargo($meses[0]),
             $formato($final['valor']),
+            self::mesLargo($mesFinal),
+            self::nombreDelMes($mesFinal),
             $formato($final['inferior']),
             $formato($final['superior']),
         );
 
         if (! empty($metodo['cierre_estimado']) && ! empty($metodo['mes_final_excluido'])) {
             $parrafos[] = sprintf(
-                '%s todavía no termina%s: se muestra aparte y no se usa en el cálculo; debería cerrar cerca de %s.',
-                self::mayuscula($metodo['mes_final_excluido']),
-                $mesIncompleto ? sprintf(' (van %d de %d días)', $mesIncompleto['dias'], $mesIncompleto['de']) : '',
+                '%s incompleto: %s No se usa para calcular la tendencia; el cierre estimado es %s.',
+                self::mayuscula(self::nombreDelMes($metodo['mes_final_excluido'])),
+                $mesIncompleto ? sprintf('hay datos de %d de %d días.', $mesIncompleto['dias'], $mesIncompleto['de']) : 'todavía no termina.',
                 $formato($metodo['cierre_estimado'][0]['valor']),
             );
         }
 
         if ($semaforo = $indicador['semaforo'] ?? null) {
-            $parrafos[] = sprintf(
-                'Semáforo: verde desde %s, amarillo entre %s y %s, rojo por debajo. Para %s se espera que quede en zona %s.',
-                self::formatear($semaforo['verde'], 'porcentaje'),
-                self::formatear($semaforo['amarillo'], 'porcentaje'),
-                self::formatear($semaforo['verde'], 'porcentaje'),
-                $meses[count($proyeccion) - 1],
-                self::zonaSemaforo($final['valor'], $semaforo),
-            );
+            $parrafos[] = self::fraseSemaforo($final, $semaforo, $mesFinal);
         }
 
-        $parrafos[] = self::fraseConfianza($metodo);
+        $parrafos[] = self::fraseConfianza($metodo, $sujeto);
 
         return $parrafos;
+    }
+
+    /**
+     * "Semáforo del sistema: verde por encima de 30,0 %; … El valor central
+     * de enero está en verde, aunque su rango también alcanza la zona
+     * amarilla." Decir solo la zona del valor central escondería que el
+     * rango puede caer en otra.
+     *
+     * @param  array{valor: float, inferior: float, superior: float}  $final
+     * @param  array{verde: float, amarillo: float}  $semaforo
+     */
+    private static function fraseSemaforo(array $final, array $semaforo, string $mes): string
+    {
+        $verde = self::formatear($semaforo['verde'], 'porcentaje');
+        $amarillo = self::formatear($semaforo['amarillo'], 'porcentaje');
+        $zona = fn (float $v): string => self::zonaSemaforo($v, $semaforo, corta: true);
+
+        $central = $zona($final['valor']);
+        $otras = collect([$zona($final['inferior']), $zona($final['superior'])])
+            ->reject(fn (string $z) => $z === $central)
+            ->unique()
+            ->values();
+
+        $adjetivo = ['verde' => 'verde', 'amarilla' => 'amarillo', 'roja' => 'rojo'];
+        $lectura = $otras->isEmpty()
+            ? sprintf('El valor central de %s y todo su rango están en %s.', self::nombreDelMes($mes), $adjetivo[$central])
+            : sprintf(
+                'El valor central de %s está en %s, aunque su rango también alcanza %s.',
+                self::nombreDelMes($mes),
+                $adjetivo[$central],
+                $otras->count() === 1 ? "la zona {$otras[0]}" : "las zonas {$otras[0]} y {$otras[1]}",
+            );
+
+        return "Semáforo del sistema: verde por encima de {$verde}; amarillo entre {$amarillo} y {$verde}; rojo por debajo de {$amarillo}. {$lectura}";
+    }
+
+    /**
+     * Precio promedio frente a costo promedio, con las pendientes en % por
+     * mes ya redondeadas a un decimal (como se muestran): con menos de 0,2
+     * puntos de diferencia es ruido y se dice "se mueven parecido". Las dos
+     * pueden ser negativas: por eso "va por detrás" y no "crece más lento".
+     *
+     * Es la única regla: la usan la pestaña Presupuestos y rentabilidad y el
+     * informe, así no pueden decir cosas distintas.
+     *
+     * @return array{comparacion: string, lectura: string}|null
+     */
+    public static function precioFrenteACosto(?float $precio, ?float $costo): ?array
+    {
+        if ($precio === null || $costo === null) {
+            return null;
+        }
+
+        $diferencia = round($precio, 1) - round($costo, 1);
+        $comparacion = match (true) {
+            $diferencia <= -0.2 + 1e-9 => 'detras',
+            $diferencia >= 0.2 - 1e-9 => 'adelante',
+            default => 'parecido',
+        };
+
+        $movimiento = fn (float $v): ?array => abs(round($v, 1)) < 0.1
+            ? null
+            : ['sentido' => $v > 0 ? 'sube' : 'baja', 'cuanto' => self::numero(abs($v), 1).' %'];
+
+        $p = $movimiento($precio);
+        $c = $movimiento($costo);
+        $delPrecio = $p ? "El precio promedio {$p['sentido']} {$p['cuanto']} por mes" : 'El precio promedio se mantiene';
+        $delCosto = match (true) {
+            $c === null => 'y el costo se mantiene',
+            $p !== null && $p['sentido'] === $c['sentido'] => "y el costo, {$c['cuanto']}",
+            default => "y el costo {$c['sentido']} {$c['cuanto']} por mes",
+        };
+
+        return [
+            'comparacion' => $comparacion,
+            'lectura' => "{$delPrecio} {$delCosto}. ".[
+                'detras' => 'El precio va por detrás del costo: la rentabilidad tiende a achicarse.',
+                'adelante' => 'El precio le gana al costo: la rentabilidad se sostiene o crece.',
+                'parecido' => 'Se mueven parecido: la relación entre precio y costo se mantiene.',
+            ][$comparacion],
+        ];
     }
 
     /**
@@ -280,9 +362,10 @@ final class RedaccionPronostico
         $conclusiones = [];
 
         foreach ([
-            'monto_aprobado' => ['Ventas', 'en promedio %s vendidos por mes'],
+            // Temas en plural: el rumbo dice "van en aumento" / "van bajando".
+            'monto_aprobado' => ['Montos aprobados', 'en promedio %s por mes'],
             'pedidos' => ['Pedidos', 'en promedio %s por mes'],
-            'monto_emitido' => ['Cotizaciones', 'en promedio %s cotizados por mes'],
+            'monto_emitido' => ['Montos cotizados', 'en promedio %s por mes'],
         ] as $clave => [$tema, $frase]) {
             $indicador = $porClave->get($clave);
             $tramo = $indicador ? self::tramoUsado($indicador) : [];
@@ -300,13 +383,13 @@ final class RedaccionPronostico
         }
 
         $rentabilidad = collect($secciones)->firstWhere('clave', 'rentabilidad');
-        if ($rentabilidad && $rentabilidad['tendencia']['ticket'] !== null && $rentabilidad['tendencia']['costo'] !== null) {
-            ['ticket' => $precio, 'costo' => $costo] = $rentabilidad['tendencia'];
-            // "Va por detrás" y no "crece más lento": las dos pendientes
-            // pueden ser negativas (precio −0,5 % y costo −0,3 % por mes).
-            $conclusiones[] = $costo > $precio
-                ? 'Precios y costos: el precio de los trabajos se está quedando atrás de lo que cuesta hacerlos, así que cada trabajo deja un poco menos de ganancia.'
-                : 'Precios y costos: los precios acompañan a los costos, así que la ganancia de cada trabajo se mantiene.';
+        $precioCosto = $rentabilidad ? self::precioFrenteACosto($rentabilidad['tendencia']['ticket'], $rentabilidad['tendencia']['costo']) : null;
+        if ($precioCosto !== null) {
+            $conclusiones[] = [
+                'detras' => 'Precios y costos: el precio de los trabajos va por detrás de su costo, así que la rentabilidad tiende a achicarse.',
+                'adelante' => 'Precios y costos: el precio de los trabajos le gana a su costo, así que la rentabilidad se sostiene o crece.',
+                'parecido' => 'Precios y costos: se mueven parecido, así que la relación entre precio y costo se mantiene.',
+            ][$precioCosto['comparacion']];
         }
 
         if ($porClave->has('indice_costo') && ($ritmo = $porClave['indice_costo']['variacion_mensual']) !== null) {
@@ -324,7 +407,12 @@ final class RedaccionPronostico
 
         $margen = $porClave->get('rentabilidad');
         if ($margen && ($tramo = self::tramoUsado($margen)) !== []) {
-            $frase = sprintf('Ganancia: de cada Bs 100 que cuesta hacer un trabajo, quedan en promedio Bs %s de ganancia después de impuestos', self::numero(self::promedio($tramo), 1));
+            // La del periodo completo (resultado total ÷ costo total), la misma
+            // que la pestaña; sin ella, el promedio de los meses.
+            $delPeriodo = $rentabilidad['resumen']['rentabilidad'] ?? null;
+            $frase = $delPeriodo !== null
+                ? sprintf('Rentabilidad: por cada Bs 100 de costo, el resultado calculado fue de Bs %s en el periodo, ya descontados los impuestos', self::numero($delPeriodo, 1))
+                : sprintf('Rentabilidad: por cada Bs 100 de costo, el resultado calculado fue en promedio de Bs %s por mes, ya descontados los impuestos', self::numero(self::promedio($tramo), 1));
 
             if ($margen['proyeccion'] !== [] && $margen['semaforo']) {
                 $final = $margen['proyeccion'][count($margen['proyeccion']) - 1];
@@ -425,7 +513,8 @@ final class RedaccionPronostico
     }
 
     /**
-     * "Cómo viene: va en aumento, unos 0,6 pedidos más cada mes (+1,0 % al mes)."
+     * "Tendencia: el modelo calcula un aumento de Bs 4.101 por mes (+0,5 %
+     * mensual)."; en un porcentaje, en puntos porcentuales.
      *
      * @param  array<string, mixed>  $indicador
      */
@@ -437,25 +526,28 @@ final class RedaccionPronostico
             $puntos = $metodo['pendiente'];
 
             return abs($puntos) < 0.1
-                ? 'Cómo viene: se mantiene estable.'
-                : sprintf('Cómo viene: va %s, unos %s puntos por mes.', $puntos > 0 ? 'en aumento' : 'bajando', self::numero(abs($puntos), 2));
+                ? 'Tendencia: el modelo no muestra un cambio claro; se mantiene estable.'
+                : sprintf(
+                    'Tendencia: el modelo calcula %s de %s puntos porcentuales por mes.',
+                    $puntos > 0 ? 'un aumento' : 'una disminución',
+                    self::numero(abs($puntos), 2),
+                );
         }
 
         $variacion = $indicador['variacion_mensual'];
 
         if ($variacion === null) {
-            return 'Cómo viene: no se puede medir el ritmo, porque el promedio del periodo es cero.';
+            return 'Tendencia: no se puede medir el ritmo, porque el promedio del periodo es cero.';
         }
 
         if (abs($variacion) < 0.5) {
-            return 'Cómo viene: se mantiene estable (cambia menos de medio por ciento al mes).';
+            return 'Tendencia: el modelo no muestra un cambio claro; se mantiene estable (menos de medio por ciento al mes).';
         }
 
         return sprintf(
-            'Cómo viene: va %s, unos %s %s cada mes (%s al mes).',
-            $variacion > 0 ? 'en aumento' : 'bajando',
+            'Tendencia: el modelo calcula %s de %s por mes (%s mensual).',
+            $variacion > 0 ? 'un aumento' : 'una disminución',
             self::cantidadPorMes(abs($metodo['pendiente']), $indicador),
-            $variacion > 0 ? 'más' : 'menos',
             self::variacion($variacion),
         );
     }
@@ -478,27 +570,29 @@ final class RedaccionPronostico
     }
 
     /**
-     * Confianza en la estimación, en palabras.
+     * "Cómo usar la estimación: solo como referencia, porque el monto
+     * cotizado varía mucho de un mes a otro. Al compararla con los últimos 3
+     * meses conocidos, el error promedio fue 46,7 %."
      *
      * @param  array<string, mixed>  $metodo
      */
-    private static function fraseConfianza(array $metodo): string
+    private static function fraseConfianza(array $metodo, string $sujeto = 'el indicador'): string
     {
         if (($metodo['r2'] ?? null) === null) {
-            return 'Confianza en la estimación: el indicador no cambió en el periodo, así que se espera que siga igual.';
+            return "Cómo usar la estimación: {$sujeto} no cambió en el periodo, así que se espera que siga igual.";
         }
 
         $frase = match (self::nivelConfianza($metodo)) {
-            'Alta' => 'Confianza en la estimación: alta. Los meses siguen una línea clara.',
-            'Media' => 'Confianza en la estimación: media. Los meses siguen una tendencia, con algunas subidas y bajadas.',
-            default => 'Confianza en la estimación: baja. Los meses suben y bajan mucho, así que la estimación es solo una referencia.',
+            'Alta' => 'Cómo usar la estimación: como una referencia confiable, porque los meses siguen una línea clara.',
+            'Media' => 'Cómo usar la estimación: con cautela, porque los meses siguen una tendencia con algunas subidas y bajadas.',
+            default => "Cómo usar la estimación: solo como referencia, porque {$sujeto} varía mucho de un mes a otro.",
         };
 
         $validacion = $metodo['validacion'] ?? null;
 
         if ($validacion !== null && ($validacion['recta'] ?? null) !== null) {
             $frase .= sprintf(
-                ' Al probar el cálculo con los últimos %d meses ya conocidos, se equivocó en promedio un %s.',
+                ' Al compararla con los últimos %d meses conocidos, el error promedio fue %s.',
                 $validacion['meses'],
                 self::formatear($validacion['recta'], 'porcentaje'),
             );
@@ -567,15 +661,56 @@ final class RedaccionPronostico
     }
 
     /**
+     * Zona del semáforo de un valor; con `corta`, solo el color ("amarilla").
+     *
      * @param  array{verde: float, amarillo: float}  $semaforo
      */
-    private static function zonaSemaforo(float $valor, array $semaforo): string
+    private static function zonaSemaforo(float $valor, array $semaforo, bool $corta = false): string
     {
-        return match (true) {
-            $valor > $semaforo['verde'] => 'verde (buena)',
-            $valor > $semaforo['amarillo'] => 'amarilla (conviene revisar precios)',
-            default => 'roja (ganancia muy baja)',
+        $zona = match (true) {
+            $valor > $semaforo['verde'] => 'verde',
+            $valor > $semaforo['amarillo'] => 'amarilla',
+            default => 'roja',
         };
+
+        return $corta ? $zona : [
+            'verde' => 'verde (buena)',
+            'amarilla' => 'amarilla (conviene revisar precios)',
+            'roja' => 'roja (resultado muy bajo)',
+        ][$zona];
+    }
+
+    /** "Nov-2025" → "noviembre de 2025". Lo que no tenga esa forma se devuelve tal cual. */
+    private static function mesLargo(string $etiqueta): string
+    {
+        $mes = self::numeroDeMes($etiqueta);
+
+        return $mes === null
+            ? $etiqueta
+            : mb_strtolower(PeriodoReporte::nombreMesCompleto($mes)).' de '.substr($etiqueta, -4);
+    }
+
+    /** "Nov-2025" → "noviembre". */
+    private static function nombreDelMes(string $etiqueta): string
+    {
+        $mes = self::numeroDeMes($etiqueta);
+
+        return $mes === null ? $etiqueta : mb_strtolower(PeriodoReporte::nombreMesCompleto($mes));
+    }
+
+    private static function numeroDeMes(string $etiqueta): ?int
+    {
+        if (! preg_match('/^(\p{L}{3})-\d{4}$/u', $etiqueta, $partes)) {
+            return null;
+        }
+
+        foreach (range(1, 12) as $mes) {
+            if (PeriodoReporte::nombreMes($mes) === $partes[1]) {
+                return $mes;
+            }
+        }
+
+        return null;
     }
 
     /**

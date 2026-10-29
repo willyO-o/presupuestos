@@ -15,7 +15,8 @@ import Modal from '@/Components/Modal.vue';
  * trimestre no obliga a volver a elegirlo.
  *
  * Sin `periodo` (pestaña Resumen: cada resumen ya es una semana cerrada) se
- * muestran solo las pestañas.
+ * muestran solo las pestañas. El slot `aviso` deja una nota a la derecha del
+ * filtro (Demanda y ventas avisa ahí que el último mes está incompleto).
  */
 const props = defineProps({
     /** `datos.periodo` del servicio: `{ desde, hasta, meses }`. */
@@ -95,6 +96,14 @@ function urlInforme(formato, extra = {}) {
 
 const sinSecciones = computed(() => seccionesInforme.value.length === 0);
 
+/**
+ * Qué trae el PDF según lo marcado: el de Alertas solo es su propio informe
+ * (resumen de revisión y alertas por prioridad, sin anexo).
+ */
+const contenidoInforme = computed(() => (seccionesInforme.value.length === 1 && seccionesInforme.value[0] === 'alertas'
+    ? 'Incluye un resumen de revisión y las alertas por prioridad, con la acción sugerida para cada grupo.'
+    : 'Incluye gráficos, tablas, una lectura de los resultados y un anexo con el método de cálculo.'));
+
 function enlace(ruta) {
     // El resumen no usa el periodo: no se arrastran las fechas hacia ahí.
     return (props.filters.desde || props.filters.hasta) && ruta !== 'reportes.bi.resumen'
@@ -127,6 +136,10 @@ function enlace(ruta) {
                     <span class="fs-xs text-muted">{{ periodo.meses }} {{ periodo.meses === 1 ? 'mes' : 'meses' }}</span>
                     <EtiquetaAlcance />
                 </div>
+                <!-- Aviso propio de la pestaña sobre el periodo (p. ej. el mes incompleto). -->
+                <div v-if="$slots.aviso" class="bi-filtro-aviso">
+                    <slot name="aviso" />
+                </div>
             </form>
         </div>
 
@@ -140,7 +153,7 @@ function enlace(ruta) {
             <div class="card-body">
                 <p class="fs-xs text-muted mb-3">
                     Periodo del filtro{{ rango.desde && rango.hasta ? `: ${rango.desde} al ${rango.hasta}` : '' }}.
-                    Incluye gráficos, tablas, una lectura de los resultados y un anexo con el método de cálculo.
+                    {{ contenidoInforme }}
                     <template v-if="seccionPropia"> Se marcó la sección de esta pestaña; puede agregar otras.</template>
                 </p>
                 <div role="group" aria-labelledby="bi-informe-secciones">

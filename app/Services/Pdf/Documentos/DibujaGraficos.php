@@ -85,7 +85,11 @@ trait DibujaGraficos
             $this->Cell($anchoEje - 1.5, 3, $this->t(($grafico['formato'])($v)), 0, 0, 'R');
         }
 
-        // Umbrales con significado (semáforo, base 100).
+        // Umbrales con significado (semáforo, base 100): la línea va debajo
+        // de las series; el rótulo, al final y sobre fondo blanco, porque la
+        // banda y la proyección lo tapaban ("erde" en vez de "Verde").
+        $rotulos = [];
+
         foreach ($grafico['umbrales'] ?? [] as $umbral) {
             if ($umbral['valor'] < $minimo || $umbral['valor'] > $maximo) {
                 continue;
@@ -96,11 +100,7 @@ trait DibujaGraficos
             $this->punteado(true);
             $this->Line($x0, $y($umbral['valor']), $x0 + $ancho, $y($umbral['valor']));
             $this->punteado(false);
-            // Rótulo a la derecha: a la izquierda lo taparía el arranque de
-            // la serie, que suele empezar justo en la base.
-            $this->SetXY($x0 + $ancho - 41, $y($umbral['valor']) - 3.2);
-            $this->fuente(5.5, '', self::SUAVE);
-            $this->Cell(40, 3, $this->t($umbral['nombre']), 0, 0, 'R');
+            $rotulos[] = [$umbral['nombre'], $y($umbral['valor'])];
         }
 
         // Bandas primero, para que las líneas queden encima.
@@ -114,6 +114,17 @@ trait DibujaGraficos
             if (($serie['tipo'] ?? 'linea') !== 'banda') {
                 $this->linea($serie, $x, $y);
             }
+        }
+
+        // Rótulo a la derecha: a la izquierda lo taparía el arranque de la
+        // serie, que suele empezar justo en la base.
+        foreach ($rotulos as [$nombre, $yUmbral]) {
+            $this->fuente(5.5, '', self::SUAVE);
+            $texto = $this->t($nombre);
+            $anchoRotulo = $this->GetStringWidth($texto) + 1.6;
+            $this->setRelleno(self::BLANCO);
+            $this->SetXY($x0 + $ancho - $anchoRotulo - 0.5, $yUmbral - 3.4);
+            $this->Cell($anchoRotulo, 2.8, $texto, 0, 0, 'C', true);
         }
 
         $this->SetLineWidth(0.2);

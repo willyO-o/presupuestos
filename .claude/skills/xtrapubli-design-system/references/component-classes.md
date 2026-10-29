@@ -105,7 +105,21 @@ proyecto en una galería).
 - **List group**: `.list-group` `.list-group-item` `.comment-list` `.comment-item`.
 - **Tabla**: `.table-responsive` `.table-dashboard`.
 - **Donut CSS puro**: `.donut-chart` (sin uso hoy; el `.bar-chart` que había se retiró al pasar a una librería de gráficos — hoy Apache ECharts).
-- **Grid 12 columnas**: `.row` `.col-12` `.col-lg-3` ... `.col-lg-9`.
+- **Grid 12 columnas**: `.row` `.col-12` `.col-lg-2` ... `.col-lg-9`. No hay `.col-4` ni `.col-6`
+  sueltas: dentro de `.row` una columna sin clase ocupa 1/12 (así quedaron los campos de "Ajustar
+  medidas reales", de un centímetro). Para campos en fila dentro de un modal, una grilla propia.
+- **Pedidos** (app.css §24): `.pedido-tracker` (+ `-step`, `-dot`), `.pedido-timeline` (+ `-item`),
+  `.pedido-consumo-lista`; "Ajustar medidas reales": `.pedido-medidas-campos` (ancho, alto y cantidad en
+  una fila), `.pedido-ajuste` (ítem ajustado: lo cotizado al lado de lo que se fabrica; con
+  `-referencia` en tono neutro dentro del modal) y `.pedido-ajuste-accion` (botón con aspecto de enlace).
+- **Detalle de cotización** (app.css §22, Pages/Cotizaciones/Show.vue): resumen `.cotizacion-resumen` (tres
+  `.stat-card`: cliente, total, estado; + `-cuerpo`, `-cliente`, `-nota`, `-estado`); documento `.cotizacion-doc` con
+  `.cotizacion-doc-titulo` (no se imprime), `-marca`, `-numero`, `-tipo`, `-rotulo`, `-meta-detalles` y el total en
+  franja (`.cotizacion-doc-totals .cotizacion-total-grand`); análisis interno (`.margen-interno`) con
+  `.cotizacion-analisis` (+ `-cabecera`, `-kpis`, `-paneles` (lado a lado desde 2xl), `-subtitulo`, `-resultado`,
+  `-pie`, `-pie-fila` (el `<details>` abierto ocupa toda la fila), `-aclaracion`, `-productos`) y los desplegables
+  `.cotizacion-desplegable` (+ `-simple`, `-cuerpo`, `-lista`). Reusa `.margen-panel`/`.margen-row`, `.bi-aviso` y
+  `.bi-formulas-lista`. Al imprimir solo sale el documento.
 - **Ritmo vertical de pantalla**: `.page-stack` — envuelve los bloques de primer
   nivel de una página (tarjetas y `.row`) y los separa con la MISMA medida que
   `.row` separa columnas. Úsalo en vez de repartir `mb-4` por las tarjetas:
@@ -160,15 +174,21 @@ Lo que **no** es un gráfico: una sola razón contra un tope (entregas a tiempo)
 un medidor, `.reporte-progress` + `.reporte-progress-bar`; un puñado de números
 sueltos es una fila de KPIs, `.reporte-kpi`.
 
+Prop `marca-eje` (`{ etiqueta, texto }`): línea vertical punteada y rotulada sobre una
+categoría, para avisar que ese punto es parcial ("Mes incompleto", "Oct-2026 en curso");
+el texto se suma al título del tooltip. Solo en gráficos verticales.
+
 ## Inteligencia de negocios (`.bi-*`, app.css §26)
 
 Pestañas `Pages/Reportes/Bi*.vue` y componentes `Components/Reporte/*`.
 
 - `.bi-tabs` (sobre `.nav-tabs`) `.bi-filtro` `.bi-filtro-rango` `.bi-filtro-alcance`
-  `.bi-select` — encabezado común (`BiEncabezado.vue`): pestañas + filtro de fechas.
+  `.bi-select` — encabezado común (`BiEncabezado.vue`): pestañas + filtro de fechas. Su slot
+  `aviso` va en `.bi-filtro-aviso` (a la derecha desde `xl`).
 - `.bi-kpi` `.bi-kpi-cuerpo` `.bi-kpi-nota` + `.bi-tendencia` (`-buena` / `-mala` /
   `-neutra`) — tarjeta `BiKpi.vue` sobre `.stat-card`. La flecha dice la dirección;
-  el color, si es bueno o malo según `subirEsBueno`.
+  el color, si es bueno o malo según `subirEsBueno`. `sufijo` dice contra qué es la
+  variación (por defecto "por mes"; el resumen semanal usa "vs. 4 semanas").
 - `.bi-aviso` — nota informativa (qué datos quedan fuera de un cálculo).
 - `.bi-metodo` `.bi-metodo-resumen` `.bi-metodo-titulo` `.bi-metodo-chips` `.bi-metodo-chip`
   (+ `-fuerte` / `-moderado` / `-debil` / `-neutro`) `.bi-metodo-lista` — ficha plegable
@@ -176,14 +196,9 @@ Pestañas `Pages/Reportes/Bi*.vue` y componentes `Components/Reporte/*`.
 - `.bi-informe-secciones` `.bi-informe-seccion` `.bi-informe-acciones` — modal "Generar
   informe" de `BiEncabezado.vue` (casillas de sección y botones PDF/CSV; un `<a>` sin
   secciones lleva `.btn.disabled`).
-- `.bi-alertas` `.bi-alerta` (+ `.bi-alerta-alta` / `.bi-alerta-media`: solo tiñen el icono; sin
-  borde lateral de color, la severidad la dicen el icono y la etiqueta)
-  `.bi-alerta-icono` `.bi-alerta-cuerpo` `.bi-alerta-encabezado` `.bi-alerta-tipo`
-  `.bi-alerta-titulo` `.bi-alerta-detalle` `.bi-alerta-accion` `.bi-alertas-vacio`.
+- `.bi-alertas-vacio` — estado vacío de las alertas (las filas están en §46).
 - `.bi-columna` — columna de tarjetas apiladas con el mismo espacio que `.page-stack`.
-- Simulador: `.bi-simulador-controles` `.bi-control-encabezado` `.bi-range`
-  `.bi-control-check` `.bi-check` y el veredicto `.bi-veredicto` (+ `-verde` /
-  `-amarillo` / `-rojo`) `.bi-veredicto-titulo` `.bi-veredicto-detalle`.
+- Simulador: en §47 (ver "Simulador en tres pasos").
 
 ## IA del BI (`.ia-*`, `.resumen-*`, `.anomalia-*`, app.css §33)
 
@@ -214,16 +229,25 @@ El texto de la IA siempre va junto a la evidencia de la que sale.
   solo visual, va `aria-hidden` con el texto completo al lado en `.sr-only`.
 - Resultado de herramienta (`Components/Reporte/ResultadoIa.vue`): `.ia-resultado` (+ `-titulo`,
   `-tabla`, `-pie`), `.ia-enlace`, `.ia-calculo` (+ `-parametros`, `-herramienta`) para "Cómo lo calculé".
-- Resumen semanal (`Pages/Reportes/BiResumen.vue`): `.resumen-cabecera-*`, `.resumen-titular`,
-  `.resumen-alcances` `.resumen-alcance`, `.resumen-cuerpo` (`.resumen-lectura` + `.resumen-evidencia`),
-  `.resumen-punto` (+ `-icono`, `-bueno`, `-alto`, `-medio`, `-accion`), `.resumen-kpis` con
-  `tr.is-evidencia` (se resalta al pasar por la frase que la cita), `.resumen-var-buena/-mala/-neutra`,
-  `.resumen-contexto*`, `.resumen-familia*`, `.resumen-historial*`, `.resumen-vacio*`.
+- Resumen semanal (`Pages/Reportes/BiResumen.vue`), de arriba abajo: `.resumen-filtro` (barra con
+  `.resumen-filtro-campo` (+ `-corto`), `-icono`, `-control`, `-estado` (badge "Resumen histórico" +
+  cuándo y cómo se redactó), `-aviso`), `.resumen-titular-caja` (+ `.resumen-titular-icono`, `-cuerpo`,
+  `-eyebrow`, `.resumen-titular`, `-nota`), `.resumen-tarjetas` (cuatro `BiKpi` con
+  `sufijo="vs. 4 semanas"`), `.resumen-grilla` (dos columnas desde `lg`) con "Qué requiere atención" /
+  "Resultados favorables": `.resumen-punto` (+ `-icono`, `-bueno`, `-alto`, `-medio`, `-cuerpo`,
+  `-titulo`, `-nota`, `-vacio`) y los íconos de título `i.resumen-icono-atencion` / `-favorable`;
+  `.resumen-comparar` (interruptor "Comparar con" sobre `.financiero-vista`), `.resumen-kpis` con
+  `tr.is-evidencia` (se resalta al pasar por la frase que la cita) y `.resumen-kpis-referencia`
+  (columna oculta en el teléfono), `.resumen-var-buena/-mala/-neutra`, `.resumen-nota`;
+  `.resumen-acciones` (`.resumen-accion-item`, `-numero`, `-cuerpo`, `-enlace`, `.resumen-accion`,
+  `.resumen-motivo`); `.resumen-contexto` (`-titulo`, `-pie`), `.resumen-familias` `.resumen-familia`
+  (+ `-nombre`, `-barra`, `-cifra`; nombre | barra | cifra, la barra baja en el teléfono),
+  `.resumen-vendedor` (+ `-icono`), `.resumen-anomalias`; `.resumen-pie`; `.resumen-vacio*`.
 - Anomalías (`Pages/Reportes/BiAlertas.vue`): `.anomalia-filtro` (+ `-opcion`, `-conteo`), `.anomalias`,
   `.anomalia` (+ `.anomalia-alta` / `-media`, `.is-cerrada`) `.anomalia-icono` `-cuerpo` `-meta` `-tipo`
   `-dato` `-titulo` `-detalle` `-revisar` `-ia` `-acciones`.
 - Las tablas compactas `.table-dashboard.resumen-kpis` / `.ia-resultado-tabla` anulan el
-  `min-width: 640px` de `.table-dashboard` (viven en media columna o en el panel).
+  `min-width: 640px` de `.table-dashboard` (entran en un teléfono o en el panel).
 
 ## Tabla: paginación y estados (`DataTable.vue` / `TablePagination.vue`)
 
@@ -404,6 +428,99 @@ el ícono según el campo `color` que manda cada `App\Notifications\*::toArray()
   `.preguntas-respuesta` (+ `-titulo`), cuenta `.preguntas-cuenta` / `-cuenta-dato` (`.is-total`) / `-cuenta-signo`,
   `.preguntas-desvio`, `.preguntas-aviso`, `.preguntas-tabla-caja` / `-tabla-cabecera`, `.preguntas-accion` (+ `-titulo`),
   `.preguntas-calculo` / `-calculo-boton` / `-calculo-texto`, `.preguntas-pie`.
+- Respuesta: `.preguntas-respuesta-icono` (foco en círculo) y `.preguntas-respuesta-texto` (primera oración en
+  `<strong>`); acciones numeradas `.preguntas-accion-icono` / `-accion-numero`; plegable `.preguntas-calculo-info` /
+  `-calculo-flecha`.
+- Pregunta 2 (Aumento de materiales, `Components/Reporte/PreguntaAumentoMateriales.vue`): `.aumento-cuerpo`,
+  `.aumento-kpis` (tres `BiKpi`, columnas auto-fit), `.aumento-paneles` / `.aumento-panel`, `.aumento-tabla`, `.aumento-nota`.
+- Pregunta 11 (Acciones, `Components/Reporte/PreguntaAcciones.vue`): `.acciones-cuerpo`, `.preguntas-bajada`
+  (respuesta como bajada del título), `.acciones-caja` con
+  `.acciones-tabla` (`td.acciones-titulo`, `td.acciones-monto`; el monto lleva `.badge badge-soft-*` según su tipo),
+  `.acciones-ver` (enlace "Ver pregunta N"), `.acciones-nota`; cuadros `.acciones-lecturas` / `.acciones-lectura`
+  (`-cabecera`, `-icono`, `-pie`), `.acciones-escenario`, `.acciones-cobros` (`-monto`, `-antiguo`).
+
+## Demanda y ventas por bloques (app.css §43, Pages/Reportes/Bi.vue)
+
+- Bloque numerado `Components/Reporte/BiBloque.vue` (props `numero`, `titulo`, `subtitulo`, `tarjeta`; slots
+  `accion`, `ayuda`, `etiqueta` y por defecto): `.bi-bloque` (+ `-cabecera`, `-numero`, `-texto`, `-titulo-linea`,
+  `-titulo`, `-subtitulo`, `-accion`, `-cuerpo`). Con `tarjeta` el bloque es la tarjeta (`.card.bi-bloque-tarjeta`,
+  §47).
+  Reutilizable en otras pestañas largas.
+- Interruptor `Components/Reporte/BiInterruptor.vue` (`v-model`, `texto`; es un `<button role="switch">`):
+  `.bi-interruptor` (`.is-activo`) con `-pista`, `-perilla`, `-texto`. Para capas opcionales de un gráfico.
+- Avisos en recuadro naranja: `.bi-mes-incompleto` y `.bi-clientes-seguimiento`. El del mes lo arma
+  `Components/Reporte/AvisoMesIncompleto.vue` (prop `mes` = `periodo.mes_incompleto`; el slot dice qué significa en
+  esa pestaña) y va en el slot `aviso` de `BiEncabezado`.
+- `.bi-nota` (nota al pie con ícono; `.bi-nota-franja` suelta entre tarjetas), `.bi-ver-mas` (enlace de texto que
+  despliega "Ver los 10…").
+- Confiabilidad de una proyección `Components/Reporte/ConfiabilidadPronostico.vue` (prop `metodo`): recuadro
+  `.bi-confiabilidad` (+ `-warning` / `-info` / `-success` según el ajuste) que va en una cabecera
+  `.card-header.bi-cabecera-con-aviso`. Dice el ajuste, cuánto se equivocó en la prueba y si otro método acertó más.
+- `.bi-sugerencia` (qué hacer, verde con ícono; `.bi-sugerencia-franja` suelta a todo el ancho), `.bi-col-opcional`
+  (columna de tabla oculta en el teléfono).
+- Bloque 2: `.bi-demanda-par` (dos tarjetas), `.bi-demanda-clientes` (tabla 2/3 + concentración 1/3 desde `xl`);
+  tabla `.panorama-ranking.bi-clientes-tabla` con `.bi-col-opcional`,
+  `.bi-cliente-ultima` (`.is-alerta`), `.bi-cliente-variacion` (§36), `.bi-clientes-otros`, `.bi-clientes-pie`;
+  medidor `.bi-concentracion` (+ `-barra`, `-principales`, `-otros`, `-leyenda`, `-punto`, `-dato`) con su `.bi-sugerencia`.
+- Bloque 3: `.card-title.bi-titulo-etiqueta` (título con badge que baja entero), enlace a otra pestaña
+  `.card.bi-enlace` (+ `-icono`, `-texto`, `-accion`).
+
+## Costos y materiales por bloques (app.css §44, Pages/Reportes/BiCostos.vue)
+
+Mismo esquema que Demanda y ventas (§43): `BiBloque`, `BiInterruptor`, `ConfiabilidadPronostico`, `.bi-nota`,
+`.bi-sugerencia`, `.bi-col-opcional`. Arriba, la franja `.bi-aviso` dice el alcance (precios de toda la empresa, consumo
+acotado) en lugar de las etiquetas "Precios" de cada tarjeta.
+
+- Grillas de cada par de tarjetas: `.bi-costos-material` y `.bi-costos-consumo` (7/5 desde `lg`), `.bi-costos-impacto` (5/7
+  desde `xl`).
+- "Qué significa para este material": `.bi-costos-lectura` con `.margen-panel` / `.margen-row`.
+- "Qué revisar": lista numerada `.resumen-acciones` (§33).
+- Tabla de impacto `.table-dashboard.bi-costos-tabla` (sin el mínimo de 640 px) y su pie `.bi-costos-tabla-pie`.
+
+## Presupuestos y rentabilidad por bloques (app.css §45, Pages/Reportes/BiRentabilidad.vue)
+
+Mismo esquema que §43 y §44 (`BiBloque`, `ConfiabilidadPronostico`, `AvisoMesIncompleto`, `.bi-nota`, `.bi-demanda-par`).
+
+- `.bi-definicion` — recuadro "¿Qué significa X % sobre costo?": un indicador traducido a bolivianos (ícono, `strong`
+  como título y el texto).
+- `.bi-rentabilidad-cuerpo` — cuerpo de tarjeta en columna (gráfico, notas, confiabilidad y método).
+- `.bi-semaforo` (+ `-titulo`, `-zonas`) — cómo salieron los presupuestos en el semáforo, con las píldoras
+  `.semaforo .semaforo-verde/-amarillo/-rojo`.
+- `.bi-pasos` / `.bi-paso` — "Qué revisar" en una fila de pasos (columna en el teléfono); el número y el texto reusan
+  `.resumen-accion-numero`, `.resumen-accion-cuerpo`, `.resumen-accion`, `.resumen-motivo` (§33).
+
+## Alertas: dos pestañas y una fila por alerta (app.css §46, Pages/Reportes/BiAlertas.vue)
+
+Pestañas "Costo y rentabilidad" y "Anomalías estadísticas" sobre `.nav-tabs` (botones `role="tab"`); no se suman.
+La tarjeta lleva `id="anomalias"`: con ese ancla (o `?anomalias=`) abre directo en la segunda pestaña.
+
+- `.bi-alertas-panel`, `.bi-alertas-pestanas`, `.nav-tabs.bi-alertas-tabs`, `.bi-alertas-diferencia` (aviso de que no se suman).
+- Cabecera y filtros: `.bi-alertas-cabecera`, `.bi-alertas-titulo`, `.bi-alertas-bajada`, `.bi-alertas-filtros`, `.bi-alertas-buscar`.
+- Fila `.bi-alertas-filas` > `.bi-alerta-fila` (`.is-alta` / `.is-media`), grilla con áreas nombradas (estado | cuerpo |
+  datos | revisar | botón; en md dos renglones, en el teléfono apilada — el mapa de áreas va en los tres tamaños):
+  `-estado`, `-icono`, `-etiquetas`, `-tipo`, `-cuerpo`, `-accion`, `-ref`, `-cliente`, `-datos`, `-metricas` (dl),
+  `-nota`, `-barras` / `-barra` / `-barra-fila` / `-pista` (`.is-registrado` / `.is-previsto`), `-revisar`, `-accion-boton`.
+- `.bi-alertas-paginacion`, `.bi-alertas-paginas` (botones, `.is-activa`), `.bi-alertas-puntos`.
+- `.bi-alertas-colores` (`<details>` "¿Qué significan los colores?", + `-flecha`), `.bi-alertas-otras`, `.bi-alertas-enlace`
+  (botón con aspecto de enlace), `.bi-alertas-criterios` con las fichas `.bi-reglas` / `.bi-regla` (+ `-success` /
+  `-warning`, `-cabecera`, `-icono`, `-cantidad`, `-nombre`, `-que`, `-estado`, `-ver`).
+- `.bi-anomalias-resumen` (+ `-texto`, `-accion`) — resumen de la otra pestaña bajo la lista.
+
+## Simulador en tres pasos (app.css §47, Pages/Reportes/BiSimulador.vue)
+
+Cada paso es un `BiBloque` con `tarjeta`: 1. datos de partida y 2. supuestos lado a lado (`.bi-demanda-par`, que acá es
+un `<form>`), 3. resultado a lo ancho. Los avisos en recuadro reusan `.bi-aviso`; las notas, `.bi-nota`; "Ver fórmulas",
+`.bi-ver-mas`; la recomendación, las píldoras `.semaforo`.
+
+- `.bi-bloque.bi-bloque-tarjeta`, `.bi-simulador-resultado` (con `scroll-margin-top` para "Calcular escenario").
+- Paso 1: `.bi-simulador-campos`, `.bi-campo-nota` (aclaración bajo un campo).
+- Paso 2: `.bi-supuestos` > `.bi-supuesto` (grilla etiqueta | barra | casilla de %): `-etiqueta`, `.bi-range`,
+  `-valor` (casilla numérica sin flechas con el `%` adentro), `-casilla` (checkbox con `small`), `.bi-check`;
+  botones `.bi-simulador-botones` y `.bi-simulador-pendiente` ("Hay cambios sin calcular").
+- Paso 3: veredicto `.bi-veredicto` (+ `-verde` / `-amarillo` / `-rojo`, `-icono`, `-titulo`, `-detalle`),
+  indicadores `.bi-simulador-kpis` (BiKpi sin sombra), tabla `.table-dashboard.bi-simulador-tabla` (sin el mínimo de
+  640 px en el teléfono, con la columna Base en `.bi-col-opcional`; filas `.is-destacada`), pie `.bi-simulador-pie`
+  con `.bi-formulas` (`<details>`) y `.bi-formulas-lista` (dl).
 
 ## Al agregar una clase nueva
 

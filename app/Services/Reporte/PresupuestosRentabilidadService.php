@@ -37,15 +37,60 @@ class PresupuestosRentabilidadService
         $porMes = $cotizaciones->groupBy(fn ($c) => $c->fecha->format('Y-m'));
         $claves = $periodo->meses()->keys();
 
+        $resumen = $this->resumen($cotizaciones);
+        $tendencia = $this->tendencia($porMes, $claves, $periodo);
+        $rentabilidad = $this->rentabilidad($cotizaciones, $porMes, $claves, $periodo);
+
         return [
             'periodo' => $periodo->toArray(),
             'labels' => $periodo->meses()->values()->all(),
             'meses_proyeccion' => $periodo->mesesSiguientes(config('bi.meses_proyeccion')),
-            'resumen' => $this->resumen($cotizaciones),
+            'resumen' => $resumen,
             'pronostico' => $this->pronostico($porMes, $claves, $periodo),
-            'tendencia' => $this->tendencia($porMes, $claves, $periodo),
-            'rentabilidad' => $this->rentabilidad($cotizaciones, $porMes, $claves, $periodo),
+            'tendencia' => $tendencia,
+            'rentabilidad' => $rentabilidad,
+            'que_revisar' => $this->queRevisar($resumen, $tendencia, $rentabilidad),
         ];
+    }
+
+    /**
+     * "Qué revisar": pasos sugeridos con las cifras del periodo. Los usan la
+     * pestaña y el informe, así dicen lo mismo.
+     *
+     * @param  array<string, mixed>  $resumen
+     * @param  array<string, mixed>  $tendencia
+     * @param  array<string, mixed>  $rentabilidad
+     * @return list<array{titulo: string, detalle: string}>
+     */
+    private function queRevisar(array $resumen, array $tendencia, array $rentabilidad): array
+    {
+        $pasos = [];
+        $pendientes = $resumen['pendientes'];
+
+        if ($pendientes > 0) {
+            $pasos[] = [
+                'titulo' => $pendientes === 1
+                    ? 'Dar seguimiento al presupuesto pendiente.'
+                    : 'Dar seguimiento a los '.RedaccionPronostico::numero($pendientes, 0).' presupuestos pendientes.',
+                'detalle' => 'Todavía pueden aprobarse; por eso no cuentan en la tasa de aprobación.',
+            ];
+        }
+
+        $enRevision = $rentabilidad['semaforo']['AMARILLO'] + $rentabilidad['semaforo']['ROJO'];
+
+        $pasos[] = [
+            'titulo' => 'Revisar precios y costos por tipo de trabajo.',
+            'detalle' => ($tendencia['comparacion'] ?? null) === 'detras'
+                ? 'El precio promedio va por detrás del costo.'
+                : RedaccionPronostico::numero($enRevision, 0).($enRevision === 1 ? ' presupuesto quedó' : ' presupuestos quedaron').' en amarillo o rojo en el semáforo.',
+        ];
+
+        $pasos[] = [
+            'titulo' => 'Contrastar las estimaciones con la cartera actual antes de planificar.',
+            'detalle' => 'Las proyecciones son escenarios del modelo, no metas ni resultados garantizados.',
+        ];
+
+        return $pasos;
     }
 
     /**
@@ -147,11 +192,18 @@ class PresupuestosRentabilidadService
         })->all();
 
         // Promedios: no dependen de cuántos días tiene el mes, entran enteros.
+        $variacionPrecio = $this->redondear($periodo->pronostico($ticket, sumaDelMes: false)['variacion_mensual']);
+        $variacionCosto = $this->redondear($periodo->pronostico($costo, sumaDelMes: false)['variacion_mensual']);
+        // La lectura en palabras sale de una sola regla, compartida con el informe.
+        $lectura = RedaccionPronostico::precioFrenteACosto($variacionPrecio, $variacionCosto);
+
         return [
             'ticket' => $ticket,
             'costo' => $costo,
-            'variacion_ticket' => $this->redondear($periodo->pronostico($ticket, sumaDelMes: false)['variacion_mensual']),
-            'variacion_costo' => $this->redondear($periodo->pronostico($costo, sumaDelMes: false)['variacion_mensual']),
+            'variacion_ticket' => $variacionPrecio,
+            'variacion_costo' => $variacionCosto,
+            'comparacion' => $lectura['comparacion'] ?? null,
+            'lectura' => $lectura['lectura'] ?? null,
         ];
     }
 
@@ -193,6 +245,9 @@ class PresupuestosRentabilidadService
         $vendidas = $cotizaciones->whereIn('estado', self::VENDIDOS);
         $analizadas = $conCosto($cotizaciones);
         $costoTotal = (float) $analizadas->sum('costo_ajustado');
+        // Precio sin IVA ni instalación (la base del motor de margen): el
+        // mismo resultado, leído sobre lo que se cobra y no sobre el costo.
+        $precioNeto = (float) $analizadas->sum(fn ($c) => (float) $c->subtotal - (float) $c->descuento);
 
         $semaforo = $cotizaciones->filter(fn ($c) => (float) $c->costo_ajustado > 0)->countBy('estado_margen');
 
@@ -207,6 +262,9 @@ class PresupuestosRentabilidadService
             'utilidad_total' => round((float) $analizadas->sum('utilidad_real'), 2),
             'rentabilidad_promedio' => $costoTotal > 0
                 ? round((float) $analizadas->sum('utilidad_real') / $costoTotal * 100, 2)
+                : null,
+            'margen_sobre_precio' => $precioNeto > 0
+                ? round((float) $analizadas->sum('utilidad_real') / $precioNeto * 100, 2)
                 : null,
             'analizados' => $analizadas->count(),
             'excluidos_sin_costo' => $vendidas->count() - $analizadas->count(),

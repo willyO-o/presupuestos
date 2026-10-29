@@ -156,43 +156,67 @@ test('la pestana pide el permiso del BI y trae las once preguntas en orden', fun
 |--------------------------------------------------------------------------
 */
 
-test('el costo real por producto es material usado mas el resto de la hoja, por unidad de venta', function () {
+test('el costo calculado por producto es material registrado mas el resto de la hoja, por unidad de venta', function () {
     $pregunta = preguntaDe('costo_producto');
 
     // Letrero: 950 de MDF + 500 de otros y mano de obra, por unidad.
     // Banner: (440 + 2 × 100) / 4 m² = 160 por m².
     expect($pregunta['tabla']['filas'])->toBe([
-        ['Letrero', 1, 'unidad', 950.0, 1000.0, 500.0, 1450.0],
-        ['Banner', 1, 'm²', 110.0, 100.0, 50.0, 160.0],
+        ['Letrero', '1 / unidad', 950.0, 1000.0, 500.0, 1450.0],
+        ['Banner', '1 / m²', 110.0, 100.0, 50.0, 160.0],
     ])
-        ->and($pregunta['respuesta'])->toBe('Producir 1 unidad de Letrero cuesta Bs 1.450,00: Bs 950,00 de material real y Bs 500,00 de mano de obra y otros insumos. El costo del material varió -5,0 % respecto a lo presupuestado.')
-        ->and($pregunta['base'])->toContain('Con 2 trabajos entregados')
-        ->and($pregunta['aviso'])->toContain('no se registran horas reales');
+        ->and($pregunta['respuesta'])->toBe('Para Letrero, el costo calculado es Bs 1.450,00 por unidad: Bs 950,00 de material registrado y Bs 500,00 de mano de obra y otros presupuestados. El material queda 5,0 % por debajo de lo presupuestado.')
+        ->and($pregunta['base'])->toBe('2 de 2 trabajos entregados (100,0 %) tienen consumo registrado y hoja de costos. Importes por unidad, en Bs.')
+        ->and($pregunta['aviso'])->toContain('no se registran horas reales')
+        ->and($pregunta['interpretacion'])->toStartWith('No es un costo totalmente real')
+        // Para la cuenta "material + obra y otros = costo" de la pantalla.
+        ->and($pregunta['cifras'])->toMatchArray(['producto' => 'Letrero', 'unidad' => 'unidad', 'material' => 950.0, 'obra' => 500.0, 'total' => 1450.0]);
 });
 
-test('los costos que suben: material, impacto por lo consumido y la hora de mano de obra', function () {
+test('los materiales que suben: precio, costo adicional por lo consumido y la hora de mano de obra', function () {
     $pregunta = preguntaDe('costos_suben');
 
     // Lona de 20 a 25 (+25 %) con 17,6 m² usados: Bs 88 de más.
     expect($pregunta['tabla']['filas'][0])->toBe(['Lona 13oz', 20.0, 25.0, 25.0, 88.0])
-        ->and($pregunta['respuesta'])->toContain('1 material subió de precio y ninguno bajó')
-        ->and($pregunta['respuesta'])->toContain('La hora de mano de obra presupuestada pasó de Bs 20,00 a Bs 25,00 (+25,0 %).')
-        ->and($pregunta['acciones'][0]['impacto'])->toBe(88.0);
+        ->and(array_column($pregunta['tabla']['columnas'], 'titulo'))->toBe(['Material', 'Precio anterior', 'Precio actual', 'Aumento', 'Costo adicional'])
+        ->and($pregunta['pregunta'])->toBe('¿Qué materiales están subiendo de precio?')
+        ->and($pregunta['respuesta'])->toBe('1 material aumentó de precio y ninguno bajó. El costo adicional calculado es Bs 88 y corresponde a Lona 13oz, con un aumento de 25,0 %.')
+        // La tendencia de precios y la mano de obra van a "Cómo interpretar".
+        ->and($pregunta['interpretacion'])->toStartWith('El costo adicional se calcula como aumento del precio × cantidad consumida')
+        ->and($pregunta['interpretacion'])->toContain('La hora de mano de obra presupuestada pasó de Bs 20,00 a Bs 25,00 (+25,0 %).')
+        ->and($pregunta['acciones'][0]['texto'])->toBe('Negociar el precio de Lona 13oz o comparar proveedores.')
+        ->and($pregunta['acciones'][0]['impacto'])->toBe(88.0)
+        // Para los indicadores de la pantalla y la portada del informe.
+        ->and($pregunta['cifras'])->toBe(['materiales' => 1, 'costo_adicional' => 88.0, 'mayor_material' => 'Lona 13oz', 'mayor_aumento' => 25.0, 'mayor_costo' => 88.0]);
 });
 
-test('el gasto contra presupuesto compara los mismos trabajos y nombra el que se pasa', function () {
+test('sin materiales que suban la pregunta 2 lo dice y no muestra indicadores', function () {
+    HistorialPrecioMaterial::query()->where('precio_unitario', 25)->delete();
+
+    $pregunta = preguntaDe('costos_suben');
+
+    expect($pregunta['respuesta'])->toStartWith('Ningún material subió de precio en el periodo.')
+        ->and($pregunta['tabla']['filas'])->toBe([])
+        ->and($pregunta['cifras'])->toBe([]);
+});
+
+test('el material registrado contra el previsto compara los mismos trabajos y nombra el que se pasa', function () {
     $pregunta = preguntaDe('gasto_presupuesto');
 
-    // 1.390 reales contra 1.400 presupuestados: en general no; el banner sí.
-    expect($pregunta['respuesta'])->toBe('En general no. En los trabajos comparables se gastaron Bs 1.390 en material frente a Bs 1.400 presupuestados (-0,7 %); 1 de 2 trabajos excedieron el presupuesto. El material con mayor exceso es Lona 13oz (+10,0 %).')
-        ->and($pregunta['tabla']['filas'][0])->toBe(['Banner', 1, 1, 400.0, 440.0, 40.0, 10.0])
+    // 1.390 registrados contra 1.400 previstos: en general no; el banner sí.
+    expect($pregunta['respuesta'])->toBe('En general no. En trabajos comparables, el material registrado suma Bs 1.390 frente a Bs 1.400 previstos: 0,7 % menos. De 2 trabajos, 1 superó el umbral de exceso definido por el sistema.')
+        ->and($pregunta['tabla']['filas'][0])->toBe(['Banner', '1 / 1', 400.0, 440.0, 40.0, 10.0])
+        ->and(array_column($pregunta['acciones'], 'texto'))->toBe([
+            'Revisar la hoja de costos de Banner: Bs 40 adicionales (+10,0 %).',
+            'Revisar cortes, sobrantes y cantidades previstas de Lona 13oz: consumo 10,0 % mayor al previsto.',
+        ])
         ->and(array_column($pregunta['acciones'], 'impacto'))->toBe([40.0, 40.0]);
 });
 
 test('un trabajo todavia en produccion no entra a la comparacion', function () {
     PedidoDetalle::query()->where('estado_item', 'ENTREGADO')->first()->update(['estado_item' => 'ACABADO']);
 
-    expect(preguntaDe('gasto_presupuesto')['base'])->toContain('Con 1 trabajos entregados');
+    expect(preguntaDe('gasto_presupuesto')['base'])->toStartWith('1 trabajo entregado con consumo registrado');
 });
 
 test('los materiales que se llevan el gasto, hasta cruzar el 80 por ciento', function () {
@@ -202,7 +226,8 @@ test('los materiales que se llevan el gasto, hasta cruzar el 80 por ciento', fun
         ['MDF 9mm', 950.0, 68.3, 68.3],
         ['Lona 13oz', 440.0, 31.7, 100.0],
     ])
-        ->and($pregunta['respuesta'])->toBe('2 de 2 materiales son el 100,0 % del gasto en material: MDF 9mm y Lona 13oz.')
+        ->and($pregunta['respuesta'])->toBe('2 de 2 materiales concentran el 100,0 % del gasto registrado: MDF 9mm y Lona 13oz.')
+        ->and($pregunta['acciones'][0]['titulo'])->toBe('Evaluar rebaja de 5 % en dos materiales principales')
         // 5 % de 1.390.
         ->and($pregunta['acciones'][0]['impacto'])->toBe(69.5);
 });
@@ -213,7 +238,7 @@ test('los materiales que se llevan el gasto, hasta cruzar el 80 por ciento', fun
 |--------------------------------------------------------------------------
 */
 
-test('productos por ganancia en bolivianos, con el descuento prorrateado', function () {
+test('productos por resultado bruto en bolivianos, con el descuento prorrateado', function () {
     $pregunta = preguntaDe('productos_rentables');
 
     // Banner 1.000 − 600 = 400 (40 %); letrero 1.800 − 1.500 = 300 (16,7 %).
@@ -221,7 +246,8 @@ test('productos por ganancia en bolivianos, con el descuento prorrateado', funct
         ['Banner', 1, 1000.0, 400.0, 40.0],
         ['Letrero', 1, 1800.0, 300.0, 16.7],
     ])
-        ->and($pregunta['respuesta'])->toBe('Banner es el producto que más ganancia genera: Bs 400 (margen 40,0 %). Además es el de mejor margen.')
+        ->and($pregunta['respuesta'])->toBe('Banner aporta el mayor resultado bruto calculado: Bs 400, con margen de 40,0 %. También presenta el mayor margen entre los productos analizados.')
+        ->and($pregunta['interpretacion'])->toStartWith('Resultado bruto = ingreso sin IVA')
         // Margen promedio 25 %: llevar el letrero ahí son 1.800 × 8,3 %.
         ->and($pregunta['acciones'][0]['impacto'])->toBe(149.4);
 });
@@ -229,14 +255,15 @@ test('productos por ganancia en bolivianos, con el descuento prorrateado', funct
 test('el cliente que mas compra no es el que mas deja', function () {
     $pregunta = preguntaDe('clientes_rentables');
 
-    expect($pregunta['respuesta'])->toBe('Distribuidora Illimani es el cliente que más ganancia genera: Bs 400 (margen 40,0 %). El cliente con más compras, Farmacias Sajama, ocupa el 2.º lugar en ganancia: su margen es 16,7 %.')
+    expect($pregunta['respuesta'])->toBe('Distribuidora Illimani aporta el mayor resultado bruto calculado: Bs 400, con margen de 40,0 %. El cliente con más compras, Farmacias Sajama, ocupa el 2.º lugar en resultado: su margen es 16,7 %.')
         ->and($pregunta['acciones'][0]['texto'])->toStartWith('Revisar las condiciones comerciales de Farmacias Sajama');
 });
 
 test('lo que cuestan los descuentos y el precio puesto a mano', function () {
     $pregunta = preguntaDe('descuentos');
 
-    expect($pregunta['respuesta'])->toBe('Se descontaron Bs 200 en 1 de 2 ventas (10,0 % de descuento en promedio). Las ventas con descuento tienen un margen de 16,7 %, frente a 40,0 % de las que no lo tienen. Además, 1 línea con precio ingresado manualmente quedó Bs 175 por debajo del precio sugerido.')
+    expect($pregunta['respuesta'])->toBe('Se otorgaron Bs 200 en descuentos en 1 de 2 ventas, con descuento promedio de 10,0 %. El margen fue 16,7 % en ventas con descuento y 40,0 % en las demás. Además, 1 línea con precio manual quedó Bs 175 por debajo del sugerido.')
+        ->and(array_column($pregunta['acciones'], 'texto'))->toContain('Revisar la línea con precio manual y su diferencia de Bs 175.')
         ->and($pregunta['tabla']['filas'])->toBe([['Alejandra Villegas', 1, 200.0, 10.0, 16.7]])
         ->and(collect($pregunta['acciones'])->firstWhere('impacto', 175.0))->not->toBeNull();
 });
@@ -244,9 +271,12 @@ test('lo que cuestan los descuentos y el precio puesto a mano', function () {
 test('las ventas con margen bajo, por vendedor', function () {
     $pregunta = preguntaDe('margen_bajo');
 
-    expect($pregunta['respuesta'])->toBe('1 de 2 ventas (50,0 %) se cerraron con margen bajo: 0 en amarillo (Bs 0) y 1 en rojo (Bs 1.800).')
+    expect($pregunta['respuesta'])->toBe('1 de 2 ventas (50,0 %) quedó con margen bajo: 1 en rojo, por Bs 1.800.')
         ->and($pregunta['tabla']['filas'])->toBe([['Alejandra Villegas', 1, 0, 1, 1800.0]])
-        ->and($pregunta['acciones'][0]['impacto'])->toBe(1800.0);
+        ->and($pregunta['acciones'][0]['impacto'])->toBe(1800.0)
+        // Rojo no es pérdida: lo dice "Cómo interpretar" con la cifra.
+        ->and($pregunta['interpretacion'])->toContain('Los Bs 1.800 son ventas en rojo, no una pérdida por ese importe.')
+        ->and($pregunta['cifras'])->toBe(['ventas' => 2, 'rojas' => 1, 'vendido_rojo' => 1800.0]);
 });
 
 /*
@@ -261,11 +291,11 @@ test('si sube la materia prima el precio sube solo en la parte del material', fu
     // Material 1.400 de 2.100 de costo base (2/3). +10 % → costo 2.240,
     // margen de 25 % a 20 %, se pierden 140 y alcanza con subir 6,7 %.
     expect(array_slice($pregunta['tabla']['filas'], 0, 3))->toBe([
-        ['Hoy', 25.0, 0.0, 0.0],
-        ['Materia prima +5 %', 22.5, 70.0, 3.3],
-        ['Materia prima +10 %', 20.0, 140.0, 6.7],
+        ['Situación actual', 25.0, 0.0, 0.0],
+        ['Materiales +5 %', 22.5, 70.0, 3.3],
+        ['Materiales +10 %', 20.0, 140.0, 6.7],
     ])
-        ->and($pregunta['respuesta'])->toStartWith('Si la materia prima sube 10 %, el margen bruto bajaría de 25,0 % a 20,0 % y se perderían Bs 140 en un periodo como este. Para no perder margen alcanzaría con subir los precios 6,7 %.')
+        ->and($pregunta['respuesta'])->toBe('Con un aumento de 10 % en materiales, manteniendo los demás supuestos, el margen bruto calculado bajaría de 25,0 % a 20,0 %. El resultado sería Bs 140 menor. Para mantener el margen, el ajuste de precios estimado es de 6,7 %.')
         // Es una hipótesis: no compite en "Decisiones".
         ->and($pregunta['acciones'][0]['impacto'])->toBeNull();
 });
@@ -273,7 +303,7 @@ test('si sube la materia prima el precio sube solo en la parte del material', fu
 test('la cobranza cuenta lo pendiente por antiguedad y los entregados sin pago', function () {
     $pregunta = preguntaDe('cobranza');
 
-    expect($pregunta['respuesta'])->toBe('Se ha cobrado el 35,7 % de lo vendido: faltan Bs 2.034 en 1 pedido.')
+    expect($pregunta['respuesta'])->toBe('Se cobró el 35,7 % del importe analizado. Quedan Bs 2.034 en 1 pedido.')
         ->and($pregunta['tabla']['filas'])->toBe([
             ['0 a 30 días', 0, 0.0, 0.0],
             ['31 a 60 días', 0, 0.0, 0.0],
@@ -281,8 +311,8 @@ test('la cobranza cuenta lo pendiente por antiguedad y los entregados sin pago',
             ['Más de 90 días', 0, 0.0, 0.0],
         ])
         ->and(array_column($pregunta['acciones'], 'texto'))->toBe([
-            'El cliente con mayor deuda es Farmacias Sajama: Bs 2.034.',
-            'Pedir un anticipo al aprobar: 1 pedido se entregó sin ningún pago.',
+            'Dar seguimiento a Farmacias Sajama, con Bs 2.034 pendientes.',
+            'Evaluar anticipos: 1 pedido se entregó sin pago.',
         ]);
 });
 
@@ -292,13 +322,53 @@ test('la cobranza cuenta lo pendiente por antiguedad y los entregados sin pago',
 |--------------------------------------------------------------------------
 */
 
-test('las decisiones juntan las acciones con dinero en juego, de mayor a menor', function () {
+test('las acciones juntan las que tienen dinero en juego, de mayor a menor', function () {
     $pregunta = preguntaDe('decisiones');
     $montos = array_column($pregunta['tabla']['filas'], 2);
 
     expect($montos)->toBe([1800.0, 175.0, 149.4, 149.4, 88.0, 69.5, 40.0, 40.0])
-        ->and($pregunta['tabla']['filas'][0][1])->toBe('Ventas con margen bajo')
-        ->and($pregunta['respuesta'])->toStartWith('8 acciones concretas');
+        ->and($pregunta['pregunta'])->toBe('¿Qué acciones conviene revisar primero?')
+        ->and($pregunta['respuesta'])->toBe('Se identifican 8 acciones, ordenadas por monto involucrado. Los montos representan conceptos distintos y no deben sumarse ni interpretarse como ahorro garantizado.')
+        ->and($pregunta['aviso'])->toBe('Los montos tienen significados distintos y algunas acciones se superponen. No deben sumarse ni interpretarse como ahorro garantizado.');
+});
+
+test('cada accion dice que representa su monto y de que pregunta sale', function () {
+    // Pedido del usuario (2026-10-29): que la pregunta 11 se relacione con
+    // los datos que originan cada acción, como en su diseño.
+    $pregunta = preguntaDe('decisiones');
+
+    expect($pregunta['tabla']['filas'][0])->toBe(['Revisar aprobación de ventas en rojo', 'Ventas con margen bajo', 1800.0, 'Pregunta 8'])
+        ->and(array_column($pregunta['tabla']['filas'], 1))->toBe([
+            'Ventas con margen bajo',
+            'Diferencia frente al sugerido',
+            'Mejora estimada del resultado',
+            'Mejora estimada del resultado',
+            'Costo adicional calculado',
+            'Ahorro estimado',
+            'Diferencia frente al presupuesto',
+            'Exceso de material registrado',
+        ])
+        ->and(array_column($pregunta['tabla']['filas'], 3))->toBe(['Pregunta 8', 'Pregunta 7', 'Pregunta 5', 'Pregunta 6', 'Pregunta 2', 'Pregunta 4', 'Pregunta 3', 'Pregunta 3'])
+        ->and(array_column($pregunta['tabla']['filas'], 0))->toContain('Negociar Lona 13oz o evaluar proveedor', 'Evaluar rebaja de 5 % en dos materiales principales', 'Revisar cortes y sobrantes de Lona 13oz')
+        // La pantalla enlaza por clave y colorea por tipo; conserva la frase completa.
+        ->and($pregunta['priorizadas'][0])->toMatchArray([
+            'origen' => 'margen_bajo',
+            'numero' => 8,
+            'tipo' => 'riesgo',
+            'texto' => 'Solicitar revisión de gerencia antes de aceptar ventas clasificadas en rojo.',
+        ])
+        ->and(array_values(array_unique(array_column($pregunta['priorizadas'], 'tipo'))))->toEqualCanonicalizing(['riesgo', 'diferencia', 'estimado', 'observado'])
+        // Su única acción propia: por dónde empezar, según los frentes de las primeras.
+        ->and(array_column($pregunta['acciones'], 'texto'))->toBe([
+            'Comenzar por revisar las autorizaciones comerciales. Después, evaluar los precios con margen por debajo del promedio y contrastar los precios y consumos de los materiales de mayor impacto.',
+        ]);
+});
+
+test('escenarios y cobros exponen sus cifras para la lectura rapida de las acciones', function () {
+    expect(preguntaDe('materia_prima')['cifras'])->toBe(['subida' => 10, 'margen_hoy' => 25.0, 'margen' => 20.0, 'reduccion' => 140.0])
+        // Pedidos de 1.130 (cobrado) y 2.034 (sin pagos, 75 días).
+        // `pedidos` son los que tienen saldo (no los dos del periodo).
+        ->and(preguntaDe('cobranza')['cifras'])->toBe(['por_cobrar' => 2034.0, 'pedidos' => 1, 'cobrado' => 35.7, 'antiguo' => 0.0, 'dias' => 90]);
 });
 
 test('sin datos cada pregunta lo dice y no inventa acciones', function () {
@@ -330,13 +400,33 @@ test('el informe PDF y el CSV traen las preguntas con sus respuestas', function 
     $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
     $csv = InformeProyeccionesCsv::generar($informe);
 
-    expect($texto)->toContain('Preguntas para decidir')
-        ->toContain('1. ¿Cuál es el costo por producto según los registros disponibles?')
-        ->toContain('Qué hacer')
-        ->toContain('11. ¿Qué decisiones ayudarían a reducir los costos y mejorar las ganancias?')
+    // Forma del informe modelo del usuario (2026-10-29): resumen para la
+    // gerencia y una hoja por pregunta con sus cinco bloques.
+    expect($texto)->toContain('RESUMEN PARA LA GERENCIA')
+        ->toContain('Preguntas para decidir')
+        ->toContain('Qué conviene revisar primero')
+        ->toContain('1 venta está en rojo, por Bs 1.800.')
+        ->toContain('Cómo está organizado')
+        ->toContain('Antes de comparar cifras')
+        ->toContain('PREGUNTA 1 DE 11')
+        ->toContain('¿Cuál es el costo calculado por producto?')
+        ->toContain('Respuesta breve')
+        ->toContain('Datos que respaldan la respuesta')
+        ->toContain('Acción sugerida')
+        ->toContain('Cómo interpretar el resultado')
+        ->toContain('Datos utilizados')
+        ->toContain('PREGUNTA 11 DE 11')
+        ->toContain('¿Qué acciones conviene revisar primero?')
+        // Sin la portada de estimaciones ni una ficha vacía en el anexo.
+        ->not->toContain('En pocas palabras')
+        ->not->toContain('Ficha de cada estimación')
         // fputcsv entrecomilla los textos con espacios; los números van solos.
-        ->and($csv)->toContain('"Pregunta 9";"¿Qué pasaría si sube el precio de la materia prima?"')
-        ->and($csv)->toContain('"Materia prima +10 %";20;140;6,7');
+        ->and($csv)->toContain('"Pregunta 9";"¿Qué cambiaría si aumenta el precio de los materiales?"')
+        ->and($csv)->toContain('"Materiales +10 %";20;140;6,7')
+        ->and($csv)->toContain('"Revisar aprobación de ventas en rojo";"Ventas con margen bajo";1800;"Pregunta 8"')
+        ->and($csv)->toContain('"Cómo interpretar";"Rojo no significa necesariamente pérdida')
+        // La acción sale una vez como "Qué hacer" (en su pregunta), no otra vez en la 11.
+        ->and(substr_count($csv, '"Qué hacer";"Solicitar revisión de gerencia'))->toBe(1);
 });
 
 test('la tabla de rentabilidad incluye a quien se nombra aunque no este entre los 5 primeros', function () {

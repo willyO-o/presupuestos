@@ -80,10 +80,13 @@ class CostosMaterialesService
      */
     private function preciosMensuales(PeriodoReporte $periodo): Collection
     {
+        // '!' pone el día en 1: sin él, createFromFormat toma el día de hoy y
+        // un 29, 30 o 31 "febrero" desborda a marzo (febrero mostraba el
+        // precio de marzo).
         $finesDeMes = $periodo->meses()->keys()
             ->map(fn (string $clave) => min(
                 $periodo->hasta->toDateString(),
-                Carbon::createFromFormat('Y-m', $clave)->endOfMonth()->toDateString(),
+                Carbon::createFromFormat('!Y-m', $clave)->endOfMonth()->toDateString(),
             ))
             ->all();
 

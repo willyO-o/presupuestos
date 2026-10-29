@@ -306,6 +306,37 @@ test('el PDF del pedido lleva etapas y medidas, no precios por linea', function 
         ->not->toContain('P. UNIT.');
 });
 
+test('la orden de trabajo marca el item ajustado en produccion con lo cotizado', function () {
+    $pedido = Pedido::factory()->create();
+    $origen = CotizacionDetalle::factory()->create(['descripcion' => 'Isla promocional', 'ancho' => 2.5, 'alto' => 1.9, 'cantidad' => 4]);
+    PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'cotizacion_detalle_id' => $origen->id,
+        'descripcion' => 'Isla promocional',
+        'ancho' => 2.8,
+        'alto' => 1.9,
+        'cantidad' => 4,
+    ]);
+    $intacto = CotizacionDetalle::factory()->create(['descripcion' => 'Roll-up', 'ancho' => 0.85, 'alto' => 2, 'cantidad' => 2]);
+    PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'cotizacion_detalle_id' => $intacto->id,
+        'descripcion' => 'Roll-up',
+        'ancho' => 0.85,
+        'alto' => 2,
+        'cantidad' => 2,
+    ]);
+
+    $texto = textoDelPdf(generador()->pedido($pedido->fresh()));
+
+    // Las medidas de producción en la tabla; lo cotizado, como nota de la línea ajustada.
+    expect($texto)
+        ->toContain('2,80 × 1,90')
+        ->toContain('Ajustado en producción. Cotizado: 2,50 × 1,90 m, cant. 4.')
+        ->toContain('Las medidas de arriba son las de producción')
+        ->and(substr_count($texto, 'Ajustado en producción'))->toBe(1);
+});
+
 test('la nota de entrega incrusta la foto de evidencia y aguanta que falte', function () {
     // FPDF lee la imagen del disco, no por HTTP: si `fotoRuta()` devolviera
     // una URL, la celda saldría vacía sin avisar. Y si el archivo se borró a
@@ -338,6 +369,30 @@ test('la nota de entrega incrusta la foto de evidencia y aguanta que falte', fun
     expect(textoDelPdf($pdf))
         ->toContain('Exhibidor con foto')
         ->toContain('Exhibidor sin foto');
+});
+
+test('la foto de evidencia de la nota de entrega se ve grande, no como miniatura', function () {
+    // Pedido del usuario (2026-10-29): "al doble o triple". Antes la foto
+    // medía unos 18 × 12 mm; ahora una horizontal 3:2 sale de unos 52 × 35 mm.
+    Storage::fake('public');
+
+    $nota = NotaEntrega::factory()->create();
+    NotaEntregaDetalle::factory()->create([
+        'nota_entrega_id' => $nota->id,
+        'foto_url' => UploadedFile::fake()->image('evidencia.jpg', 240, 160)->store('notas-entrega/fotos', 'public'),
+    ]);
+
+    // FPDF dibuja cada imagen con "q ancho 0 0 alto x y cm /In Do Q", en puntos (1 mm = 2,835 pt).
+    preg_match_all('~q ([\d.]+) 0 0 ([\d.]+) [\d.]+ [\d.]+ cm /I\d+ Do Q~', generador()->notaEntrega($nota->fresh())->sinComprimir()->contenido(), $imagenes);
+
+    // La más alta es la foto (la otra es el logo del membrete).
+    $altos = array_map('floatval', $imagenes[2]);
+    $foto = array_search(max($altos), $altos, true);
+    $alto = $altos[$foto] / 72 * 25.4;
+    $ancho = (float) $imagenes[1][$foto] / 72 * 25.4;
+
+    expect($alto)->toBeGreaterThan(33.0)->toBeLessThan(37.0)
+        ->and($ancho)->toBeGreaterThan(50.0);
 });
 
 /*
