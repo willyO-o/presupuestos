@@ -13,6 +13,56 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-10-31 — Cerrar sesión ya no muestra la web dentro de un diálogo
+
+**Qué cambió:**
+- Al pulsar "Cerrar sesión" (panel) o "Salir" (portal del cliente), el navegador ahora navega a la portada del sitio.
+  Antes la portada aparecía dentro de un recuadro superpuesto encima del panel.
+
+**Por qué:** lo reportó el usuario. El botón hace una visita de Inertia (XHR) y el servidor respondía con
+`redirect('/')`; la portada es una vista Blade, no una página de Inertia, e Inertia muestra toda respuesta que no es
+suya en su diálogo de "respuesta no Inertia" (pensado para ver errores en desarrollo).
+
+**Cómo:**
+- `AuthenticatedSessionController::destroy` devuelve `inertia()->location(route('inicio'))`: 409 con
+  `X-Inertia-Location`, que Inertia convierte en `window.location`. Un POST común sigue recibiendo un redirect normal.
+- Test nuevo en `AuthenticationTest` que hace el logout con la cabecera `X-Inertia` (el test anterior no la mandaba,
+  por eso no lo detectaba). Verificado en el navegador desde el panel y desde el portal.
+
+---
+
+## 2026-10-31 — Correcciones de permisos y accesos detectadas al escribir los manuales
+
+**Qué cambió:**
+- **Botones ocultos por permiso que se veían igual.** La directiva `v-can` oculta con el atributo `hidden`, pero
+  `.btn`/`.btn-icon` declaran su propio `display` y le ganaban. Un vendedor veía Aprobar, Rechazar y Eliminar en
+  Cotizaciones (el servidor después lo rechazaba). Ahora `[hidden]` siempre oculta.
+- **Permisos de la base desincronizados con `config/acl.php`.** Faltaban `firmas-documento.*` y
+  `reportes.exportar_*` (el gerente no veía el botón PDF de los reportes). Se volvió a correr
+  `RolesAndPermissionsSeeder`.
+- **El contador no podía registrar pagos.** Tenía `pagos.registrar`, pero los pagos solo se registran desde el detalle
+  del pedido y le faltaba `pedidos.ver`. Se le agregó en `config/acl.php`.
+- **Cuentas desactivadas con la sesión abierta.** El login ya rechazaba una cuenta INACTIVO, pero quien estaba dentro
+  (o entraba por "Recuérdame") seguía operando. Nuevo middleware que cierra esa sesión en el siguiente clic.
+- **Cuentas del portal sin pantalla para vincularlas a su cliente.** En Usuarios, el rol `cliente` muestra el campo
+  "Cliente vinculado" (obligatorio) en lugar del alcance por sucursal, y la lista muestra "Portal: <cliente>".
+
+**Por qué:** salieron al tomar las capturas de los manuales de usuario y administrativo; el usuario pidió corregirlas.
+
+**Cómo:**
+- `resources/css/app.css`: regla `[hidden]` con `!important` justo después de `@tailwind`.
+- `config/acl.php` (contador + `pedidos.ver`) y `php artisan db:seed --class=RolesAndPermissionsSeeder`.
+- `App\Http\Middleware\CerrarSesionCuentaInactiva`, agregado al grupo `web` en `bootstrap/app.php` (401 en JSON).
+- Trait `App\Http\Requests\Concerns\ValidaClienteDelPortal` (`cliente_id` requerido con rol cliente, una ficha por
+  cuenta) en Store/UpdateUserRequest; `UsuarioController::vincularCliente()` suelta el vínculo anterior al cambiar
+  de cliente o de rol.
+- `phpunit.xml` fija `RECAPTCHA_ENABLED=false`: con claves de reCAPTCHA en el `.env` local fallaban los tests de
+  login (los de `LoginRecaptchaTest` configuran el captcha por su cuenta).
+- Tests nuevos en `AuthenticationTest` (3), `UsuarioControllerTest` (5) y `PagoControllerTest` (1). Verificado
+  además en el navegador: las 8 acciones Aprobar siguen en el DOM del vendedor pero ninguna se ve.
+
+---
+
 ## 2026-10-29 — Sitio público igual a xtrapubli.com
 
 **Qué cambió:**

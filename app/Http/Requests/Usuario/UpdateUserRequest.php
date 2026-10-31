@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Usuario;
 
 use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
+use App\Http\Requests\Concerns\ValidaClienteDelPortal;
 use App\Models\User;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -13,6 +14,7 @@ use Illuminate\Validation\Rules\Password;
 class UpdateUserRequest extends FormRequest
 {
     use ValidaAlcanceSucursal;
+    use ValidaClienteDelPortal;
 
     public function authorize(): bool
     {
@@ -37,6 +39,7 @@ class UpdateUserRequest extends FormRequest
             'rol' => ['required', 'string', Rule::exists('roles', 'name')],
             'foto' => ['nullable', 'image', 'max:2048'],
             ...$this->reglasDeAlcance(),
+            ...$this->reglasDeClienteDelPortal($this->route('usuario')->id),
         ];
     }
 
@@ -78,6 +81,7 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'sucursales.required_if' => 'Elige al menos una sucursal para el alcance "Asignadas".',
+            ...$this->mensajesDeClienteDelPortal(),
         ];
     }
 }

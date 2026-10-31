@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Usuario\StoreUserRequest;
 use App\Http\Requests\Usuario\UpdateUserRequest;
+use App\Models\Cliente;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class UsuarioController extends Controller
             // `sucursales` alimenta el bloque de alcance del modal de edición;
             // `empleado.sucursal` muestra cuál es la "propia" sin que el
             // frontend tenga que cruzarlo contra el módulo de empleados.
-            ->with(['roles:id,name', 'sucursales:id,nombre', 'empleado:id,user_id,sucursal_id', 'empleado.sucursal:id,nombre'])
+            ->with(['roles:id,name', 'sucursales:id,nombre', 'empleado:id,user_id,sucursal_id', 'empleado.sucursal:id,nombre', 'cliente:id,user_id,razon_social'])
             ->when($request->query('search'), fn ($q, $term) => $q->where(fn ($q) => $q
                 ->where('name', 'like', "%{$term}%")
                 ->orWhere('email', 'like', "%{$term}%")))
@@ -45,6 +46,13 @@ class UsuarioController extends Controller
             // avisa en vez de deshabilitar el selector (un input deshabilitado
             // no se envía y haría fallar la validación de `required`).
             'rolesGlobales' => config('acl.sucursales.roles_globales', []),
+            // Fichas para vincular una cuenta con rol `cliente` al portal. Van
+            // también las inactivas que ya tienen cuenta, para que el selector
+            // muestre el vínculo actual al editarla.
+            'clientes' => Cliente::query()
+                ->where(fn ($q) => $q->where('estado', 'ACTIVO')->orWhereNotNull('user_id'))
+                ->orderBy('razon_social')
+                ->get(['id', 'razon_social', 'nit', 'user_id']),
             'filters' => $request->only(['search', 'rol', 'estado']),
             'pageTitle' => 'Usuarios',
             'breadcrumbs' => ['Administración', 'Usuarios'],
@@ -70,6 +78,7 @@ class UsuarioController extends Controller
 
         $user->syncRoles([$datos['rol']]);
         $this->sincronizarSucursales($user, $datos);
+        $this->vincularCliente($user, $datos);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
     }
@@ -99,6 +108,7 @@ class UsuarioController extends Controller
         $usuario->save();
         $usuario->syncRoles([$datos['rol']]);
         $this->sincronizarSucursales($usuario, $datos);
+        $this->vincularCliente($usuario, $datos);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente.');
     }
@@ -124,6 +134,30 @@ class UsuarioController extends Controller
         // posterior dentro de este mismo request devolvería el de ANTES de
         // guardar (ver TieneAlcanceSucursal::olvidarAlcanceSucursal).
         $usuario->olvidarAlcanceSucursal();
+    }
+
+    /**
+     * Vincula la cuenta con su ficha de cliente (`cliente.user_id`), que es de
+     * donde el portal saca qué cotizaciones y pedidos mostrar.
+     *
+     * Primero se suelta cualquier vínculo anterior: al cambiar de cliente, o
+     * cuando la cuenta deja de tener el rol `cliente`, la ficha vieja no puede
+     * seguir apuntando a ella.
+     *
+     * @param  array<string, mixed>  $datos
+     */
+    private function vincularCliente(User $usuario, array $datos): void
+    {
+        $clienteId = $datos['rol'] === 'cliente' ? ($datos['cliente_id'] ?? null) : null;
+
+        Cliente::query()
+            ->where('user_id', $usuario->id)
+            ->when($clienteId, fn ($q) => $q->whereKeyNot($clienteId))
+            ->update(['user_id' => null]);
+
+        if ($clienteId !== null) {
+            Cliente::query()->whereKey($clienteId)->update(['user_id' => $usuario->id]);
+        }
     }
 
     public function destroy(Request $request, User $usuario): RedirectResponse

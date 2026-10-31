@@ -17,6 +17,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* La directiva v-can (Directives/Can.js) oculta con el atributo `hidden`, pero
+   cualquier clase con `display` propio (.btn, .btn-icon, .d-flex...) le gana al
+   `[hidden]` del preflight —misma especificidad, declarada después— y el
+   elemento seguía a la vista. Un vendedor veía "Aprobar" y "Eliminar" en
+   Cotizaciones aunque el servidor después se lo negara. */
+[hidden]:where(:not([hidden='until-found'])) {
+    display: none !important;
+}
+
 /* ==========================================================================
    DASHBOARD DESIGN SYSTEM
    ------------------------------------------------------------------------

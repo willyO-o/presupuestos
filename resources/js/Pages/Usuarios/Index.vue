@@ -5,6 +5,7 @@ import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
 import FileDropzone from '@/Components/FileDropzone.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
 
@@ -17,6 +18,7 @@ const props = defineProps({
     alcances: { type: Array, default: () => [] },
     sucursales: { type: Array, default: () => [] },
     rolesGlobales: { type: Array, default: () => [] },
+    clientes: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
 });
 
@@ -64,11 +66,27 @@ const form = useForm(() => ({
     rol: props.roles[0] ?? '',
     alcance_sucursal: 'PROPIA',
     sucursales: [],
+    cliente_id: null,
     foto: null,
 }));
 
 /** El rol elegido ya ve todas las sucursales por sí mismo (super-admin, administrador). */
 const rolEsGlobal = computed(() => props.rolesGlobales.includes(form.rol));
+
+/**
+ * Las cuentas con rol `cliente` entran al portal, no al panel: no tienen
+ * alcance por sucursal sino una ficha de cliente de la que ven sus datos.
+ */
+const esCuentaDelPortal = computed(() => form.rol === 'cliente');
+
+/** Fichas libres, más la que ya tiene la cuenta que se edita. */
+const clientesDisponibles = computed(() => props.clientes.filter(
+    (c) => c.user_id === null || c.user_id === editing.value?.id,
+));
+
+function etiquetaCliente(c) {
+    return c.nit ? `${c.razon_social} — ${c.nit}` : c.razon_social;
+}
 
 /** Sucursal de la ficha de empleado del usuario que se está editando. */
 const sucursalPropia = computed(() => editing.value?.empleado?.sucursal ?? null);
@@ -101,6 +119,7 @@ function openEdit(u) {
     form.rol = u.roles?.[0]?.name ?? (props.roles[0] ?? '');
     form.alcance_sucursal = u.alcance_sucursal ?? 'PROPIA';
     form.sucursales = (u.sucursales ?? []).map((s) => s.id);
+    form.cliente_id = u.cliente?.id ?? null;
     showModal.value = true;
 }
 
@@ -113,6 +132,12 @@ function openEdit(u) {
  * ve NADA ("Sin ficha de empleado", "Ninguna asignada") o una que lo ve todo.
  */
 function resumenAlcance(u) {
+    if (u.roles?.some((r) => r.name === 'cliente')) {
+        return u.cliente
+            ? { texto: `Portal: ${u.cliente.razon_social}`, tono: 'badge-soft-info' }
+            : { texto: 'Sin cliente vinculado', tono: 'badge-soft-danger' };
+    }
+
     if (props.rolesGlobales.some((rol) => u.roles?.some((r) => r.name === rol))) {
         return { texto: 'Todas (por rol)', tono: 'badge-soft-primary' };
     }
@@ -304,9 +329,24 @@ async function eliminar(u) {
                     <p v-if="form.errors.foto" class="form-error">{{ form.errors.foto }}</p>
                 </div>
 
+                <!-- Cuenta del portal: el portal muestra las cotizaciones y
+                     pedidos de ESTA ficha de cliente (cliente.user_id). -->
+                <div v-if="esCuentaDelPortal" class="alcance-bloque">
+                    <div class="form-group mb-0">
+                        <label class="form-label" for="usuario-cliente">Cliente vinculado</label>
+                        <SearchableSelect id="usuario-cliente" v-model="form.cliente_id" :options="clientesDisponibles"
+                            :option-label="etiquetaCliente" placeholder="Busca el cliente por razón social o NIT"
+                            :empty-value="null" :invalid="!!form.errors.cliente_id" />
+                        <p class="alcance-ayuda">
+                            La cuenta verá en el portal solo las cotizaciones y pedidos de este cliente.
+                        </p>
+                        <p v-if="form.errors.cliente_id" class="form-error">{{ form.errors.cliente_id }}</p>
+                    </div>
+                </div>
+
                 <!-- Alcance por sucursal: qué datos de qué sucursal verá esta
                      cuenta en cotizaciones, pedidos, cobranza y reportes. -->
-                <div class="alcance-bloque">
+                <div v-else class="alcance-bloque">
                     <div class="form-group mb-0">
                         <label class="form-label">Sucursales que administra</label>
                         <select v-model="form.alcance_sucursal" class="form-control">

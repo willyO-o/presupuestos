@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -45,7 +46,17 @@ class AuthenticatedSessionController extends Controller
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    /**
+     * Cierra la sesión y lleva a la portada del sitio público.
+     *
+     * La portada es una vista Blade, no una página de Inertia: con un
+     * `redirect('/')` normal, Inertia recibía HTML en su petición XHR y lo
+     * mostraba dentro de su diálogo de "respuesta no Inertia" (la web
+     * superpuesta sobre el panel). `location()` responde 409 con
+     * `X-Inertia-Location` y el navegador navega de verdad; ante un POST
+     * común (sin Inertia) devuelve una redirección normal.
+     */
+    public function destroy(Request $request): SymfonyResponse
     {
         Auth::guard('web')->logout();
 
@@ -53,6 +64,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return inertia()->location(route('inicio'));
     }
 }

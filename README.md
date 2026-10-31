@@ -275,7 +275,7 @@ Los permisos y la matriz rol↔permiso se definen en [config/acl.php](config/acl
 | **disenador** | Pedidos (asignar área / actualizar estado), catálogo de productos, cotizaciones (ver). |
 | **jefe-produccion** | Materiales (incl. costos), pedidos, notas de entrega, reportes de producción. |
 | **operario-produccion** | Pedidos (actualizar estado), notas de entrega. |
-| **contador** | Materiales (costos), proveedores, compras, pagos, reportes financieros/BI. |
+| **contador** | Materiales (costos), proveedores, compras, pedidos (consulta, para registrar cobros), pagos, reportes financieros/BI. |
 | **gerente** | Ve toda la empresa: reportes, BI, informe de proyecciones y asistente IA. |
 | **secretaria** | Clientes, cotizaciones, pedidos (ver), órdenes de compra de cliente. |
 | **cliente** | Rol de portal externo: solo ve sus cotizaciones y pedidos (sin acceso al panel interno). |

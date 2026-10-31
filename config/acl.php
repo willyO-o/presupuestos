@@ -446,6 +446,10 @@ return [
                 'materiales.ver', 'materiales.crear', 'materiales.editar', 'materiales.ver_costos',
                 'proveedores.ver',
                 'compras.ver', 'compras.crear', 'compras.editar', 'compras.eliminar', 'compras.aprobar',
+                // Los pagos solo se registran desde el detalle del pedido
+                // (Pedidos/Show, panel "Cobranza"): sin `pedidos.ver` el
+                // contador tenía `pagos.registrar` y ninguna pantalla donde usarlo.
+                'pedidos.ver',
                 'pagos.ver', 'pagos.registrar',
                 'reportes.financiero', 'reportes.exportar_financiero', 'reportes.bi',
             ],

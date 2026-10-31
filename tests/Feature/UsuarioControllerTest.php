@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Cliente;
 use App\Models\Empleado;
 use App\Models\Sucursal;
 use App\Models\User;
@@ -318,4 +319,80 @@ test('quien ve todas no arrastra la lista de sucursales en cada request', functi
         ->assertInertia(fn ($page) => $page
             ->where('auth.sucursales.ve_todas', true)
             ->where('auth.sucursales.visibles', null));
+});
+
+/*
+|--------------------------------------------------------------------------
+| Cuenta del portal: vínculo con la ficha de cliente
+|--------------------------------------------------------------------------
+| El portal scopea todo por `cliente.user_id`. Antes no había pantalla para
+| hacer ese vínculo: una cuenta con rol `cliente` creada desde Usuarios
+| entraba al portal y solo veía un 403.
+*/
+
+test('una cuenta del portal se crea ya vinculada a su ficha de cliente', function () {
+    Role::findOrCreate('cliente', 'web');
+    $cliente = Cliente::factory()->create(['user_id' => null]);
+
+    $this->actingAs(userWithUsuario('usuarios.crear'))
+        ->post(route('usuarios.store'), datosUsuario(['rol' => 'cliente', 'cliente_id' => $cliente->id]))
+        ->assertRedirect(route('usuarios.index'));
+
+    $user = User::where('email', 'nueva@xtrapubli.test')->first();
+    expect($cliente->fresh()->user_id)->toBe($user->id);
+});
+
+test('el rol cliente exige elegir la ficha de cliente', function () {
+    Role::findOrCreate('cliente', 'web');
+
+    $this->actingAs(userWithUsuario('usuarios.crear'))
+        ->post(route('usuarios.store'), datosUsuario(['rol' => 'cliente']))
+        ->assertSessionHasErrors('cliente_id');
+});
+
+test('una ficha de cliente no se reparte entre dos cuentas del portal', function () {
+    Role::findOrCreate('cliente', 'web');
+    $duenio = User::factory()->create();
+    $cliente = Cliente::factory()->create(['user_id' => $duenio->id]);
+
+    $this->actingAs(userWithUsuario('usuarios.crear'))
+        ->post(route('usuarios.store'), datosUsuario(['rol' => 'cliente', 'cliente_id' => $cliente->id]))
+        ->assertSessionHasErrors('cliente_id');
+
+    expect($cliente->fresh()->user_id)->toBe($duenio->id);
+});
+
+test('cambiar de cliente o quitar el rol cliente suelta la ficha anterior', function () {
+    Role::findOrCreate('cliente', 'web');
+    $cuenta = User::factory()->create();
+    $cuenta->assignRole('cliente');
+    $anterior = Cliente::factory()->create(['user_id' => $cuenta->id]);
+    $nuevo = Cliente::factory()->create(['user_id' => null]);
+    $admin = userWithUsuario('usuarios.editar');
+
+    $this->actingAs($admin)->put(route('usuarios.update', $cuenta), datosUsuario([
+        'email' => $cuenta->email, 'password' => '', 'rol' => 'cliente', 'cliente_id' => $nuevo->id,
+    ]))->assertSessionHasNoErrors();
+
+    expect($anterior->fresh()->user_id)->toBeNull()
+        ->and($nuevo->fresh()->user_id)->toBe($cuenta->id);
+
+    $this->actingAs($admin)->put(route('usuarios.update', $cuenta), datosUsuario([
+        'email' => $cuenta->email, 'password' => '', 'rol' => 'vendedor',
+    ]))->assertSessionHasNoErrors();
+
+    expect($nuevo->fresh()->user_id)->toBeNull();
+});
+
+test('al editar, la cuenta conserva su propia ficha sin chocar con la regla de exclusividad', function () {
+    Role::findOrCreate('cliente', 'web');
+    $cuenta = User::factory()->create();
+    $cuenta->assignRole('cliente');
+    $cliente = Cliente::factory()->create(['user_id' => $cuenta->id]);
+
+    $this->actingAs(userWithUsuario('usuarios.editar'))->put(route('usuarios.update', $cuenta), datosUsuario([
+        'name' => 'Otro nombre', 'email' => $cuenta->email, 'password' => '', 'rol' => 'cliente', 'cliente_id' => $cliente->id,
+    ]))->assertSessionHasNoErrors();
+
+    expect($cliente->fresh()->user_id)->toBe($cuenta->id);
 });

@@ -3,6 +3,7 @@
 use App\Models\Pago;
 use App\Models\Pedido;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -93,4 +94,16 @@ test('super-admin bypasses individual permissions', function () {
     $user->assignRole('super-admin');
 
     $this->actingAs($user)->get(route('pagos.index'))->assertOk();
+});
+
+test('el rol contador de fábrica llega a la pantalla donde se registran los pagos', function () {
+    // Los pagos solo se registran desde el detalle del pedido (panel
+    // "Cobranza"). El contador tenía `pagos.registrar` pero no `pedidos.ver`:
+    // un permiso sin ninguna pantalla donde usarlo.
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    $contador = Role::findByName('contador', 'web');
+
+    expect($contador->hasPermissionTo('pagos.registrar'))->toBeTrue()
+        ->and($contador->hasPermissionTo('pedidos.ver'))->toBeTrue();
 });
