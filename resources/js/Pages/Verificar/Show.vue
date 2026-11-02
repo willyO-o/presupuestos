@@ -1,5 +1,6 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
+import { formatearFecha } from '@/Utils/Fecha';
 
 defineProps({
     codigo: { type: String, required: true },
@@ -19,7 +20,7 @@ function money(value) {
 }
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+    return formatearFecha(value, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 </script>
 

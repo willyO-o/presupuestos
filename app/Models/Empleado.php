@@ -71,7 +71,7 @@ class Empleado extends Model
     protected function casts(): array
     {
         return [
-            'fecha_ingreso' => 'date',
+            'fecha_ingreso' => 'date:Y-m-d',
         ];
     }
 

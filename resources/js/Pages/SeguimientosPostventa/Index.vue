@@ -5,6 +5,7 @@ import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import Modal from '@/Components/Modal.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
+import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -50,7 +51,7 @@ const etiquetaMedio = {
 };
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    return formatearFecha(value, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /** Un pendiente cuya fecha ya pasó: había que llamar y no se llamó. */

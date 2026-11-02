@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import ClientePortalLayout from '@/Layouts/ClientePortalLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import { router } from '@inertiajs/vue3';
+import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: ClientePortalLayout });
 
@@ -29,7 +30,7 @@ function money(v) {
     return `Bs ${Number(v ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 function fecha(v) {
-    return v ? new Date(v).toLocaleDateString('es-BO') : '—';
+    return formatearFecha(v);
 }
 function irPagina(page) {
     router.get(route('portal.cotizaciones'), { page }, { preserveScroll: true });

@@ -55,7 +55,7 @@ class Pago extends Model
     protected function casts(): array
     {
         return [
-            'fecha_pago' => 'date',
+            'fecha_pago' => 'date:Y-m-d',
             'monto' => 'decimal:2',
         ];
     }

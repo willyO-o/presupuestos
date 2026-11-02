@@ -45,7 +45,7 @@ class Compra extends Model
     protected function casts(): array
     {
         return [
-            'fecha' => 'date',
+            'fecha' => 'date:Y-m-d',
             'total' => 'decimal:2',
         ];
     }

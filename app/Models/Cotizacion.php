@@ -79,8 +79,8 @@ class Cotizacion extends Model
     protected function casts(): array
     {
         return [
-            'fecha' => 'date',
-            'fecha_vencimiento' => 'date',
+            'fecha' => 'date:Y-m-d',
+            'fecha_vencimiento' => 'date:Y-m-d',
             'costo_base' => 'decimal:2',
             'costo_ajustado' => 'decimal:2',
             'subtotal' => 'decimal:2',

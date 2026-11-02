@@ -56,9 +56,9 @@ class Pedido extends Model
     protected function casts(): array
     {
         return [
-            'fecha_pedido' => 'date',
-            'fecha_entrega_estimada' => 'date',
-            'fecha_entrega_real' => 'date',
+            'fecha_pedido' => 'date:Y-m-d',
+            'fecha_entrega_estimada' => 'date:Y-m-d',
+            'fecha_entrega_real' => 'date:Y-m-d',
             'total' => 'decimal:2',
         ];
     }

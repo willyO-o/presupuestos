@@ -7,6 +7,7 @@ import FileDropzone from '@/Components/FileDropzone.vue';
 import QuickCreateModal from '@/Components/QuickCreateModal.vue';
 import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
 import { showError } from '@/Utils/AlertUtil';
+import { hoyYmd } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -37,7 +38,7 @@ function empleadoVacio() {
         ci: '',
         cargo: '',
         telefono: '',
-        fecha_ingreso: new Date().toISOString().slice(0, 10),
+        fecha_ingreso: hoyYmd(),
         estado: 'ACTIVO',
     };
 }
@@ -51,7 +52,7 @@ function onEmpleadoCreado(empleado) {
 const form = useForm(() => ({
     pedido_id: props.pedido.id,
     empleado_id: props.empleadoActualId ?? (props.empleados[0]?.id ?? ''),
-    fecha_entrega: new Date().toISOString().slice(0, 10),
+    fecha_entrega: hoyYmd(),
     recibido_por: '',
     cargo_receptor: '',
     observaciones: '',

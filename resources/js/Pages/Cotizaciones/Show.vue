@@ -4,6 +4,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import { confirmation } from '@/Utils/AlertUtil';
 import { CLASES_SEMAFORO, textoRecomendacion } from '@/Utils/MotorMargen';
+import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -46,7 +47,7 @@ function pct(fraccion) {
 }
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+    return formatearFecha(value, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 function nombreEmpleado(e) {

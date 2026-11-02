@@ -41,7 +41,7 @@ class HistorialPrecioMaterial extends Model
         return [
             'precio_presentacion' => 'decimal:2',
             'precio_unitario' => 'decimal:2',
-            'vigente_desde' => 'date',
+            'vigente_desde' => 'date:Y-m-d',
         ];
     }
 

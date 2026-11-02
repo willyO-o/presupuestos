@@ -48,7 +48,7 @@ class NotaEntrega extends Model
     protected function casts(): array
     {
         return [
-            'fecha_entrega' => 'date',
+            'fecha_entrega' => 'date:Y-m-d',
         ];
     }
 

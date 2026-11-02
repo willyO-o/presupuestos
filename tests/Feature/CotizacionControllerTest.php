@@ -85,6 +85,19 @@ test('the show page renders the cotizacion with its detalle', function () {
             ->where('config.semaforo.umbral_amarillo', config('margen.semaforo.umbral_amarillo')));
 });
 
+test('calendar dates reach the frontend as Y-m-d, without a UTC time that shifts the day', function () {
+    $cotizacion = Cotizacion::factory()->create([
+        'fecha' => '2026-11-01',
+        'fecha_vencimiento' => '2026-11-16',
+    ]);
+
+    $this->actingAs(userWith('cotizaciones.ver'))
+        ->get(route('cotizaciones.show', $cotizacion))
+        ->assertInertia(fn ($page) => $page
+            ->where('cotizacion.fecha', '2026-11-01')
+            ->where('cotizacion.fecha_vencimiento', '2026-11-16'));
+});
+
 test('the edit page renders for a pending cotizacion', function () {
     $cotizacion = Cotizacion::factory()
         ->has(CotizacionDetalle::factory()->count(1), 'detalles')

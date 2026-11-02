@@ -5,6 +5,7 @@ import DataTable from '@/Components/Table/DataTable.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
+import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -50,7 +51,7 @@ function money(value) {
 }
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO') : '—';
+    return formatearFecha(value);
 }
 
 const accionForm = useForm({});

@@ -49,8 +49,8 @@ class BiResumen extends Model
     protected function casts(): array
     {
         return [
-            'semana_inicio' => 'date',
-            'semana_fin' => 'date',
+            'semana_inicio' => 'date:Y-m-d',
+            'semana_fin' => 'date:Y-m-d',
             'hechos' => 'array',
             'contenido' => 'array',
         ];

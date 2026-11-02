@@ -13,6 +13,22 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-11-02 — Las fechas ya no se muestran un día antes
+
+**Qué cambió:**
+- Cotizaciones, compras, pedidos, pagos, notas de entrega, OC de cliente, postventa, solicitudes web, portal del cliente y verificación pública muestran la fecha real (antes salía el día anterior).
+- Los formularios proponen la fecha de hoy en hora local (antes, después de las 20:00 proponían la de mañana).
+
+**Por qué:**
+- Los campos `date` viajaban como `2026-11-01T00:00:00.000000Z`; `new Date()` lo leía como medianoche UTC y en Bolivia (UTC-4) lo mostraba como 31/10. Y `toISOString().slice(0, 10)` daba la fecha UTC, no la local.
+
+**Cómo:**
+- Casts `date` → `date:Y-m-d` en los 12 modelos con fechas de calendario: el JSON lleva solo `YYYY-MM-DD`.
+- Helper nuevo `resources/js/Utils/Fecha.js` (`formatearFecha`, `hoyYmd`, `aFecha`, `aYmd`) que arma la fecha con sus partes locales; reemplaza los `new Date(value).toLocaleDateString(...)` y `toISOString().slice(0, 10)` de 20 páginas. Los timestamps reales (created_at) siguen pasando por `new Date()`.
+- Test en `CotizacionControllerTest.php` que fija el formato `Y-m-d`.
+
+---
+
 ## 2026-11-02 — Listado de empleados muestra el usuario asignado
 
 **Qué cambió:**

@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
+import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -9,7 +10,7 @@ const props = defineProps({
 });
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+    return formatearFecha(value, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 function nombreEmpleado(e) {

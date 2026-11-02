@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import DataTable from '@/Components/Table/DataTable.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
+import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -51,7 +52,7 @@ function money(value) {
 }
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO') : '—';
+    return formatearFecha(value);
 }
 </script>
 

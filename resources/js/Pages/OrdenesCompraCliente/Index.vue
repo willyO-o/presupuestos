@@ -7,6 +7,7 @@ import Modal from '@/Components/Modal.vue';
 import FileDropzone from '@/Components/FileDropzone.vue';
 import { useServerTable } from '@/Composables/UseServerTable';
 import { confirmation } from '@/Utils/AlertUtil';
+import { formatearFecha, hoyYmd } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -52,7 +53,7 @@ function money(value) {
 }
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO') : '—';
+    return formatearFecha(value);
 }
 
 const showModal = ref(false);
@@ -62,7 +63,7 @@ const form = useForm(() => ({
     _method: 'post',
     pedido_id: props.pedidosSinOc[0]?.id ?? '',
     numero_oc: '',
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: hoyYmd(),
     monto_total: '',
     condicion_pago: '',
     archivo_pdf: null,

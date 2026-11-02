@@ -7,6 +7,7 @@ import ProveedorFormFields from '@/Components/Proveedor/ProveedorFormFields.vue'
 import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
 import MaterialFormFields from '@/Components/Material/MaterialFormFields.vue';
 import { showError } from '@/Utils/AlertUtil';
+import { hoyYmd } from '@/Utils/Fecha';
 
 /**
  * Formulario compartido de crear/editar una compra (ver .ai/rules/pages.md:
@@ -60,7 +61,7 @@ function empleadoVacio() {
         ci: '',
         cargo: '',
         telefono: '',
-        fecha_ingreso: new Date().toISOString().slice(0, 10),
+        fecha_ingreso: hoyYmd(),
         estado: 'ACTIVO',
     };
 }
@@ -113,7 +114,7 @@ function toDateInput(value) {
 }
 
 function hoy() {
-    return new Date().toISOString().slice(0, 10);
+    return hoyYmd();
 }
 
 function lineaVacia() {

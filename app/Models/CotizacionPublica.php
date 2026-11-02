@@ -71,7 +71,7 @@ class CotizacionPublica extends Model
             'estimado_max' => 'decimal:2',
             'holgura' => 'decimal:4',
             'vigencia_dias' => 'integer',
-            'fecha_vencimiento' => 'date',
+            'fecha_vencimiento' => 'date:Y-m-d',
             'descargas' => 'integer',
             'descargado_en' => 'datetime',
         ];

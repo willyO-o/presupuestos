@@ -68,7 +68,7 @@ class BiAnomalia extends Model
     {
         return [
             'hechos' => 'array',
-            'detectada_en' => 'date',
+            'detectada_en' => 'date:Y-m-d',
             'revisada_en' => 'datetime',
         ];
     }

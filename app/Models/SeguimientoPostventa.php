@@ -50,8 +50,8 @@ class SeguimientoPostventa extends Model
     protected function casts(): array
     {
         return [
-            'fecha_programada' => 'date',
-            'fecha_contacto' => 'date',
+            'fecha_programada' => 'date:Y-m-d',
+            'fecha_contacto' => 'date:Y-m-d',
             'satisfaccion' => 'integer',
         ];
     }

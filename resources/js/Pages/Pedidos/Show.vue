@@ -6,6 +6,7 @@ import Modal from '@/Components/Modal.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import FileDropzone from '@/Components/FileDropzone.vue';
 import { confirmation } from '@/Utils/AlertUtil';
+import { formatearFecha, hoyYmd } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -48,7 +49,7 @@ function resumenLinea(linea) {
 }
 
 function fecha(value) {
-    return value ? new Date(value).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    return formatearFecha(value, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function fechaHora(value) {
@@ -84,7 +85,7 @@ const medidasForm = useForm(() => ({ descripcion: '', ancho: '', alto: '', canti
 const pagoForm = useForm(() => ({
     pedido_id: props.pedido.id,
     monto: props.cobranza.saldo || '',
-    fecha_pago: new Date().toISOString().slice(0, 10),
+    fecha_pago: hoyYmd(),
     metodo_pago: props.metodosPago[0] ?? 'EFECTIVO',
     comprobante: null,
 }));

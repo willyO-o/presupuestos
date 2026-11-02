@@ -9,6 +9,7 @@ import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
 import ProductoFormFields from '@/Components/Producto/ProductoFormFields.vue';
 import { showError } from '@/Utils/AlertUtil';
 import { CLASES_SEMAFORO, calcularMargen, costoBaseDe, evaluarMargen } from '@/Utils/MotorMargen';
+import { hoyYmd } from '@/Utils/Fecha';
 
 /**
  * Formulario compartido de crear/editar una cotización (ver .ai/rules/pages.md:
@@ -72,7 +73,7 @@ function empleadoVacio() {
         ci: '',
         cargo: '',
         telefono: '',
-        fecha_ingreso: new Date().toISOString().slice(0, 10),
+        fecha_ingreso: hoyYmd(),
         estado: 'ACTIVO',
     };
 }
@@ -126,13 +127,11 @@ function toDateInput(value) {
 }
 
 function hoy() {
-    return new Date().toISOString().slice(0, 10);
+    return hoyYmd();
 }
 
 function hoyMas(dias) {
-    const d = new Date();
-    d.setDate(d.getDate() + dias);
-    return d.toISOString().slice(0, 10);
+    return hoyYmd(dias);
 }
 
 function itemVacio(extra = {}) {
