@@ -23,7 +23,8 @@ class EmpleadoController extends Controller
     public function index(Request $request): Response
     {
         $empleados = Empleado::query()
-            ->with(['sucursal', 'area'])
+            // `foto` va en el select porque User agrega `foto_url` al JSON.
+            ->with(['sucursal', 'area', 'user:id,name,email,foto'])
             ->visiblePara($request->user())
             ->search($request->query('search'))
             ->sucursalId($request->query('sucursal'))

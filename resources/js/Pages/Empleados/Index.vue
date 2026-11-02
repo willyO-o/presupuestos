@@ -63,6 +63,7 @@ const headers = [
     { label: 'Cargo', key: 'cargo' },
     { label: 'Sucursal', key: 'sucursal' },
     { label: 'Área', key: 'area' },
+    { label: 'Usuario asignado', key: 'user' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
 ];
 
@@ -231,6 +232,14 @@ async function confirmDelete(empleado) {
 
                 <template #cell-area="{ item }">
                     {{ item.area?.nombre ?? '—' }}
+                </template>
+
+                <template #cell-user="{ item }">
+                    <div v-if="item.user" class="min-w-0">
+                        <p class="font-medium">{{ item.user.name }}</p>
+                        <p class="text-muted fs-xs truncate">{{ item.user.email }}</p>
+                    </div>
+                    <span v-else class="text-muted">Sin cuenta</span>
                 </template>
 
                 <template #cell-estado="{ item }">

@@ -51,6 +51,21 @@ test('a user with permission sees the paginated list', function () {
     );
 });
 
+test('the list includes the user account linked to each empleado', function () {
+    $cuenta = User::factory()->create(['name' => 'Cuenta Vinculada', 'email' => 'vinculada@example.com']);
+    Empleado::factory()->create(['user_id' => $cuenta->id]);
+    $user = userWithEmpleadoPermissions('empleados.ver');
+
+    $response = $this->actingAs($user)->get(route('empleados.index'));
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('Empleados/Index')
+        ->where('empleados.data.0.user.name', 'Cuenta Vinculada')
+        ->where('empleados.data.0.user.email', 'vinculada@example.com')
+        ->missing('empleados.data.0.user.password')
+    );
+});
+
 test('the list can be searched by nombres, apellidos, ci or cargo', function () {
     Empleado::factory()->create(['nombres' => 'Juan', 'paterno' => 'Pérez', 'materno' => 'Gómez', 'ci' => '1234567']);
     Empleado::factory()->create(['nombres' => 'Ana', 'paterno' => 'López', 'materno' => 'Ruiz', 'ci' => '7654321']);

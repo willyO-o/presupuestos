@@ -102,6 +102,7 @@ Route::middleware(['auth', 'role:cliente'])->prefix('portal')->name('portal.')->
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/empleado', [ProfileController::class, 'updateEmpleado'])->name('profile.empleado.update');
 
     // Sin permiso propio: cada usuario ve solo sus propias notificaciones
     // (NotificacionController las scopea a mano por notifiable_id).

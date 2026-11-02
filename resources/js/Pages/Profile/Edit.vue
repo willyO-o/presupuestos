@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
+import UpdateInformacionLaboralForm from './Partials/UpdateInformacionLaboralForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
 
@@ -17,8 +18,9 @@ const props = defineProps({
         default: null,
     },
     // Ficha de empleado (con sucursal/area cargadas) vinculada a esta
-    // cuenta, si existe. Solo lectura aqui: se edita desde el modulo
-    // Empleados (ver app/Http/Controllers/EmpleadoController.php).
+    // cuenta, si existe. El usuario corrige sus datos de identificacion y
+    // contacto en UpdateInformacionLaboralForm; cargo, sucursal, area y
+    // estado solo se cambian desde el modulo Empleados.
     empleado: {
         type: Object,
         default: null,
@@ -181,8 +183,11 @@ function onFotoChange(event) {
                 </nav>
 
                 <div class="card-body">
-                    <UpdateProfileInformationForm v-show="activeTab === 'personal'" :must-verify-email="mustVerifyEmail"
-                        :status="status" :empleado="empleado" />
+                    <div v-show="activeTab === 'personal'">
+                        <UpdateProfileInformationForm :must-verify-email="mustVerifyEmail" :status="status" />
+
+                        <UpdateInformacionLaboralForm :empleado="empleado" />
+                    </div>
 
                     <UpdatePasswordForm v-show="activeTab === 'seguridad'" />
                 </div>

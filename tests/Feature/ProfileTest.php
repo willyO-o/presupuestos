@@ -15,7 +15,7 @@ test('profile page is displayed', function () {
     $response->assertOk();
 });
 
-test('profile page includes the linked empleado data, read-only', function () {
+test('profile page includes the linked empleado data', function () {
     $user = User::factory()->create();
     $empleado = Empleado::factory()->create(['user_id' => $user->id, 'nombres' => 'Juan']);
 
@@ -135,4 +135,83 @@ test('the account cannot be deleted from the profile: DELETE /profile no longer 
         ->assertMethodNotAllowed();
 
     $this->assertNotNull($user->fresh());
+});
+
+test('the linked empleado can update their own labor data from the profile', function () {
+    $user = User::factory()->create();
+    $empleado = Empleado::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)->patch('/profile/empleado', [
+        'nombres' => 'Ana María',
+        'paterno' => 'Quispe',
+        'materno' => 'Mamani',
+        'ci' => '7654321 LP',
+        'telefono' => '71234567',
+        'fecha_ingreso' => '15-03-2024',
+    ]);
+
+    $response->assertSessionHasNoErrors()->assertRedirect('/profile');
+
+    $empleado->refresh();
+    expect($empleado->nombres)->toBe('Ana María')
+        ->and($empleado->paterno)->toBe('Quispe')
+        ->and($empleado->materno)->toBe('Mamani')
+        ->and($empleado->ci)->toBe('7654321 LP')
+        ->and($empleado->telefono)->toBe('71234567')
+        ->and($empleado->fecha_ingreso->format('Y-m-d'))->toBe('2024-03-15');
+});
+
+test('cargo, sucursal, area and estado cannot be changed from the profile', function () {
+    $user = User::factory()->create();
+    $empleado = Empleado::factory()->create(['user_id' => $user->id, 'estado' => 'ACTIVO']);
+    $original = $empleado->only(['cargo', 'sucursal_id', 'area_id', 'estado']);
+
+    $this->actingAs($user)->patch('/profile/empleado', [
+        'nombres' => $empleado->nombres,
+        'ci' => $empleado->ci,
+        'fecha_ingreso' => '01-02-2023',
+        'cargo' => 'Otro cargo',
+        'sucursal_id' => 999999,
+        'area_id' => 999999,
+        'estado' => 'INACTIVO',
+    ])->assertSessionHasNoErrors();
+
+    expect($empleado->fresh()->only(['cargo', 'sucursal_id', 'area_id', 'estado']))->toBe($original);
+});
+
+test('fecha de ingreso must use the dd-mm-yyyy format and not be in the future', function (string $fecha) {
+    $user = User::factory()->create();
+    $empleado = Empleado::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)->patch('/profile/empleado', [
+        'nombres' => $empleado->nombres,
+        'ci' => $empleado->ci,
+        'fecha_ingreso' => $fecha,
+    ])->assertSessionHasErrors('fecha_ingreso');
+})->with([
+    'formato Y-m-d' => '2024-03-15',
+    'fecha inexistente' => '31-02-2024',
+    'fecha futura' => fn () => now()->addDay()->format('d-m-Y'),
+]);
+
+test('the CI must stay unique among empleados', function () {
+    $user = User::factory()->create();
+    $empleado = Empleado::factory()->create(['user_id' => $user->id]);
+    $otro = Empleado::factory()->create();
+
+    $this->actingAs($user)->patch('/profile/empleado', [
+        'nombres' => $empleado->nombres,
+        'ci' => $otro->ci,
+        'fecha_ingreso' => '01-02-2023',
+    ])->assertSessionHasErrors('ci');
+});
+
+test('an account without a linked empleado cannot update labor data', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->patch('/profile/empleado', [
+        'nombres' => 'Nadie',
+        'ci' => '123',
+        'fecha_ingreso' => '01-02-2023',
+    ])->assertForbidden();
 });

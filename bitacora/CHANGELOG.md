@@ -13,6 +13,37 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-11-02 — Listado de empleados muestra el usuario asignado
+
+**Qué cambió:**
+- Nueva columna "Usuario asignado" en Empleados: nombre y correo de la cuenta vinculada, o "Sin cuenta".
+
+**Por qué:**
+- Pedido del usuario: ver de un vistazo qué empleado tiene acceso al sistema y con qué cuenta, sin abrir cada ficha.
+
+**Cómo:**
+- `EmpleadoController::index` carga `user:id,name,email,foto` (solo esas columnas; `foto` porque User agrega `foto_url`).
+- Slot `#cell-user` en `Empleados/Index.vue`. Test en `EmpleadoControllerTest.php` (incluye que no se filtre `password`).
+
+---
+
+## 2026-11-02 — El perfil permite editar la información laboral propia
+
+**Qué cambió:**
+- En "Mi perfil" → "Datos personales", la sección "Información laboral" ahora es un formulario: nombres, apellido paterno y materno, CI, teléfono y fecha de ingreso se pueden corregir y guardar.
+- Cargo, sucursal, área y estado se muestran en un bloque bloqueado ("Asignado por administración").
+- La fecha de ingreso se muestra y se escribe como dd-mm-aaaa (antes salía en formato ISO), con la antigüedad calculada debajo.
+
+**Por qué:**
+- Pedido del usuario: que cada empleado mantenga sus propios datos sin depender de RR.HH., salvo los que definen rol y alcance.
+
+**Cómo:**
+- Ruta nueva `PATCH /profile/empleado` (`profile.empleado.update`) → `ProfileController::updateEmpleado`, validada por `ProfileEmpleadoUpdateRequest` (CI único, `date_format:d-m-Y`, no posterior a hoy; 403 sin ficha vinculada).
+- Los campos bloqueados no están en las reglas del request, así que se descartan aunque el navegador los mande.
+- Vue: partial nuevo `Profile/Partials/UpdateInformacionLaboralForm.vue` con máscara de fecha; estilos en app.css §21. Tests en `ProfileTest.php`.
+
+---
+
 ## 2026-10-31 — Cerrar sesión ya no muestra la web dentro de un diálogo
 
 **Qué cambió:**

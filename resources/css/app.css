@@ -2332,6 +2332,45 @@
     @apply mt-6 border-t pt-5;
 }
 
+/* Ayuda bajo un campo del perfil (formato de fecha / antigüedad). */
+.profile-field-hint {
+    color: var(--text-muted);
+    @apply mt-1 text-xs tabular-nums;
+}
+
+/* Información laboral: bloque de datos que el empleado NO puede editar
+   (cargo, sucursal, área, estado). Fondo hundido al nivel de la página,
+   no una tarjeta: se lee como "fijo" junto a los campos editables. */
+.profile-locked {
+    background-color: var(--page-bg);
+    border-color: var(--border-subtle);
+    @apply rounded-[10px] border px-4 py-3.5;
+}
+
+.profile-locked-head {
+    color: var(--text-heading);
+    @apply flex items-center gap-2 text-xs font-semibold;
+}
+
+.profile-locked-head i {
+    color: var(--text-muted);
+    @apply text-[0.7rem];
+}
+
+.profile-locked-grid {
+    @apply mt-3 grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4;
+}
+
+.profile-locked-grid dd {
+    @apply mt-0.5;
+}
+
+.profile-locked-note {
+    color: var(--text-muted);
+    border-color: var(--border-subtle);
+    @apply mt-3 border-t pt-2.5 text-xs;
+}
+
 /* Tabs: Datos personales / Seguridad / Cuenta */
 .nav-tabs {
     border-color: var(--border-subtle);
