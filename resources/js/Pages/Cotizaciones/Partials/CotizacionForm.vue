@@ -100,6 +100,7 @@ function productoVacio() {
         descripcion: '',
         unidad_medida: 'M2',
         precio_base: '',
+        horas_mano_obra: '',
         requiere_medidas: 'SI',
         cotizable_web: 'NO',
         estado: 'ACTIVO',
@@ -153,8 +154,14 @@ function lineaVacia(extra = {}) {
         descripcion: '',
         ancho: '',
         alto: '',
+        // Muebles y exhibidores: ancho × alto × profundidad, y niveles.
+        profundidad: '',
+        niveles: '',
         cantidad: 1,
         instalacion: 0,
+        // Desglose con el que se calcula la instalación (ver
+        // activarCalculoInstalacion); null = monto escrito a mano.
+        instalacion_detalle: null,
         precio_manual: 'NO',
         precio_unitario: '',
         // Imagen referencial de la línea: un archivo nuevo (`imagen`, lo
@@ -179,8 +186,20 @@ const detallesIniciales = esEdicion.value && props.cotizacion.detalles?.length
         descripcion: d.descripcion ?? '',
         ancho: d.ancho ?? '',
         alto: d.alto ?? '',
+        profundidad: d.profundidad ?? '',
+        niveles: d.niveles ?? '',
         cantidad: Number(d.cantidad ?? 1),
         instalacion: Number(d.instalacion ?? 0),
+        instalacion_detalle: d.instalacion_detalle
+            ? {
+                personas: Number(d.instalacion_detalle.personas ?? 1),
+                horas: d.instalacion_detalle.horas ?? '',
+                costo_hora: d.instalacion_detalle.costo_hora ?? props.config.costo_hora_mano_obra,
+                nocturna: !!d.instalacion_detalle.nocturna,
+                recargo_nocturno: d.instalacion_detalle.recargo_nocturno ?? props.config.recargo_nocturno,
+                transporte: d.instalacion_detalle.transporte ?? '',
+            }
+            : null,
         precio_manual: d.precio_manual ?? 'NO',
         precio_unitario: d.precio_unitario ?? '',
         imagen: null,
@@ -207,7 +226,15 @@ const form = useForm(() => ({
     descuento: props.cotizacion?.descuento ?? 0,
     // El IVA lo calcula el motor; acá solo se decide si la factura lo lleva.
     aplicar_iva: props.cotizacion ? Number(props.cotizacion.iva) > 0 : true,
+    // Si la instalación también paga IVA (por defecto, lo que diga la
+    // configuración de la empresa).
+    instalacion_con_iva: props.cotizacion
+        ? props.cotizacion.instalacion_con_iva === 'SI'
+        : !!props.config.instalacion_con_iva,
     observaciones: props.cotizacion?.observaciones ?? '',
+    forma_pago: props.cotizacion?.forma_pago ?? '',
+    tiempo_entrega: props.cotizacion?.tiempo_entrega ?? '',
+    lugar_entrega: props.cotizacion?.lugar_entrega ?? '',
     detalles: detallesIniciales,
 }));
 
@@ -222,6 +249,18 @@ function productoDe(lineaProductoId) {
 
 function tipoProyectoDe(tipoId) {
     return props.tiposProyecto.find((t) => t.id === Number(tipoId)) ?? null;
+}
+
+/**
+ * ancho × alto redondeado a centavos como el servidor (0,7 × 1,75 = 1,23 y
+ * no 1,22: en binario el producto queda apenas por debajo de 1,225).
+ */
+function areaDe(linea) {
+    // Primero se limpia el ruido binario (6 decimales) y después se redondea
+    // con notación exponencial, que no vuelve a pasar por un producto x 100.
+    const area = Number((Number(linea.ancho || 0) * Number(linea.alto || 0)).toFixed(6));
+
+    return Number(`${Math.round(Number(`${area}e2`))}e-2`);
 }
 
 function pideMedidas(linea) {
@@ -242,6 +281,8 @@ function onProductoChange(index) {
     if (producto.requiere_medidas === 'NO') {
         linea.ancho = '';
         linea.alto = '';
+        linea.profundidad = '';
+        linea.niveles = '';
     }
 }
 
@@ -285,6 +326,78 @@ function quitarImagenLinea(index) {
     linea.usarImagenProducto = false;
 }
 
+/* ── Instalación: monto a mano o calculado ───────────────────────────── */
+
+/**
+ * Mano de obra de la instalación: personas × horas × Bs/hora, con el
+ * recargo de horas extra si es nocturna. Espejo de
+ * CotizacionController::normalizarInstalacion (manda el servidor).
+ */
+function manoObraInstalacion(detalle) {
+    const base = Number(detalle.personas || 0) * Number(detalle.horas || 0) * Number(detalle.costo_hora || 0);
+
+    return detalle.nocturna ? base * (1 + Number(detalle.recargo_nocturno || 0) / 100) : base;
+}
+
+/** Monto de instalación de la línea: el calculado si hay desglose, si no el escrito a mano. */
+function instalacionDe(linea) {
+    const detalle = linea.instalacion_detalle;
+
+    if (!detalle) {
+        return Number(linea.instalacion || 0);
+    }
+
+    return Math.round((manoObraInstalacion(detalle) + Number(detalle.transporte || 0)) * 100) / 100;
+}
+
+function activarCalculoInstalacion(linea) {
+    linea.instalacion_detalle = {
+        personas: 1,
+        horas: '',
+        costo_hora: props.config.costo_hora_mano_obra,
+        nocturna: false,
+        recargo_nocturno: props.config.recargo_nocturno,
+        transporte: '',
+    };
+}
+
+/** Vuelve al monto a mano, conservando lo que daba el cálculo. */
+function quitarCalculoInstalacion(linea) {
+    linea.instalacion = instalacionDe(linea);
+    linea.instalacion_detalle = null;
+}
+
+/** "2 personas × 4 h × Bs 18,00 + 50 % nocturno" para el resumen del cálculo. */
+function resumenInstalacion(detalle) {
+    const personas = Number(detalle.personas || 0);
+    const partes = [
+        `${personas} ${personas === 1 ? 'persona' : 'personas'}`,
+        `${Number(detalle.horas || 0).toLocaleString('es-BO')} h`,
+        money(detalle.costo_hora),
+    ];
+    const nocturno = detalle.nocturna ? ` + ${Number(detalle.recargo_nocturno || 0)} % nocturno` : '';
+
+    return `${partes.join(' × ')}${nocturno}`;
+}
+
+/** Errores del desglose de una línea (personas, horas…), en un solo mensaje. */
+function erroresInstalacion(index) {
+    return Object.entries(form.errors)
+        .filter(([campo]) => campo.startsWith(`detalles.${index}.instalacion_detalle.`))
+        .map(([, mensaje]) => mensaje);
+}
+
+/** Qué dice la ayuda bajo el monto: si se cobra con IVA y de dónde sale. */
+function ayudaInstalacion(linea) {
+    const conIva = form.aplicar_iva && form.instalacion_con_iva;
+
+    if (linea.instalacion_detalle) {
+        return conIva ? 'Calculada abajo · con IVA' : 'Calculada abajo · sin IVA';
+    }
+
+    return conIva ? 'Monto fijo, con IVA' : 'Monto fijo, sin IVA';
+}
+
 /* ── Motor de margen (previsualización en vivo) ──────────────────────── */
 
 function factorDe(linea) {
@@ -307,7 +420,7 @@ function motorLinea(linea) {
         costoBaseLinea(linea),
         factorDe(linea),
         margenDe(linea),
-        Number(linea.instalacion || 0),
+        instalacionDe(linea),
     );
 }
 
@@ -331,7 +444,7 @@ function margenLinea(linea) {
         props.config,
         costoBaseLinea(linea) * factorDe(linea) * cantidad,
         subtotalLinea(linea),
-        Number(linea.instalacion || 0),
+        instalacionDe(linea),
     );
 }
 
@@ -375,13 +488,19 @@ async function traerInsumos(index) {
             producto_id: linea.producto_id,
             ancho: linea.ancho || null,
             alto: linea.alto || null,
+            profundo: linea.profundidad || null,
+            niveles: linea.niveles || null,
             tipo_proyecto_id: linea.tipo_proyecto_id || null,
-            instalacion: Number(linea.instalacion || 0),
+            instalacion: instalacionDe(linea),
         });
 
         costeo[index].info = data;
 
-        const escritosAMano = linea.items.filter((i) => !i.material_id);
+        // Lo escrito a mano se conserva; la mano de obra que había aportado el
+        // producto se reemplaza por la nueva (si no, se duplicaría).
+        const escritosAMano = linea.items.filter(
+            (i) => !i.material_id && !(i.tipo === 'MANO_OBRA' && i.descripcion === data.descripcion_mano_obra),
+        );
         linea.items = [...data.insumos.map((i) => ({ ...i })), ...escritosAMano];
     } catch (error) {
         costeo[index].error = error.response?.data?.error
@@ -409,7 +528,7 @@ function quitarLinea(index) {
 
 const subtotal = computed(() => form.detalles.reduce((acc, l) => acc + subtotalLinea(l), 0));
 const descuento = computed(() => Math.min(Number(form.descuento || 0), subtotal.value));
-const instalacionTotal = computed(() => form.detalles.reduce((acc, l) => acc + Number(l.instalacion || 0), 0));
+const instalacionTotal = computed(() => form.detalles.reduce((acc, l) => acc + instalacionDe(l), 0));
 
 const costoAjustadoTotal = computed(() => form.detalles.reduce(
     (acc, l) => acc + costoBaseLinea(l) * factorDe(l) * Number(l.cantidad || 0),
@@ -429,7 +548,14 @@ const motorTotal = computed(() => evaluarMargen(
     instalacionTotal.value,
 ));
 
-const iva = computed(() => (form.aplicar_iva ? motorTotal.value.iva : 0));
+/** IVA de la factura; con "Instalación con IVA" también grava la instalación. */
+const iva = computed(() => {
+    if (!form.aplicar_iva) return 0;
+
+    const ivaInstalacion = form.instalacion_con_iva ? instalacionTotal.value * props.config.impuestos.iva : 0;
+
+    return motorTotal.value.iva + ivaInstalacion;
+});
 const total = computed(() => Math.max(subtotal.value - descuento.value + iva.value + instalacionTotal.value, 0));
 
 /* ── Formato ─────────────────────────────────────────────────────────── */
@@ -475,14 +601,27 @@ function submit() {
         ...data,
         descuento: Number(data.descuento || 0),
         aplicar_iva: !!data.aplicar_iva,
+        instalacion_con_iva: !!data.instalacion_con_iva,
         detalles: data.detalles.map((l) => ({
             producto_id: l.producto_id || null,
             tipo_proyecto_id: l.tipo_proyecto_id || null,
             descripcion: l.descripcion,
             ancho: l.ancho === '' ? null : Number(l.ancho),
             alto: l.alto === '' ? null : Number(l.alto),
+            profundidad: l.profundidad === '' || l.profundidad === null ? null : Number(l.profundidad),
+            niveles: l.niveles === '' || l.niveles === null ? null : Number(l.niveles),
             cantidad: Number(l.cantidad),
-            instalacion: Number(l.instalacion || 0),
+            instalacion: instalacionDe(l),
+            instalacion_detalle: l.instalacion_detalle
+                ? {
+                    personas: Number(l.instalacion_detalle.personas || 0),
+                    horas: Number(l.instalacion_detalle.horas || 0),
+                    costo_hora: Number(l.instalacion_detalle.costo_hora || 0),
+                    nocturna: !!l.instalacion_detalle.nocturna,
+                    recargo_nocturno: Number(l.instalacion_detalle.recargo_nocturno || 0),
+                    transporte: Number(l.instalacion_detalle.transporte || 0),
+                }
+                : null,
             precio_manual: l.items.length === 0 ? 'SI' : l.precio_manual,
             precio_unitario: Number(l.precio_unitario || 0),
             imagen: l.imagen,
@@ -627,7 +766,7 @@ function submit() {
                     </div>
 
                     <div class="row">
-                        <div class="col-lg-4">
+                        <div class="col-lg-6">
                             <div class="form-group">
                                 <div class="d-flex align-items-center justify-content-between mb-1">
                                     <label class="form-label mb-0">Producto</label>
@@ -642,7 +781,7 @@ function submit() {
                                     @update:model-value="onProductoChange(index)" />
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-6">
                             <div class="form-group">
                                 <label class="form-label">Tipo de proyecto</label>
                                 <select v-model="linea.tipo_proyecto_id" class="form-control">
@@ -654,17 +793,24 @@ function submit() {
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-4">
-                            <div class="form-group">
-                                <label class="form-label">Descripción</label>
-                                <input v-model="linea.descripcion" type="text" class="form-control"
-                                    :class="{ 'is-invalid': form.errors[`detalles.${index}.descripcion`] }"
-                                    placeholder="Detalle que verá el cliente" required />
-                                <p v-if="form.errors[`detalles.${index}.descripcion`]" class="form-error">
-                                    {{ form.errors[`detalles.${index}.descripcion`] }}
-                                </p>
-                            </div>
-                        </div>
+                    </div>
+
+                    <!-- Lo que lee el cliente: el primer renglón hace de título del
+                         ítem; los siguientes, el detalle (estructura, acabado,
+                         impresión). El PDF respeta los saltos de línea. -->
+                    <div class="form-group">
+                        <label class="form-label" :for="`linea-${index}-descripcion`">Descripción</label>
+                        <textarea :id="`linea-${index}-descripcion`" v-model="linea.descripcion" v-max-length="2000"
+                            class="form-control" rows="4"
+                            :class="{ 'is-invalid': form.errors[`detalles.${index}.descripcion`] }"
+                            placeholder="Elaborado de cabecera&#10;Base metálica montada con trupan MDF, pintado completo…"
+                            required></textarea>
+                        <p v-if="form.errors[`detalles.${index}.descripcion`]" class="form-error">
+                            {{ form.errors[`detalles.${index}.descripcion`] }}
+                        </p>
+                        <p v-else class="fs-xs text-muted mt-1 mb-0">
+                            Lo que verá el cliente. El primer renglón es el título del ítem.
+                        </p>
                     </div>
 
                     <!-- Imagen referencial: subida a mano o copiada del producto del
@@ -698,23 +844,47 @@ function submit() {
                         <template v-if="pideMedidas(linea)">
                             <div class="col-lg-2 col-6">
                                 <div class="form-group">
-                                    <label class="form-label">Ancho (m)</label>
-                                    <input v-model="linea.ancho" v-decimal="2" type="text" inputmode="decimal"
-                                        class="form-control" placeholder="0.00" />
+                                    <label class="form-label" :for="`linea-${index}-ancho`">Ancho (m)</label>
+                                    <input :id="`linea-${index}-ancho`" v-model="linea.ancho" v-decimal="2" type="text"
+                                        inputmode="decimal" class="form-control" placeholder="0.00" />
                                 </div>
                             </div>
                             <div class="col-lg-2 col-6">
                                 <div class="form-group">
-                                    <label class="form-label">Alto (m)</label>
-                                    <input v-model="linea.alto" v-decimal="2" type="text" inputmode="decimal"
-                                        class="form-control" placeholder="0.00" />
+                                    <label class="form-label" :for="`linea-${index}-alto`">Alto (m)</label>
+                                    <input :id="`linea-${index}-alto`" v-model="linea.alto" v-decimal="2" type="text"
+                                        inputmode="decimal" class="form-control" placeholder="0.00" />
                                 </div>
                             </div>
                             <div class="col-lg-2 col-6">
                                 <div class="form-group">
-                                    <label class="form-label">Área m²</label>
-                                    <input :value="(Number(linea.ancho || 0) * Number(linea.alto || 0)).toFixed(2)"
+                                    <label class="form-label" :for="`linea-${index}-profundidad`">Profundidad (m)</label>
+                                    <input :id="`linea-${index}-profundidad`" v-model="linea.profundidad" v-decimal="2"
+                                        type="text" inputmode="decimal" class="form-control" placeholder="Opcional"
+                                        :class="{ 'is-invalid': form.errors[`detalles.${index}.profundidad`] }" />
+                                    <p v-if="form.errors[`detalles.${index}.profundidad`]" class="form-error">
+                                        {{ form.errors[`detalles.${index}.profundidad`] }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-lg-2 col-6">
+                                <div class="form-group">
+                                    <label class="form-label" :for="`linea-${index}-niveles`">Niveles</label>
+                                    <input :id="`linea-${index}-niveles`" v-model="linea.niveles" v-entero="1"
+                                        type="text" inputmode="numeric" class="form-control" placeholder="Opcional"
+                                        :class="{ 'is-invalid': form.errors[`detalles.${index}.niveles`] }" />
+                                    <p v-if="form.errors[`detalles.${index}.niveles`]" class="form-error">
+                                        {{ form.errors[`detalles.${index}.niveles`] }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-lg-2 col-6">
+                                <div class="form-group">
+                                    <label class="form-label" :for="`linea-${index}-area`">Área m²</label>
+                                    <input :id="`linea-${index}-area`"
+                                        :value="areaDe(linea).toFixed(2)"
                                         type="text" class="form-control" disabled />
+                                    <p class="fs-xs text-muted mt-1 mb-0">Interna, no se imprime</p>
                                 </div>
                             </div>
                         </template>
@@ -732,10 +902,24 @@ function submit() {
                         </div>
                         <div class="col-lg-2 col-6">
                             <div class="form-group">
-                                <label class="form-label">Instalación (Bs)</label>
-                                <input v-model="linea.instalacion" v-decimal="2" type="text" inputmode="decimal"
-                                    class="form-control" placeholder="0.00" />
-                                <p class="fs-xs text-muted mt-1 mb-0">Monto fijo, sin IVA</p>
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label mb-0" :for="`linea-${index}-instalacion`">
+                                        Instalación (Bs)
+                                    </label>
+                                    <button v-if="!linea.instalacion_detalle" type="button"
+                                        class="btn btn-sm btn-soft-primary instalacion-calcular"
+                                        title="Calcular con personas, horas, horario nocturno y transporte"
+                                        @click="activarCalculoInstalacion(linea)">
+                                        <i class="fa-solid fa-calculator"></i>
+                                        Calcular
+                                    </button>
+                                </div>
+                                <input v-if="linea.instalacion_detalle" :id="`linea-${index}-instalacion`"
+                                    :value="instalacionDe(linea).toFixed(2)" type="text" class="form-control fw-semibold"
+                                    disabled />
+                                <input v-else :id="`linea-${index}-instalacion`" v-model="linea.instalacion" v-decimal="2"
+                                    type="text" inputmode="decimal" class="form-control" placeholder="0.00" />
+                                <p class="fs-xs text-muted mt-1 mb-0">{{ ayudaInstalacion(linea) }}</p>
                             </div>
                         </div>
                         <div class="col-lg-2 col-6">
@@ -744,6 +928,89 @@ function submit() {
                                 <input :value="money(subtotalLinea(linea))" type="text" class="form-control fw-semibold"
                                     disabled />
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Instalación calculada: personal, horas (con recargo nocturno) y
+                         transporte. Se suma igual que el monto a mano: después del
+                         precio, con o sin IVA según la casilla de Totales. -->
+                    <div v-if="linea.instalacion_detalle" class="instalacion-calculo">
+                        <div class="hoja-costos-head">
+                            <span class="fw-semibold fs-sm">
+                                <i class="fa-solid fa-screwdriver-wrench text-primary"></i>
+                                Cálculo de la instalación
+                            </span>
+                            <button type="button" class="btn btn-sm btn-soft-secondary"
+                                @click="quitarCalculoInstalacion(linea)">
+                                <i class="fa-solid fa-pen"></i>
+                                Escribir monto a mano
+                            </button>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-lg-3 col-6">
+                                <div class="form-group">
+                                    <label class="form-label" :for="`linea-${index}-inst-personas`">Personas</label>
+                                    <input :id="`linea-${index}-inst-personas`" v-model="linea.instalacion_detalle.personas"
+                                        v-entero="1" type="text" inputmode="numeric" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-6">
+                                <div class="form-group">
+                                    <label class="form-label" :for="`linea-${index}-inst-horas`">Horas</label>
+                                    <input :id="`linea-${index}-inst-horas`" v-model="linea.instalacion_detalle.horas"
+                                        v-decimal="2" type="text" inputmode="decimal" class="form-control"
+                                        placeholder="0" />
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-6">
+                                <div class="form-group">
+                                    <label class="form-label" :for="`linea-${index}-inst-costo`">Bs por hora</label>
+                                    <input :id="`linea-${index}-inst-costo`" v-model="linea.instalacion_detalle.costo_hora"
+                                        v-decimal="2" type="text" inputmode="decimal" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-6">
+                                <div class="form-group">
+                                    <label class="form-label" :for="`linea-${index}-inst-transporte`">
+                                        Transporte (Bs)
+                                    </label>
+                                    <input :id="`linea-${index}-inst-transporte`"
+                                        v-model="linea.instalacion_detalle.transporte" v-decimal="2" type="text"
+                                        inputmode="decimal" class="form-control" placeholder="0.00" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="instalacion-nocturna">
+                            <label class="d-flex align-items-center gap-2 mb-0" :for="`linea-${index}-inst-nocturna`">
+                                <input :id="`linea-${index}-inst-nocturna`" v-model="linea.instalacion_detalle.nocturna"
+                                    type="checkbox" />
+                                <i class="fa-solid fa-moon text-primary" aria-hidden="true"></i>
+                                Instalación nocturna (horas extra)
+                            </label>
+                            <div v-if="linea.instalacion_detalle.nocturna" class="instalacion-recargo">
+                                <label class="mb-0" :for="`linea-${index}-inst-recargo`">Recargo</label>
+                                <input :id="`linea-${index}-inst-recargo`"
+                                    v-model="linea.instalacion_detalle.recargo_nocturno" v-decimal="2" type="text"
+                                    inputmode="decimal" class="form-control" />
+                                <span>%</span>
+                            </div>
+                        </div>
+
+                        <p v-for="(mensaje, mi) in erroresInstalacion(index)" :key="mi" class="form-error">
+                            {{ mensaje }}
+                        </p>
+
+                        <div class="hoja-costos-total">
+                            <span class="fw-normal">
+                                {{ resumenInstalacion(linea.instalacion_detalle) }}
+                                = {{ money(manoObraInstalacion(linea.instalacion_detalle)) }}
+                                <template v-if="Number(linea.instalacion_detalle.transporte)">
+                                    · transporte {{ money(linea.instalacion_detalle.transporte) }}
+                                </template>
+                            </span>
+                            <span>{{ money(instalacionDe(linea)) }}</span>
                         </div>
                     </div>
 
@@ -768,7 +1035,8 @@ function submit() {
                                     Insumo
                                 </button>
                                 <button type="button" class="btn btn-sm btn-soft-secondary"
-                                    @click="agregarItem(index, { tipo: 'MANO_OBRA', descripcion: 'Horas', unidad: 'HORA' })">
+                                    :title="`Agrega horas de trabajo a ${money(config.costo_hora_mano_obra)} la hora`"
+                                    @click="agregarItem(index, { tipo: 'MANO_OBRA', descripcion: 'Horas de mano de obra', unidad: 'HORA', costo_unitario: config.costo_hora_mano_obra })">
                                     <i class="fa-solid fa-user-clock"></i>
                                     Mano de obra
                                 </button>
@@ -911,12 +1179,52 @@ function submit() {
         <div class="row">
             <div class="col-lg-7">
                 <div class="card mb-4">
-                    <div class="card-header"><span class="card-title">Observaciones</span></div>
+                    <div class="card-header"><span class="card-title">Condiciones de venta</span></div>
                     <div class="card-body">
-                        <textarea v-model="form.observaciones" class="form-control" rows="5"
-                            :class="{ 'is-invalid': form.errors.observaciones }"
-                            placeholder="Condiciones, tiempo de entrega, notas para el cliente..."></textarea>
-                        <p v-if="form.errors.observaciones" class="form-error">{{ form.errors.observaciones }}</p>
+                        <div class="row">
+                            <div class="col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label" for="forma_pago">Forma de pago</label>
+                                    <input id="forma_pago" v-model="form.forma_pago" v-max-length="255" type="text"
+                                        class="form-control" :class="{ 'is-invalid': form.errors.forma_pago }"
+                                        placeholder="15 días crédito" />
+                                    <p v-if="form.errors.forma_pago" class="form-error">{{ form.errors.forma_pago }}</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label" for="tiempo_entrega">Tiempo de entrega</label>
+                                    <input id="tiempo_entrega" v-model="form.tiempo_entrega" v-max-length="255" type="text"
+                                        class="form-control" :class="{ 'is-invalid': form.errors.tiempo_entrega }"
+                                        placeholder="10 días hábiles" />
+                                    <p v-if="form.errors.tiempo_entrega" class="form-error">
+                                        {{ form.errors.tiempo_entrega }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="form-group">
+                                    <label class="form-label" for="lugar_entrega">Lugar de entrega</label>
+                                    <input id="lugar_entrega" v-model="form.lugar_entrega" v-max-length="255" type="text"
+                                        class="form-control" :class="{ 'is-invalid': form.errors.lugar_entrega }"
+                                        placeholder="Instalado en el punto de venta" />
+                                    <p v-if="form.errors.lugar_entrega" class="form-error">
+                                        {{ form.errors.lugar_entrega }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label" for="observaciones">Observaciones</label>
+                            <textarea id="observaciones" v-model="form.observaciones" class="form-control" rows="4"
+                                :class="{ 'is-invalid': form.errors.observaciones }"
+                                placeholder="Notas para el cliente..."></textarea>
+                            <p v-if="form.errors.observaciones" class="form-error">{{ form.errors.observaciones }}</p>
+                            <p v-else class="fs-xs text-muted mt-1 mb-0">
+                                Se imprimen en el documento. Lo que quede vacío no aparece.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -989,6 +1297,14 @@ function submit() {
                         <div v-if="instalacionTotal > 0" class="cotizacion-total-row">
                             <span>Instalación</span>
                             <span class="fw-semibold">{{ money(instalacionTotal) }}</span>
+                        </div>
+                        <div v-if="instalacionTotal > 0" class="cotizacion-total-row cotizacion-total-opcion">
+                            <label class="mb-0 d-flex align-items-center gap-2" for="instalacion_con_iva"
+                                :class="{ 'text-muted': !form.aplicar_iva }">
+                                <input id="instalacion_con_iva" v-model="form.instalacion_con_iva" type="checkbox"
+                                    :disabled="!form.aplicar_iva" />
+                                Cobrar IVA también sobre la instalación
+                            </label>
                         </div>
                         <div class="cotizacion-total-row cotizacion-total-grand">
                             <span>Total</span>

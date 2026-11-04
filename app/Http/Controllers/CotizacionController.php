@@ -17,6 +17,7 @@ use App\Notifications\CotizacionAprobada;
 use App\Services\Calculo\MotorMargenService;
 use App\Services\Calculo\PrecioSugeridoService;
 use App\Services\Imagen\ConvierteImagenAJpgService;
+use App\Services\Pdf\MontoEnLetras;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,10 +83,12 @@ class CotizacionController extends Controller
 
         $cotizacion = DB::transaction(function () use ($request, $datos): Cotizacion {
             $detalles = $this->normalizarDetalles($request, $datos['detalles']);
+            $instalacionConIva = $this->instalacionConIva($datos);
             $montos = $this->calcularMontos(
                 $detalles,
                 (float) ($datos['descuento'] ?? 0),
                 ($datos['aplicar_iva'] ?? true),
+                $instalacionConIva,
             );
 
             $cotizacion = Cotizacion::create([
@@ -97,6 +100,8 @@ class CotizacionController extends Controller
                 'fecha_vencimiento' => $datos['fecha_vencimiento'] ?? null,
                 'estado' => 'PENDIENTE',
                 'observaciones' => $datos['observaciones'] ?? null,
+                ...$this->condicionesDeVenta($datos),
+                'instalacion_con_iva' => $instalacionConIva ? 'SI' : 'NO',
                 ...$montos,
             ]);
 
@@ -129,6 +134,8 @@ class CotizacionController extends Controller
             // (no se imprime en el documento del cliente), por eso viaja
             // aparte y no dentro del detalle.
             'margen' => $this->margenPorLinea($cotizacion),
+            // "Son: Dos Mil … 00/100 Bolivianos", el mismo texto que el PDF.
+            'montoEnLetras' => MontoEnLetras::convertir($cotizacion->total),
             // Tasas y umbrales para "Ver fórmula y criterios del semáforo".
             'config' => ['impuestos' => config('margen.impuestos'), 'semaforo' => config('margen.semaforo')],
             'pageTitle' => "Cotización {$cotizacion->codigo_verificacion}",
@@ -171,10 +178,12 @@ class CotizacionController extends Controller
 
         DB::transaction(function () use ($request, $cotizacion, $datos): void {
             $detalles = $this->normalizarDetalles($request, $datos['detalles']);
+            $instalacionConIva = $this->instalacionConIva($datos);
             $montos = $this->calcularMontos(
                 $detalles,
                 (float) ($datos['descuento'] ?? 0),
                 ($datos['aplicar_iva'] ?? true),
+                $instalacionConIva,
             );
 
             $cotizacion->update([
@@ -184,6 +193,8 @@ class CotizacionController extends Controller
                 'fecha' => $datos['fecha'],
                 'fecha_vencimiento' => $datos['fecha_vencimiento'] ?? null,
                 'observaciones' => $datos['observaciones'] ?? null,
+                ...$this->condicionesDeVenta($datos),
+                'instalacion_con_iva' => $instalacionConIva ? 'SI' : 'NO',
                 ...$montos,
             ]);
 
@@ -260,6 +271,7 @@ class CotizacionController extends Controller
             'ancho' => ['nullable', 'numeric', 'min:0'],
             'alto' => ['nullable', 'numeric', 'min:0'],
             'profundo' => ['nullable', 'numeric', 'min:0'],
+            'niveles' => ['nullable', 'integer', 'min:1', 'max:50'],
             'tipo_proyecto_id' => ['nullable', 'integer', 'exists:tipo_proyecto,id'],
             'instalacion' => ['nullable', 'numeric', 'min:0'],
         ]);
@@ -277,12 +289,16 @@ class CotizacionController extends Controller
                 $datos['profundo'] ?? null,
                 $tipoProyecto,
                 (float) ($datos['instalacion'] ?? 0),
+                isset($datos['niveles']) ? (int) $datos['niveles'] : null,
             );
         } catch (InvalidArgumentException|FormulaInvalidaException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
-        return response()->json($resultado);
+        return response()->json([
+            ...$resultado,
+            'descripcion_mano_obra' => PrecioSugeridoService::DESCRIPCION_MANO_OBRA,
+        ]);
     }
 
     /**
@@ -360,6 +376,9 @@ class CotizacionController extends Controller
             'config' => [
                 'margen_sugerido' => (float) config('cotizacion.margen_sugerido'),
                 'dias_vencimiento' => (int) config('cotizacion.dias_vencimiento'),
+                'costo_hora_mano_obra' => (float) config('cotizacion.costo_hora_mano_obra'),
+                'recargo_nocturno' => (float) config('cotizacion.recargo_nocturno'),
+                'instalacion_con_iva' => (bool) config('cotizacion.instalacion_con_iva'),
                 'impuestos' => config('margen.impuestos'),
                 'semaforo' => config('margen.semaforo'),
             ],
@@ -408,8 +427,11 @@ class CotizacionController extends Controller
         return array_values(array_map(function (array $linea, int $index) use ($tipos, $request, $productosConImagen): array {
             $ancho = isset($linea['ancho']) ? (float) $linea['ancho'] : null;
             $alto = isset($linea['alto']) ? (float) $linea['alto'] : null;
+            $profundidad = isset($linea['profundidad']) ? round((float) $linea['profundidad'], 2) : null;
+            $niveles = isset($linea['niveles']) ? (int) $linea['niveles'] : null;
             $cantidad = (float) $linea['cantidad'];
-            $instalacion = round((float) ($linea['instalacion'] ?? 0), 2);
+            $instalacionDetalle = $this->normalizarInstalacion($linea['instalacion_detalle'] ?? null);
+            $instalacion = $instalacionDetalle['total'] ?? round((float) ($linea['instalacion'] ?? 0), 2);
 
             $items = $this->normalizarItems($linea['items'] ?? []);
             $costoBaseUnitario = round(array_sum(array_column($items, 'subtotal')), 2);
@@ -431,6 +453,8 @@ class CotizacionController extends Controller
                 'descripcion' => $linea['descripcion'],
                 'ancho' => $ancho,
                 'alto' => $alto,
+                'profundidad' => $profundidad,
+                'niveles' => $niveles,
                 'area_m2' => ($ancho !== null && $alto !== null) ? round($ancho * $alto, 2) : null,
                 'imagen' => $this->resolverImagenLinea($request, $index, $linea, $productosConImagen),
                 'cantidad' => $cantidad,
@@ -441,10 +465,78 @@ class CotizacionController extends Controller
                 'precio_unitario' => $precioUnitario,
                 'precio_manual' => $precioManual ? 'SI' : 'NO',
                 'instalacion' => $instalacion,
+                'instalacion_detalle' => $instalacionDetalle,
                 'subtotal' => round($precioUnitario * $cantidad, 2),
                 'items' => $items,
             ];
         }, $detalles, array_keys($detalles)));
+    }
+
+    /**
+     * Calcula la instalación de una línea a partir de su desglose, en el
+     * SERVIDOR (igual que los insumos: nunca se confía en el monto que mandó
+     * el navegador):
+     *
+     *   mano de obra = personas × horas × Bs/hora
+     *   nocturna     = mano de obra × (1 + recargo %)   ← horas extra
+     *   total        = mano de obra + transporte
+     *
+     * `null` si la línea no trae desglose: el monto es el escrito a mano.
+     *
+     * @param  array<string, mixed>|null  $detalle
+     * @return array{personas: int, horas: float, costo_hora: float, nocturna: bool, recargo_nocturno: float, transporte: float, mano_obra: float, total: float}|null
+     */
+    private function normalizarInstalacion(?array $detalle): ?array
+    {
+        if ($detalle === null || $detalle === []) {
+            return null;
+        }
+
+        $personas = (int) $detalle['personas'];
+        $horas = round((float) $detalle['horas'], 2);
+        $costoHora = round((float) $detalle['costo_hora'], 2);
+        $nocturna = filter_var($detalle['nocturna'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $recargo = round((float) ($detalle['recargo_nocturno'] ?? config('cotizacion.recargo_nocturno')), 2);
+        $transporte = round((float) ($detalle['transporte'] ?? 0), 2);
+
+        $manoObra = round($personas * $horas * $costoHora * ($nocturna ? 1 + $recargo / 100 : 1), 2);
+
+        return [
+            'personas' => $personas,
+            'horas' => $horas,
+            'costo_hora' => $costoHora,
+            'nocturna' => $nocturna,
+            'recargo_nocturno' => $recargo,
+            'transporte' => $transporte,
+            'mano_obra' => $manoObra,
+            'total' => round($manoObra + $transporte, 2),
+        ];
+    }
+
+    /**
+     * Forma de pago, tiempo y lugar de entrega: texto libre y opcional.
+     *
+     * @param  array<string, mixed>  $datos
+     * @return array{forma_pago: string|null, tiempo_entrega: string|null, lugar_entrega: string|null}
+     */
+    private function condicionesDeVenta(array $datos): array
+    {
+        return [
+            'forma_pago' => $datos['forma_pago'] ?? null,
+            'tiempo_entrega' => $datos['tiempo_entrega'] ?? null,
+            'lugar_entrega' => $datos['lugar_entrega'] ?? null,
+        ];
+    }
+
+    /**
+     * Si la instalación paga IVA en esta cotización: lo que marcó el vendedor
+     * o, si el formulario no lo mandó, el valor por defecto de la empresa.
+     *
+     * @param  array<string, mixed>  $datos
+     */
+    private function instalacionConIva(array $datos): bool
+    {
+        return (bool) ($datos['instalacion_con_iva'] ?? config('cotizacion.instalacion_con_iva'));
     }
 
     /**
@@ -546,12 +638,15 @@ class CotizacionController extends Controller
      * `descuento` reduce la base imponible, así que empuja el semáforo hacia
      * AMARILLO/ROJO: es exactamente la señal que el vendedor necesita al
      * negociar. La instalación, como en el Excel, se suma después del IVA y
-     * no forma parte de la base imponible.
+     * no forma parte de la base imponible — salvo que el vendedor marque
+     * "Instalación con IVA": entonces se le cobra también el IVA a la
+     * instalación. Ese IVA no toca el motor (no es utilidad ni costo: se
+     * cobra y se paga), así que el semáforo no cambia.
      *
      * @param  list<array<string, mixed>>  $detalles
      * @return array<string, mixed>
      */
-    private function calcularMontos(array $detalles, float $descuento, bool $aplicarIva): array
+    private function calcularMontos(array $detalles, float $descuento, bool $aplicarIva, bool $instalacionConIva = false): array
     {
         $subtotal = round(array_sum(array_column($detalles, 'subtotal')), 2);
         $descuento = round(min(max($descuento, 0), $subtotal), 2);
@@ -566,7 +661,10 @@ class CotizacionController extends Controller
             instalacion: $instalacion,
         );
 
-        $iva = $aplicarIva ? round($motor->iva, 2) : 0.0;
+        $ivaInstalacion = $aplicarIva && $instalacionConIva
+            ? round($instalacion * (float) config('margen.impuestos.iva'), 2)
+            : 0.0;
+        $iva = $aplicarIva ? round($motor->iva, 2) + $ivaInstalacion : 0.0;
 
         return [
             'costo_base' => $costoBase,

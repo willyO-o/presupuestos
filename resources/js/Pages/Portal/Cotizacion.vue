@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import ClientePortalLayout from '@/Layouts/ClientePortalLayout.vue';
 import { confirmation } from '@/Utils/AlertUtil';
+import { esMultilinea, primerRenglon, sinPrimerRenglon } from '@/Utils/Descripcion';
 import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: ClientePortalLayout });
@@ -76,9 +77,22 @@ async function responder(accion) {
                     </thead>
                     <tbody>
                         <tr v-for="d in cotizacion.detalles" :key="d.id">
-                            <td>{{ d.descripcion }}</td>
+                            <td>
+                                <!-- Como en el PDF: el primer renglón es el título del ítem. -->
+                                <template v-if="esMultilinea(d.descripcion)">
+                                    <span class="cotizacion-doc-item-titulo">{{ primerRenglon(d.descripcion) }}</span>
+                                    <span class="d-block text-prewrap">{{ sinPrimerRenglon(d.descripcion) }}</span>
+                                </template>
+                                <template v-else>{{ d.descripcion }}</template>
+                            </td>
                             <td class="text-center">
-                                <span v-if="d.ancho && d.alto">{{ Number(d.ancho).toFixed(2) }} × {{ Number(d.alto).toFixed(2) }} m</span>
+                                <span v-if="d.ancho && d.alto">
+                                    {{ Number(d.ancho).toFixed(2) }} × {{ Number(d.alto).toFixed(2) }}<template
+                                        v-if="Number(d.profundidad)"> × {{ Number(d.profundidad).toFixed(2) }}</template> m
+                                    <span v-if="Number(d.niveles)" class="d-block">
+                                        {{ d.niveles }} {{ Number(d.niveles) === 1 ? 'nivel' : 'niveles' }}
+                                    </span>
+                                </span>
                                 <span v-else>—</span>
                             </td>
                             <td class="text-end">{{ Number(d.cantidad) }}</td>

@@ -1314,16 +1314,20 @@ abstract class Documento extends FPDF
 
     /**
      * @param  string|array<string, mixed>  $celda
-     * @return array{texto: string, nota: ?string, negrita: bool, imagen: ?string, alto_imagen: float, color: ?array<int, int>}
+     * @return array{texto: string, trozos: ?list<array<string, mixed>>, nota: ?string, negrita: bool, imagen: ?string, alto_imagen: float, color: ?array<int, int>}
      */
     private function normalizarCelda(string|array $celda): array
     {
         if (is_string($celda)) {
-            return ['texto' => $celda, 'nota' => null, 'negrita' => false, 'imagen' => null, 'alto_imagen' => self::ALTO_EVIDENCIA, 'color' => null];
+            return ['texto' => $celda, 'trozos' => null, 'nota' => null, 'negrita' => false, 'imagen' => null, 'alto_imagen' => self::ALTO_EVIDENCIA, 'color' => null];
         }
 
         return [
             'texto' => (string) ($celda['texto'] ?? ''),
+            // Texto con estilos mezclados (un título en negrita y el detalle
+            // normal, como la descripción de un ítem de cotización). Si
+            // viene, reemplaza a `texto` al medir y al dibujar.
+            'trozos' => $celda['trozos'] ?? null,
             'nota' => $celda['nota'] ?? null,
             'negrita' => (bool) ($celda['negrita'] ?? false),
             'imagen' => $celda['imagen'] ?? null,
@@ -1355,7 +1359,7 @@ abstract class Documento extends FPDF
             $ancho = $anchos[$indice] - 2 * self::RESPIRO;
 
             $this->fuente(8.5, $celda['negrita'] ? 'B' : '');
-            $parcial = $this->flujo($ancho, [['texto' => $celda['texto']]], $this->altoLinea(8.5), dibujar: false);
+            $parcial = $this->flujo($ancho, $celda['trozos'] ?? [['texto' => $celda['texto']]], $this->altoLinea(8.5), dibujar: false);
 
             if ($celda['nota']) {
                 $this->fuente(7.5);
@@ -1400,7 +1404,7 @@ abstract class Documento extends FPDF
 
             $this->SetXY($x + self::RESPIRO, $y + self::RESPIRO);
             $this->fuente(8.5, $celda['negrita'] ? 'B' : '', $celda['color'] ?? ($celda['negrita'] ? self::OSCURO : self::TEXTO));
-            $this->flujo($ancho - 2 * self::RESPIRO, [['texto' => $celda['texto']]], $this->altoLinea(8.5), $alineacion);
+            $this->flujo($ancho - 2 * self::RESPIRO, $celda['trozos'] ?? [['texto' => $celda['texto']]], $this->altoLinea(8.5), $alineacion);
 
             if ($celda['nota']) {
                 $this->SetX($x + self::RESPIRO);
@@ -1636,6 +1640,34 @@ abstract class Documento extends FPDF
     protected function numero(float|int|string|null $valor, int $decimales = 2): string
     {
         return number_format((float) $valor, $decimales, ',', '.');
+    }
+
+    /**
+     * Medidas de una pieza en metros: "2,00 × 1,00" (ancho × alto) o, para
+     * muebles y exhibidores, "0,70 × 1,75 × 0,30" (ancho × alto ×
+     * profundidad). `null` si falta el ancho o el alto.
+     */
+    protected function medidasTexto(mixed $ancho, mixed $alto, mixed $profundidad = null): ?string
+    {
+        if (! (float) $ancho || ! (float) $alto) {
+            return null;
+        }
+
+        $partes = [$this->numero($ancho), $this->numero($alto)];
+
+        if ((float) $profundidad) {
+            $partes[] = $this->numero($profundidad);
+        }
+
+        return implode(' × ', $partes);
+    }
+
+    /** "1 nivel" / "4 niveles", o `null` sin niveles. */
+    protected function nivelesTexto(mixed $niveles): ?string
+    {
+        $niveles = (int) $niveles;
+
+        return $niveles > 0 ? $niveles.' '.($niveles === 1 ? 'nivel' : 'niveles') : null;
     }
 
     /** Fecha larga en español, o un guion si no hay fecha. */

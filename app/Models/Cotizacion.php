@@ -32,9 +32,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'iue',
     'utilidad_real',
     'instalacion',
+    'instalacion_con_iva',
     'estado_margen',
     'total',
     'observaciones',
+    'forma_pago',
+    'tiempo_entrega',
+    'lugar_entrega',
 ])]
 
 class Cotizacion extends Model

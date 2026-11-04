@@ -42,6 +42,8 @@ class ConvertirCotizacionService
                     'descripcion' => $linea->descripcion,
                     'ancho' => $linea->ancho,
                     'alto' => $linea->alto,
+                    'profundidad' => $linea->profundidad,
+                    'niveles' => $linea->niveles,
                     'cantidad' => $linea->cantidad,
                     'estado_item' => 'DISENO',
                 ])->all(),

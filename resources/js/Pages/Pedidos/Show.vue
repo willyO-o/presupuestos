@@ -7,6 +7,7 @@ import SearchableSelect from '@/Components/SearchableSelect.vue';
 import FileDropzone from '@/Components/FileDropzone.vue';
 import { confirmation } from '@/Utils/AlertUtil';
 import { formatearFecha, hoyYmd } from '@/Utils/Fecha';
+import { esMultilinea, primerRenglon } from '@/Utils/Descripcion';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -39,13 +40,31 @@ function money(value) {
     return `Bs ${Number(value ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/**
+ * "2.50 × 1.90 m" o, en un mueble, "0.70 × 1.75 × 0.30 m · 4 niveles"
+ * (ancho × alto × profundidad). Vacío si no tiene medidas.
+ */
+function medidasDe(linea) {
+    const partes = [];
+
+    if (Number(linea.ancho) && Number(linea.alto)) {
+        const dimensiones = [linea.ancho, linea.alto, ...(Number(linea.profundidad) ? [linea.profundidad] : [])];
+        partes.push(`${dimensiones.map((valor) => Number(valor).toFixed(2)).join(' × ')} m`);
+    }
+
+    const niveles = Number(linea.niveles);
+    if (niveles > 0) {
+        partes.push(`${niveles} ${niveles === 1 ? 'nivel' : 'niveles'}`);
+    }
+
+    return partes.join(' · ');
+}
+
 /** "2.50 × 1.90 m · cant. 4", con el mismo formato de medidas que el resto de la pantalla. */
 function resumenLinea(linea) {
-    const medidas = linea.ancho && linea.alto
-        ? `${Number(linea.ancho).toFixed(2)} × ${Number(linea.alto).toFixed(2)} m · `
-        : '';
+    const medidas = medidasDe(linea);
 
-    return `${medidas}cant. ${Number(linea.cantidad)}`;
+    return `${medidas ? `${medidas} · ` : ''}cant. ${Number(linea.cantidad)}`;
 }
 
 function fecha(value) {
@@ -81,7 +100,15 @@ const estadoForm = useForm(() => ({ estado_item: 'ELABORACION', observaciones: '
 const consumoForm = useForm(() => ({ material_id: props.materiales[0]?.id ?? '', cantidad_usada: '', costo_real: '' }));
 // Medidas REALES de produccion: lo unico del pedido que puede diferir de la
 // cotizacion de origen (el precio acordado no cambia).
-const medidasForm = useForm(() => ({ descripcion: '', ancho: '', alto: '', cantidad: 1, motivo: '' }));
+const medidasForm = useForm(() => ({
+    descripcion: '',
+    ancho: '',
+    alto: '',
+    profundidad: '',
+    niveles: '',
+    cantidad: 1,
+    motivo: '',
+}));
 const pagoForm = useForm(() => ({
     pedido_id: props.pedido.id,
     monto: props.cobranza.saldo || '',
@@ -103,6 +130,8 @@ function abrir(tipo, detalle) {
         medidasForm.descripcion = detalle.descripcion;
         medidasForm.ancho = detalle.ancho ?? '';
         medidasForm.alto = detalle.alto ?? '';
+        medidasForm.profundidad = detalle.profundidad ?? '';
+        medidasForm.niveles = detalle.niveles ?? '';
         medidasForm.cantidad = Number(detalle.cantidad);
     }
 }
@@ -148,6 +177,8 @@ function enviarMedidas() {
         ...data,
         ancho: data.ancho === '' ? null : Number(data.ancho),
         alto: data.alto === '' ? null : Number(data.alto),
+        profundidad: data.profundidad === '' || data.profundidad === null ? null : Number(data.profundidad),
+        niveles: data.niveles === '' || data.niveles === null ? null : Number(data.niveles),
         cantidad: Number(data.cantidad),
     })).put(route('pedidos.detalle.medidas', [props.pedido.id, detalleActivo.value.id]), {
         preserveScroll: true,
@@ -406,7 +437,7 @@ async function cancelarPedido() {
                     </thead>
                     <tbody>
                         <tr v-for="c in costos.items" :key="c.pedido_detalle_id">
-                            <td>{{ c.descripcion }}</td>
+                            <td>{{ primerRenglon(c.descripcion) }}</td>
                             <td class="text-end">{{ c.estimado === null ? '—' : money(c.estimado) }}</td>
                             <td class="text-end">{{ money(c.real) }}</td>
                             <td class="text-end"
@@ -423,7 +454,7 @@ async function cancelarPedido() {
     <!-- Ítems del pedido -->
     <div v-for="detalle in pedido.detalles" :key="detalle.id" class="card mb-4 pedido-item">
         <div class="card-header">
-            <span class="card-title">{{ detalle.descripcion }}</span>
+            <span class="card-title">{{ primerRenglon(detalle.descripcion) }}</span>
             <div class="d-flex flex-wrap gap-2">
                 <span v-if="ajustes[detalle.id]" class="badge badge-soft-warning">
                     <i class="fa-solid fa-ruler-combined"></i> Medidas ajustadas
@@ -434,10 +465,9 @@ async function cancelarPedido() {
             </div>
         </div>
         <div class="card-body">
+            <p v-if="esMultilinea(detalle.descripcion)" class="fs-sm text-prewrap mb-2">{{ detalle.descripcion }}</p>
             <p class="fs-sm text-muted mb-3">
-                <span v-if="detalle.ancho && detalle.alto">
-                    {{ Number(detalle.ancho).toFixed(2) }} × {{ Number(detalle.alto).toFixed(2) }} m ·
-                </span>
+                <span v-if="medidasDe(detalle)">{{ medidasDe(detalle) }} ·</span>
                 Cantidad: {{ Number(detalle.cantidad) }}
                 · Costo material presupuestado:
                 {{ costoItem(detalle.id).estimado === null ? '—' : money(costoItem(detalle.id).estimado) }}
@@ -451,7 +481,7 @@ async function cancelarPedido() {
                     <strong>En producción se ajustó este ítem.</strong>
                     Según la cotización:
                     <template v-if="ajustes[detalle.id].descripcion !== detalle.descripcion">
-                        {{ ajustes[detalle.id].descripcion }} ·
+                        {{ primerRenglon(ajustes[detalle.id].descripcion) }} ·
                     </template>
                     {{ resumenLinea(ajustes[detalle.id]) }}. Arriba están las medidas con las que se fabrica; la
                     cotización y el precio acordado no cambian.
@@ -538,14 +568,15 @@ async function cancelarPedido() {
                     <i class="fa-solid fa-file-invoice-dollar"></i>
                     <span>
                         <strong>Según la cotización:</strong>
-                        {{ detalleActivo.cotizacion_detalle.descripcion }} ·
+                        {{ primerRenglon(detalleActivo.cotizacion_detalle.descripcion) }} ·
                         {{ resumenLinea(detalleActivo.cotizacion_detalle) }}
                     </span>
                 </p>
                 <div class="form-group">
                     <label class="form-label" for="medidas-descripcion">Descripción</label>
-                    <input id="medidas-descripcion" v-model="medidasForm.descripcion" type="text" class="form-control"
-                        :class="{ 'is-invalid': medidasForm.errors.descripcion }" required />
+                    <textarea id="medidas-descripcion" v-model="medidasForm.descripcion" v-max-length="2000"
+                        class="form-control" rows="3" :class="{ 'is-invalid': medidasForm.errors.descripcion }"
+                        required></textarea>
                     <p v-if="medidasForm.errors.descripcion" class="form-error">
                         {{ medidasForm.errors.descripcion }}
                     </p>
@@ -573,6 +604,22 @@ async function cancelarPedido() {
                             inputmode="decimal" class="form-control" :class="{ 'is-invalid': medidasForm.errors.alto }"
                             placeholder="0.00" />
                         <p v-if="medidasForm.errors.alto" class="form-error">{{ medidasForm.errors.alto }}</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="medidas-profundidad">Profundidad (m)</label>
+                        <input id="medidas-profundidad" v-model="medidasForm.profundidad" v-decimal="2" type="text"
+                            inputmode="decimal" class="form-control"
+                            :class="{ 'is-invalid': medidasForm.errors.profundidad }" placeholder="Opcional" />
+                        <p v-if="medidasForm.errors.profundidad" class="form-error">
+                            {{ medidasForm.errors.profundidad }}
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="medidas-niveles">Niveles</label>
+                        <input id="medidas-niveles" v-model="medidasForm.niveles" v-entero="1" type="text"
+                            inputmode="numeric" class="form-control" :class="{ 'is-invalid': medidasForm.errors.niveles }"
+                            placeholder="Opcional" />
+                        <p v-if="medidasForm.errors.niveles" class="form-error">{{ medidasForm.errors.niveles }}</p>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="medidas-cantidad">Cantidad</label>

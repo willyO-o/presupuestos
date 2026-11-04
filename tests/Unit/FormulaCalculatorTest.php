@@ -61,6 +61,22 @@ test('mensajeError devuelve null para una expresion correcta y un mensaje para u
         ->and($calculator->mensajeError('ancho / 0 +'))->toBeString();
 });
 
+test('evalua niveles, el caso del trupan de un estante', function () {
+    $calculator = new FormulaCalculator;
+    $medidas = new MedidasCotizacion(ancho: 0.7, alto: 1.75, profundo: 0.3, niveles: 4);
+
+    // 0.7 * 0.3 * 4 = 0.84 m² de trupan
+    expect($calculator->evaluar('ancho * profundo * niveles', $medidas))->toEqualWithDelta(0.84, 0.000001);
+});
+
+test('una formula con niveles valida aunque la linea no los traiga, y falla al evaluarla sin ellos', function () {
+    $calculator = new FormulaCalculator;
+
+    expect($calculator->mensajeError('ancho * profundo * niveles'))->toBeNull();
+
+    $calculator->evaluar('ancho * niveles', new MedidasCotizacion(ancho: 1.0, alto: 1.0));
+})->throws(FormulaInvalidaException::class);
+
 test('medidas cotizacion solo expone las variables calculables', function () {
     $medidas = new MedidasCotizacion(ancho: 2.0, alto: 1.0);
 

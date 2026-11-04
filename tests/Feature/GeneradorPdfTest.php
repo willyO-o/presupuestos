@@ -12,6 +12,7 @@ use App\Models\NotaEntregaDetalle;
 use App\Models\OrdenCompraCliente;
 use App\Models\Pedido;
 use App\Models\PedidoDetalle;
+use App\Models\Producto;
 use App\Models\User;
 use App\Services\Pdf\GeneradorPdf;
 use App\Services\Pdf\RespuestaPdf;
@@ -172,6 +173,101 @@ test('el PDF de la cotizacion NO filtra costos ni rentabilidad', function () {
         ->not->toContain('260,00');
 });
 
+test('el PDF de la cotizacion muestra solo ancho x alto, sin m2 ni el producto del catalogo', function () {
+    // El área y el producto de catálogo son datos de cálculo internos: el
+    // cliente ve la descripción de la línea y sus medidas.
+    $cotizacion = cotizacionCompleta();
+    $producto = Producto::factory()->create(['nombre' => 'Producto interno de catalogo']);
+    $cotizacion->detalles->each->update(['producto_id' => $producto->id]);
+
+    $texto = textoDelPdf(generador()->cotizacion($cotizacion->fresh()));
+
+    expect($texto)
+        ->toContain('Banner lona frontlight')
+        ->toContain('2,00 × 1,50')
+        ->not->toContain('m²')
+        ->not->toContain('Producto interno de catalogo');
+});
+
+test('el PDF de la cotizacion de un mueble muestra ancho x alto x profundidad y sus niveles', function () {
+    $cotizacion = cotizacionCompleta();
+    $cotizacion->detalles->first()->update([
+        'descripcion' => 'Elaborado de Cabecera'.PHP_EOL.'Base metálica montada con trupan MDF.',
+        'ancho' => 0.7,
+        'alto' => 1.75,
+        'profundidad' => 0.3,
+        'niveles' => 4,
+    ]);
+
+    $texto = textoDelPdf(generador()->cotizacion($cotizacion->fresh()));
+
+    expect($texto)
+        ->toContain('0,70 × 1,75 × 0,30')
+        ->toContain('4 niveles')
+        // Cada renglón de la descripción sale en su propia línea.
+        ->toContain('Elaborado de Cabecera')
+        ->toContain('Base metálica montada con trupan MDF.')
+        // La línea plana sigue igual.
+        ->toContain('2,00 × 1,50');
+});
+
+test('la orden de trabajo de un mueble lleva sus niveles en vez del area', function () {
+    $pedido = Pedido::factory()->create();
+
+    PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'descripcion' => 'Estante metálico',
+        'ancho' => 2.9,
+        'alto' => 2,
+        'profundidad' => 0.45,
+        'niveles' => 5,
+    ]);
+
+    expect(textoDelPdf(generador()->pedido($pedido->fresh())))
+        ->toContain('2,90 × 2,00 × 0,45')
+        ->toContain('5 niveles')
+        ->not->toContain('5,80 m²');
+});
+
+test('el PDF de la cotizacion lleva el total en letras, el contacto y las condiciones de venta', function () {
+    $cotizacion = cotizacionCompleta();
+    $cotizacion->update([
+        'forma_pago' => '15 días crédito',
+        'tiempo_entrega' => '10 días hábiles',
+    ]);
+    $cotizacion->cliente->update(['contacto_nombre' => 'Sergio Donoso']);
+
+    $texto = textoDelPdf(generador()->cotizacion($cotizacion->fresh()));
+
+    expect($texto)
+        // total 1217 en cotizacionCompleta()
+        ->toContain('Mil Doscientos Diecisiete 00/100 Bolivianos')
+        ->toContain('Sergio Donoso')
+        ->toContain('Forma de pago:')
+        ->toContain('15 días crédito')
+        ->toContain('Tiempo de entrega:')
+        ->toContain('10 días hábiles')
+        // Sin lugar de entrega cargado, ese renglón no sale.
+        ->not->toContain('Lugar de entrega:');
+});
+
+test('el PDF de la estimacion web muestra solo ancho x alto, sin m2', function () {
+    $estimacion = CotizacionPublica::factory()->create([
+        'detalle' => [[
+            'producto' => 'Banner publicitario',
+            'ancho' => 2,
+            'alto' => 1,
+            'cantidad' => 1,
+            'precio_unitario' => 100,
+            'subtotal' => 100,
+        ]],
+    ]);
+
+    expect(textoDelPdf(generador()->cotizacionPublica($estimacion)))
+        ->toContain('2,00 × 1,00')
+        ->not->toContain('m²');
+});
+
 test('el PDF de la cotizacion se llama con su codigo y sale como descarga', function () {
     $cotizacion = cotizacionCompleta();
 
@@ -303,6 +399,8 @@ test('el PDF del pedido lleva etapas y medidas, no precios por linea', function 
         ->toContain('Góndola metálica')
         ->toContain('ELABORACION')
         ->toContain('ETAPA')
+        // El taller sí necesita el área: en la cotización es interna.
+        ->toContain('2,40 m²')
         ->not->toContain('P. UNIT.');
 });
 
@@ -461,7 +559,6 @@ test('los acentos y simbolos del castellano se imprimen, no salen como basura', 
     expect($texto)
         ->toContain('Señalética año 2026 — piña')
         // Símbolos de la tabla de medidas y del membrete.
-        ->toContain('m²')
         ->toContain('×')
         ->toContain('·')
         // La marca del doble encoding: si aparece, algo se dibujó sin convertir.

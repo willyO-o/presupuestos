@@ -195,15 +195,11 @@ class CotizacionPublicaPdf extends Documento
         $this->SetXY(self::MARGEN_LATERAL, $final);
     }
 
-    private function medidas(mixed $ancho, mixed $alto): string|array
+    /**
+     * Solo "ancho × alto": el área (m²) es un dato de cálculo interno.
+     */
+    private function medidas(mixed $ancho, mixed $alto): string
     {
-        if (! $ancho || ! $alto) {
-            return '—';
-        }
-
-        return [
-            'texto' => $this->numero($ancho).' × '.$this->numero($alto),
-            'nota' => $this->numero((float) $ancho * (float) $alto).' m²',
-        ];
+        return $this->medidasTexto($ancho, $alto) ?? '—';
     }
 }

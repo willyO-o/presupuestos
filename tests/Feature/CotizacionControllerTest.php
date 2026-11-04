@@ -14,6 +14,7 @@ use App\Models\ProductoMaterial;
 use App\Models\Sucursal;
 use App\Models\TipoProyecto;
 use App\Models\User;
+use App\Services\Calculo\PrecioSugeridoService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
@@ -162,6 +163,203 @@ test('storing a cotizacion computes totals on the server and ignores client amou
     ]);
 });
 
+test('a mueble line keeps profundidad, niveles and a long multi paragraph descripcion', function () {
+    $descripcion = implode(PHP_EOL, [
+        'Elaborado de Cabecera',
+        str_repeat('Base metálica montada con trupan MDF, sulfaceado y pintado completo. ', 6),
+        'Medida promedio: 70 cm ancho x 175 cm altura x 30 cm profundidad.',
+    ]);
+
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'detalles' => [[
+            'descripcion' => $descripcion,
+            'ancho' => 0.7,
+            'alto' => 1.75,
+            'profundidad' => 0.3,
+            'niveles' => 4,
+            'cantidad' => 1,
+            'precio_unitario' => 3000,
+        ]],
+    ])->assertSessionHasNoErrors();
+
+    $linea = Cotizacion::latest('id')->first()->detalles->first();
+
+    expect(mb_strlen($descripcion))->toBeGreaterThan(255)
+        ->and($linea->descripcion)->toBe($descripcion)
+        ->and((float) $linea->profundidad)->toBe(0.3)
+        ->and($linea->niveles)->toBe(4)
+        // El área sigue siendo ancho × alto: la profundidad no la cambia.
+        ->and((float) $linea->area_m2)->toBe(1.23);
+});
+
+test('a flat line without profundidad or niveles stays as before', function () {
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'detalles' => [['descripcion' => 'Lona', 'ancho' => 2, 'alto' => 1, 'cantidad' => 1, 'precio_unitario' => 100]],
+    ])->assertSessionHasNoErrors();
+
+    $linea = Cotizacion::latest('id')->first()->detalles->first();
+
+    expect($linea->profundidad)->toBeNull()->and($linea->niveles)->toBeNull();
+});
+
+test('niveles must be a whole number between 1 and 50', function (mixed $niveles) {
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'detalles' => [['descripcion' => 'Estante', 'niveles' => $niveles, 'cantidad' => 1, 'precio_unitario' => 100]],
+    ])->assertSessionHasErrors('detalles.0.niveles');
+})->with(['cero' => 0, 'decimal' => 2.5, 'demasiados' => 51]);
+
+/** Una línea de precio fijo (sin hoja de costos) con instalación. */
+function lineaConInstalacion(array $extra = []): array
+{
+    return ['descripcion' => 'Cabecera', 'cantidad' => 1, 'precio_unitario' => 1000, 'instalacion' => 100, ...$extra];
+}
+
+test('the installation breakdown is computed on the server, with the night surcharge and transport', function () {
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'aplicar_iva' => false,
+        'detalles' => [lineaConInstalacion([
+            // El monto que manda el navegador se ignora si hay desglose.
+            'instalacion' => 9999,
+            'instalacion_detalle' => [
+                'personas' => 2,
+                'horas' => 4,
+                'costo_hora' => 18,
+                'nocturna' => true,
+                'recargo_nocturno' => 50,
+                'transporte' => 80,
+            ],
+        ])],
+    ])->assertSessionHasNoErrors();
+
+    $cotizacion = Cotizacion::latest('id')->first();
+    $linea = $cotizacion->detalles->first();
+
+    // 2 personas × 4 h × Bs 18 × 1,5 (nocturno) = 216 + 80 de transporte
+    expect((float) $linea->instalacion)->toBe(296.0)
+        ->and($linea->instalacion_detalle['mano_obra'])->toEqual(216)
+        ->and($linea->instalacion_detalle['nocturna'])->toBeTrue()
+        ->and((float) $cotizacion->instalacion)->toBe(296.0)
+        ->and((float) $cotizacion->total)->toBe(1296.0);
+});
+
+test('a daytime installation has no surcharge', function () {
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'detalles' => [lineaConInstalacion(['instalacion_detalle' => [
+            'personas' => 2, 'horas' => 4, 'costo_hora' => 18, 'nocturna' => false, 'recargo_nocturno' => 50,
+        ]])],
+    ])->assertSessionHasNoErrors();
+
+    expect((float) Cotizacion::latest('id')->first()->detalles->first()->instalacion)->toBe(144.0);
+});
+
+test('the installation is outside the IVA unless the seller marks it', function (bool $instalacionConIva, float $iva, string $guardado) {
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'aplicar_iva' => true,
+        'instalacion_con_iva' => $instalacionConIva,
+        'detalles' => [lineaConInstalacion()],
+    ])->assertSessionHasNoErrors();
+
+    $cotizacion = Cotizacion::latest('id')->first();
+
+    // IVA 13 % de 1000 = 130; con la instalación, 13 % de 100 más.
+    expect((float) $cotizacion->iva)->toBe($iva)
+        ->and((float) $cotizacion->total)->toBe(1000 + $iva + 100)
+        ->and($cotizacion->instalacion_con_iva)->toBe($guardado);
+})->with([
+    'sin IVA en la instalación' => [false, 130.0, 'NO'],
+    'con IVA en la instalación' => [true, 143.0, 'SI'],
+]);
+
+test('without IVA on the cotizacion the installation pays none either', function () {
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'aplicar_iva' => false,
+        'instalacion_con_iva' => true,
+        'detalles' => [lineaConInstalacion()],
+    ]);
+
+    expect((float) Cotizacion::latest('id')->first()->iva)->toBe(0.0);
+});
+
+test('the installation IVA default comes from the configuration', function () {
+    config(['cotizacion.instalacion_con_iva' => true]);
+
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'aplicar_iva' => true,
+        'detalles' => [lineaConInstalacion()],
+    ]);
+
+    expect(Cotizacion::latest('id')->first()->instalacion_con_iva)->toBe('SI');
+});
+
+test('the create form receives the labour rate, night surcharge and installation IVA default', function () {
+    config([
+        'cotizacion.costo_hora_mano_obra' => 18,
+        'cotizacion.recargo_nocturno' => 50,
+        'cotizacion.instalacion_con_iva' => false,
+    ]);
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->get(route('cotizaciones.create'))
+        ->assertInertia(fn ($page) => $page
+            ->where('config.costo_hora_mano_obra', 18)
+            ->where('config.recargo_nocturno', 50)
+            ->where('config.instalacion_con_iva', false));
+});
+
+test('an installation breakdown needs at least one person', function () {
+    $this->actingAs(userWith('cotizaciones.crear'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'detalles' => [lineaConInstalacion(['instalacion_detalle' => ['personas' => 0, 'horas' => 4, 'costo_hora' => 18]])],
+    ])->assertSessionHasErrors('detalles.0.instalacion_detalle.personas');
+});
+
+test('the sale conditions are saved with the cotizacion and the show page gets the amount in words', function () {
+    $this->actingAs(userWith('cotizaciones.crear', 'cotizaciones.ver'))->post(route('cotizaciones.store'), [
+        ...cabeceraValida(),
+        'aplicar_iva' => false,
+        'forma_pago' => '15 días crédito',
+        'tiempo_entrega' => '10 días hábiles',
+        'lugar_entrega' => 'Instalado en el punto de venta',
+        'detalles' => [['descripcion' => 'Cabecera', 'cantidad' => 1, 'precio_unitario' => 2875]],
+    ])->assertSessionHasNoErrors();
+
+    $cotizacion = Cotizacion::latest('id')->first();
+
+    expect($cotizacion->forma_pago)->toBe('15 días crédito')
+        ->and($cotizacion->tiempo_entrega)->toBe('10 días hábiles')
+        ->and($cotizacion->lugar_entrega)->toBe('Instalado en el punto de venta');
+
+    $this->get(route('cotizaciones.show', $cotizacion))
+        ->assertInertia(fn ($page) => $page
+            ->where('montoEnLetras', 'Dos Mil Ochocientos Setenta y Cinco 00/100 Bolivianos'));
+});
+
+test('updating keeps the installation IVA choice and the sale conditions', function () {
+    $cotizacion = Cotizacion::factory()->create(['estado' => 'PENDIENTE']);
+
+    $this->actingAs(userWith('cotizaciones.editar'))->put(route('cotizaciones.update', $cotizacion), [
+        ...cabeceraValida(),
+        'aplicar_iva' => true,
+        'instalacion_con_iva' => true,
+        'forma_pago' => 'Contado',
+        'detalles' => [lineaConInstalacion()],
+    ])->assertSessionHasNoErrors();
+
+    $cotizacion->refresh();
+
+    expect($cotizacion->instalacion_con_iva)->toBe('SI')
+        ->and((float) $cotizacion->iva)->toBe(143.0)
+        ->and($cotizacion->forma_pago)->toBe('Contado');
+});
+
 test('a cotizacion needs at least one detalle line', function () {
     $this->actingAs(userWith('cotizaciones.crear'))
         ->post(route('cotizaciones.store'), [...cabeceraValida(), 'detalles' => []])
@@ -264,6 +462,87 @@ test('costear returns the suggested price from the product BOM', function () {
     $response->assertOk()
         ->assertJsonPath('costo_material_unitario', 300)
         ->assertJson(fn ($json) => $json->where('precio_sugerido', fn ($v) => $v > 300)->etc());
+});
+
+test('costear passes profundidad and niveles to the BOM formulas', function () {
+    $producto = Producto::factory()->create([
+        'categoria_producto_id' => CategoriaProducto::factory()->create()->id,
+        'unidad_medida' => 'UNIDAD',
+    ]);
+    $trupan = Material::factory()->create([
+        'categoria_material_id' => CategoriaMaterial::factory()->create()->id,
+        'precio_unitario' => 100,
+        'redondeo_compra' => null,
+    ]);
+    ProductoMaterial::factory()->create([
+        'producto_id' => $producto->id,
+        'material_id' => $trupan->id,
+        'formula_id' => Formula::factory()->create(['expresion' => 'ancho * profundo * niveles'])->id,
+        'cantidad_por_unidad' => null,
+    ]);
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->postJson(route('cotizaciones.costear'), [
+            'producto_id' => $producto->id,
+            'ancho' => 0.7,
+            'alto' => 1.75,
+            'profundo' => 0.3,
+            'niveles' => 4,
+        ])
+        // 0,7 × 0,3 × 4 = 0,84 m² × Bs 100
+        ->assertOk()
+        ->assertJsonPath('costo_material_unitario', 84);
+});
+
+test('costear adds the product labour hours at the company rate and prices with them', function () {
+    config(['cotizacion.costo_hora_mano_obra' => 18]);
+
+    $producto = Producto::factory()->create([
+        'categoria_producto_id' => CategoriaProducto::factory()->create()->id,
+        'unidad_medida' => 'UNIDAD',
+        'requiere_medidas' => 'NO',
+        'horas_mano_obra' => 16,
+    ]);
+    ProductoMaterial::factory()->create([
+        'producto_id' => $producto->id,
+        'material_id' => Material::factory()->create([
+            'categoria_material_id' => CategoriaMaterial::factory()->create()->id,
+            'precio_unitario' => 100,
+            'redondeo_compra' => null,
+        ])->id,
+        'formula_id' => null,
+        'cantidad_por_unidad' => 1,
+    ]);
+
+    $sinNivel = config('cotizacion.margen_sugerido');
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->postJson(route('cotizaciones.costear'), ['producto_id' => $producto->id])
+        ->assertOk()
+        ->assertJsonPath('costo_material_unitario', 100)
+        ->assertJsonPath('costo_mano_obra_unitario', 288)
+        ->assertJsonPath('insumos.1.tipo', 'MANO_OBRA')
+        ->assertJsonPath('insumos.1.cantidad', 16)
+        ->assertJsonPath('insumos.1.costo_unitario', 18)
+        ->assertJsonPath('insumos.1.descripcion', PrecioSugeridoService::DESCRIPCION_MANO_OBRA)
+        ->assertJsonPath('descripcion_mano_obra', PrecioSugeridoService::DESCRIPCION_MANO_OBRA)
+        // El precio sugerido sale de material + mano de obra (388), no solo del material.
+        ->assertJsonPath('precio_sugerido', round(388 * (1 + $sinNivel), 2));
+});
+
+test('costear without labour hours on the product only brings the materials', function () {
+    $producto = Producto::factory()->create([
+        'categoria_producto_id' => CategoriaProducto::factory()->create()->id,
+        'unidad_medida' => 'UNIDAD',
+        'requiere_medidas' => 'NO',
+        'horas_mano_obra' => null,
+    ]);
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->postJson(route('cotizaciones.costear'), ['producto_id' => $producto->id])
+        ->assertOk()
+        ->assertJsonPath('costo_mano_obra_unitario', 0)
+        ->assertJsonCount(0, 'insumos');
 });
 
 test('costear returns 422 when the product needs measures it did not get', function () {

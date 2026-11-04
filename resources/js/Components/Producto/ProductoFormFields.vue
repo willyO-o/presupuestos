@@ -111,6 +111,18 @@ const unidadesMedida = [
         </div>
 
         <div class="col-lg-6">
+            <div class="form-group">
+                <label class="form-label" for="producto-horas">Horas de mano de obra (por unidad)</label>
+                <input id="producto-horas" v-model="form.horas_mano_obra" v-decimal="2" type="text" inputmode="decimal"
+                    class="form-control" :class="{ 'is-invalid': errors.horas_mano_obra }" placeholder="Opcional" />
+                <p v-if="errors.horas_mano_obra" class="form-error">{{ errors.horas_mano_obra }}</p>
+                <p v-else class="fs-sm text-muted mt-1 mb-0">
+                    Al cotizar, "Traer insumos" las suma a la hoja de costos a la tarifa por hora de la empresa.
+                </p>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
             <div class="form-group mb-0">
                 <label class="form-label" for="producto-estado">Estado</label>
                 <select id="producto-estado" v-model="form.estado" class="form-control">

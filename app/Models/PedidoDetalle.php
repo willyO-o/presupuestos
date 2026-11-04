@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'pedido_id',
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'descripcion',
     'ancho',
     'alto',
+    'profundidad',
+    'niveles',
     'cantidad',
     'estado_item',
 ])]
@@ -45,6 +48,8 @@ class PedidoDetalle extends Model
         return [
             'ancho' => 'decimal:2',
             'alto' => 'decimal:2',
+            'profundidad' => 'decimal:2',
+            'niveles' => 'integer',
             'cantidad' => 'decimal:2',
         ];
     }
@@ -77,6 +82,18 @@ class PedidoDetalle extends Model
     }
 
     /**
+     * Primer renglón de una descripción, recortado: el "título" del ítem
+     * para mensajes cortos (notificaciones, notas de seguimiento). La
+     * descripción completa de un exhibidor ocupa varios párrafos.
+     */
+    public static function resumir(string $descripcion, int $limite = 80): string
+    {
+        $renglones = preg_split('/\R/u', trim($descripcion)) ?: [''];
+
+        return Str::limit(trim($renglones[0]), $limite);
+    }
+
+    /**
      * Lo que dice la cotización para este ítem, si producción lo ajustó
      * ("Ajustar medidas reales"): descripción, medidas o cantidad distintas de
      * la línea de origen. `null` si no hubo ajuste o la línea ya no existe.
@@ -85,7 +102,7 @@ class PedidoDetalle extends Model
      * (ver `.ai/rules/controllers.md`). La pantalla del pedido y la orden de
      * trabajo muestran las dos cosas con esto.
      *
-     * @return array{descripcion: string, ancho: float|null, alto: float|null, cantidad: float}|null
+     * @return array{descripcion: string, ancho: float|null, alto: float|null, profundidad: float|null, niveles: int|null, cantidad: float}|null
      */
     public function cotizadoSiSeAjusto(): ?array
     {
@@ -99,6 +116,8 @@ class PedidoDetalle extends Model
             'descripcion' => (string) $linea->descripcion,
             'ancho' => $linea->ancho !== null ? (float) $linea->ancho : null,
             'alto' => $linea->alto !== null ? (float) $linea->alto : null,
+            'profundidad' => $linea->profundidad !== null ? (float) $linea->profundidad : null,
+            'niveles' => $linea->niveles !== null ? (int) $linea->niveles : null,
             'cantidad' => (float) $linea->cantidad,
         ];
 

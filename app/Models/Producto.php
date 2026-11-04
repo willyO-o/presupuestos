@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
     'descripcion',
     'unidad_medida',
     'precio_base',
+    'horas_mano_obra',
     'requiere_medidas',
     'cotizable_web',
     'estado',

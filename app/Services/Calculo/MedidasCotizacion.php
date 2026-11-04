@@ -4,7 +4,8 @@ namespace App\Services\Calculo;
 
 /**
  * Medidas de una línea de cotización/pedido para UNA unidad del producto
- * (ancho/alto/profundo en metros). `cantidad` (cuántas unidades se piden)
+ * (ancho/alto/profundo en metros, y cuántos niveles tiene un mueble o
+ * exhibidor). `cantidad` (cuántas unidades se piden)
  * se maneja aparte, en App\Services\Calculo\CosteoProductoService — no es
  * una variable de fórmula, para que una receta describa siempre "cuánto
  * material lleva una unidad" y no se pueda duplicar el multiplicador.
@@ -15,6 +16,7 @@ final readonly class MedidasCotizacion
         public ?float $ancho = null,
         public ?float $alto = null,
         public ?float $profundo = null,
+        public ?int $niveles = null,
     ) {}
 
     /**
@@ -53,6 +55,7 @@ final readonly class MedidasCotizacion
             'ancho' => $this->ancho,
             'alto' => $this->alto,
             'profundo' => $this->profundo,
+            'niveles' => $this->niveles !== null ? (float) $this->niveles : null,
             'area' => $this->area(),
             'perimetro' => $this->perimetro(),
         ], fn (?float $valor): bool => $valor !== null);

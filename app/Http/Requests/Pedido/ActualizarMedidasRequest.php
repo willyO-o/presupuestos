@@ -29,9 +29,13 @@ class ActualizarMedidasRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'descripcion' => ['required', 'string', 'max:255'],
+            'descripcion' => ['required', 'string', 'max:2000'],
             'ancho' => ['nullable', 'numeric', 'min:0'],
             'alto' => ['nullable', 'numeric', 'min:0'],
+            // Muebles y exhibidores. Si el formulario no los manda, se
+            // conservan los que el ítem ya tenía (ver actualizarMedidas).
+            'profundidad' => ['nullable', 'numeric', 'min:0'],
+            'niveles' => ['nullable', 'integer', 'min:1', 'max:50'],
             'cantidad' => ['required', 'numeric', 'min:0.01'],
             'motivo' => ['nullable', 'string', 'max:500'],
         ];

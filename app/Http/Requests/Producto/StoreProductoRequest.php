@@ -35,6 +35,8 @@ class StoreProductoRequest extends FormRequest
             'descripcion' => ['nullable', 'string'],
             'unidad_medida' => ['required', Rule::in(Producto::UNIDADES_MEDIDA)],
             'precio_base' => ['nullable', 'numeric', 'min:0'],
+            // Horas que suele llevar una unidad; las trae "Traer insumos".
+            'horas_mano_obra' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'requiere_medidas' => ['required', Rule::in(['SI', 'NO'])],
             // Lista blanca del cotizador publico (ver la migracion
             // add_cotizable_web_to_producto_table). `sometimes` y no

@@ -46,14 +46,27 @@ class StoreCotizacionRequest extends FormRequest
             'fecha_vencimiento' => ['nullable', 'date', 'after_or_equal:fecha'],
             'descuento' => ['nullable', 'numeric', 'min:0'],
             'aplicar_iva' => ['nullable', 'boolean'],
+            // Si la instalación entra en la base del IVA (solo cuenta con
+            // `aplicar_iva`). Sin el campo, manda config('cotizacion.instalacion_con_iva').
+            'instalacion_con_iva' => ['nullable', 'boolean'],
             'observaciones' => ['nullable', 'string', 'max:2000'],
+            // Condiciones de venta de esta cotización (se imprimen en el PDF).
+            'forma_pago' => ['nullable', 'string', 'max:255'],
+            'tiempo_entrega' => ['nullable', 'string', 'max:255'],
+            'lugar_entrega' => ['nullable', 'string', 'max:255'],
 
             'detalles' => ['required', 'array', 'min:1'],
             'detalles.*.producto_id' => ['nullable', 'integer', Rule::exists('producto', 'id')],
             'detalles.*.tipo_proyecto_id' => ['nullable', 'integer', Rule::exists('tipo_proyecto', 'id')],
-            'detalles.*.descripcion' => ['required', 'string', 'max:255'],
+            // Texto largo: la descripción de un exhibidor ocupa varios
+            // párrafos (material, acabado, impresión) y el PDF respeta los
+            // saltos de línea.
+            'detalles.*.descripcion' => ['required', 'string', 'max:2000'],
             'detalles.*.ancho' => ['nullable', 'numeric', 'min:0'],
             'detalles.*.alto' => ['nullable', 'numeric', 'min:0'],
+            // Muebles y exhibidores: ancho × alto × profundidad y niveles.
+            'detalles.*.profundidad' => ['nullable', 'numeric', 'min:0'],
+            'detalles.*.niveles' => ['nullable', 'integer', 'min:1', 'max:50'],
             // Imagen referencial de la línea: un archivo nuevo (se convierte
             // a JPG, ver App\Services\Imagen\ConvierteImagenAJpgService),
             // "usar imagen del producto" (la copia del catálogo), o ninguna.
@@ -64,6 +77,15 @@ class StoreCotizacionRequest extends FormRequest
             'detalles.*.imagen_actual' => ['nullable', 'string'],
             'detalles.*.cantidad' => ['required', 'numeric', 'min:0.01'],
             'detalles.*.instalacion' => ['nullable', 'numeric', 'min:0'],
+            // Desglose opcional de la instalación. Si viene, el monto lo
+            // calcula el servidor y se ignora `instalacion`.
+            'detalles.*.instalacion_detalle' => ['nullable', 'array'],
+            'detalles.*.instalacion_detalle.personas' => ['required_with:detalles.*.instalacion_detalle', 'integer', 'min:1', 'max:100'],
+            'detalles.*.instalacion_detalle.horas' => ['required_with:detalles.*.instalacion_detalle', 'numeric', 'min:0', 'max:1000'],
+            'detalles.*.instalacion_detalle.costo_hora' => ['required_with:detalles.*.instalacion_detalle', 'numeric', 'min:0', 'max:10000'],
+            'detalles.*.instalacion_detalle.nocturna' => ['nullable', 'boolean'],
+            'detalles.*.instalacion_detalle.recargo_nocturno' => ['nullable', 'numeric', 'min:0', 'max:300'],
+            'detalles.*.instalacion_detalle.transporte' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'detalles.*.precio_manual' => ['nullable', Rule::in(['SI', 'NO'])],
             // Solo obligatorio cuando el vendedor fija el precio a mano; si
             // no, lo calcula el motor de margen a partir de los insumos.
@@ -89,8 +111,15 @@ class StoreCotizacionRequest extends FormRequest
             'detalles.*.tipo_proyecto_id' => 'tipo de proyecto',
             'detalles.*.descripcion' => 'descripción',
             'detalles.*.cantidad' => 'cantidad',
+            'detalles.*.profundidad' => 'profundidad',
+            'detalles.*.niveles' => 'niveles',
             'detalles.*.precio_unitario' => 'precio unitario',
             'detalles.*.instalacion' => 'instalación',
+            'detalles.*.instalacion_detalle.personas' => 'personas',
+            'detalles.*.instalacion_detalle.horas' => 'horas',
+            'detalles.*.instalacion_detalle.costo_hora' => 'costo por hora',
+            'detalles.*.instalacion_detalle.recargo_nocturno' => 'recargo nocturno',
+            'detalles.*.instalacion_detalle.transporte' => 'transporte',
             'detalles.*.items.*.descripcion' => 'descripción del insumo',
             'detalles.*.items.*.cantidad' => 'cantidad del insumo',
             'detalles.*.items.*.costo_unitario' => 'costo unitario del insumo',

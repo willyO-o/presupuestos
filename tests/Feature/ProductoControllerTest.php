@@ -108,6 +108,21 @@ test('a user with permission can create a producto', function () {
     $this->assertDatabaseHas('producto', ['nombre' => 'Bastidor lona PVC 1440dpi', 'categoria_producto_id' => $categoria->id]);
 });
 
+test('a producto keeps the labour hours one unit usually takes', function () {
+    $user = userWithProductoPermissions('productos.ver', 'productos.crear');
+
+    $this->actingAs($user)->post(route('productos.store'), [
+        'categoria_producto_id' => CategoriaProducto::factory()->create()->id,
+        'nombre' => 'Cabecera exhibidora',
+        'unidad_medida' => 'UNIDAD',
+        'horas_mano_obra' => 16,
+        'requiere_medidas' => 'SI',
+        'estado' => 'ACTIVO',
+    ])->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('producto', ['nombre' => 'Cabecera exhibidora', 'horas_mano_obra' => 16]);
+});
+
 test('a producto can be created without precio_base', function () {
     $categoria = CategoriaProducto::factory()->create();
     $user = userWithProductoPermissions('productos.ver', 'productos.crear');

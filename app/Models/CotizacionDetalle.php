@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Storage;
     'descripcion',
     'ancho',
     'alto',
+    'profundidad',
+    'niveles',
     'area_m2',
     'imagen',
     'cantidad',
@@ -29,6 +31,7 @@ use Illuminate\Support\Facades\Storage;
     'precio_unitario',
     'precio_manual',
     'instalacion',
+    'instalacion_detalle',
     'subtotal',
 ])]
 
@@ -57,6 +60,8 @@ class CotizacionDetalle extends Model
         return [
             'ancho' => 'decimal:2',
             'alto' => 'decimal:2',
+            'profundidad' => 'decimal:2',
+            'niveles' => 'integer',
             'area_m2' => 'decimal:2',
             'cantidad' => 'decimal:2',
             'costo_base' => 'decimal:2',
@@ -65,6 +70,7 @@ class CotizacionDetalle extends Model
             'costo_ajustado' => 'decimal:2',
             'precio_unitario' => 'decimal:2',
             'instalacion' => 'decimal:2',
+            'instalacion_detalle' => 'array',
             'subtotal' => 'decimal:2',
         ];
     }

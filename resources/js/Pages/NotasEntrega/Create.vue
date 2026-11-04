@@ -7,6 +7,7 @@ import FileDropzone from '@/Components/FileDropzone.vue';
 import QuickCreateModal from '@/Components/QuickCreateModal.vue';
 import EmpleadoFormFields from '@/Components/Empleado/EmpleadoFormFields.vue';
 import { showError } from '@/Utils/AlertUtil';
+import { primerRenglon } from '@/Utils/Descripcion';
 import { hoyYmd } from '@/Utils/Fecha';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -162,7 +163,7 @@ function submit() {
                 <div v-for="(linea, index) in form.detalles" :key="linea.pedido_detalle_id" class="compra-linea">
                     <label class="d-flex align-items-center gap-2 fw-semibold fs-sm mb-3">
                         <input v-model="linea.incluir" type="checkbox" />
-                        {{ linea.descripcion }}
+                        {{ primerRenglon(linea.descripcion) }}
                     </label>
 
                     <div v-if="linea.incluir" class="row">

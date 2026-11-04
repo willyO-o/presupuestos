@@ -5,6 +5,7 @@ import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import { confirmation } from '@/Utils/AlertUtil';
 import { CLASES_SEMAFORO, textoRecomendacion } from '@/Utils/MotorMargen';
 import { formatearFecha } from '@/Utils/Fecha';
+import { esMultilinea, primerRenglon, sinPrimerRenglon } from '@/Utils/Descripcion';
 
 defineOptions({ layout: MainDashboardLayout });
 
@@ -12,6 +13,8 @@ const props = defineProps({
     cotizacion: { type: Object, required: true },
     // Desglose de rentabilidad por línea (interno, no se imprime).
     margen: { type: Array, default: () => [] },
+    // "Dos Mil … 00/100 Bolivianos": lo arma el servidor, igual que en el PDF.
+    montoEnLetras: { type: String, default: '' },
     config: { type: Object, default: () => ({ impuestos: {}, semaforo: {} }) },
 });
 
@@ -55,9 +58,24 @@ function nombreEmpleado(e) {
     return [e.nombres, e.paterno, e.materno].filter(Boolean).join(' ');
 }
 
-/** "3,00 × 1,58 m · 4,74 m²" (medidas de una unidad). */
+/**
+ * "3,00 × 1,58" o, en un mueble, "0,70 × 1,75 × 0,30" (ancho × alto ×
+ * profundidad de una unidad, en metros por la cabecera). El área en m² es
+ * un dato de cálculo interno: no va en el documento del cliente.
+ */
 function medidas(d) {
-    return d.ancho && d.alto ? `${numero(d.ancho)} × ${numero(d.alto)} m · ${numero(d.area_m2)} m²` : '—';
+    if (!(Number(d.ancho) && Number(d.alto))) return '—';
+
+    const partes = [d.ancho, d.alto, ...(Number(d.profundidad) ? [d.profundidad] : [])];
+
+    return partes.map((valor) => numero(valor)).join(' × ');
+}
+
+/** "1 nivel" / "4 niveles", o vacío. */
+function nivelesTexto(d) {
+    const n = Number(d.niveles);
+
+    return n > 0 ? `${n} ${n === 1 ? 'nivel' : 'niveles'}` : '';
 }
 
 /* ----- Resumen ------------------------------------------------------------- */
@@ -129,6 +147,13 @@ async function eliminar() {
 }
 
 /* ----- Documento ----------------------------------------------------------- */
+
+/** Condiciones de venta cargadas en la cotización (las vacías no se muestran). */
+const condiciones = computed(() => [
+    { rotulo: 'Forma de pago', valor: props.cotizacion.forma_pago },
+    { rotulo: 'Tiempo de entrega', valor: props.cotizacion.tiempo_entrega },
+    { rotulo: 'Lugar de entrega', valor: props.cotizacion.lugar_entrega },
+].filter((c) => c.valor));
 
 const conImagenes = computed(() => props.cotizacion.detalles.some((d) => d.imagen_url));
 const conMedidas = computed(() => props.cotizacion.detalles.some((d) => d.ancho && d.alto));
@@ -297,6 +322,9 @@ const totalInsumos = computed(() => lineasConInsumos.value.reduce((total, d) => 
                         <p class="cotizacion-doc-rotulo">Cliente</p>
                         <p class="fw-semibold mb-0">{{ cotizacion.cliente?.razon_social ?? '—' }}</p>
                         <p class="fs-sm text-muted mb-0">NIT: {{ cotizacion.cliente?.nit ?? '—' }}</p>
+                        <p v-if="cotizacion.cliente?.contacto_nombre" class="fs-sm text-muted mb-0">
+                            Contacto: {{ cotizacion.cliente.contacto_nombre }}
+                        </p>
                         <p v-if="cotizacion.cliente?.telefono" class="fs-sm text-muted mb-0">
                             Tel: {{ cotizacion.cliente.telefono }}
                         </p>
@@ -323,7 +351,7 @@ const totalInsumos = computed(() => lineasConInsumos.value.reduce((total, d) => 
                                 <th scope="col">#</th>
                                 <th v-if="conImagenes" scope="col"><span class="sr-only">Imagen</span></th>
                                 <th scope="col">Producto</th>
-                                <th scope="col" class="text-center">Medidas por unidad</th>
+                                <th scope="col" class="text-center">Medidas (m)</th>
                                 <th scope="col" class="text-center">Cantidad</th>
                                 <th scope="col" class="text-end">Precio unitario</th>
                                 <th scope="col" class="text-end">Subtotal</th>
@@ -334,14 +362,21 @@ const totalInsumos = computed(() => lineasConInsumos.value.reduce((total, d) => 
                                 <td>{{ i + 1 }}</td>
                                 <td v-if="conImagenes">
                                     <a v-if="d.imagen_url" :href="d.imagen_url" target="_blank" rel="noopener">
-                                        <img :src="d.imagen_url" :alt="`Imagen de referencia: ${d.descripcion}`" class="article-thumb" />
+                                        <img :src="d.imagen_url" :alt="`Imagen de referencia: ${primerRenglon(d.descripcion)}`" class="article-thumb" />
                                     </a>
                                 </td>
                                 <td>
-                                    {{ d.descripcion }}
-                                    <span v-if="d.producto" class="d-block fs-xs text-muted">{{ d.producto.nombre }}</span>
+                                    <!-- Como en el PDF: el primer renglón es el título del ítem. -->
+                                    <template v-if="esMultilinea(d.descripcion)">
+                                        <span class="cotizacion-doc-item-titulo">{{ primerRenglon(d.descripcion) }}</span>
+                                        <span class="d-block text-prewrap">{{ sinPrimerRenglon(d.descripcion) }}</span>
+                                    </template>
+                                    <template v-else>{{ d.descripcion }}</template>
                                 </td>
-                                <td class="text-center">{{ medidas(d) }}</td>
+                                <td class="text-center">
+                                    {{ medidas(d) }}
+                                    <span v-if="nivelesTexto(d)" class="d-block">{{ nivelesTexto(d) }}</span>
+                                </td>
                                 <td class="text-center">{{ Number(d.cantidad) }}</td>
                                 <td class="text-end">{{ money(d.precio_unitario) }}</td>
                                 <td class="text-end fw-semibold">{{ money(d.subtotal) }}</td>
@@ -366,6 +401,18 @@ const totalInsumos = computed(() => lineasConInsumos.value.reduce((total, d) => 
                         <span>Total</span><span>{{ money(cotizacion.total) }}</span>
                     </div>
                 </div>
+
+                <p v-if="montoEnLetras" class="cotizacion-doc-son">
+                    <span class="cotizacion-doc-rotulo">Son</span>
+                    {{ montoEnLetras }}
+                </p>
+
+                <dl v-if="condiciones.length" class="cotizacion-doc-condiciones">
+                    <div v-for="c in condiciones" :key="c.rotulo">
+                        <dt>{{ c.rotulo }}</dt>
+                        <dd>{{ c.valor }}</dd>
+                    </div>
+                </dl>
 
                 <div v-if="cotizacion.observaciones" class="cotizacion-doc-notes">
                     <p class="cotizacion-doc-rotulo">Observaciones</p>
@@ -495,7 +542,7 @@ const totalInsumos = computed(() => lineasConInsumos.value.reduce((total, d) => 
                                 </thead>
                                 <tbody>
                                     <tr v-for="d in cotizacion.detalles" :key="`m-${d.id}`">
-                                        <td>{{ d.descripcion }}</td>
+                                        <td>{{ primerRenglon(d.descripcion) }}</td>
                                         <td>{{ d.tipo_proyecto?.nombre ?? 'Precio a mano' }}</td>
                                         <td class="text-center">× {{ numero(d.factor_complejidad) }}</td>
                                         <td class="text-end">{{ d.tipo_proyecto ? pct(d.margen_aplicado) : '—' }}</td>
@@ -543,7 +590,7 @@ const totalInsumos = computed(() => lineasConInsumos.value.reduce((total, d) => 
                             Ver hoja de costos · {{ totalInsumos }} {{ totalInsumos === 1 ? 'insumo' : 'insumos' }}
                         </summary>
                         <div v-for="d in lineasConInsumos" :key="`h-${d.id}`" class="cotizacion-desplegable-cuerpo">
-                            <p v-if="lineasConInsumos.length > 1" class="fs-sm fw-semibold mb-2">{{ d.descripcion }}</p>
+                            <p v-if="lineasConInsumos.length > 1" class="fs-sm fw-semibold mb-2">{{ primerRenglon(d.descripcion) }}</p>
                             <div class="table-responsive">
                                 <table class="table-dashboard table-sm">
                                     <thead>

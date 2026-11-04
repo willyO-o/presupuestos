@@ -13,6 +13,57 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-11-04 — Horas de mano de obra por producto y ajuste de profundidad/niveles en producción
+
+**Qué cambió:**
+- Cada producto puede guardar las **horas de mano de obra** que suele llevar una unidad (ej. cabecera 16 h). "Traer insumos del producto" las agrega a la hoja de costos a la tarifa de la empresa, y el precio sugerido ya las incluye. El vendedor las ajusta según el mueble.
+- "Ajustar medidas reales" del pedido ahora también corrige **profundidad y niveles**; la nota del seguimiento y la orden de trabajo los muestran.
+
+**Por qué:**
+- Pendientes del análisis de las cotizaciones reales (`publi/ejemplos`): asignar horas según el tipo de mueble, y que el taller pueda corregir las medidas de un mueble completo.
+
+**Cómo:**
+- Migración `2026_11_04_033540_add_horas_mano_obra_to_producto` (opcional; sin horas, nada cambia). `PrecioSugeridoService` suma la fila MANO_OBRA (`DESCRIPCION_MANO_OBRA`) y la pasa al motor; el formulario la reemplaza en vez de duplicarla al volver a traer insumos.
+- `ActualizarMedidasRequest` + `PedidoController::actualizarMedidas`: si el formulario no manda profundidad/niveles, se conservan los copiados de la cotización. `PedidoDetalle::cotizadoSiSeAjusto()` los compara.
+- 5 tests nuevos (919 en total).
+
+---
+
+## 2026-11-04 — Cotizar muebles, exhibidores e instalaciones como en las cotizaciones reales
+
+**Qué cambió:**
+- Fase 1 · Muebles y exhibidores: cada línea acepta **profundidad** y **niveles** ("0,70 × 1,75 × 0,30 · 4 niveles") y una **descripción larga** de varios párrafos (antes, máximo 255 caracteres). El primer renglón es el título del ítem y sale en negrita en el PDF y en pantalla. Pedidos, órdenes de trabajo, notas de entrega y el portal la muestran sin cortarla; notificaciones y notas de ajuste usan solo el título.
+- Fase 2 · Mano de obra e instalación: el botón "Mano de obra" trae la tarifa de la empresa (Bs 18/h). La instalación se puede **calcular** por línea (personas × horas × Bs/hora, recargo nocturno por horas extra, más transporte). Nueva casilla **"Cobrar IVA también sobre la instalación"** por cotización.
+- Fase 3 · Documento: forma de pago, tiempo y lugar de entrega por cotización; **"Son: … 00/100 Bolivianos"**; contacto del cliente en el PDF.
+
+**Por qué:**
+- Revisión de las cotizaciones reales en `publi/ejemplos` (cabeceras e islas Kotex/Huggies, estantes, brandeo de camiones): se cotizan en 3 dimensiones y por niveles, con descripciones largas, mano de obra por hora, instalaciones con transporte y horario nocturno, y condiciones de venta propias.
+
+**Cómo:**
+- Migraciones `2026_11_04_*`: `profundidad`/`niveles` en `cotizacion_detalle` y `pedido_detalle` (se copian al convertir); `descripcion` a TEXT en cotización, pedido y nota de entrega; `cotizacion.instalacion_con_iva` (SI/NO, default NO = como antes) y `cotizacion_detalle.instalacion_detalle` (JSON); `forma_pago`/`tiempo_entrega`/`lugar_entrega` en `cotizacion`. Todo opcional: lo existente no cambia.
+- `niveles` es variable de fórmula (`ancho * profundo * niveles`); el probador de fórmulas la acepta. La instalación y su IVA los calcula el servidor (`normalizarInstalacion`, `calcularMontos`); el motor de margen NO cambia.
+- Configuración (`config/cotizacion.php` + `.env`): `COTIZACION_COSTO_HORA_MANO_OBRA` (18), `COTIZACION_RECARGO_NOCTURNO` (50 %), `COTIZACION_INSTALACION_CON_IVA` (false).
+- `App\Services\Pdf\MontoEnLetras` (sin depender de intl), `Documento::medidasTexto()`/`nivelesTexto()`, celdas de tabla con `trozos` (estilos mezclados), `Utils/Descripcion.js`. 38 tests nuevos (914 en total).
+
+---
+
+## 2026-11-03 — La cotización al cliente ya no muestra m² ni el producto del catálogo
+
+**Qué cambió:**
+- En el PDF de la cotización, la columna "Medidas (m)" muestra solo `2,00 × 1,00`; ya no aparece el área en m² debajo.
+- Debajo de la descripción ya no sale en letra chica el nombre del producto del catálogo.
+- Lo mismo en el documento de la pantalla `Cotizaciones/Show` y, para el m², en el PDF de la estimación del cotizador web.
+
+**Por qué:**
+- Pedido del usuario: el área y el producto de catálogo son datos de cálculo internos; al cliente le basta la descripción y las medidas.
+
+**Cómo:**
+- `CotizacionPdf::medidas()` y `CotizacionPublicaPdf::medidas()` devuelven solo "ancho × alto"; la celda de descripción ya no lleva `nota`.
+- La orden de trabajo (`PedidoPdf`) conserva el m²: el taller sí lo necesita.
+- Tests en `GeneradorPdfTest.php`.
+
+---
+
 ## 2026-11-02 — Las fechas ya no se muestran un día antes
 
 **Qué cambió:**

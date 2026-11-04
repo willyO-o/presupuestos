@@ -100,7 +100,7 @@ function imprimir() {
                     <tbody>
                         <tr v-for="(d, i) in nota.detalles" :key="d.id">
                             <td>{{ i + 1 }}</td>
-                            <td>{{ d.descripcion }}</td>
+                            <td class="text-prewrap">{{ d.descripcion }}</td>
                             <td class="text-end">{{ Number(d.cantidad_entregada) }}</td>
                             <td>{{ d.ubicacion ?? '—' }}</td>
                             <td>

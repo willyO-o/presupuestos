@@ -116,13 +116,13 @@ async function confirmDelete(formula) {
 
 /* ── Probar fórmula (medidas de prueba, sin guardar nada) ────────────── */
 
-const prueba = ref({ ancho: '', alto: '', profundo: '' });
+const prueba = ref({ ancho: '', alto: '', profundo: '', niveles: '' });
 const pruebaResultado = ref(null);
 const pruebaError = ref(null);
 const probando = ref(false);
 
 function resetPrueba() {
-    prueba.value = { ancho: '', alto: '', profundo: '' };
+    prueba.value = { ancho: '', alto: '', profundo: '', niveles: '' };
     pruebaResultado.value = null;
     pruebaError.value = null;
 }
@@ -138,6 +138,7 @@ async function probarFormula() {
             ancho: prueba.value.ancho || null,
             alto: prueba.value.alto || null,
             profundo: prueba.value.profundo || null,
+            niveles: prueba.value.niveles || null,
         });
         pruebaResultado.value = data.resultado;
     } catch (error) {
@@ -257,8 +258,10 @@ async function probarFormula() {
                     </p>
                     <p class="fs-sm text-muted mt-1">
                         Variables disponibles: <code>ancho</code>, <code>alto</code>, <code>profundo</code>,
-                        <code>area</code> (=ancho×alto), <code>perimetro</code> (=(ancho+alto)×2). Se evalúan en
-                        metros; el resultado es la cantidad de material que consume UNA unidad del producto.
+                        <code>niveles</code> (repisas de un mueble), <code>area</code> (=ancho×alto),
+                        <code>perimetro</code> (=(ancho+alto)×2). Las medidas se evalúan en metros; el resultado es
+                        la cantidad de material que consume UNA unidad del producto. Ejemplo para el trupan de un
+                        estante: <code>ancho * profundo * niveles</code>.
                     </p>
                 </div>
 
@@ -284,17 +287,21 @@ async function probarFormula() {
                     <div class="card-body">
                         <p class="fw-semibold mb-2">Probar fórmula</p>
                         <div class="row">
-                            <div class="col-lg-3">
+                            <div class="col-lg-2 col-6">
                                 <input v-model="prueba.ancho" type="number" step="0.01" min="0" class="form-control"
-                                    placeholder="Ancho (m)" />
+                                    placeholder="Ancho (m)" aria-label="Ancho de prueba (m)" />
                             </div>
-                            <div class="col-lg-3">
+                            <div class="col-lg-2 col-6">
                                 <input v-model="prueba.alto" type="number" step="0.01" min="0" class="form-control"
-                                    placeholder="Alto (m)" />
+                                    placeholder="Alto (m)" aria-label="Alto de prueba (m)" />
                             </div>
-                            <div class="col-lg-3">
+                            <div class="col-lg-3 col-6">
                                 <input v-model="prueba.profundo" type="number" step="0.01" min="0" class="form-control"
-                                    placeholder="Profundo (m)" />
+                                    placeholder="Profundo (m)" aria-label="Profundidad de prueba (m)" />
+                            </div>
+                            <div class="col-lg-2 col-6">
+                                <input v-model="prueba.niveles" type="number" step="1" min="1" class="form-control"
+                                    placeholder="Niveles" aria-label="Niveles de prueba" />
                             </div>
                             <div class="col-lg-3">
                                 <button type="button" class="btn btn-soft-info w-100"

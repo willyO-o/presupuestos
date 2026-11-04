@@ -206,12 +206,16 @@ class PedidoController extends Controller
         }
 
         $datos = $request->validated();
-        $anterior = $detalle->only(['descripcion', 'ancho', 'alto', 'cantidad']);
+        $anterior = $detalle->only(['descripcion', 'ancho', 'alto', 'profundidad', 'niveles', 'cantidad']);
 
         $detalle->update([
             'descripcion' => $datos['descripcion'],
             'ancho' => $datos['ancho'] ?? null,
             'alto' => $datos['alto'] ?? null,
+            // Solo si vinieron en el formulario: un cliente que no los conoce
+            // no debe borrar la profundidad y los niveles copiados de la cotización.
+            'profundidad' => array_key_exists('profundidad', $datos) ? $datos['profundidad'] : $detalle->profundidad,
+            'niveles' => array_key_exists('niveles', $datos) ? $datos['niveles'] : $detalle->niveles,
             'cantidad' => $datos['cantidad'],
         ]);
 
@@ -219,6 +223,23 @@ class PedidoController extends Controller
 
         return redirect()->route('pedidos.show', $pedido)
             ->with('success', 'Medidas de producción actualizadas.');
+    }
+
+    /**
+     * "2.00 x 1.50" o "0.70 x 1.75 x 0.30, 4 niveles" para la nota de ajuste;
+     * "— x —" si el ítem no tiene medidas.
+     *
+     * @param  array<string, mixed>  $medidas
+     */
+    private function medidasParaNota(array $medidas): string
+    {
+        $texto = implode(' x ', array_filter([
+            $medidas['ancho'] ?? '—',
+            $medidas['alto'] ?? '—',
+            $medidas['profundidad'] ?? null,
+        ], fn ($valor) => $valor !== null));
+
+        return ($medidas['niveles'] ?? null) ? "{$texto}, {$medidas['niveles']} niveles" : $texto;
     }
 
     /**
@@ -236,14 +257,12 @@ class PedidoController extends Controller
         }
 
         $nota = sprintf(
-            'Ajuste de medidas: %s (%s x %s, cant. %s) → %s (%s x %s, cant. %s).%s',
-            $anterior['descripcion'],
-            $anterior['ancho'] ?? '—',
-            $anterior['alto'] ?? '—',
+            'Ajuste de medidas: %s (%s, cant. %s) → %s (%s, cant. %s).%s',
+            PedidoDetalle::resumir($anterior['descripcion']),
+            $this->medidasParaNota($anterior),
             $anterior['cantidad'],
-            $detalle->descripcion,
-            $detalle->ancho ?? '—',
-            $detalle->alto ?? '—',
+            PedidoDetalle::resumir($detalle->descripcion),
+            $this->medidasParaNota($detalle->only(['ancho', 'alto', 'profundidad', 'niveles'])),
             $detalle->cantidad,
             $motivo !== null ? " Motivo: {$motivo}" : '',
         );

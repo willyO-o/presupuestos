@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import ClientePortalLayout from '@/Layouts/ClientePortalLayout.vue';
+import { primerRenglon } from '@/Utils/Descripcion';
 import { formatearFecha } from '@/Utils/Fecha';
 
 defineOptions({ layout: ClientePortalLayout });
@@ -56,7 +57,7 @@ function pasoIndex(estado) {
                 <div class="card-body">
                     <ul class="list-group">
                         <li v-for="d in pedido.detalles" :key="d.id" class="list-group-item">
-                            <span class="list-group-item-title">{{ d.descripcion }}</span>
+                            <span class="list-group-item-title">{{ primerRenglon(d.descripcion) }}</span>
                             <span class="badge badge-soft-secondary">{{ d.estado_item }}</span>
                         </li>
                     </ul>

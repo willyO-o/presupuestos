@@ -101,7 +101,7 @@ class PedidoPdf extends Documento
             $this->pedido->detalles->values()->map(fn ($linea, $indice): array => [
                 (string) ($indice + 1),
                 $this->trabajo($linea),
-                $this->medidas($linea->ancho, $linea->alto),
+                $this->medidas($linea),
                 $this->numero($linea->cantidad, 0),
                 str_replace('_', ' ', $linea->estado_item),
             ])->all(),
@@ -152,8 +152,12 @@ class PedidoPdf extends Documento
             $partes[] = $cotizado['descripcion'];
         }
 
-        if ($cotizado['ancho'] && $cotizado['alto']) {
-            $partes[] = $this->numero($cotizado['ancho']).' × '.$this->numero($cotizado['alto']).' m';
+        if ($medidas = $this->medidasTexto($cotizado['ancho'], $cotizado['alto'], $cotizado['profundidad'])) {
+            $partes[] = $medidas.' m';
+        }
+
+        if ($niveles = $this->nivelesTexto($cotizado['niveles'])) {
+            $partes[] = $niveles;
         }
 
         $partes[] = 'cant. '.$this->numero($cotizado['cantidad'], 0);
@@ -164,15 +168,26 @@ class PedidoPdf extends Documento
         ];
     }
 
-    private function medidas(mixed $ancho, mixed $alto): string|array
+    /**
+     * Medidas de producción. El taller necesita el área de una pieza plana
+     * (lona, vinil); en un mueble con profundidad el área no dice nada, así
+     * que la nota pasa a ser sus niveles.
+     *
+     * @return string|array{texto: string, nota: string}
+     */
+    private function medidas(PedidoDetalle $linea): string|array
     {
-        if (! $ancho || ! $alto) {
-            return '—';
+        $texto = $this->medidasTexto($linea->ancho, $linea->alto, $linea->profundidad);
+        $niveles = $this->nivelesTexto($linea->niveles);
+
+        if ($texto === null) {
+            return $niveles ?? '—';
         }
 
-        return [
-            'texto' => $this->numero($ancho).' × '.$this->numero($alto),
-            'nota' => $this->numero((float) $ancho * (float) $alto).' m²',
-        ];
+        $nota = $niveles ?? ((float) $linea->profundidad
+            ? null
+            : $this->numero((float) $linea->ancho * (float) $linea->alto).' m²');
+
+        return $nota === null ? $texto : ['texto' => $texto, 'nota' => $nota];
     }
 }

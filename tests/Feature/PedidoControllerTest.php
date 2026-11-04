@@ -112,6 +112,34 @@ test('storing converts an approved cotizacion into a pedido', function () {
         ->and((float) $pedido->total)->toBe((float) $cotizacion->total);
 });
 
+test('converting copies profundidad, niveles and the full descripcion to the pedido', function () {
+    $cotizacion = cotizacionConvertible(1);
+    $descripcion = 'Elaborado de Isla'.PHP_EOL.str_repeat('Base metálica con trupan MDF. ', 12);
+    $cotizacion->detalles->first()->update([
+        'descripcion' => $descripcion,
+        'ancho' => 0.7,
+        'alto' => 1.6,
+        'profundidad' => 0.7,
+        'niveles' => 3,
+    ]);
+
+    $this->actingAs(userWithPedidoGlobal('pedidos.crear'))
+        ->post(route('pedidos.store'), ['cotizacion_id' => $cotizacion->id]);
+
+    $item = Pedido::latest('id')->first()->detalles->first();
+
+    expect($item->descripcion)->toBe($descripcion)
+        ->and((float) $item->profundidad)->toBe(0.7)
+        ->and($item->niveles)->toBe(3);
+});
+
+test('a long descripcion is summarised to its first line for short messages', function () {
+    $descripcion = 'Elaborado de Cabecera'.PHP_EOL.'Base metálica montada con trupan MDF.';
+
+    expect(PedidoDetalle::resumir($descripcion))->toBe('Elaborado de Cabecera')
+        ->and(PedidoDetalle::resumir(str_repeat('a', 100), 10))->toBe('aaaaaaaaaa...');
+});
+
 test('a cotizacion that is not approved cannot be converted', function () {
     $cotizacion = Cotizacion::factory()->has(CotizacionDetalle::factory(), 'detalles')->create();
 
@@ -296,6 +324,61 @@ test('production measurements can diverge from the cotizacion that originated th
         ->and($cotizacionDetalle->fresh()->descripcion)->toBe($cotizacionDetalle->descripcion);
 });
 
+test('production can adjust the depth and shelves of a piece of furniture', function () {
+    $pedido = Pedido::factory()->create();
+    $detalle = PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'descripcion' => 'Estante metálico',
+        'ancho' => 2.9,
+        'alto' => 2,
+        'profundidad' => 0.45,
+        'niveles' => 5,
+        'cantidad' => 1,
+    ]);
+    PedidoSeguimiento::factory()->create(['pedido_detalle_id' => $detalle->id]);
+
+    $this->actingAs(userWithPedidoGlobal('pedidos.actualizar_estado'))
+        ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
+            'descripcion' => 'Estante metálico',
+            'ancho' => 2.9,
+            'alto' => 2,
+            'profundidad' => 0.5,
+            'niveles' => 4,
+            'cantidad' => 1,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $detalle->refresh();
+
+    expect((float) $detalle->profundidad)->toBe(0.5)
+        ->and($detalle->niveles)->toBe(4)
+        ->and($detalle->seguimientos()->latest('id')->first()->observaciones)
+        ->toContain('2.90 x 2.00 x 0.45, 5 niveles')
+        ->toContain('2.90 x 2.00 x 0.50, 4 niveles');
+});
+
+test('an adjustment without depth or shelves keeps the ones copied from the quote', function () {
+    $pedido = Pedido::factory()->create();
+    $detalle = PedidoDetalle::factory()->create([
+        'pedido_id' => $pedido->id,
+        'profundidad' => 0.3,
+        'niveles' => 4,
+    ]);
+
+    $this->actingAs(userWithPedidoGlobal('pedidos.actualizar_estado'))
+        ->put(route('pedidos.detalle.medidas', [$pedido, $detalle]), [
+            'descripcion' => 'Cabecera',
+            'ancho' => 0.7,
+            'alto' => 1.75,
+            'cantidad' => 1,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $detalle->refresh();
+
+    expect((float) $detalle->profundidad)->toBe(0.3)->and($detalle->niveles)->toBe(4);
+});
+
 test('adjusting measurements does not change the agreed price', function () {
     $pedido = Pedido::factory()->create(['total' => 1500]);
     $detalle = PedidoDetalle::factory()->create(['pedido_id' => $pedido->id, 'cantidad' => 2]);
@@ -382,7 +465,14 @@ test('the pedido page shows what was quoted for the items adjusted in production
     $this->actingAs($usuario)->get(route('pedidos.show', $pedido))
         ->assertInertia(fn ($page) => $page
             ->has('ajustes', 1)
-            ->where("ajustes.{$ajustado->id}", ['descripcion' => 'Isla promocional', 'ancho' => 2.5, 'alto' => 1.9, 'cantidad' => 4]));
+            ->where("ajustes.{$ajustado->id}", [
+                'descripcion' => 'Isla promocional',
+                'ancho' => 2.5,
+                'alto' => 1.9,
+                'profundidad' => null,
+                'niveles' => null,
+                'cantidad' => 4,
+            ]));
 });
 
 test('measurements of a detalle from another pedido are rejected', function () {

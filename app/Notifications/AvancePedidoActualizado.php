@@ -36,7 +36,12 @@ class AvancePedidoActualizado extends Notification
     {
         return [
             'titulo' => 'Avance de pedido actualizado',
-            'mensaje' => "Pedido {$this->pedido->numero_pedido}: \"{$this->detalle->descripcion}\" pasó a {$this->detalle->estado_item}",
+            'mensaje' => sprintf(
+                'Pedido %s: "%s" pasó a %s',
+                $this->pedido->numero_pedido,
+                PedidoDetalle::resumir($this->detalle->descripcion),
+                $this->detalle->estado_item,
+            ),
             'url' => route('pedidos.show', $this->pedido),
             'icono' => 'fa-solid fa-dolly',
             'color' => 'primary',

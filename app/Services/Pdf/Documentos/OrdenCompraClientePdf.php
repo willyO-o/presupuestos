@@ -123,9 +123,7 @@ class OrdenCompraClientePdf extends Documento
                 $pedido->detalles->values()->map(fn ($linea, $indice): array => [
                     (string) ($indice + 1),
                     $linea->descripcion,
-                    $linea->ancho && $linea->alto
-                        ? $this->numero($linea->ancho).' × '.$this->numero($linea->alto)
-                        : '—',
+                    $this->medidasTexto($linea->ancho, $linea->alto, $linea->profundidad) ?? '—',
                     $this->numero($linea->cantidad, 0),
                 ])->all(),
             );

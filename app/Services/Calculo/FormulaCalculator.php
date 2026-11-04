@@ -45,7 +45,7 @@ class FormulaCalculator
 
     /**
      * Valida que `$expresion` sea evaluable: sintaxis correcta y solo usa
-     * variables conocidas (ancho/alto/profundo/area/perimetro), probando
+     * variables conocidas (ancho/alto/profundo/niveles/area/perimetro), probando
      * con medidas ficticias. Se usa al crear/editar una Formula o una línea
      * de producto_material, antes de guardar — no depende de datos reales.
      *
@@ -53,7 +53,7 @@ class FormulaCalculator
      */
     public function validar(string $expresion): void
     {
-        $this->evaluar($expresion, new MedidasCotizacion(ancho: 1.0, alto: 1.0, profundo: 1.0));
+        $this->evaluar($expresion, new MedidasCotizacion(ancho: 1.0, alto: 1.0, profundo: 1.0, niveles: 1));
     }
 
     /**

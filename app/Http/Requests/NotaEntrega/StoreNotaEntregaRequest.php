@@ -42,7 +42,7 @@ class StoreNotaEntregaRequest extends FormRequest
 
             'detalles' => ['required', 'array', 'min:1'],
             'detalles.*.pedido_detalle_id' => ['required', 'integer', Rule::exists('pedido_detalle', 'id')],
-            'detalles.*.descripcion' => ['required', 'string', 'max:255'],
+            'detalles.*.descripcion' => ['required', 'string', 'max:2000'],
             'detalles.*.cantidad_entregada' => ['required', 'numeric', 'min:0.01'],
             'detalles.*.ubicacion' => ['nullable', 'string', 'max:255'],
             // Se convierte a JPG antes de guardarse (ver

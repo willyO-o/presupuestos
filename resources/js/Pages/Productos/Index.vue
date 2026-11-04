@@ -96,6 +96,7 @@ const form = useForm(() => ({
     descripcion: '',
     unidad_medida: 'M2',
     precio_base: '',
+    horas_mano_obra: '',
     requiere_medidas: 'SI',
     cotizable_web: 'NO',
     estado: 'ACTIVO',
@@ -119,6 +120,7 @@ function openEdit(producto) {
     form.descripcion = producto.descripcion;
     form.unidad_medida = producto.unidad_medida;
     form.precio_base = producto.precio_base;
+    form.horas_mano_obra = producto.horas_mano_obra ?? '';
     form.requiere_medidas = producto.requiere_medidas;
     form.cotizable_web = producto.cotizable_web;
     form.estado = producto.estado;

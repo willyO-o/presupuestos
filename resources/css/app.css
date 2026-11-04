@@ -2479,6 +2479,38 @@
     @apply mt-5 border-t pt-4;
 }
 
+/* Primer renglón de la descripción de un ítem: su título, como en el PDF. */
+.cotizacion-doc-item-titulo {
+    color: var(--text-heading);
+    @apply block font-semibold;
+}
+
+/* "Son: Dos Mil … 00/100 Bolivianos", bajo el total y alineado con él. */
+.cotizacion-doc-son {
+    color: var(--text-heading);
+    @apply mb-0 ml-auto mt-2 w-full max-w-sm text-end text-sm;
+}
+
+.cotizacion-doc-son .cotizacion-doc-rotulo {
+    @apply mb-0 me-1 inline;
+}
+
+/* Condiciones de venta de la cotización: rótulo y valor en dos columnas. */
+.cotizacion-doc-condiciones {
+    border-color: var(--border-subtle);
+    @apply mt-5 grid gap-x-6 gap-y-2 border-t pt-4 text-sm sm:grid-cols-3;
+}
+
+.cotizacion-doc-condiciones dt {
+    color: var(--text-muted);
+    @apply text-xs font-semibold uppercase;
+}
+
+.cotizacion-doc-condiciones dd {
+    color: var(--text-heading);
+    @apply mt-0.5;
+}
+
 /* --- Vista de detalle (Show.vue): resumen, documento y análisis interno --- */
 
 /* Resumen arriba: cliente, total cotizado y estado. */
@@ -3367,6 +3399,42 @@
 .hoja-costos-vacia {
     color: var(--text-muted);
     @apply py-3 text-center text-sm;
+}
+
+/* --- Cálculo de la instalación (personas × horas, nocturno, transporte) ---
+   Mismo marco hundido que la hoja de costos: es otra hoja de cálculo de la
+   línea, no una tarjeta. */
+.instalacion-calculo {
+    background: var(--page-bg);
+    border-color: var(--border-subtle);
+    @apply mb-1 mt-1 rounded-lg border p-3;
+}
+
+/* Botón chico junto a la etiqueta "Instalación (Bs)": no debe empujar el
+   campo hacia abajo respecto de sus vecinos de fila. */
+.instalacion-calcular {
+    @apply px-2 py-0.5 text-xs leading-5;
+}
+
+.instalacion-nocturna {
+    color: var(--text-heading);
+    @apply flex min-h-9 flex-wrap items-center gap-x-6 gap-y-2 text-sm;
+}
+
+.instalacion-recargo {
+    color: var(--text-body);
+    @apply flex items-center gap-2;
+}
+
+.instalacion-recargo .form-control {
+    @apply w-20 text-end tabular-nums;
+}
+
+/* Casilla secundaria de Totales (IVA de la instalación): sin la línea
+   divisoria, pegada a la fila de la instalación que modifica. */
+.cotizacion-total-row.cotizacion-total-opcion {
+    border-top: 0;
+    @apply pt-0 text-xs;
 }
 
 /* --- Semáforo de decisión --- */

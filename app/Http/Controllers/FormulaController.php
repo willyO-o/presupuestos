@@ -76,12 +76,14 @@ class FormulaController extends Controller
             'ancho' => ['nullable', 'numeric'],
             'alto' => ['nullable', 'numeric'],
             'profundo' => ['nullable', 'numeric'],
+            'niveles' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $medidas = new MedidasCotizacion(
             ancho: $datos['ancho'] ?? null,
             alto: $datos['alto'] ?? null,
             profundo: $datos['profundo'] ?? null,
+            niveles: $datos['niveles'] ?? null,
         );
 
         try {

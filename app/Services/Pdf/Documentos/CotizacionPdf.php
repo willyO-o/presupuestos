@@ -3,6 +3,8 @@
 namespace App\Services\Pdf\Documentos;
 
 use App\Models\Cotizacion;
+use App\Models\CotizacionDetalle;
+use App\Services\Pdf\MontoEnLetras;
 use Illuminate\Support\Carbon;
 
 /**
@@ -54,6 +56,10 @@ class CotizacionPdf extends Documento
         $cliente = $this->cotizacion->cliente;
 
         $datosCliente = [['NIT:', $cliente?->nit ?? '—']];
+
+        if ($cliente?->contacto_nombre) {
+            $datosCliente[] = ['Contacto:', $cliente->contacto_nombre];
+        }
 
         if ($cliente?->telefono) {
             $datosCliente[] = ['Tel:', $cliente->telefono];
@@ -114,9 +120,9 @@ class CotizacionPdf extends Documento
             $columnas,
             $this->cotizacion->detalles->values()->map(fn ($linea, $indice): array => array_values(array_filter([
                 (string) ($indice + 1),
-                ['texto' => $linea->descripcion, 'nota' => $linea->producto?->nombre],
+                $this->descripcion($linea->descripcion),
                 $conImagenes ? ['texto' => '—', 'imagen' => $imagenes[$indice], 'alto_imagen' => self::ALTO_IMAGEN_REFERENCIA] : null,
-                $this->medidas($linea->ancho, $linea->alto, $linea->area_m2),
+                $this->medidas($linea),
                 $this->numero($linea->cantidad, 0),
                 $this->monto($linea->precio_unitario, moneda: false),
                 ['texto' => $this->monto($linea->subtotal, moneda: false), 'negrita' => true],
@@ -125,12 +131,15 @@ class CotizacionPdf extends Documento
 
         $this->totales($this->filasDeTotales());
 
+        $this->seccion('Son', MontoEnLetras::convertir($this->cotizacion->total));
+
         if ($this->cotizacion->observaciones) {
             $this->seccion('Observaciones', $this->cotizacion->observaciones);
         }
 
         $this->recuadro([
-            ['tipo' => 'titulo', 'texto' => 'Condiciones'],
+            ['tipo' => 'titulo', 'texto' => 'Condiciones de venta'],
+            ...$this->condicionesDeVenta(),
             ['tipo' => 'lista', 'items' => $this->condiciones()],
         ]);
 
@@ -192,6 +201,30 @@ class CotizacionPdf extends Documento
     }
 
     /**
+     * Forma de pago, tiempo y lugar de entrega de ESTA cotización, cada una
+     * en su renglón con el rótulo en negrita. Las que están vacías no salen.
+     *
+     * @return list<array{tipo: string, trozos: list<array{texto: string, negrita?: bool}>}>
+     */
+    private function condicionesDeVenta(): array
+    {
+        $condiciones = array_filter([
+            'Forma de pago' => $this->cotizacion->forma_pago,
+            'Tiempo de entrega' => $this->cotizacion->tiempo_entrega,
+            'Lugar de entrega' => $this->cotizacion->lugar_entrega,
+        ]);
+
+        return array_values(array_map(
+            fn (string $rotulo, string $valor): array => ['tipo' => 'texto', 'trozos' => [
+                ['texto' => $rotulo.': ', 'negrita' => true],
+                ['texto' => $valor],
+            ]],
+            array_keys($condiciones),
+            $condiciones,
+        ));
+    }
+
+    /**
      * @return list<string>
      */
     private function condiciones(): array
@@ -209,16 +242,44 @@ class CotizacionPdf extends Documento
         return $condiciones;
     }
 
-    private function medidas(mixed $ancho, mixed $alto, mixed $area): string|array
+    /**
+     * Descripción del ítem como en las cotizaciones que la empresa armaba a
+     * mano: el primer renglón es el título ("Elaborado de Cabecera") y va en
+     * negrita; el resto, el detalle, en texto normal y respetando sus saltos.
+     *
+     * @return string|array{texto: string, trozos: list<array<string, mixed>>}
+     */
+    private function descripcion(string $descripcion): string|array
     {
-        if (! $ancho || ! $alto) {
-            return '—';
+        $renglones = preg_split('/\R/u', trim($descripcion), 2) ?: [''];
+
+        if (count($renglones) < 2) {
+            return $descripcion;
         }
 
         return [
-            'texto' => $this->numero($ancho).' × '.$this->numero($alto),
-            'nota' => $this->numero($area).' m²',
+            'texto' => $descripcion,
+            'trozos' => [
+                ['texto' => $renglones[0], 'negrita' => true],
+                ['texto' => "\n".$renglones[1]],
+            ],
         ];
+    }
+
+    /**
+     * "ancho × alto" o "ancho × alto × profundidad", y debajo los niveles
+     * de un mueble ("4 niveles"). El área (m²) y el producto del catálogo
+     * son datos de cálculo internos: el cliente ve la descripción y las
+     * medidas.
+     */
+    private function medidas(CotizacionDetalle $linea): string
+    {
+        $renglones = array_filter([
+            $this->medidasTexto($linea->ancho, $linea->alto, $linea->profundidad),
+            $this->nivelesTexto($linea->niveles),
+        ]);
+
+        return $renglones === [] ? '—' : implode("\n", $renglones);
     }
 
     private function vendedor(): string
