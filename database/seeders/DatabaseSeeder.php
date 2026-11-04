@@ -30,6 +30,9 @@ class DatabaseSeeder extends Seeder
             ProductoSeeder::class,
             FormulaSeeder::class,
             ProductoMaterialSeeder::class,
+            // Plantillas del cotizador de muebles (con su receta y la tarifa
+            // del carpintero).
+            MuebleSeeder::class,
             // Antes del historial: cada línea cotizada elige un nivel de
             // complejidad para el motor de margen.
             TipoProyectoSeeder::class,

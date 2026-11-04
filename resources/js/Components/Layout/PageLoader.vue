@@ -1,6 +1,8 @@
 <script setup>
 /**
- * Loader de cambio de página: velo con tres puntos saltando y "Cargando...".
+ * Loader de cambio de página con la marca XtraPubli: el emblema redondo dentro
+ * de un anillo que gira en los colores de marca, una barra de avance y el texto
+ * "Cargando...". Si la espera se alarga, el texto lo dice.
  *
  * Se monta UNA sola vez en la raíz (`app.js`), no en un layout: así también
  * cubre las pantallas de acceso y el portal del cliente, y sobrevive al cambio
@@ -26,14 +28,18 @@ import { router } from '@inertiajs/vue3';
 /** Milisegundos antes de mostrar el velo. Ver el punto 1 del docblock. */
 const RETRASO_MS = 300;
 
+/** Desde cuándo la espera se considera larga y el texto lo avisa. */
+const DEMORA_MS = 6000;
+
+const EMBLEMA = '/img/logo/logo-mini.png';
+
 const visible = ref(false);
-let temporizador = null;
+const demorado = ref(false);
+let temporizadores = [];
 
 function cancelar() {
-    if (temporizador !== null) {
-        clearTimeout(temporizador);
-        temporizador = null;
-    }
+    temporizadores.forEach((id) => clearTimeout(id));
+    temporizadores = [];
 }
 
 function alEmpezar(event) {
@@ -44,9 +50,15 @@ function alEmpezar(event) {
     }
 
     cancelar();
-    temporizador = setTimeout(() => {
-        visible.value = true;
-    }, RETRASO_MS);
+    demorado.value = false;
+    temporizadores = [
+        setTimeout(() => {
+            visible.value = true;
+        }, RETRASO_MS),
+        setTimeout(() => {
+            demorado.value = true;
+        }, DEMORA_MS),
+    ];
 }
 
 function alTerminar() {
@@ -57,6 +69,10 @@ function alTerminar() {
 let desconectar = [];
 
 onMounted(() => {
+    // El emblema se baja de antemano: el velo aparece justo cuando la red está
+    // ocupada, y sin esto la primera vez saldría el anillo vacío.
+    new Image().src = EMBLEMA;
+
     // `finish` dispara también en visitas canceladas o con error, así que el
     // velo no se puede quedar pegado.
     desconectar = [
@@ -75,12 +91,20 @@ onUnmounted(() => {
     <Transition name="page-loader">
         <div v-if="visible" class="page-loader" role="status" aria-live="polite">
             <div class="page-loader-caja">
-                <div class="page-loader-dots" aria-hidden="true">
-                    <span class="page-loader-dot"></span>
-                    <span class="page-loader-dot"></span>
-                    <span class="page-loader-dot"></span>
+                <div class="page-loader-emblema" aria-hidden="true">
+                    <span class="page-loader-halo"></span>
+                    <span class="page-loader-anillo"></span>
+                    <img :src="EMBLEMA" alt="" class="page-loader-logo" />
                 </div>
-                <p class="page-loader-texto">Cargando...</p>
+
+                <div class="page-loader-barra" aria-hidden="true">
+                    <span class="page-loader-barra-avance"></span>
+                </div>
+
+                <p class="page-loader-texto">
+                    {{ demorado ? 'Está tardando un poco más de lo normal...' : 'Cargando...' }}
+                </p>
+                <p class="page-loader-lema">Hacemos que tu marca venda</p>
             </div>
         </div>
     </Transition>

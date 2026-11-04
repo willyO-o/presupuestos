@@ -26,6 +26,10 @@ const unidadesMedida = [
     { value: 'UNIDAD', label: 'Unidad' },
     { value: 'METRO_LINEAL', label: 'Metro lineal' },
 ];
+
+function etiquetaUnidad(valor) {
+    return unidadesMedida.find((unidad) => unidad.value === valor)?.label.toLowerCase() ?? 'unidad';
+}
 </script>
 
 <template>
@@ -78,10 +82,15 @@ const unidadesMedida = [
 
         <div class="col-lg-4">
             <div class="form-group">
-                <label class="form-label" for="producto-precio-base">Precio base (Bs)</label>
+                <label class="form-label" for="producto-precio-base">
+                    Costo base (Bs por {{ etiquetaUnidad(form.unidad_medida) }})
+                </label>
                 <input id="producto-precio-base" v-model="form.precio_base" type="number" step="0.01" min="0"
-                    class="form-control" :class="{ 'is-invalid': errors.precio_base }" />
+                    class="form-control" :class="{ 'is-invalid': errors.precio_base }" placeholder="Opcional" />
                 <p v-if="errors.precio_base" class="form-error">{{ errors.precio_base }}</p>
+                <p v-else class="fs-sm text-muted mt-1 mb-0">
+                    Al cotizar se le suma el margen. Si lo llenas, reemplaza a los materiales del producto.
+                </p>
             </div>
         </div>
 
@@ -111,6 +120,33 @@ const unidadesMedida = [
         </div>
 
         <div class="col-lg-6">
+            <div class="form-group">
+                <label class="form-label" for="producto-modo">¿Dónde se cotiza?</label>
+                <select id="producto-modo" v-model="form.modo_cotizacion" class="form-control">
+                    <option value="GENERAL">Cotización general (lonas, letreros, impresión)</option>
+                    <option value="MUEBLE">Cotizador de muebles (plantilla)</option>
+                </select>
+                <p class="fs-sm text-muted mt-1 mb-0">
+                    Una plantilla de mueble predefine sus materiales en "Materiales del producto".
+                </p>
+            </div>
+        </div>
+
+        <div v-if="form.modo_cotizacion === 'MUEBLE'" class="col-lg-6">
+            <div class="form-group">
+                <label class="form-label" for="producto-costo-mano-obra">Mano de obra por mueble (Bs)</label>
+                <input id="producto-costo-mano-obra" v-model="form.costo_mano_obra" v-decimal="2" type="text"
+                    inputmode="decimal" class="form-control" :class="{ 'is-invalid': errors.costo_mano_obra }"
+                    placeholder="Ej. 500" />
+                <p v-if="errors.costo_mano_obra" class="form-error">{{ errors.costo_mano_obra }}</p>
+                <p v-else class="fs-sm text-muted mt-1 mb-0">
+                    Lo que se le paga al carpintero por un mueble de este tipo (el diseño va incluido). Se puede
+                    ajustar en cada cotización.
+                </p>
+            </div>
+        </div>
+
+        <div v-else class="col-lg-6">
             <div class="form-group">
                 <label class="form-label" for="producto-horas">Horas de mano de obra (por unidad)</label>
                 <input id="producto-horas" v-model="form.horas_mano_obra" v-decimal="2" type="text" inputmode="decimal"

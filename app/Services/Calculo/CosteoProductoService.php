@@ -81,8 +81,14 @@ class CosteoProductoService
      * .ai/rules/migrations.md — o 1 para UNIDAD. No aplica a líneas
      * dinámicas: una fórmula ya recibe ancho/alto/profundo/area/perimetro
      * directamente vía MedidasCotizacion::variables().
+     *
+     * Público porque el costo base del producto (`producto.precio_base`, Bs
+     * por unidad de medida) se multiplica por esta misma cantidad — ver
+     * PrecioSugeridoService.
+     *
+     * @throws InvalidArgumentException si faltan las medidas que pide la unidad.
      */
-    private function driver(Producto $producto, MedidasCotizacion $medidas): float
+    public function driver(Producto $producto, MedidasCotizacion $medidas): float
     {
         return match ($producto->unidad_medida) {
             'M2' => $medidas->area() ?? throw new InvalidArgumentException(

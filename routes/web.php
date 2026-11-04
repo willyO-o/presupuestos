@@ -10,6 +10,7 @@ use App\Http\Controllers\ClientePortalController;
 use App\Http\Controllers\CompraController;
 use App\Http\Controllers\CotizacionController;
 use App\Http\Controllers\CotizadorPublicoController;
+use App\Http\Controllers\CotizadorWebController;
 use App\Http\Controllers\DocumentoPdfController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\FirmaDocumentoController;
@@ -351,6 +352,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/cotizaciones/crear', [CotizacionController::class, 'create'])
         ->middleware('can:cotizaciones.crear')
         ->name('cotizaciones.create');
+    // Cotizador de muebles (asistente por pasos). Antes de
+    // cotizaciones/{cotizacion} para que "muebles" no se tome como id.
+    Route::get('/cotizaciones/muebles/crear', [CotizacionController::class, 'createMueble'])
+        ->middleware('can:cotizaciones.crear')
+        ->name('cotizaciones.muebles.create');
     Route::post('/cotizaciones', [CotizacionController::class, 'store'])
         ->middleware('can:cotizaciones.crear')
         ->name('cotizaciones.store');
@@ -409,6 +415,18 @@ Route::middleware('auth')->group(function () {
     Route::put('/solicitudes-web/{solicitudWeb}/estado', [SolicitudWebController::class, 'actualizarEstado'])
         ->middleware('can:solicitudes-web.gestionar')
         ->name('solicitudes-web.estado');
+
+    // Qué publica el cotizador del sitio y a qué precio (solo el dueño).
+    Route::middleware('can:cotizador-web.configurar')->group(function () {
+        Route::get('/cotizador-web', [CotizadorWebController::class, 'index'])
+            ->name('cotizador-web.index');
+        Route::put('/cotizador-web/ajustes', [CotizadorWebController::class, 'actualizarAjustes'])
+            ->name('cotizador-web.ajustes');
+        Route::put('/cotizador-web/productos/{producto}', [CotizadorWebController::class, 'actualizarProducto'])
+            ->name('cotizador-web.productos.update');
+        Route::post('/cotizador-web/productos/{producto}/probar', [CotizadorWebController::class, 'probar'])
+            ->name('cotizador-web.productos.probar');
+    });
 
     // --- Pedidos / órdenes de trabajo ---
     Route::get('/pedidos', [PedidoController::class, 'index'])

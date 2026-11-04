@@ -20,8 +20,12 @@ use Illuminate\Support\Facades\Storage;
     'unidad_medida',
     'precio_base',
     'horas_mano_obra',
+    'costo_mano_obra',
     'requiere_medidas',
     'cotizable_web',
+    'modo_precio_web',
+    'precio_web',
+    'modo_cotizacion',
     'estado',
 ])]
 
@@ -45,6 +49,22 @@ class Producto extends Model
     public const UNIDADES_MEDIDA = ['M2', 'METRO_LINEAL', 'UNIDAD'];
 
     /**
+     * En qué cotizador aparece el producto: GENERAL (lonas, letreros,
+     * impresión) o MUEBLE (plantillas del cotizador de muebles, cuya receta
+     * predefine los materiales). Coincide con Cotizacion::TIPOS: una
+     * cotización solo admite productos de su mismo tipo.
+     */
+    public const MODOS_COTIZACION = ['GENERAL', 'MUEBLE'];
+
+    /**
+     * De dónde sale el precio que ve el visitante del cotizador web:
+     * MATERIALES (el costeo de ventas + margen), PRECIO_FIJO (`precio_web`
+     * por unidad de medida) o RANGOS (precio por m² según el área, tabla
+     * `producto_precio_web`; solo productos por m²).
+     */
+    public const MODOS_PRECIO_WEB = ['MATERIALES', 'PRECIO_FIJO', 'RANGOS'];
+
+    /**
      * @var list<string>
      */
     protected $appends = ['imagen_url'];
@@ -65,10 +85,23 @@ class Producto extends Model
     }
 
     /**
+     * Rangos de área del precio web (modo RANGOS), del más chico al más
+     * grande; el rango sin tope (`area_hasta` null) va al final.
+     */
+    public function preciosWeb(): HasMany
+    {
+        return $this->hasMany(ProductoPrecioWeb::class)
+            ->orderByRaw('area_hasta IS NULL')
+            ->orderBy('area_hasta');
+    }
+
+    /**
      * Productos ofrecidos en el cotizador público (`/cotizador`): lista
      * blanca explícita (`cotizable_web`), activos y —lo importante— CON
-     * receta cargada. Sin BOM el costo daría 0 y el motor devolvería un
-     * precio de cero: publicar eso sería peor que no publicar nada.
+     * algo de donde sacar el precio según su `modo_precio_web`: receta o
+     * costo base (MATERIALES), `precio_web` (PRECIO_FIJO) o rangos (RANGOS).
+     * Sin eso el costo daría 0 y el motor devolvería un precio de cero:
+     * publicar eso sería peor que no publicar nada.
      *
      * Ver App\Services\Cotizador\CotizadorPublicoService.
      */
@@ -77,7 +110,35 @@ class Producto extends Model
     {
         $query->where('cotizable_web', 'SI')
             ->where('estado', 'ACTIVO')
-            ->whereHas('productoMateriales');
+            ->where(fn (Builder $query) => $query
+                ->where(fn (Builder $query) => $query
+                    ->where('modo_precio_web', 'MATERIALES')
+                    ->where(fn (Builder $query) => $query
+                        ->whereHas('productoMateriales')
+                        ->orWhere('precio_base', '>', 0)))
+                ->orWhere(fn (Builder $query) => $query
+                    ->where('modo_precio_web', 'PRECIO_FIJO')
+                    ->where('precio_web', '>', 0))
+                ->orWhere(fn (Builder $query) => $query
+                    ->where('modo_precio_web', 'RANGOS')
+                    ->whereHas('preciosWeb')));
+    }
+
+    /**
+     * Productos que se ofrecen en un cotizador (GENERAL o MUEBLE).
+     */
+    #[Scope]
+    protected function modoCotizacion(Builder $query, string $modo): void
+    {
+        $query->where('modo_cotizacion', $modo);
+    }
+
+    /**
+     * true si es una plantilla del cotizador de muebles.
+     */
+    public function esMueble(): bool
+    {
+        return $this->modo_cotizacion === 'MUEBLE';
     }
 
     /**

@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Storage;
     'costo_ajustado',
     'precio_unitario',
     'precio_manual',
+    'modalidad',
     'instalacion',
     'instalacion_detalle',
     'subtotal',
@@ -46,6 +47,12 @@ class CotizacionDetalle extends Model
      * @var string
      */
     protected $table = 'cotizacion_detalle';
+
+    /**
+     * Cómo se fijó el precio en el cotizador de muebles. Las dos últimas
+     * son precio escrito a mano (por unidad o por m²).
+     */
+    public const MODALIDADES = ['COMPOSICION', 'PRECIO_MANUAL', 'SUPERFICIE'];
 
     /**
      * @var list<string>

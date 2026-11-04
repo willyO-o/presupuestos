@@ -54,8 +54,8 @@ class CotizadorPublicoController extends Controller
             'productos' => $productos,
             'agrupados' => $productos->groupBy(fn ($producto): string => $producto->categoriaProducto?->nombre ?? 'Otros'),
             'limites' => config('cotizador.limites'),
-            'vigenciaDias' => (int) config('cotizador.vigencia_dias'),
-            'holgura' => (float) config('cotizador.holgura'),
+            'vigenciaDias' => $this->cotizador->vigenciaDias(),
+            'holgura' => $this->cotizador->holgura(),
             'datosEstructurados' => $this->cotizadorJsonLd(),
         ]);
     }

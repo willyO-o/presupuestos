@@ -27,6 +27,19 @@ class PrecioSugeridoService
      */
     public const DESCRIPCION_MANO_OBRA = 'Horas de mano de obra (según producto)';
 
+    /**
+     * Descripción de la fila de mano de obra de un mueble: la tarifa del
+     * carpintero por mueble (`producto.costo_mano_obra`), no horas.
+     */
+    public const DESCRIPCION_MANO_OBRA_MUEBLE = 'Mano de obra (carpintero)';
+
+    /**
+     * Descripción de la fila del costo base del producto (`precio_base`).
+     * El formulario la reconoce por este texto para reemplazarla al volver a
+     * traer los insumos.
+     */
+    public const DESCRIPCION_COSTO_BASE = 'Costo base del producto';
+
     public function __construct(
         private readonly CosteoProductoService $costeoProducto,
         private readonly MotorMargenService $motorMargen,
@@ -45,10 +58,14 @@ class PrecioSugeridoService
         ?int $niveles = null,
     ): array {
         $medidas = new MedidasCotizacion(ancho: $ancho, alto: $alto, profundo: $profundo, niveles: $niveles);
+        $costoBase = $this->costoBaseDe($producto, $medidas);
 
         // `cantidad = 1`: la hoja de costos describe UNA unidad; la cantidad
         // pedida se multiplica después, al armar el subtotal de la línea.
-        $resultado = $this->costeoProducto->calcular($producto, $medidas, 1.0);
+        // Con costo base cargado, ese costo reemplaza a la receta.
+        $resultado = $costoBase === null
+            ? $this->costeoProducto->calcular($producto, $medidas, 1.0)
+            : new ResultadoCosteo(costoMaterial: $costoBase['subtotal'], lineas: []);
 
         $costoUnitario = round($resultado->costoMaterial, 2);
         $manoObra = $this->manoObraDe($producto);
@@ -67,6 +84,10 @@ class PrecioSugeridoService
             'costo_unitario' => round((float) $linea->productoMaterial->material->precio_unitario, 4),
             'subtotal' => round($linea->costo, 4),
         ], $resultado->lineas);
+
+        if ($costoBase !== null) {
+            $insumos[] = $costoBase;
+        }
 
         if ($manoObra !== null) {
             $insumos[] = $manoObra;
@@ -91,13 +112,72 @@ class PrecioSugeridoService
     }
 
     /**
-     * Fila de mano de obra de UNA unidad: las horas del producto a la tarifa
-     * de la empresa. `null` si el producto no tiene horas cargadas.
+     * Fila del costo base de UNA unidad: `producto.precio_base` (costo en Bs
+     * por m², metro lineal o unidad) × la cantidad que indica la unidad de
+     * medida. `null` si el producto no tiene costo base: entonces manda la
+     * receta.
+     *
+     * El costo base tiene prioridad sobre la receta a propósito: es el costo
+     * que el dueño fija a mano, y al cambiarlo la próxima cotización tiene
+     * que reflejarlo.
+     *
+     * @return array{material_id: null, tipo: string, descripcion: string, unidad: string, cantidad: float, costo_unitario: float, subtotal: float}|null
+     */
+    private function costoBaseDe(Producto $producto, MedidasCotizacion $medidas): ?array
+    {
+        $costo = (float) $producto->precio_base;
+
+        if ($costo <= 0) {
+            return null;
+        }
+
+        $cantidad = round($this->costeoProducto->driver($producto, $medidas), 4);
+
+        return [
+            'material_id' => null,
+            'tipo' => 'MATERIAL',
+            'descripcion' => self::DESCRIPCION_COSTO_BASE,
+            'unidad' => $producto->unidad_medida,
+            'cantidad' => $cantidad,
+            'costo_unitario' => round($costo, 4),
+            'subtotal' => round($cantidad * $costo, 4),
+        ];
+    }
+
+    /**
+     * Texto con el que el formulario reconoce la fila de mano de obra que
+     * aportó el producto, para reemplazarla al volver a traer los insumos.
+     */
+    public static function descripcionManoObraDe(Producto $producto): string
+    {
+        return $producto->esMueble() ? self::DESCRIPCION_MANO_OBRA_MUEBLE : self::DESCRIPCION_MANO_OBRA;
+    }
+
+    /**
+     * Fila de mano de obra de UNA unidad. `null` si el producto no la trae.
+     *
+     * - Mueble: la tarifa por mueble de la plantilla (un monto, no horas;
+     *   el diseño va incluido en ese trabajo).
+     * - Resto: las horas del producto a la tarifa por hora de la empresa.
      *
      * @return array{material_id: null, tipo: string, descripcion: string, unidad: string, cantidad: float, costo_unitario: float, subtotal: float}|null
      */
     private function manoObraDe(Producto $producto): ?array
     {
+        if ($producto->esMueble()) {
+            $tarifa = (float) $producto->costo_mano_obra;
+
+            return $tarifa > 0 ? [
+                'material_id' => null,
+                'tipo' => 'MANO_OBRA',
+                'descripcion' => self::DESCRIPCION_MANO_OBRA_MUEBLE,
+                'unidad' => 'SERVICIO',
+                'cantidad' => 1.0,
+                'costo_unitario' => round($tarifa, 4),
+                'subtotal' => round($tarifa, 4),
+            ] : null;
+        }
+
         $horas = (float) $producto->horas_mano_obra;
 
         if ($horas <= 0) {

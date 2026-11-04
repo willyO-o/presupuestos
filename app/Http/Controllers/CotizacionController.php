@@ -11,6 +11,7 @@ use App\Models\Cliente;
 use App\Models\Cotizacion;
 use App\Models\CotizacionDetalleItem;
 use App\Models\Empleado;
+use App\Models\Material;
 use App\Models\Producto;
 use App\Models\TipoProyecto;
 use App\Notifications\CotizacionAprobada;
@@ -45,6 +46,7 @@ class CotizacionController extends Controller
             ->with(['cliente:id,razon_social', 'sucursal:id,nombre'])
             ->visiblePara($request->user())
             ->search($request->query('search'))
+            ->tipo($request->query('tipo'))
             ->estado($request->query('estado'))
             ->clienteId($request->query('cliente'))
             ->sucursalId($request->query('sucursal'))
@@ -62,7 +64,8 @@ class CotizacionController extends Controller
             'sucursales' => $request->user()->sucursalesDisponibles(),
             'estados' => Cotizacion::ESTADOS,
             'estadosMargen' => Cotizacion::ESTADOS_MARGEN,
-            'filters' => $request->only(['search', 'estado', 'cliente', 'sucursal']),
+            'tipos' => Cotizacion::TIPOS,
+            'filters' => $request->only(['search', 'tipo', 'estado', 'cliente', 'sucursal']),
             'pageTitle' => 'Cotizaciones',
             'breadcrumbs' => ['Ventas', 'Cotizaciones'],
         ]);
@@ -74,6 +77,20 @@ class CotizacionController extends Controller
             ...$this->datosFormulario($request),
             'pageTitle' => 'Nueva cotización',
             'breadcrumbs' => ['Ventas', 'Cotizaciones', 'Nueva'],
+        ]);
+    }
+
+    /**
+     * Cotizador de muebles: asistente por pasos (mueble → medidas → costo de
+     * una unidad → precio y vista del cliente). Guarda con `store`, igual que
+     * el formulario general, con `tipo = MUEBLE`.
+     */
+    public function createMueble(Request $request): Response
+    {
+        return inertia('Cotizaciones/Muebles/Create', [
+            ...$this->datosFormulario($request, 'MUEBLE'),
+            'pageTitle' => 'Cotizar mueble',
+            'breadcrumbs' => ['Ventas', 'Cotizaciones', 'Cotizar mueble'],
         ]);
     }
 
@@ -93,6 +110,7 @@ class CotizacionController extends Controller
 
             $cotizacion = Cotizacion::create([
                 'codigo_verificacion' => $this->generarCodigoVerificacion(),
+                'tipo' => $datos['tipo'] ?? 'GENERAL',
                 'cliente_id' => $datos['cliente_id'],
                 'empleado_id' => $datos['empleado_id'],
                 'sucursal_id' => $datos['sucursal_id'],
@@ -157,8 +175,11 @@ class CotizacionController extends Controller
             'detalles.items',
         ]);
 
-        return inertia('Cotizaciones/Edit', [
-            ...$this->datosFormulario($request),
+        // Cada tipo se edita con la pantalla con la que se armó.
+        $pagina = $cotizacion->esDeMuebles() ? 'Cotizaciones/Muebles/Edit' : 'Cotizaciones/Edit';
+
+        return inertia($pagina, [
+            ...$this->datosFormulario($request, $cotizacion->tipo),
             'cotizacion' => $cotizacion,
             'pageTitle' => "Editar cotización {$cotizacion->codigo_verificacion}",
             'breadcrumbs' => ['Ventas', 'Cotizaciones', $cotizacion->codigo_verificacion, 'Editar'],
@@ -297,7 +318,8 @@ class CotizacionController extends Controller
 
         return response()->json([
             ...$resultado,
-            'descripcion_mano_obra' => PrecioSugeridoService::DESCRIPCION_MANO_OBRA,
+            'descripcion_mano_obra' => PrecioSugeridoService::descripcionManoObraDe($producto),
+            'descripcion_costo_base' => PrecioSugeridoService::DESCRIPCION_COSTO_BASE,
         ]);
     }
 
@@ -326,11 +348,6 @@ class CotizacionController extends Controller
     }
 
     /**
-     * Catálogos compartidos por los formularios de crear/editar.
-     *
-     * @return array<string, mixed>
-     */
-    /**
      * Corta las rutas de detalle sobre una cotización de otra sucursal.
      *
      * Pregunta con el MISMO scope que usa el listado (`esVisiblePara`) en vez
@@ -343,11 +360,15 @@ class CotizacionController extends Controller
     }
 
     /**
+     * Catálogos de los formularios de crear/editar. `$tipo` decide qué
+     * productos se ofrecen: el cotizador general no lista plantillas de
+     * mueble y el de muebles solo lista esas.
+     *
      * @return array<string, mixed>
      */
-    private function datosFormulario(Request $request): array
+    private function datosFormulario(Request $request, string $tipo = 'GENERAL'): array
     {
-        return [
+        $datos = [
             'clientes' => Cliente::query()->estado('ACTIVO')->orderBy('razon_social')
                 ->get(['id', 'razon_social', 'nit']),
             'empleados' => Empleado::query()->visiblePara($request->user())->estado('ACTIVO')->orderBy('nombres')
@@ -360,8 +381,8 @@ class CotizacionController extends Controller
             // 'imagen' viaja en el select para que el accesor 'imagen_url'
             // se calcule (necesita el atributo base cargado); el formulario
             // la usa para ofrecer "usar imagen del producto" por línea.
-            'productos' => Producto::query()->estado('ACTIVO')->orderBy('nombre')
-                ->get(['id', 'nombre', 'unidad_medida', 'requiere_medidas', 'precio_base', 'imagen']),
+            'productos' => Producto::query()->estado('ACTIVO')->modoCotizacion($tipo)->orderBy('nombre')
+                ->get(['id', 'nombre', 'descripcion', 'unidad_medida', 'requiere_medidas', 'precio_base', 'costo_mano_obra', 'imagen']),
             'tiposProyecto' => TipoProyecto::query()->estado('ACTIVO')->ordenado()
                 ->get(['id', 'nombre', 'descripcion', 'factor_complejidad', 'margen_minimo']),
             'tiposItem' => CotizacionDetalleItem::ETIQUETAS_TIPO,
@@ -383,6 +404,19 @@ class CotizacionController extends Controller
                 'semaforo' => config('margen.semaforo'),
             ],
         ];
+
+        // El asistente de muebles ofrece el catálogo de materiales al
+        // "Agregar insumo" (fierros, trupán, pintura, pegamento…) con su
+        // precio vigente.
+        if ($tipo === 'MUEBLE') {
+            $datos['materiales'] = Material::query()
+                ->where('estado', 'ACTIVO')
+                ->with('categoriaMaterial:id,nombre')
+                ->orderBy('nombre')
+                ->get(['id', 'categoria_material_id', 'nombre', 'unidad_medida', 'precio_unitario']);
+        }
+
+        return $datos;
     }
 
     private function cambiarEstado(Cotizacion $cotizacion, string $nuevoEstado, string $verbo): RedirectResponse
@@ -442,7 +476,12 @@ class CotizacionController extends Controller
             // Sin hoja de costos no hay nada que calcular: el precio de una
             // línea suelta (reventa, servicio de terceros, ítem heredado) es
             // por definición manual.
-            $precioManual = ($linea['precio_manual'] ?? 'NO') === 'SI' || $items === [];
+            // Las modalidades de precio manual del cotizador de muebles
+            // (por unidad o por m²) también lo son.
+            $modalidad = $linea['modalidad'] ?? null;
+            $precioManual = ($linea['precio_manual'] ?? 'NO') === 'SI'
+                || $items === []
+                || in_array($modalidad, ['PRECIO_MANUAL', 'SUPERFICIE'], true);
             $precioUnitario = $precioManual
                 ? round((float) ($linea['precio_unitario'] ?? 0), 2)
                 : round($motor->precio, 2);
@@ -464,6 +503,7 @@ class CotizacionController extends Controller
                 'costo_ajustado' => round($motor->costoAjustado * $cantidad, 2),
                 'precio_unitario' => $precioUnitario,
                 'precio_manual' => $precioManual ? 'SI' : 'NO',
+                'modalidad' => $modalidad,
                 'instalacion' => $instalacion,
                 'instalacion_detalle' => $instalacionDetalle,
                 'subtotal' => round($precioUnitario * $cantidad, 2),

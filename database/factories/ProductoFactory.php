@@ -23,7 +23,9 @@ class ProductoFactory extends Factory
             'nombre' => fake()->unique()->words(3, true),
             'descripcion' => fake()->sentence(),
             'unidad_medida' => fake()->randomElement(Producto::UNIDADES_MEDIDA),
-            'precio_base' => fake()->randomFloat(2, 20, 500),
+            // Sin costo base: con él cargado, el costeo lo usa en vez de la
+            // receta (ver PrecioSugeridoService). Usá `conCostoBase()`.
+            'precio_base' => null,
             'requiere_medidas' => 'SI',
             // Fuera del cotizador público por defecto: publicar un producto es
             // una decisión explícita, no algo que pase por descuido en un
@@ -40,6 +42,17 @@ class ProductoFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'requiere_medidas' => 'NO',
+        ]);
+    }
+
+    /**
+     * Producto con costo base (Bs por unidad de medida), que al cotizar
+     * reemplaza a la receta.
+     */
+    public function conCostoBase(?float $costo = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'precio_base' => $costo ?? fake()->randomFloat(2, 20, 500),
         ]);
     }
 

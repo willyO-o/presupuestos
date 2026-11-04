@@ -3,11 +3,14 @@
 namespace App\Services\Cotizador;
 
 use App\Exceptions\FormulaInvalidaException;
+use App\Models\Configuracion;
 use App\Models\Producto;
+use App\Models\ProductoPrecioWeb;
 use App\Models\TipoProyecto;
 use App\Services\Calculo\CosteoProductoService;
 use App\Services\Calculo\MedidasCotizacion;
 use App\Services\Calculo\MotorMargenService;
+use App\Services\Calculo\PrecioSugeridoService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -15,12 +18,17 @@ use InvalidArgumentException;
 /**
  * Estimación aproximada para el sitio público (`/cotizador`).
  *
- * NO es un motor nuevo: recorre exactamente la misma cadena que usa ventas al
- * armar un presupuesto —receta/BOM del producto → CosteoProductoService →
- * MotorMargenService → IVA— para que el número que ve el visitante y el que
- * calcula el sistema por dentro no puedan divergir. Si mañana cambia el
- * margen de un tipo de proyecto o el precio de un material, el cotizador
- * público se entera solo.
+ * El precio de cada producto sale de su `modo_precio_web`, que el dueño
+ * elige en el panel (Ventas → Cotizador web):
+ *
+ * - MATERIALES: NO es un motor nuevo. Recorre la misma cadena que usa ventas
+ *   al costear una línea (PrecioSugeridoService: costo base o receta, mano
+ *   de obra, MotorMargenService), para que el número del visitante y el del
+ *   vendedor no puedan divergir. Si cambia el margen de un tipo de proyecto
+ *   o el precio de un material, el cotizador público se entera solo.
+ * - PRECIO_FIJO: `producto.precio_web` (sin IVA) por m², metro lineal o
+ *   unidad.
+ * - RANGOS: precio por m² según el área del trabajo (`producto_precio_web`).
  *
  * Lo que este servicio agrega sobre el flujo interno es todo lo que hace que
  * un precio sea publicable:
@@ -37,10 +45,35 @@ use InvalidArgumentException;
  */
 class CotizadorPublicoService
 {
+    /** Claves de `configuracion` que el dueño edita desde el panel. */
+    public const CLAVE_TIPO_PROYECTO = 'cotizador.tipo_proyecto';
+
+    public const CLAVE_HOLGURA = 'cotizador.holgura';
+
+    public const CLAVE_VIGENCIA_DIAS = 'cotizador.vigencia_dias';
+
     public function __construct(
         private readonly CosteoProductoService $costeoProducto,
         private readonly MotorMargenService $motorMargen,
+        private readonly PrecioSugeridoService $precioSugerido,
     ) {}
+
+    /**
+     * Fracción del rango aproximado (0.15 = ±15 %): la del panel o, sin
+     * guardar, la de `config/cotizador.php`.
+     */
+    public function holgura(): float
+    {
+        return max(0.0, (float) Configuracion::valor(self::CLAVE_HOLGURA, config('cotizador.holgura', 0.15)));
+    }
+
+    /**
+     * Días de vigencia de una estimación: los del panel o los del config.
+     */
+    public function vigenciaDias(): int
+    {
+        return max(1, (int) Configuracion::valor(self::CLAVE_VIGENCIA_DIAS, config('cotizador.vigencia_dias', 7)));
+    }
 
     /**
      * Productos ofrecidos en el cotizador público, ordenados para el selector.
@@ -64,7 +97,7 @@ class CotizadorPublicoService
     /**
      * Nivel de complejidad con el que se cotiza en la web.
      *
-     * `config('cotizador.tipo_proyecto')` guarda el NOMBRE (sobrevive a un
+     * El panel (o, sin guardar, `config('cotizador.tipo_proyecto')`) guarda el NOMBRE (sobrevive a un
      * reseeder, a diferencia de un id). Sin configurar, o si el nombre ya no
      * existe, cae al primer tipo activo por `orden`; si tampoco hay ninguno,
      * null — y ahí `MotorMargenService::calcularCon()` aplica factor 1 con el
@@ -74,7 +107,7 @@ class CotizadorPublicoService
     {
         $consulta = TipoProyecto::query()->where('estado', 'ACTIVO');
 
-        $nombre = config('cotizador.tipo_proyecto');
+        $nombre = Configuracion::valor(self::CLAVE_TIPO_PROYECTO, config('cotizador.tipo_proyecto'));
 
         if (is_string($nombre) && $nombre !== '') {
             $porNombre = (clone $consulta)->where('nombre', $nombre)->first();
@@ -124,20 +157,11 @@ class CotizadorPublicoService
             $alto = isset($linea['alto']) ? (float) $linea['alto'] : null;
             $cantidad = (float) $linea['cantidad'];
 
-            // `cantidad: 1` — la receta describe UNA unidad; la cantidad
-            // pedida multiplica después, igual que en PrecioSugeridoService.
-            $costeo = $this->costeoProducto->calcular(
-                $producto,
-                new MedidasCotizacion(ancho: $ancho, alto: $alto),
-                1.0,
-            );
+            $precio = $this->precioUnitario($producto, $ancho, $alto, $tipoProyecto);
+            $precioUnitario = $precio['precio'];
 
-            $motor = $this->motorMargen->calcularCon($tipoProyecto, round($costeo->costoMaterial, 2));
-
-            $precioUnitario = round($motor->precio, 2);
-
-            $costoBase += $motor->costoBase * $cantidad;
-            $costoAjustado += $motor->costoAjustado * $cantidad;
+            $costoBase += $precio['costo_base'] * $cantidad;
+            $costoAjustado += $precio['costo_ajustado'] * $cantidad;
 
             $calculadas[] = [
                 'producto_id' => $producto->id,
@@ -164,8 +188,8 @@ class CotizadorPublicoService
 
         $iva = round($agregado->iva, 2);
         $total = round($subtotal + $iva, 2);
-        $holgura = max(0.0, (float) config('cotizador.holgura', 0.15));
-        $vigenciaDias = max(1, (int) config('cotizador.vigencia_dias', 7));
+        $holgura = $this->holgura();
+        $vigenciaDias = $this->vigenciaDias();
 
         return [
             'lineas' => $calculadas,
@@ -185,7 +209,64 @@ class CotizadorPublicoService
      */
     public function vencimiento(?int $vigenciaDias = null): Carbon
     {
-        return today()->addDays($vigenciaDias ?? max(1, (int) config('cotizador.vigencia_dias', 7)));
+        return today()->addDays($vigenciaDias ?? $this->vigenciaDias());
+    }
+
+    /**
+     * Precio de venta sin IVA de UNA unidad del producto para el visitante,
+     * según su `modo_precio_web`. Lo usa también la vista previa del panel,
+     * por eso no exige que el producto ya esté publicado.
+     *
+     * Los costos solo sirven para el agregado de impuestos de `estimar()`;
+     * en los modos de precio fijo y rangos no hay costo que informar.
+     *
+     * @return array{precio: float, costo_base: float, costo_ajustado: float}
+     *
+     * @throws InvalidArgumentException si faltan las medidas que pide el producto o no tiene de dónde sacar el precio.
+     * @throws FormulaInvalidaException si una fórmula de la receta no evalúa con esas medidas.
+     */
+    public function precioUnitario(Producto $producto, ?float $ancho, ?float $alto, ?TipoProyecto $tipoProyecto = null): array
+    {
+        $medidas = new MedidasCotizacion(ancho: $ancho, alto: $alto);
+
+        if ($producto->modo_precio_web === 'PRECIO_FIJO') {
+            $precio = (float) $producto->precio_web * $this->costeoProducto->driver($producto, $medidas);
+
+            return ['precio' => round($precio, 2), 'costo_base' => 0.0, 'costo_ajustado' => 0.0];
+        }
+
+        if ($producto->modo_precio_web === 'RANGOS') {
+            $area = $medidas->area() ?? throw new InvalidArgumentException(
+                "«{$producto->nombre}» se cotiza por rangos de área: faltan ancho y alto."
+            );
+            $precio = (float) $this->rangoDe($producto, $area)->precio_m2 * $area;
+
+            return ['precio' => round($precio, 2), 'costo_base' => 0.0, 'costo_ajustado' => 0.0];
+        }
+
+        $calculo = $this->precioSugerido->calcular($producto, $ancho, $alto, tipoProyecto: $tipoProyecto);
+
+        return [
+            'precio' => (float) $calculo['precio_sugerido'],
+            'costo_base' => (float) $calculo['motor']['costo_base'],
+            'costo_ajustado' => (float) $calculo['motor']['costo_ajustado'],
+        ];
+    }
+
+    /**
+     * El rango que corresponde a un área: el primero cuyo tope la cubre, o el
+     * último si el área supera todos los topes.
+     */
+    private function rangoDe(Producto $producto, float $area): ProductoPrecioWeb
+    {
+        $rangos = $producto->preciosWeb;
+
+        if ($rangos->isEmpty()) {
+            throw new InvalidArgumentException("«{$producto->nombre}» no tiene rangos de precio cargados.");
+        }
+
+        return $rangos->first(fn (ProductoPrecioWeb $rango): bool => $rango->area_hasta === null
+            || $area <= (float) $rango->area_hasta + 1e-9) ?? $rangos->last();
     }
 
     /**
@@ -204,7 +285,7 @@ class CotizadorPublicoService
         return Producto::query()
             ->whereIn('id', $ids)
             ->cotizableWeb()
-            ->with(['productoMateriales.material', 'productoMateriales.formula'])
+            ->with(['productoMateriales.material', 'productoMateriales.formula', 'preciosWeb'])
             ->get()
             ->keyBy('id')
             ->all();

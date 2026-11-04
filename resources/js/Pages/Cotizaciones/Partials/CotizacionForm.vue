@@ -103,6 +103,7 @@ function productoVacio() {
         horas_mano_obra: '',
         requiere_medidas: 'SI',
         cotizable_web: 'NO',
+        modo_cotizacion: 'GENERAL',
         estado: 'ACTIVO',
     };
 }
@@ -243,6 +244,9 @@ const costeo = reactive(form.detalles.map(() => ({ cargando: false, error: null,
 
 /* ── Catálogo ────────────────────────────────────────────────────────── */
 
+/** Igual que PrecioSugeridoService::DESCRIPCION_COSTO_BASE. */
+const DESCRIPCION_COSTO_BASE = 'Costo base del producto';
+
 function productoDe(lineaProductoId) {
     return productosDisponibles.value.find((p) => p.id === Number(lineaProductoId)) ?? null;
 }
@@ -261,6 +265,38 @@ function areaDe(linea) {
     const area = Number((Number(linea.ancho || 0) * Number(linea.alto || 0)).toFixed(6));
 
     return Number(`${Math.round(Number(`${area}e2`))}e-2`);
+}
+
+/**
+ * La medida por la que se cobra el producto, según su unidad: el área para
+ * m², el ancho para metro lineal. `null` para los que se cobran por unidad.
+ * Una línea sin producto (ítem personalizado) muestra el área.
+ *
+ * @returns {{ etiqueta: string, valor: number }|null}
+ */
+function medidaDeCobro(linea) {
+    const unidad = productoDe(linea.producto_id)?.unidad_medida ?? 'M2';
+
+    if (unidad === 'METRO_LINEAL') {
+        return { etiqueta: 'Metros lineales', valor: Number(linea.ancho || 0) };
+    }
+
+    return unidad === 'M2' ? { etiqueta: 'Área m²', valor: areaDe(linea) } : null;
+}
+
+/**
+ * Costo base vigente del producto si cambió desde que se trajo a la hoja de
+ * costos (el dueño lo actualizó). `null` si no cambió o la línea no lo usa.
+ */
+function costoBaseDesactualizado(linea) {
+    const fila = linea.items.find((i) => !i.material_id && i.descripcion === DESCRIPCION_COSTO_BASE);
+    const vigente = Number(productoDe(linea.producto_id)?.precio_base || 0);
+
+    if (!fila || vigente <= 0 || Math.abs(Number(fila.costo_unitario) - vigente) < 0.005) {
+        return null;
+    }
+
+    return vigente;
 }
 
 function pideMedidas(linea) {
@@ -283,6 +319,13 @@ function onProductoChange(index) {
         linea.alto = '';
         linea.profundidad = '';
         linea.niveles = '';
+    }
+
+    // Con la hoja vacía y lo necesario para costear, los costos del producto
+    // (costo base o receta) se traen solos: si no, el vendedor escribe un
+    // precio a mano sin ver que el producto ya tenía su costo cargado.
+    if (!linea.items.length && (producto.requiere_medidas === 'NO' || medidaDeCobro(linea)?.valor > 0)) {
+        traerInsumos(index);
     }
 }
 
@@ -448,6 +491,18 @@ function margenLinea(linea) {
     );
 }
 
+/** La línea tiene hoja de costos y el vendedor fijó el precio a mano. */
+function tienePrecioFijado(linea) {
+    return linea.precio_manual === 'SI' && linea.items.length > 0;
+}
+
+/** Margen sobre el costo ajustado que da el precio fijado a mano (0.45 = 45 %). */
+function margenFijado(linea) {
+    const costoAjustado = motorLinea(linea).costoAjustado;
+
+    return costoAjustado > 0 ? precioUnitario(linea) / costoAjustado - 1 : 0;
+}
+
 function tomarControlDelPrecio(linea) {
     linea.precio_unitario = Number(motorLinea(linea).precio.toFixed(2));
     linea.precio_manual = 'SI';
@@ -499,7 +554,9 @@ async function traerInsumos(index) {
         // Lo escrito a mano se conserva; la mano de obra que había aportado el
         // producto se reemplaza por la nueva (si no, se duplicaría).
         const escritosAMano = linea.items.filter(
-            (i) => !i.material_id && !(i.tipo === 'MANO_OBRA' && i.descripcion === data.descripcion_mano_obra),
+            (i) => !i.material_id
+                && !(i.tipo === 'MANO_OBRA' && i.descripcion === data.descripcion_mano_obra)
+                && i.descripcion !== data.descripcion_costo_base,
         );
         linea.items = [...data.insumos.map((i) => ({ ...i })), ...escritosAMano];
     } catch (error) {
@@ -878,11 +935,13 @@ function submit() {
                                     </p>
                                 </div>
                             </div>
-                            <div class="col-lg-2 col-6">
+                            <div v-if="medidaDeCobro(linea)" class="col-lg-2 col-6">
                                 <div class="form-group">
-                                    <label class="form-label" :for="`linea-${index}-area`">Área m²</label>
+                                    <label class="form-label" :for="`linea-${index}-area`">
+                                        {{ medidaDeCobro(linea).etiqueta }}
+                                    </label>
                                     <input :id="`linea-${index}-area`"
-                                        :value="areaDe(linea).toFixed(2)"
+                                        :value="medidaDeCobro(linea).valor.toFixed(2)"
                                         type="text" class="form-control" disabled />
                                     <p class="fs-xs text-muted mt-1 mb-0">Interna, no se imprime</p>
                                 </div>
@@ -1045,6 +1104,15 @@ function submit() {
 
                         <p v-if="costeo[index].error" class="form-error">{{ costeo[index].error }}</p>
 
+                        <div v-if="costoBaseDesactualizado(linea)" class="hoja-costos-aviso">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            El costo base del producto cambió a {{ money(costoBaseDesactualizado(linea)) }}.
+                            <button type="button" class="btn btn-sm btn-soft-warning"
+                                :disabled="costeo[index].cargando" @click="traerInsumos(index)">
+                                Actualizar costos
+                            </button>
+                        </div>
+
                         <p v-if="!linea.items.length" class="hoja-costos-vacia">
                             Sin insumos cargados: el precio de este ítem se escribe a mano.
                             Traé los insumos del producto o agregá otros para que el sistema calcule el precio y la
@@ -1113,8 +1181,12 @@ function submit() {
                                         <span>Precio sugerido (margen {{ pct(margenDe(linea)) }})</span>
                                         <span>{{ money(motorLinea(linea).precio) }}</span>
                                     </div>
+                                    <div v-if="tienePrecioFijado(linea)" class="margen-row">
+                                        <span>Precio fijado a mano (margen {{ pct(margenFijado(linea)) }})</span>
+                                        <span>{{ money(precioUnitario(linea)) }}</span>
+                                    </div>
                                     <div class="margen-row margen-row-destacada">
-                                        <span>Utilidad real de la línea</span>
+                                        <span>Utilidad real de la línea (después de IT e IUE)</span>
                                         <span>
                                             {{ money(margenLinea(linea).utilidadReal) }}
                                             <span class="fs-xs text-muted">

@@ -13,6 +13,76 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-11-04 — Revisión del documento "Cotizaciones.docx": lonas, muebles y cotizador web
+
+**Qué cambió:**
+- **Precio base → costo base.** El "Precio base" del producto no se usaba en ningún cálculo. Ahora es el **costo** por m², metro lineal o unidad: al cotizar entra a la hoja de costos ("Costo base del producto") y se le suma el margen del nivel de complejidad. Si un producto tiene costo base, reemplaza a sus materiales.
+- Al elegir un producto en una cotización, sus costos se traen solos si ya hay medidas. Si el dueño cambia el costo base, la cotización en edición avisa y ofrece "Actualizar costos" (las ya guardadas no cambian solas).
+- El campo de medida de la cotización sigue la unidad del producto: "Área m²", "Metros lineales" o nada si es por unidad (antes siempre decía m²).
+- **Cotizador de muebles** ajustado al documento: en el paso 1, *Modalidad* (por unidad con composición, por unidad con precio manual, por superficie m²) y *Unidad de las medidas* (m o cm). En el paso 3 la mano de obra es una fila más de la hoja y "Agregar insumo" ofrece el catálogo de materiales. En el paso 4, *Recargo sobre costo (%)* editable (parte del margen de la complejidad), *Instalación por unidad* y un desglose: costo ajustado, precio unitario, costo total, precio + utilidad, descuento, instalación, total antes de impuestos y utilidad.
+- **Cotizador web administrable** (Ventas → Cotizador web, permiso `cotizador-web.configurar`, rol administrador): ajustes generales (nivel de complejidad, rango ±, vigencia) y, por producto, si se publica y de dónde sale el precio: *según materiales* (como antes), *precio fijo* por unidad de medida o *rangos de área* (precio por m² según el tamaño). Botón "Probar" para ver lo que vería el visitante antes de guardar.
+
+**Por qué:**
+- Pedidos del documento `publi/Cotizaciones.docx`. Decisiones del usuario: el precio base es costo; la instalación de muebles es por unidad; cada plantilla de mueble es un producto (sin composiciones múltiples); los precios web predefinidos van por rangos de área.
+- La fecha corrida un día que muestra el documento ya estaba corregida en el commit `18b0c90` (2 de nov.); las capturas venían de un servidor sin actualizar.
+
+**Cómo:**
+- `PrecioSugeridoService`: fila de costo base (`DESCRIPCION_COSTO_BASE`) con prioridad sobre la receta; `CosteoProductoService::driver()` pasó a público. La fábrica de productos ya no inventa un costo base (estado `conCostoBase()`).
+- Migraciones `add_precios_web_to_producto_and_configuracion` (`producto.modo_precio_web`, `producto.precio_web`, tablas `producto_precio_web` y `configuracion`) y `add_modalidad_to_cotizacion_detalle`.
+- `CotizadorPublicoService::precioUnitario()` decide el precio por modo; en "según materiales" usa `PrecioSugeridoService` (misma cadena que ventas, ahora con costo base y mano de obra). Los ajustes se leen de `configuracion` con el `config/cotizador.php` como respaldo. El scope `cotizableWeb` acepta productos con precio fijo o rangos aunque no tengan receta.
+- `CotizadorWebController` + `Pages/CotizadorWeb/Index.vue` (CSS §49). Al publicar "según materiales" se rechaza una receta que use profundidad o niveles (el formulario público no los pide).
+- Tests: `CotizadorWebTest` (nuevo), y casos nuevos en `CotizacionControllerTest` y `CotizacionMuebleTest`.
+- Revisión final (bugs corregidos antes de entregar): el panel web no dejaba guardar "Precio fijo" ni "Según materiales" porque validaba los rangos de ejemplo del modal (ahora solo se validan en modo rangos); elegir "El primero activo" volvía a usar el nivel del `.env`; una modalidad manual sin precio se guardaba en Bs 0 (ahora se exige el precio); al pasar a precio manual o por m² el asistente parte del precio que ya mostraba.
+
+---
+
+## 2026-11-04 — Loader de cambio de página con la marca XtraPubli
+
+**Qué cambió:**
+- El velo que aparece al cambiar de página ahora muestra el emblema redondo de XtraPubli dentro de un anillo que gira en los colores de marca, una barra de avance, "Cargando..." y el lema "Hacemos que tu marca venda".
+- Si la carga pasa de 6 segundos, el texto avisa que está tardando más de lo normal.
+- La barra fina de Inertia (arriba) pasó de gris a azul de marca.
+
+**Por qué:**
+- Pedido del usuario: un loader con identidad de XtraPubli en vez de tres puntos genéricos.
+
+**Cómo:**
+- `Components/Layout/PageLoader.vue`: misma lógica de antes (espera 300 ms, ignora las recargas parciales de las tablas); se agregó el aviso de demora y la precarga del emblema. CSS reescrito en app.css §30 con los tokens de marca (sirve igual en modo oscuro) y respeta `prefers-reduced-motion`.
+- `app.js`: `progress.color` = azul de marca.
+
+---
+
+## 2026-11-04 — Cotizador de muebles (asistente de 4 pasos)
+
+**Qué cambió:**
+- Nueva entrada en el menú, **"Cotizar muebles"** (y botón "Cotizar mueble" en Cotizaciones): un asistente de 4 pasos — elegir el mueble, definir medidas/niveles/cantidad, costear una unidad, precio y vista del cliente.
+- Los muebles se cotizan **aparte**: una cotización es GENERAL (lonas, letreros…) o MUEBLE, nunca mezcla. El listado filtra por tipo y marca las de muebles.
+- Cada plantilla de mueble trae sus **materiales predefinidos** (receta con fórmulas por ancho/alto/profundidad/niveles, a precios vigentes) y una **tarifa de mano de obra por mueble** (el carpintero; el diseño va incluido), que el vendedor puede ajustar.
+- Plantillas de ejemplo tomadas de las cotizaciones reales: Isla de exhibición, Cabecera de góndola, Exhibidor metálico de piso y Mueble personalizado.
+
+**Por qué:**
+- Revisión de gerencia: el formulario general no se entendía para muebles. Pidió una puerta solo para muebles, con materiales predefinidos por tipo y la mano de obra del carpintero, que las lonas no llevan.
+
+**Cómo:**
+- Migración `2026_11_04_160030_add_cotizacion_de_muebles_to_producto_and_cotizacion`: `producto.modo_cotizacion`, `producto.costo_mano_obra`, `cotizacion.tipo`.
+- `CotizacionController::createMueble` (ruta `cotizaciones.muebles.create`); `store`/`update` son los de siempre. `edit` abre el asistente si la cotización es MUEBLE. Los Form Requests solo aceptan productos del tipo de la cotización.
+- `PrecioSugeridoService`: en un mueble la mano de obra es una fila de 1 × tarifa, no horas. `MuebleSeeder` crea las plantillas y 5 fórmulas nuevas.
+- Vista `Cotizaciones/Partials/CotizacionMuebleForm.vue` + `Muebles/{Create,Edit}.vue`; CSS sección 48. El menú marca solo el enlace más específico.
+- `tests/Feature/CotizacionMuebleTest.php` (16 tests).
+
+---
+
+## 2026-11-04 — El panel de rentabilidad muestra el precio fijado a mano
+
+**Qué cambió:**
+- En cada línea de la cotización, al usar "Fijar precio a mano", el panel muestra una fila nueva "Precio fijado a mano (margen X %)". La utilidad dice "después de IT e IUE".
+
+**Por qué:**
+- Parecía que el panel no tomaba los cambios del precio: solo mostraba el sugerido, y la utilidad (ya sin impuestos) no cuadraba a simple vista con el margen.
+
+**Cómo:**
+- `CotizacionForm.vue`: `tienePrecioFijado()` y `margenFijado()`. Solo frontend; los cálculos no cambiaron.
+
 ## 2026-11-04 — Horas de mano de obra por producto y ajuste de profundidad/niveles en producción
 
 **Qué cambió:**

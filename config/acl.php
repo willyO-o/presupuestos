@@ -212,6 +212,17 @@ return [
             ],
         ],
 
+        // Qué publica el cotizador del sitio y a qué precio: modo de precio por
+        // producto (materiales, precio fijo o rangos de área) y los ajustes
+        // generales (nivel de complejidad, rango ±, vigencia). Es del dueño:
+        // cambia los precios que ve cualquier visitante.
+        'cotizador-web' => [
+            'label' => 'Cotizador web',
+            'permissions' => [
+                'cotizador-web.configurar' => 'Configurar productos y precios del cotizador web',
+            ],
+        ],
+
         // --- Pedidos / órdenes de trabajo ---
         'pedidos' => [
             'label' => 'Pedidos',
@@ -351,6 +362,7 @@ return [
                 'tipos-proyecto.ver', 'tipos-proyecto.crear', 'tipos-proyecto.editar', 'tipos-proyecto.eliminar',
                 'cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'cotizaciones.aprobar', 'cotizaciones.eliminar',
                 'solicitudes-web.ver', 'solicitudes-web.gestionar',
+                'cotizador-web.configurar',
                 'pedidos.ver', 'pedidos.crear', 'pedidos.asignar_area', 'pedidos.actualizar_estado', 'pedidos.ver_todas_sucursales',
                 'ordenes-compra-cliente.ver', 'ordenes-compra-cliente.crear', 'ordenes-compra-cliente.validar',
                 'notas-entrega.ver', 'notas-entrega.crear',

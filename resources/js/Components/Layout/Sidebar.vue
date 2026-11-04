@@ -43,11 +43,22 @@ const currentPath = computed(() => page.url.split('?')[0]);
 /* `path` es a donde lleva el enlace; un ítem puede declarar `match` (otro
    prefijo) cuando abre en una subpágina pero representa a toda la sección:
    el BI abre en /reportes/bi/panorama y se marca en cualquier pestaña. */
+function coincide(path) {
+    return !!path && (currentPath.value === path || currentPath.value.startsWith(`${path}/`));
+}
+
+/* Si dos enlaces coinciden con la página (Cotizaciones en /cotizaciones y
+   Cotizar muebles en /cotizaciones/muebles/crear), se marca solo el más
+   específico. */
+const aplanar = (items) => items.flatMap((item) => [item, ...aplanar(item.children ?? [])]);
+
+const rutaMasEspecifica = computed(() => aplanar(NAV_MENU)
+    .map((item) => item.match ?? item.path)
+    .filter(coincide)
+    .reduce((masLarga, path) => (path.length > masLarga.length ? path : masLarga), ''));
+
 function isActive(path) {
-    if (!path) {
-        return false;
-    }
-    return currentPath.value === path || currentPath.value.startsWith(`${path}/`);
+    return coincide(path) && path === rutaMasEspecifica.value;
 }
 
 /* Agrupa el arreglo plano de NAV_MENU (separadores + items intercalados) en

@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'codigo_verificacion',
+    'tipo',
     'cliente_id',
     'empleado_id',
     'sucursal_id',
@@ -67,6 +68,13 @@ class Cotizacion extends Model
      * que ve el cliente.
      */
     public const ESTADOS_MARGEN = ['VERDE', 'AMARILLO', 'ROJO'];
+
+    /**
+     * GENERAL (lonas, letreros, impresión) o MUEBLE (cotizador de muebles).
+     * No se mezclan: una cotización solo lleva productos de su tipo (ver
+     * Producto::MODOS_COTIZACION y StoreCotizacionRequest).
+     */
+    public const TIPOS = ['GENERAL', 'MUEBLE'];
 
     /**
      * `recomendacion` se deriva del semáforo, no se guarda (ver la migración
@@ -209,6 +217,23 @@ class Cotizacion extends Model
     protected function estado(Builder $query, ?string $estado): void
     {
         $query->when($estado, fn (Builder $query) => $query->where('estado', $estado));
+    }
+
+    /**
+     * Filtra por tipo exacto (GENERAL/MUEBLE). Sin valor, no aplica filtro.
+     */
+    #[Scope]
+    protected function tipo(Builder $query, ?string $tipo): void
+    {
+        $query->when($tipo, fn (Builder $query) => $query->where('tipo', $tipo));
+    }
+
+    /**
+     * true si se armó con el cotizador de muebles.
+     */
+    public function esDeMuebles(): bool
+    {
+        return $this->tipo === 'MUEBLE';
     }
 
     /**

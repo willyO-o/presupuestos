@@ -862,6 +862,39 @@
           "default": "SI"
         },
         {
+          "name": "modo_cotizacion",
+          "type": "enum",
+          "values": [
+            "GENERAL",
+            "MUEBLE"
+          ],
+          "default": "GENERAL",
+          "comment": "MUEBLE = plantilla del cotizador de muebles"
+        },
+        {
+          "name": "costo_mano_obra",
+          "type": "decimal(10,2)",
+          "nullable": true,
+          "comment": "tarifa del carpintero por mueble (solo MUEBLE)"
+        },
+        {
+          "name": "modo_precio_web",
+          "type": "enum",
+          "values": [
+            "MATERIALES",
+            "PRECIO_FIJO",
+            "RANGOS"
+          ],
+          "default": "MATERIALES",
+          "comment": "de dónde sale el precio del cotizador web"
+        },
+        {
+          "name": "precio_web",
+          "type": "decimal(10,2)",
+          "nullable": true,
+          "comment": "precio de venta sin IVA por unidad de medida (modo PRECIO_FIJO)"
+        },
+        {
           "name": "estado",
           "type": "enum",
           "values": [
@@ -985,6 +1018,16 @@
           "name": "codigo_verificacion",
           "type": "string",
           "unique": true
+        },
+        {
+          "name": "tipo",
+          "type": "enum",
+          "values": [
+            "GENERAL",
+            "MUEBLE"
+          ],
+          "default": "GENERAL",
+          "comment": "no se mezclan muebles con otros trabajos"
         },
         {
           "name": "cliente_id",
@@ -1635,6 +1678,74 @@
         {
           "name": "comprobante_url",
           "type": "string",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "producto_precio_web",
+      "description": "Rangos de área del precio web de un producto (modo RANGOS): hasta area_hasta m² se cobra precio_m2 por m².",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "producto_id",
+          "type": "bigint",
+          "fk": {
+            "table": "producto",
+            "column": "id"
+          }
+        },
+        {
+          "name": "area_hasta",
+          "type": "decimal(8,2)",
+          "nullable": true,
+          "comment": "null = último rango, sin tope"
+        },
+        {
+          "name": "precio_m2",
+          "type": "decimal(10,2)"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "table": "configuracion",
+      "description": "Ajustes editables desde el panel (clave → valor). Sin fila, manda config/*.php.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "pk": true,
+          "auto_increment": true
+        },
+        {
+          "name": "clave",
+          "type": "string(100)",
+          "unique": true
+        },
+        {
+          "name": "valor",
+          "type": "text",
           "nullable": true
         },
         {

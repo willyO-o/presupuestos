@@ -67,7 +67,7 @@ const headers = [
     { label: 'Nombre', key: 'nombre' },
     { label: 'Categoría', key: 'categoria' },
     { label: 'Unidad', key: 'unidad_medida', class: 'text-center', cellClass: 'text-center' },
-    { label: 'Precio base', key: 'precio_base', class: 'text-end', cellClass: 'text-end' },
+    { label: 'Costo base', key: 'precio_base', class: 'text-end', cellClass: 'text-end' },
     { label: '¿Pide medidas?', key: 'requiere_medidas', class: 'text-center', cellClass: 'text-center' },
     { label: 'Web', key: 'cotizable_web', class: 'text-center', cellClass: 'text-center' },
     { label: 'Estado', key: 'estado', class: 'text-center', cellClass: 'text-center' },
@@ -97,8 +97,10 @@ const form = useForm(() => ({
     unidad_medida: 'M2',
     precio_base: '',
     horas_mano_obra: '',
+    costo_mano_obra: '',
     requiere_medidas: 'SI',
     cotizable_web: 'NO',
+    modo_cotizacion: 'GENERAL',
     estado: 'ACTIVO',
     imagen: null,
 }));
@@ -121,6 +123,8 @@ function openEdit(producto) {
     form.unidad_medida = producto.unidad_medida;
     form.precio_base = producto.precio_base;
     form.horas_mano_obra = producto.horas_mano_obra ?? '';
+    form.costo_mano_obra = producto.costo_mano_obra ?? '';
+    form.modo_cotizacion = producto.modo_cotizacion ?? 'GENERAL';
     form.requiere_medidas = producto.requiere_medidas;
     form.cotizable_web = producto.cotizable_web;
     form.estado = producto.estado;
@@ -230,6 +234,7 @@ async function confirmDelete(producto) {
 
                 <template #cell-categoria="{ item }">
                     {{ item.categoria_producto?.nombre ?? '—' }}
+                    <span v-if="item.modo_cotizacion === 'MUEBLE'" class="badge badge-soft-warning ml-1">Mueble</span>
                 </template>
 
                 <template #cell-unidad_medida="{ item }">

@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Cotizacion;
 
 use App\Http\Requests\Concerns\ValidaAlcanceSucursal;
+use App\Models\Cotizacion;
+use App\Models\CotizacionDetalle;
 use App\Models\CotizacionDetalleItem;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -53,7 +55,14 @@ class UpdateCotizacionRequest extends FormRequest
             'lugar_entrega' => ['nullable', 'string', 'max:255'],
 
             'detalles' => ['required', 'array', 'min:1'],
-            'detalles.*.producto_id' => ['nullable', 'integer', Rule::exists('producto', 'id')],
+            // Lonas y muebles no se mezclan: cada cotización solo acepta
+            // productos de su tipo, y en una de muebles la plantilla es
+            // obligatoria (de ahí salen los materiales predefinidos).
+            'detalles.*.producto_id' => [
+                $this->tipoCotizacion() === 'MUEBLE' ? 'required' : 'nullable',
+                'integer',
+                Rule::exists('producto', 'id')->where('modo_cotizacion', $this->tipoCotizacion()),
+            ],
             'detalles.*.tipo_proyecto_id' => ['nullable', 'integer', Rule::exists('tipo_proyecto', 'id')],
             // Texto largo: la descripción de un exhibidor ocupa varios
             // párrafos (material, acabado, impresión) y el PDF respeta los
@@ -85,9 +94,10 @@ class UpdateCotizacionRequest extends FormRequest
             'detalles.*.instalacion_detalle.recargo_nocturno' => ['nullable', 'numeric', 'min:0', 'max:300'],
             'detalles.*.instalacion_detalle.transporte' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'detalles.*.precio_manual' => ['nullable', Rule::in(['SI', 'NO'])],
+            'detalles.*.modalidad' => ['nullable', Rule::in(CotizacionDetalle::MODALIDADES)],
             // Solo obligatorio cuando el vendedor fija el precio a mano; si
             // no, lo calcula el motor de margen a partir de los insumos.
-            'detalles.*.precio_unitario' => ['required_if:detalles.*.precio_manual,SI', 'nullable', 'numeric', 'min:0'],
+            'detalles.*.precio_unitario' => ['required_if:detalles.*.precio_manual,SI', 'required_if:detalles.*.modalidad,PRECIO_MANUAL,SUPERFICIE', 'nullable', 'numeric', 'min:0'],
 
             'detalles.*.items' => ['nullable', 'array'],
             'detalles.*.items.*.material_id' => ['nullable', 'integer', Rule::exists('material', 'id')],
@@ -122,5 +132,30 @@ class UpdateCotizacionRequest extends FormRequest
             'detalles.*.items.*.cantidad' => 'cantidad del insumo',
             'detalles.*.items.*.costo_unitario' => 'costo unitario del insumo',
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'detalles.*.producto_id.exists' => $this->tipoCotizacion() === 'MUEBLE'
+                ? 'Elige una plantilla de mueble: este producto se cotiza en el formulario general.'
+                : 'Este producto es una plantilla de mueble: se cotiza en "Cotizar mueble".',
+            'detalles.*.producto_id.required' => 'Elige qué mueble vas a cotizar.',
+        ];
+    }
+
+    /**
+     * Tipo de la cotización que se edita: no cambia al editarla (una de
+     * muebles sigue siendo de muebles), así que sale de la ruta y no del
+     * formulario.
+     */
+    private function tipoCotizacion(): string
+    {
+        $cotizacion = $this->route('cotizacion');
+
+        return $cotizacion instanceof Cotizacion ? $cotizacion->tipo : 'GENERAL';
     }
 }

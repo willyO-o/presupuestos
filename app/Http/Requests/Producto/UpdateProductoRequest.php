@@ -37,6 +37,10 @@ class UpdateProductoRequest extends FormRequest
             'precio_base' => ['nullable', 'numeric', 'min:0'],
             // Horas que suele llevar una unidad; las trae "Traer insumos".
             'horas_mano_obra' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            // Plantilla del cotizador de muebles (GENERAL si no viene) y su
+            // tarifa de mano de obra por mueble, en Bs.
+            'modo_cotizacion' => ['sometimes', Rule::in(Producto::MODOS_COTIZACION)],
+            'costo_mano_obra' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'requiere_medidas' => ['required', Rule::in(['SI', 'NO'])],
             // Lista blanca del cotizador publico (ver la migracion
             // add_cotizable_web_to_producto_table). `sometimes` y no

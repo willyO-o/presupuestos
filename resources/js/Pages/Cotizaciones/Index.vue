@@ -21,6 +21,7 @@ const table = useServerTable({
     url: route('cotizaciones.index'),
     filters: {
         search: props.filters.search ?? '',
+        tipo: props.filters.tipo ?? '',
         estado: props.filters.estado ?? '',
         cliente: props.filters.cliente ?? '',
         sucursal: props.filters.sucursal ?? '',
@@ -90,10 +91,18 @@ async function eliminar(cotizacion) {
     <div class="card mb-4">
         <div class="card-body">
             <form class="row" @submit.prevent="table.search">
-                <div class="col-lg-3">
+                <div class="col-lg-2">
                     <label class="form-label" for="f-search">Buscar</label>
                     <input id="f-search" v-model="table.filters.search" type="text" class="form-control"
                         placeholder="Código, cliente..." />
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label" for="f-tipo">Tipo</label>
+                    <select id="f-tipo" v-model="table.filters.tipo" class="form-control">
+                        <option value="">Todas</option>
+                        <option value="GENERAL">Generales</option>
+                        <option value="MUEBLE">Muebles</option>
+                    </select>
                 </div>
                 <div class="col-lg-2">
                     <label class="form-label" for="f-estado">Estado</label>
@@ -102,7 +111,7 @@ async function eliminar(cotizacion) {
                         <option v-for="e in estados" :key="e" :value="e">{{ e }}</option>
                     </select>
                 </div>
-                <div class="col-lg-3">
+                <div class="col-lg-2">
                     <label class="form-label" for="f-cliente">Cliente</label>
                     <SearchableSelect id="f-cliente" v-model="table.filters.cliente" :options="clientes"
                         option-label="razon_social" placeholder="Todos" />
@@ -130,10 +139,17 @@ async function eliminar(cotizacion) {
     <div class="card">
         <div class="card-header">
             <span class="card-title">Listado de cotizaciones</span>
-            <Link v-can="'cotizaciones.crear'" :href="route('cotizaciones.create')" class="btn btn-primary btn-sm">
-                <i class="fa-solid fa-plus"></i>
-                Nueva cotización
-            </Link>
+            <div class="d-flex gap-2">
+                <Link v-can="'cotizaciones.crear'" :href="route('cotizaciones.muebles.create')"
+                    class="btn btn-soft-primary btn-sm">
+                    <i class="fa-solid fa-couch"></i>
+                    Cotizar mueble
+                </Link>
+                <Link v-can="'cotizaciones.crear'" :href="route('cotizaciones.create')" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    Nueva cotización
+                </Link>
+            </div>
         </div>
 
         <div class="card-body">
@@ -143,6 +159,7 @@ async function eliminar(cotizacion) {
                     <Link :href="route('cotizaciones.show', item.id)" class="fw-semibold text-primary">
                         {{ item.codigo_verificacion }}
                     </Link>
+                    <span v-if="item.tipo === 'MUEBLE'" class="badge badge-soft-warning ml-1">Mueble</span>
                 </template>
 
                 <template #cell-cliente="{ item }">

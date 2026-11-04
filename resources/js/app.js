@@ -41,7 +41,11 @@ createInertiaApp({
             .directive('max-length', MaxLength)
             .mount(el);
     },
+    // Barra fina de arriba, desde el primer instante de cada visita. Azul de
+    // marca (--brand-blue en app.css): Inertia la pinta antes de que exista
+    // el CSS de la app, así que el color va escrito acá.
     progress: {
-        color: '#4B5563',
+        color: '#1b6fdc',
+        delay: 120,
     },
 });

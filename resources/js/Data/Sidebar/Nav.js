@@ -56,6 +56,7 @@ export const NAV_MENU = [
         permission: [
             'cotizaciones.ver',
             'solicitudes-web.ver',
+            'cotizador-web.configurar',
             'pedidos.ver',
             'ordenes-compra-cliente.ver',
             'notas-entrega.ver',
@@ -71,6 +72,15 @@ export const NAV_MENU = [
         permission: 'cotizaciones.ver',
     },
     {
+        // Puerta propia para los muebles (islas, cabeceras, exhibidores): se
+        // cotizan con un asistente por pasos y no se mezclan con las lonas.
+        title: 'Cotizar muebles',
+        icon: 'fa-solid fa-couch',
+        type: 'link',
+        path: '/cotizaciones/muebles/crear',
+        permission: 'cotizaciones.crear',
+    },
+    {
         // Bandeja del cotizador publico (/cotizador). Va justo despues de
         // Cotizaciones porque es donde entra el trabajo que llega por el sitio.
         title: 'Solicitudes Web',
@@ -78,6 +88,14 @@ export const NAV_MENU = [
         type: 'link',
         path: '/solicitudes-web',
         permission: 'solicitudes-web.ver',
+    },
+    {
+        // Qué publica el cotizador del sitio y a qué precio. Es del dueño.
+        title: 'Cotizador Web',
+        icon: 'fa-solid fa-sliders',
+        type: 'link',
+        path: '/cotizador-web',
+        permission: 'cotizador-web.configurar',
     },
     {
         title: 'Pedidos',

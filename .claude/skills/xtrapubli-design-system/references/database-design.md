@@ -267,9 +267,30 @@ Este es el núcleo de la solución al problema del proyecto ("error en el cálcu
 | nombre | string | ej. "Bastidor lona PVC 1440dpi" |
 | descripcion | text, nullable | |
 | unidad_medida | `ENUM('M2','UNIDAD','METRO_LINEAL')` | |
-| precio_base | decimal(10,2), nullable | referencial/mano de obra fija |
+| precio_base | decimal(10,2), nullable | costo base por unidad de medida: al cotizar reemplaza a la receta y se le suma el margen |
 | requiere_medidas | `ENUM('SI','NO')`, default `SI` | si pide ancho/alto al cotizar (la mayoría sí, según OC/Notas de Entrega) |
+| modo_cotizacion | `ENUM('GENERAL','MUEBLE')`, default `GENERAL` | MUEBLE = plantilla del cotizador de muebles (su receta predefine los materiales) |
+| costo_mano_obra | decimal(10,2), nullable | tarifa del carpintero por mueble; el diseño va incluido |
+| modo_precio_web | `ENUM('MATERIALES','PRECIO_FIJO','RANGOS')`, default `MATERIALES` | de dónde sale el precio del cotizador web (Ventas → Cotizador web) |
+| precio_web | decimal(10,2), nullable | precio de venta sin IVA por m²/ml/unidad (modo PRECIO_FIJO) |
 | estado | `ENUM('ACTIVO','INACTIVO')`, default `ACTIVO` | |
+| created_at / updated_at | timestamp | |
+
+### `producto_precio_web` (rangos de área del cotizador web)
+| Campo | Tipo | Nota |
+|---|---|---|
+| id | bigint PK | |
+| producto_id | bigint FK → `producto.id` (cascade) | |
+| area_hasta | decimal(8,2), nullable | tope del rango en m²; null = último rango, sin tope |
+| precio_m2 | decimal(10,2) | precio de venta sin IVA por m² en ese rango |
+| created_at / updated_at | timestamp | |
+
+### `configuracion` (ajustes editables desde el panel)
+| Campo | Tipo | Nota |
+|---|---|---|
+| id | bigint PK | |
+| clave | string(100), unique | ej. `cotizador.holgura`, `cotizador.vigencia_dias`, `cotizador.tipo_proyecto` |
+| valor | text, nullable | sin fila, manda el valor de `config/*.php` |
 | created_at / updated_at | timestamp | |
 
 ### `producto_material` (BOM — lista de materiales)
@@ -307,6 +328,7 @@ Con esto, el sistema calcula automáticamente el costo de materiales de un produ
 |---|---|---|
 | id | bigint PK | |
 | codigo_verificacion | string, único | código de autenticidad mencionado en "Alcances" del proyecto |
+| tipo | `ENUM('GENERAL','MUEBLE')`, default `GENERAL` | MUEBLE = armada con el cotizador de muebles; no se mezcla con otros trabajos |
 | cliente_id | bigint FK → `cliente.id` | |
 | empleado_id | bigint FK → `empleado.id` | vendedor que la elabora |
 | sucursal_id | bigint FK → `sucursal.id` | |
@@ -331,6 +353,7 @@ Con esto, el sistema calcula automáticamente el costo de materiales de un produ
 | area_m2 | decimal(10,2), nullable | calculado = ancho × alto |
 | cantidad | decimal(10,2) | |
 | precio_unitario | decimal(10,2) | tomado del cálculo del BOM + margen, editable por el vendedor |
+| modalidad | `ENUM('COMPOSICION','PRECIO_MANUAL','SUPERFICIE')`, nullable | solo cotizador de muebles: cómo se fijó el precio (costos + recargo, a mano por unidad, o por m² × ancho × alto) |
 | subtotal | decimal(10,2) | |
 | created_at / updated_at | timestamp | |
 

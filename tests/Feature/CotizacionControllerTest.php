@@ -545,6 +545,68 @@ test('costear without labour hours on the product only brings the materials', fu
         ->assertJsonCount(0, 'insumos');
 });
 
+test('costear prices with the product base cost per unit of measure', function (string $unidad, array $medidas, float $cantidad) {
+    $producto = Producto::factory()->conCostoBase(60)->create([
+        'categoria_producto_id' => CategoriaProducto::factory()->create()->id,
+        'unidad_medida' => $unidad,
+    ]);
+
+    $sinNivel = config('cotizacion.margen_sugerido');
+    $costo = round($cantidad * 60, 2);
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->postJson(route('cotizaciones.costear'), ['producto_id' => $producto->id, ...$medidas])
+        ->assertOk()
+        ->assertJsonPath('costo_material_unitario', fn ($valor) => (float) $valor === $costo)
+        ->assertJsonPath('insumos.0.descripcion', PrecioSugeridoService::DESCRIPCION_COSTO_BASE)
+        ->assertJsonPath('insumos.0.unidad', $unidad)
+        ->assertJsonPath('insumos.0.cantidad', fn ($valor) => (float) $valor === $cantidad)
+        ->assertJsonPath('insumos.0.costo_unitario', fn ($valor) => (float) $valor === 60.0)
+        ->assertJsonPath('descripcion_costo_base', PrecioSugeridoService::DESCRIPCION_COSTO_BASE)
+        ->assertJsonPath('precio_sugerido', fn ($valor) => (float) $valor === round($costo * (1 + $sinNivel), 2));
+})->with([
+    'm²' => ['M2', ['ancho' => 2, 'alto' => 1.5], 3.0],
+    'metro lineal' => ['METRO_LINEAL', ['ancho' => 4, 'alto' => 1], 4.0],
+    'unidad' => ['UNIDAD', [], 1.0],
+]);
+
+test('the base cost replaces the recipe and follows the latest product value', function () {
+    $producto = Producto::factory()->conCostoBase(50)->create([
+        'categoria_producto_id' => CategoriaProducto::factory()->create()->id,
+        'unidad_medida' => 'UNIDAD',
+    ]);
+    ProductoMaterial::factory()->create([
+        'producto_id' => $producto->id,
+        'material_id' => Material::factory()->create([
+            'categoria_material_id' => CategoriaMaterial::factory()->create()->id,
+            'precio_unitario' => 999,
+        ])->id,
+        'formula_id' => null,
+        'cantidad_por_unidad' => 1,
+    ]);
+    $usuario = userWith('cotizaciones.crear');
+
+    $this->actingAs($usuario)
+        ->postJson(route('cotizaciones.costear'), ['producto_id' => $producto->id])
+        ->assertOk()
+        ->assertJsonCount(1, 'insumos')
+        ->assertJsonPath('costo_material_unitario', 50);
+
+    $producto->update(['precio_base' => 80]);
+
+    $this->actingAs($usuario)
+        ->postJson(route('cotizaciones.costear'), ['producto_id' => $producto->id])
+        ->assertJsonPath('costo_material_unitario', 80);
+});
+
+test('the base cost of a product per square metre needs its measures', function () {
+    $producto = Producto::factory()->conCostoBase(60)->create(['unidad_medida' => 'M2']);
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->postJson(route('cotizaciones.costear'), ['producto_id' => $producto->id])
+        ->assertStatus(422);
+});
+
 test('costear returns 422 when the product needs measures it did not get', function () {
     $producto = Producto::factory()->create(['unidad_medida' => 'M2']);
     Formula::query()->delete();
