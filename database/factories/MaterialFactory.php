@@ -19,6 +19,7 @@ class MaterialFactory extends Factory
     public function definition(): array
     {
         $precioPresentacion = fake()->randomFloat(2, 50, 1500);
+        $contenido = fake()->randomFloat(2, 1, 50);
 
         return [
             'categoria_material_id' => CategoriaMaterial::factory(),
@@ -26,7 +27,8 @@ class MaterialFactory extends Factory
             'presentacion' => fake()->randomElement(['Rollo 3,20x50m', 'Plancha 2x1m', 'Litro', 'Barra 6m']),
             'unidad_medida' => fake()->randomElement(Material::UNIDADES_MEDIDA),
             'precio_presentacion' => $precioPresentacion,
-            'precio_unitario' => round($precioPresentacion / fake()->randomFloat(2, 1, 50), 2),
+            'contenido_presentacion' => $contenido,
+            'precio_unitario' => round($precioPresentacion / $contenido, 2),
             'stock_actual' => fake()->randomFloat(2, 0, 200),
             'stock_minimo' => fake()->randomFloat(2, 5, 20),
             'redondeo_compra' => null,

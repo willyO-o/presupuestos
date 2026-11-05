@@ -538,6 +538,12 @@
           "comment": "costo total del rollo/plancha/litro"
         },
         {
+          "name": "contenido_presentacion",
+          "type": "decimal(12,4)",
+          "default": 1,
+          "comment": "cuanto trae la presentacion en la unidad de medida (rollo 3,20x50m = 160 m2)"
+        },
+        {
           "name": "precio_unitario",
           "type": "decimal(10,2)",
           "comment": "costo por m2/metro/unidad, usado en el calculo de cotizaciones"
@@ -755,6 +761,22 @@
             "table": "material",
             "column": "id"
           }
+        },
+        {
+          "name": "unidad_compra",
+          "type": "enum",
+          "values": [
+            "PRESENTACION",
+            "MEDIDA"
+          ],
+          "default": "MEDIDA",
+          "comment": "si cantidad y precio_unitario son por rollo/plancha/galon o por m2/ml/litro"
+        },
+        {
+          "name": "contenido_presentacion",
+          "type": "decimal(12,4)",
+          "default": 1,
+          "comment": "copia del contenido del material al cargar la compra"
         },
         {
           "name": "cantidad",

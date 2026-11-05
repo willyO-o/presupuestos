@@ -89,6 +89,7 @@ function materialVacio() {
         stock_actual: 0,
         stock_minimo: 0,
         redondeo_compra: '',
+        contenido_presentacion: 1,
         estado: 'ACTIVO',
     };
 }
@@ -118,12 +119,13 @@ function hoy() {
 }
 
 function lineaVacia() {
-    return { material_id: '', cantidad: 1, precio_unitario: '' };
+    return { material_id: '', unidad_compra: 'PRESENTACION', cantidad: 1, precio_unitario: '' };
 }
 
 const detallesIniciales = esEdicion.value && props.compra.detalles?.length
     ? props.compra.detalles.map((d) => ({
         material_id: d.material_id ?? '',
+        unidad_compra: d.unidad_compra ?? 'MEDIDA',
         cantidad: Number(d.cantidad ?? 1),
         precio_unitario: d.precio_unitario ?? '',
     }))
@@ -141,12 +143,74 @@ function materialDe(id) {
     return materialesDisponibles.value.find((m) => m.id === Number(id)) ?? null;
 }
 
+const UNIDADES = { M2: 'm²', METRO_LINEAL: 'ml', UNIDAD: 'unidad', LITRO: 'L' };
+
+/** Cuánto trae la presentación del material, en su unidad de medida. */
+function contenidoDe(material) {
+    return Number(material?.contenido_presentacion || 1);
+}
+
+/** El material se vende en una presentación más grande que su unidad (rollo, galón). */
+function tienePresentacion(material) {
+    return !!material && contenidoDe(material) !== 1;
+}
+
+/** "rollo" de "Rollo 3,20x50m": cómo se llama lo que se compra. */
+function nombrePresentacion(material) {
+    return String(material?.presentacion || 'presentación').split(' ')[0].toLowerCase();
+}
+
+function unidadDe(material) {
+    return UNIDADES[material?.unidad_medida] ?? 'unidad';
+}
+
+function compraPorPresentacion(linea) {
+    return linea.unidad_compra === 'PRESENTACION' && tienePresentacion(materialDe(linea.material_id));
+}
+
+/** En qué se escribe la cantidad de la línea ("rollos", "m²"). */
+function unidadDeLinea(linea) {
+    const material = materialDe(linea.material_id);
+
+    return compraPorPresentacion(linea) ? `${nombrePresentacion(material)}s` : unidadDe(material);
+}
+
+/** Lo que la línea suma al stock y su precio por unidad de medida. */
+function conversion(linea) {
+    const material = materialDe(linea.material_id);
+
+    if (!compraPorPresentacion(linea)) return null;
+
+    const cantidad = Number(linea.cantidad || 0) * contenidoDe(material);
+
+    return {
+        cantidad,
+        unidad: unidadDe(material),
+        precio: cantidad > 0 ? subtotalLinea(linea) / cantidad : 0,
+    };
+}
+
+/** Precio sugerido según cómo se compra: el de la presentación o el unitario. */
+function precioSugerido(linea) {
+    const material = materialDe(linea.material_id);
+
+    return compraPorPresentacion(linea) ? material.precio_presentacion : material?.precio_unitario;
+}
+
 function onMaterialChange(index) {
     const linea = form.detalles[index];
     const material = materialDe(linea.material_id);
-    if (material && !linea.precio_unitario) {
-        linea.precio_unitario = material.precio_unitario;
-    }
+
+    if (!material) return;
+
+    // Lo que trae presentación se compra por presentación (rollo, galón).
+    linea.unidad_compra = tienePresentacion(material) ? 'PRESENTACION' : 'MEDIDA';
+    linea.precio_unitario = precioSugerido(linea) ?? '';
+}
+
+function onUnidadCompraChange(index) {
+    const linea = form.detalles[index];
+    linea.precio_unitario = precioSugerido(linea) ?? '';
 }
 
 function agregarLinea() {
@@ -189,6 +253,7 @@ function submit() {
         ...data,
         detalles: data.detalles.map((l) => ({
             material_id: l.material_id || null,
+            unidad_compra: compraPorPresentacion(l) ? 'PRESENTACION' : 'MEDIDA',
             cantidad: Number(l.cantidad),
             precio_unitario: Number(l.precio_unitario),
         })),
@@ -313,9 +378,23 @@ function submit() {
                                 </p>
                             </div>
                         </div>
+                        <div v-if="tienePresentacion(materialDe(linea.material_id))" class="col-lg-5">
+                            <div class="form-group">
+                                <label class="form-label" :for="`compra-unidad-${index}`">¿Cómo se compra?</label>
+                                <select :id="`compra-unidad-${index}`" v-model="linea.unidad_compra" class="form-control"
+                                    @change="onUnidadCompraChange(index)">
+                                    <option value="PRESENTACION">
+                                        Por {{ nombrePresentacion(materialDe(linea.material_id)) }}
+                                        ({{ materialDe(linea.material_id).presentacion }} =
+                                        {{ contenidoDe(materialDe(linea.material_id)) }} {{ unidadDe(materialDe(linea.material_id)) }})
+                                    </option>
+                                    <option value="MEDIDA">Por {{ unidadDe(materialDe(linea.material_id)) }}</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="col-lg-2 col-6">
                             <div class="form-group">
-                                <label class="form-label">Cantidad</label>
+                                <label class="form-label">Cantidad ({{ unidadDeLinea(linea) }})</label>
                                 <input v-model="linea.cantidad" v-decimal="2" type="text" inputmode="decimal"
                                     class="form-control"
                                     :class="{ 'is-invalid': form.errors[`detalles.${index}.cantidad`] }" required />
@@ -326,7 +405,9 @@ function submit() {
                         </div>
                         <div class="col-lg-3 col-6">
                             <div class="form-group">
-                                <label class="form-label">Precio unit. (Bs)</label>
+                                <label class="form-label">
+                                    Precio por {{ compraPorPresentacion(linea) ? nombrePresentacion(materialDe(linea.material_id)) : unidadDe(materialDe(linea.material_id)) }} (Bs)
+                                </label>
                                 <input v-model="linea.precio_unitario" v-decimal="2" type="text" inputmode="decimal"
                                     class="form-control"
                                     :class="{ 'is-invalid': form.errors[`detalles.${index}.precio_unitario`] }"
@@ -344,6 +425,12 @@ function submit() {
                             </div>
                         </div>
                     </div>
+                    <p v-if="conversion(linea)" class="fs-xs text-muted mb-0">
+                        <i class="fa-solid fa-right-left text-primary" aria-hidden="true"></i>
+                        Suma {{ conversion(linea).cantidad.toLocaleString('es-BO', { maximumFractionDigits: 2 }) }}
+                        {{ conversion(linea).unidad }} al stock, a {{ money(conversion(linea).precio) }} por
+                        {{ conversion(linea).unidad }}: ese es el precio que usarán las cotizaciones.
+                    </p>
                 </div>
 
                 <div class="compra-total-row mt-3">

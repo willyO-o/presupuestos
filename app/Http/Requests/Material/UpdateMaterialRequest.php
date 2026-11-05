@@ -27,12 +27,26 @@ class UpdateMaterialRequest extends FormRequest
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
+    /**
+     * Sin contenido (modales de alta rápida viejos, o el campo vacío), la
+     * presentación es una unidad de medida.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (blank($this->input('contenido_presentacion'))) {
+            $this->merge(['contenido_presentacion' => 1]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'categoria_material_id' => ['required', 'integer', Rule::exists('categoria_material', 'id')],
             'nombre' => ['required', 'string', 'max:255'],
             'presentacion' => ['required', 'string', 'max:255'],
+            // Cuánto trae la presentación en la unidad de medida (rollo de
+            // 3,20 × 50 m = 160 m²). Vacío = 1.
+            'contenido_presentacion' => ['required', 'numeric', 'gt:0', 'max:1000000'],
             'unidad_medida' => ['required', Rule::in(Material::UNIDADES_MEDIDA)],
             'precio_presentacion' => ['required', 'numeric', 'min:0'],
             'precio_unitario' => ['required', 'numeric', 'min:0'],

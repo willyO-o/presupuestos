@@ -2,6 +2,7 @@
 
 namespace App\Services\Calculo;
 
+use App\Models\Material;
 use App\Models\Producto;
 use App\Models\TipoProyecto;
 
@@ -79,7 +80,7 @@ class PrecioSugeridoService
             'material_id' => $linea->productoMaterial->material_id,
             'tipo' => 'MATERIAL',
             'descripcion' => $linea->productoMaterial->material->nombre,
-            'unidad' => $linea->productoMaterial->material->unidad_medida,
+            'unidad' => Material::etiquetaUnidad($linea->productoMaterial->material->unidad_medida),
             'cantidad' => round($linea->cantidadConsumida, 4),
             'costo_unitario' => round((float) $linea->productoMaterial->material->precio_unitario, 4),
             'subtotal' => round($linea->costo, 4),
@@ -102,7 +103,7 @@ class PrecioSugeridoService
             'insumos' => $insumos,
             'lineas' => array_map(fn (LineaCosteo $linea): array => [
                 'material' => $linea->productoMaterial->material->nombre,
-                'unidad' => $linea->productoMaterial->material->unidad_medida,
+                'unidad' => Material::etiquetaUnidad($linea->productoMaterial->material->unidad_medida),
                 'cantidad' => round($linea->cantidadConsumida, 4),
                 'cantidad_bruta' => round($linea->cantidadBruta, 4),
                 'redondeada' => $linea->fueRedondeada(),
@@ -137,7 +138,7 @@ class PrecioSugeridoService
             'material_id' => null,
             'tipo' => 'MATERIAL',
             'descripcion' => self::DESCRIPCION_COSTO_BASE,
-            'unidad' => $producto->unidad_medida,
+            'unidad' => Material::etiquetaUnidad($producto->unidad_medida),
             'cantidad' => $cantidad,
             'costo_unitario' => round($costo, 4),
             'subtotal' => round($cantidad * $costo, 4),

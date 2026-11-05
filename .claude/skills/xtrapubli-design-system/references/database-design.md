@@ -191,6 +191,7 @@ Modela filas como *"Lona FrontLight 3,20x50m"*, *"Tubo 20x20x0,9mm"*, *"MDF 9mm"
 | presentacion | string | "Rollo 3,20x50m", "Plancha 2x1m", "Litro", "Barra 6m" |
 | unidad_medida | `ENUM('M2','METRO','UNIDAD','LITRO')` | según cómo se cobra: gigantografía por m², cerrajería por metro, otros por unidad/plancha |
 | precio_presentacion | decimal(10,2) | costo total del rollo/plancha/litro comprado |
+| contenido_presentacion | decimal(12,4), default 1 | cuánto trae la presentación en la unidad de medida (rollo 3,20×50 m = 160 m²; galón = 3,78 L). precio_unitario = precio_presentacion ÷ contenido |
 | precio_unitario | decimal(10,2) | costo por m²/metro/unidad (el dato que realmente se usa al cotizar) |
 | stock_actual | decimal(10,2), default 0 | control de inventario |
 | stock_minimo | decimal(10,2), default 0 | alerta de reposición |
@@ -239,6 +240,8 @@ Guarda el precio vigente en cada fecha (clave para el análisis BI de evolución
 | id | bigint PK |
 | compra_id | bigint FK → `compra.id` |
 | material_id | bigint FK → `material.id` |
+| unidad_compra | `ENUM('PRESENTACION','MEDIDA')`, default `MEDIDA` — cantidad y precio por rollo/plancha/galón o por m²/ml/litro; al aprobar se convierte a la unidad de medida |
+| contenido_presentacion | decimal(12,4), default 1 — copia del contenido del material al cargar la compra |
 | cantidad | decimal(10,2) |
 | precio_unitario | decimal(10,2) |
 | subtotal | decimal(10,2) |

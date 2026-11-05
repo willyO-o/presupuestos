@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'categoria_material_id',
     'nombre',
     'presentacion',
+    'contenido_presentacion',
     'unidad_medida',
     'precio_presentacion',
     'precio_unitario',
@@ -48,6 +49,22 @@ class Material extends Model
     public const UNIDADES_MEDIDA = ['M2', 'METRO_LINEAL', 'UNIDAD', 'LITRO'];
 
     /**
+     * Cómo se lee cada unidad en pantalla (hoja de costos de una
+     * cotización): "m²" y no "M2", "ml" y no "METRO_LINEAL".
+     */
+    public const ETIQUETAS_UNIDAD = [
+        'M2' => 'm²',
+        'METRO_LINEAL' => 'ml',
+        'UNIDAD' => 'unidad',
+        'LITRO' => 'L',
+    ];
+
+    public static function etiquetaUnidad(?string $unidad): string
+    {
+        return self::ETIQUETAS_UNIDAD[$unidad] ?? (string) $unidad;
+    }
+
+    /**
      * Se agrega al array/JSON para que el listado pueda resaltar el material
      * sin repetir la comparación stock_actual/stock_minimo en cada pantalla.
      *
@@ -62,6 +79,7 @@ class Material extends Model
     {
         return [
             'redondeo_compra' => 'decimal:4',
+            'contenido_presentacion' => 'decimal:4',
         ];
     }
 

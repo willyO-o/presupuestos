@@ -52,6 +52,7 @@ function materialVacio() {
         stock_actual: 0,
         stock_minimo: 0,
         redondeo_compra: '',
+        contenido_presentacion: 1,
         estado: 'ACTIVO',
     };
 }

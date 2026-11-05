@@ -311,3 +311,29 @@ test('a user without permission cannot quick-create a material', function () {
 
     $this->assertDatabaseCount('material', 0);
 });
+
+test('a material keeps how much its presentation holds, 1 when left empty', function () {
+    $usuario = User::factory()->create();
+    Permission::findOrCreate('materiales.crear', 'web');
+    $usuario->givePermissionTo('materiales.crear');
+    $categoria = CategoriaMaterial::factory()->create();
+
+    $datos = [
+        'categoria_material_id' => $categoria->id,
+        'presentacion' => 'Rollo 3,20x50m',
+        'unidad_medida' => 'M2',
+        'precio_presentacion' => 2800,
+        'precio_unitario' => 17.5,
+        'stock_actual' => 0,
+        'stock_minimo' => 0,
+        'estado' => 'ACTIVO',
+    ];
+
+    $this->actingAs($usuario)->post(route('materiales.store'), [...$datos, 'nombre' => 'Lona', 'contenido_presentacion' => 160])
+        ->assertSessionHasNoErrors();
+    $this->actingAs($usuario)->post(route('materiales.store'), [...$datos, 'nombre' => 'Lona suelta', 'contenido_presentacion' => ''])
+        ->assertSessionHasNoErrors();
+
+    expect((float) Material::where('nombre', 'Lona')->value('contenido_presentacion'))->toBe(160.0)
+        ->and((float) Material::where('nombre', 'Lona suelta')->value('contenido_presentacion'))->toBe(1.0);
+});

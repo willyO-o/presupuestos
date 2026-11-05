@@ -94,7 +94,7 @@ class CompraPdf extends Documento
                 ],
                 [
                     'texto' => $this->numero($linea->cantidad),
-                    'nota' => $linea->material?->unidad_medida,
+                    'nota' => $linea->notaDeCantidad(),
                 ],
                 $this->monto($linea->precio_unitario, moneda: false),
                 ['texto' => $this->monto($linea->subtotal, moneda: false), 'negrita' => true],

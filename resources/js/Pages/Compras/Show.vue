@@ -27,6 +27,20 @@ function fecha(value) {
     return formatearFecha(value, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+const UNIDADES = { M2: 'm²', METRO_LINEAL: 'ml', UNIDAD: 'unidad', LITRO: 'L' };
+
+/** "m²", o "rollo · = 320 m²" si la línea se compró por presentación. */
+function notaDeCantidad(d) {
+    const unidad = UNIDADES[d.material?.unidad_medida] ?? d.material?.unidad_medida ?? '';
+
+    if (d.unidad_compra !== 'PRESENTACION') return unidad;
+
+    const presentacion = String(d.material?.presentacion || 'presentación').split(' ')[0].toLowerCase();
+    const enMedida = Number(d.cantidad) * Number(d.contenido_presentacion || 1);
+
+    return `${presentacion} · = ${enMedida.toLocaleString('es-BO', { maximumFractionDigits: 2 })} ${unidad}`;
+}
+
 function nombreEmpleado(e) {
     if (!e) return '—';
     return [e.nombres, e.paterno, e.materno].filter(Boolean).join(' ');
@@ -173,7 +187,7 @@ async function eliminar() {
                             </td>
                             <td class="text-end">
                                 {{ Number(d.cantidad) }}
-                                <span class="fs-xs text-muted">{{ d.material?.unidad_medida }}</span>
+                                <span class="fs-xs text-muted">{{ notaDeCantidad(d) }}</span>
                             </td>
                             <td class="text-end">{{ money(d.precio_unitario) }}</td>
                             <td class="text-end fw-semibold">{{ money(d.subtotal) }}</td>

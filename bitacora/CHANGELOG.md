@@ -13,6 +13,24 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-11-05 — Compras por rollo/plancha/galón y unidades claras en la cotización
+
+**Qué cambió:**
+- **Compras:** cada línea dice cómo se compró: por presentación (rollo, plancha, galón) o por m²/ml/litro. Al aprobar, el sistema convierte: 2 rollos de 160 m² a Bs 2.900 suman 320 m² al stock y dejan la lona a Bs 18,13 el m². El formulario muestra la conversión antes de guardar, y la pantalla y el PDF de la compra dicen "rollo · = 320 m²".
+- **Materiales:** nuevo campo "¿Cuánto trae?" (contenido de la presentación). Al escribir el precio de la presentación o su contenido, el precio por m²/litro se calcula solo.
+- **Cotización:** la hoja de costos muestra "m²", "ml", "L" en vez de "M2"/"METRO_LINEAL", y el campo de medida explica que la unidad la fija la ficha del producto ("Solo el ancho: el producto se cobra por metro lineal").
+
+**Por qué:**
+- Las fórmulas daban costos absurdos: compras cargadas por rollo/galón se guardaban como precio por m²/litro (lona a Bs 2.900/m², vinil a Bs 2.350/m², pinturas ~4 veces). El usuario eligió comprar por presentación con conversión automática; los 7 materiales ya inflados los corrige el equipo a mano en Materiales.
+- El banner que salía "por metro lineal" está registrado así en la ficha del producto de la base en uso (no en el seeder, que lo tiene por m²): se corrige editando el producto.
+
+**Cómo:**
+- Migración `add_contenido_presentacion_to_material_and_compra_detalle` (rellena el contenido con precio de presentación ÷ precio unitario; las compras existentes quedan en MEDIDA).
+- `CompraDetalle::cantidadEnMedida()`; `AprobarCompraService` agrupa en unidad de medida y fija `precio_presentacion = precio × contenido`. `Material::etiquetaUnidad()` para las unidades legibles.
+- Tests en `CompraControllerTest`, `MaterialControllerTest` y `CotizacionControllerTest`.
+
+---
+
 ## 2026-11-04 — Revisión del documento "Cotizaciones.docx": lonas, muebles y cotizador web
 
 **Qué cambió:**

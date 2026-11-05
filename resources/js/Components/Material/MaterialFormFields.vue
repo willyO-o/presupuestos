@@ -4,7 +4,7 @@
  * y los modales de alta rápida embebidos en Compras/Partials/CompraForm.vue,
  * Pedidos/Show.vue (registro de consumo) y Productos/Receta.vue.
  */
-defineProps({
+const props = defineProps({
     form: { type: Object, required: true },
     errors: { type: Object, default: () => ({}) },
     categoriasMaterial: { type: Array, default: () => [] },
@@ -16,6 +16,24 @@ const unidadesMedida = [
     { value: 'UNIDAD', label: 'Unidad' },
     { value: 'LITRO', label: 'Litro' },
 ];
+
+function etiquetaUnidad(valor) {
+    return unidadesMedida.find((u) => u.value === valor)?.label ?? valor;
+}
+
+/**
+ * El precio por unidad de medida sale del precio de la presentación y de lo
+ * que trae (rollo de Bs 2.800 con 160 m² = Bs 17,50 el m²). Solo se
+ * recalcula cuando se escribe en uno de esos dos campos, no al abrir.
+ */
+function recalcularPrecioUnitario() {
+    const contenido = Number(props.form.contenido_presentacion || 0);
+    const precio = Number(props.form.precio_presentacion || 0);
+
+    if (contenido > 0 && precio > 0) {
+        props.form.precio_unitario = Number((precio / contenido).toFixed(2));
+    }
+}
 </script>
 
 <template>
@@ -44,7 +62,7 @@ const unidadesMedida = [
     </div>
 
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-lg-5">
             <div class="form-group">
                 <label class="form-label" for="material-presentacion">Presentación</label>
                 <input id="material-presentacion" v-model="form.presentacion" type="text" class="form-control"
@@ -54,7 +72,7 @@ const unidadesMedida = [
             </div>
         </div>
 
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <div class="form-group">
                 <label class="form-label" for="material-unidad">Unidad de medida</label>
                 <select id="material-unidad" v-model="form.unidad_medida" class="form-control">
@@ -64,6 +82,19 @@ const unidadesMedida = [
                 </select>
             </div>
         </div>
+
+        <div class="col-lg-4">
+            <div class="form-group">
+                <label class="form-label" for="material-contenido">
+                    ¿Cuánto trae? (en {{ etiquetaUnidad(form.unidad_medida) }})
+                </label>
+                <input id="material-contenido" v-model="form.contenido_presentacion" v-decimal="4" type="text"
+                    inputmode="decimal" class="form-control" placeholder="1"
+                    :class="{ 'is-invalid': errors.contenido_presentacion }" @input="recalcularPrecioUnitario" />
+                <p v-if="errors.contenido_presentacion" class="form-error">{{ errors.contenido_presentacion }}</p>
+                <p v-else class="fs-xs text-muted mt-1 mb-0">Ej.: rollo 3,20 × 50 m = 160 m²; galón = 3,78 L.</p>
+            </div>
+        </div>
     </div>
 
     <div class="row">
@@ -71,17 +102,21 @@ const unidadesMedida = [
             <div class="form-group">
                 <label class="form-label" for="material-precio-presentacion">Precio presentación (Bs)</label>
                 <input id="material-precio-presentacion" v-model="form.precio_presentacion" type="number" step="0.01"
-                    min="0" class="form-control" :class="{ 'is-invalid': errors.precio_presentacion }" required />
+                    min="0" class="form-control" :class="{ 'is-invalid': errors.precio_presentacion }" required
+                    @input="recalcularPrecioUnitario" />
                 <p v-if="errors.precio_presentacion" class="form-error">{{ errors.precio_presentacion }}</p>
             </div>
         </div>
 
         <div class="col-lg-6">
             <div class="form-group">
-                <label class="form-label" for="material-precio-unitario">Precio unitario (Bs)</label>
+                <label class="form-label" for="material-precio-unitario">
+                    Precio por {{ etiquetaUnidad(form.unidad_medida).toLowerCase() }} (Bs)
+                </label>
                 <input id="material-precio-unitario" v-model="form.precio_unitario" type="number" step="0.01" min="0"
                     class="form-control" :class="{ 'is-invalid': errors.precio_unitario }" required />
                 <p v-if="errors.precio_unitario" class="form-error">{{ errors.precio_unitario }}</p>
+                <p v-else class="fs-xs text-muted mt-1 mb-0">Es el que usan las cotizaciones. Se calcula solo.</p>
             </div>
         </div>
     </div>

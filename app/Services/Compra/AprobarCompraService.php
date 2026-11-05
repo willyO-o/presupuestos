@@ -3,6 +3,7 @@
 namespace App\Services\Compra;
 
 use App\Models\Compra;
+use App\Models\CompraDetalle;
 use App\Models\Material;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -28,26 +29,32 @@ class AprobarCompraService
         DB::transaction(function () use ($compra): void {
             $compra->update(['estado' => 'PAGADA']);
 
-            $porMaterial = $compra->detalles()
-                ->selectRaw('material_id, SUM(cantidad) as cantidad_total, SUM(subtotal) as costo_total')
+            // Todo se lleva a la unidad de medida del material: una línea
+            // comprada por rollo suma `cantidad × contenido` m² al stock, y su
+            // precio por m² es el subtotal repartido en esos m².
+            $porMaterial = $compra->detalles()->get()
                 ->groupBy('material_id')
-                ->get();
+                ->map(fn ($lineas) => [
+                    'cantidad' => $lineas->sum(fn (CompraDetalle $linea): float => $linea->cantidadEnMedida()),
+                    'costo' => (float) $lineas->sum('subtotal'),
+                ]);
 
-            foreach ($porMaterial as $fila) {
+            foreach ($porMaterial as $materialId => $fila) {
+                if ($fila['cantidad'] <= 0) {
+                    continue;
+                }
+
                 /** @var Material $material */
-                $material = Material::query()->lockForUpdate()->findOrFail($fila->material_id);
+                $material = Material::query()->lockForUpdate()->findOrFail($materialId);
 
-                $costoUnitario = round((float) $fila->costo_total / (float) $fila->cantidad_total, 2);
-                $precioUnitarioAnterior = (float) $material->precio_unitario;
+                $costoUnitario = round($fila['costo'] / $fila['cantidad'], 2);
 
-                // Se escala `precio_presentacion` con la misma proporción que
-                // cambió el precio unitario, para que ambos sigan coherentes.
-                $precioPresentacion = $precioUnitarioAnterior > 0
-                    ? round((float) $material->precio_presentacion * ($costoUnitario / $precioUnitarioAnterior), 2)
-                    : (float) $material->precio_presentacion;
+                // El precio de la presentación es lo que trae × su precio por
+                // unidad de medida: los dos quedan coherentes.
+                $precioPresentacion = round($costoUnitario * max((float) $material->contenido_presentacion, 0.0001), 2);
 
                 $material->update([
-                    'stock_actual' => (float) $material->stock_actual + (float) $fila->cantidad_total,
+                    'stock_actual' => (float) $material->stock_actual + $fila['cantidad'],
                     'precio_unitario' => $costoUnitario,
                     'precio_presentacion' => $precioPresentacion,
                 ]);

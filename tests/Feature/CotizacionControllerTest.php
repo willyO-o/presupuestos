@@ -559,7 +559,7 @@ test('costear prices with the product base cost per unit of measure', function (
         ->assertOk()
         ->assertJsonPath('costo_material_unitario', fn ($valor) => (float) $valor === $costo)
         ->assertJsonPath('insumos.0.descripcion', PrecioSugeridoService::DESCRIPCION_COSTO_BASE)
-        ->assertJsonPath('insumos.0.unidad', $unidad)
+        ->assertJsonPath('insumos.0.unidad', Material::etiquetaUnidad($unidad))
         ->assertJsonPath('insumos.0.cantidad', fn ($valor) => (float) $valor === $cantidad)
         ->assertJsonPath('insumos.0.costo_unitario', fn ($valor) => (float) $valor === 60.0)
         ->assertJsonPath('descripcion_costo_base', PrecioSugeridoService::DESCRIPCION_COSTO_BASE)

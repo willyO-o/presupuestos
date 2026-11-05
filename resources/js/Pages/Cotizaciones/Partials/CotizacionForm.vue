@@ -272,16 +272,26 @@ function areaDe(linea) {
  * m², el ancho para metro lineal. `null` para los que se cobran por unidad.
  * Una línea sin producto (ítem personalizado) muestra el área.
  *
- * @returns {{ etiqueta: string, valor: number }|null}
+ * La nota dice de dónde sale: la unidad la fija la ficha del producto, no
+ * la cotización (si está mal, se corrige en Productos).
+ *
+ * @returns {{ etiqueta: string, valor: number, nota: string }|null}
  */
 function medidaDeCobro(linea) {
-    const unidad = productoDe(linea.producto_id)?.unidad_medida ?? 'M2';
+    const producto = productoDe(linea.producto_id);
+    const unidad = producto?.unidad_medida ?? 'M2';
 
     if (unidad === 'METRO_LINEAL') {
-        return { etiqueta: 'Metros lineales', valor: Number(linea.ancho || 0) };
+        return { etiqueta: 'Metros lineales', valor: Number(linea.ancho || 0), nota: 'Solo el ancho: el producto se cobra por metro lineal' };
     }
 
-    return unidad === 'M2' ? { etiqueta: 'Área m²', valor: areaDe(linea) } : null;
+    if (unidad !== 'M2') return null;
+
+    return {
+        etiqueta: 'Área m²',
+        valor: areaDe(linea),
+        nota: producto ? 'Ancho × alto: el producto se cobra por m²' : 'Interna, no se imprime',
+    };
 }
 
 /**
@@ -943,7 +953,7 @@ function submit() {
                                     <input :id="`linea-${index}-area`"
                                         :value="medidaDeCobro(linea).valor.toFixed(2)"
                                         type="text" class="form-control" disabled />
-                                    <p class="fs-xs text-muted mt-1 mb-0">Interna, no se imprime</p>
+                                    <p class="fs-xs text-muted mt-1 mb-0">{{ medidaDeCobro(linea).nota }}</p>
                                 </div>
                             </div>
                         </template>

@@ -67,6 +67,8 @@ class MaterialSeeder extends Seeder
                     ['categoria_material_id' => $categoriaId, 'nombre' => $material['nombre']],
                     [
                         'presentacion' => $material['presentacion'],
+                        // Rollo 3,20 × 50 m a Bs 2.800 y Bs 17,50 el m² = 160 m².
+                        'contenido_presentacion' => round($material['precio_presentacion'] / $material['precio_unitario'], 4),
                         'unidad_medida' => $material['unidad_medida'],
                         'precio_presentacion' => $material['precio_presentacion'],
                         'precio_unitario' => $material['precio_unitario'],

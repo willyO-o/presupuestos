@@ -206,7 +206,7 @@ class CompraController extends Controller
             'empleados' => Empleado::query()->visiblePara($request->user())->estado('ACTIVO')->orderBy('nombres')
                 ->get(['id', 'nombres', 'paterno', 'materno', 'cargo']),
             'materiales' => Material::query()->estado('ACTIVO')->orderBy('nombre')
-                ->get(['id', 'nombre', 'presentacion', 'unidad_medida', 'precio_unitario']),
+                ->get(['id', 'nombre', 'presentacion', 'contenido_presentacion', 'unidad_medida', 'precio_presentacion', 'precio_unitario']),
             'empleadoActualId' => $request->user()->empleado?->id,
             // Solo para los modales de alta rápida (Nuevo proveedor/
             // responsable/material embebidos en el formulario, ver
@@ -220,19 +220,30 @@ class CompraController extends Controller
 
     /**
      * Normaliza cada línea: calcula el `subtotal` (cantidad × precio) en el
-     * servidor, ignorando lo que haya mandado el navegador.
+     * servidor, ignorando lo que haya mandado el navegador, y copia el
+     * contenido de la presentación del material si se compró por rollo,
+     * plancha o galón (al aprobar se convierte con ese mismo contenido).
      *
      * @param  list<array<string, mixed>>  $detalles
      * @return list<array<string, mixed>>
      */
     private function normalizarDetalles(array $detalles): array
     {
-        return array_map(function (array $linea): array {
+        $contenidos = Material::query()
+            ->whereIn('id', array_column($detalles, 'material_id'))
+            ->pluck('contenido_presentacion', 'id');
+
+        return array_map(function (array $linea) use ($contenidos): array {
             $cantidad = (float) $linea['cantidad'];
             $precioUnitario = (float) $linea['precio_unitario'];
+            $unidadCompra = $linea['unidad_compra'] ?? 'MEDIDA';
 
             return [
                 'material_id' => $linea['material_id'],
+                'unidad_compra' => $unidadCompra,
+                'contenido_presentacion' => $unidadCompra === 'PRESENTACION'
+                    ? (float) ($contenidos[$linea['material_id']] ?? 1)
+                    : 1,
                 'cantidad' => round($cantidad, 2),
                 'precio_unitario' => round($precioUnitario, 2),
                 'subtotal' => round($cantidad * $precioUnitario, 2),

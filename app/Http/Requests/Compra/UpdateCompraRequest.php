@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Compra;
 
+use App\Models\CompraDetalle;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,6 +33,8 @@ class UpdateCompraRequest extends FormRequest
             'detalles.*.material_id' => ['required', 'integer', Rule::exists('material', 'id')],
             'detalles.*.cantidad' => ['required', 'numeric', 'min:0.01'],
             'detalles.*.precio_unitario' => ['required', 'numeric', 'min:0'],
+            // Por rollo/plancha/galón o por m²/ml/litro (ver CompraDetalle::UNIDADES_COMPRA).
+            'detalles.*.unidad_compra' => ['nullable', Rule::in(CompraDetalle::UNIDADES_COMPRA)],
         ];
     }
 

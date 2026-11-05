@@ -177,6 +177,77 @@ test('aprobar marks the compra PAGADA and impacts the inventory once', function 
     expect((float) $material->fresh()->stock_actual)->toBe(14.0);
 });
 
+test('a line bought by roll keeps the roll content to convert it later', function () {
+    $lona = Material::factory()->create(['unidad_medida' => 'M2', 'contenido_presentacion' => 160]);
+
+    $this->actingAs(userWithCompra('compras.crear'))
+        ->post(route('compras.store'), [
+            ...cabeceraCompraValida(),
+            'detalles' => [
+                ['material_id' => $lona->id, 'unidad_compra' => 'PRESENTACION', 'cantidad' => 2, 'precio_unitario' => 2900],
+                ['material_id' => $lona->id, 'cantidad' => 10, 'precio_unitario' => 20],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $lineas = CompraDetalle::orderBy('id')->get();
+
+    expect($lineas[0]->unidad_compra)->toBe('PRESENTACION')
+        ->and((float) $lineas[0]->contenido_presentacion)->toBe(160.0)
+        ->and((float) $lineas[0]->subtotal)->toBe(5800.0)
+        ->and($lineas[1]->unidad_compra)->toBe('MEDIDA')
+        ->and((float) $lineas[1]->contenido_presentacion)->toBe(1.0);
+});
+
+test('approving rolls adds square metres to stock and prices per square metre', function () {
+    $lona = Material::factory()->create([
+        'unidad_medida' => 'M2',
+        'contenido_presentacion' => 160,
+        'precio_unitario' => 17.50,
+        'precio_presentacion' => 2800,
+        'stock_actual' => 0,
+    ]);
+    $compra = Compra::factory()->create(['fecha' => now()->subDay()->toDateString()]);
+    CompraDetalle::factory()->for($compra)->create([
+        'material_id' => $lona->id,
+        'unidad_compra' => 'PRESENTACION',
+        'contenido_presentacion' => 160,
+        'cantidad' => 2,
+        'precio_unitario' => 2900,
+        'subtotal' => 5800,
+    ]);
+
+    $this->actingAs(userWithCompra('compras.aprobar'))
+        ->post(route('compras.aprobar', $compra))
+        ->assertSessionHasNoErrors();
+
+    $lona->refresh();
+
+    // 2 rollos = 320 m²; Bs 5.800 / 320 m² = Bs 18,13 el m² (no Bs 2.900).
+    expect((float) $lona->stock_actual)->toBe(320.0)
+        ->and((float) $lona->precio_unitario)->toBe(18.13)
+        ->and((float) $lona->precio_presentacion)->toBe(round(18.13 * 160, 2));
+});
+
+test('rolls and square metres of the same material are averaged per square metre', function () {
+    $lona = Material::factory()->create(['unidad_medida' => 'M2', 'contenido_presentacion' => 160, 'stock_actual' => 0]);
+    $compra = Compra::factory()->create(['fecha' => now()->subDay()->toDateString()]);
+    CompraDetalle::factory()->for($compra)->create([
+        'material_id' => $lona->id, 'unidad_compra' => 'PRESENTACION', 'contenido_presentacion' => 160,
+        'cantidad' => 1, 'precio_unitario' => 3200, 'subtotal' => 3200,
+    ]);
+    CompraDetalle::factory()->for($compra)->create([
+        'material_id' => $lona->id, 'unidad_compra' => 'MEDIDA', 'contenido_presentacion' => 1,
+        'cantidad' => 40, 'precio_unitario' => 25, 'subtotal' => 1000,
+    ]);
+
+    $this->actingAs(userWithCompra('compras.aprobar'))->post(route('compras.aprobar', $compra));
+
+    // 160 + 40 = 200 m² por Bs 4.200 = Bs 21 el m².
+    expect((float) $lona->fresh()->stock_actual)->toBe(200.0)
+        ->and((float) $lona->fresh()->precio_unitario)->toBe(21.0);
+});
+
 test('anular marks a pending compra ANULADA', function () {
     $compra = Compra::factory()->create();
 
