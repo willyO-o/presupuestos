@@ -13,6 +13,18 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-11-05 — "Imprimir" salía en blanco con el menú lateral abierto
+
+**Qué cambió:**
+- Nueva regla `@media print` general en `app.css` (sección 1, layout): al imprimir se ocultan el velo del sidebar, sidebar, topbar, banda de título, footer, loader y el asistente IA, y el fondo queda blanco. Aplica a Notas de entrega, Cotizaciones y Compras.
+- Cotización: "Instalación (Bs)" vuelve a tener la etiqueta limpia; "Calcular" pasa a ser un enlace junto a la nota "Monto fijo, sin IVA".
+
+**Por qué:**
+- La hoja impresa mide menos de 1024px, así que el `lg:hidden` del `.sidebar-overlay` dejaba de aplicar: con el menú abierto, ese velo fijo con desenfoque tapaba toda la hoja.
+
+**Cómo:**
+- Reproducido con Chrome headless (`--print-to-pdf`) sobre el CSS compilado: antes, hoja tapada por el velo gris; después, solo el documento.
+
 ## 2026-11-05 — Compras por rollo/plancha/galón y unidades claras en la cotización
 
 **Qué cambió:**

@@ -720,6 +720,34 @@
     @apply fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-[2px] lg:hidden;
 }
 
+/* Impresión (window.print en Cotizaciones/Compras/Notas de entrega): solo
+   sale el documento. La hoja impresa mide menos de 1024px, así que el
+   `lg:hidden` del velo del sidebar deja de aplicar y, con el menú abierto,
+   el velo (fixed + desenfoque) tapaba toda la hoja: salía en blanco. */
+@media print {
+    .app-shell .sidebar,
+    .sidebar-overlay,
+    .topbar,
+    .page-hero,
+    .app-footer,
+    .page-loader,
+    .ia-lanzador,
+    .ia-panel {
+        display: none !important;
+    }
+
+    .app-shell,
+    .main-wrapper {
+        min-height: 0 !important;
+        margin: 0 !important;
+    }
+
+    body,
+    .app-shell {
+        background: #ffffff !important;
+    }
+}
+
 /* --- Banda de encabezado (titulo de la pantalla) ---
    Degradado celeste de ancho completo, pegado al topbar, con la cordillera
    (public/img/banner/montanas.svg) apoyada abajo a la derecha. El titulo,
@@ -3418,10 +3446,16 @@
     @apply mb-1 mt-1 rounded-lg border p-3;
 }
 
-/* Botón chico junto a la etiqueta "Instalación (Bs)": no debe empujar el
-   campo hacia abajo respecto de sus vecinos de fila. */
+/* Nota bajo el campo "Instalación (Bs)" con el enlace "Calcular" al lado:
+   la etiqueta queda limpia, alineada con el resto de la fila. */
+.instalacion-ayuda {
+    color: var(--text-muted);
+    @apply mb-0 mt-1 flex flex-wrap items-center gap-x-2 text-xs;
+}
+
 .instalacion-calcular {
-    @apply px-2 py-0.5 text-xs leading-5;
+    color: var(--c-primary);
+    @apply inline-flex items-center gap-1 font-semibold hover:underline;
 }
 
 .instalacion-nocturna {

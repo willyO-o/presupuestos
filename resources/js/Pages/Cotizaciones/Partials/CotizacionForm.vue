@@ -971,24 +971,22 @@ function submit() {
                         </div>
                         <div class="col-lg-2 col-6">
                             <div class="form-group">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <label class="form-label mb-0" :for="`linea-${index}-instalacion`">
-                                        Instalación (Bs)
-                                    </label>
+                                <label class="form-label" :for="`linea-${index}-instalacion`">Instalación (Bs)</label>
+                                <input v-if="linea.instalacion_detalle" :id="`linea-${index}-instalacion`"
+                                    :value="instalacionDe(linea).toFixed(2)" type="text" class="form-control fw-semibold"
+                                    disabled />
+                                <input v-else :id="`linea-${index}-instalacion`" v-model="linea.instalacion" v-decimal="2"
+                                    type="text" inputmode="decimal" class="form-control" placeholder="0.00" />
+                                <div class="instalacion-ayuda">
+                                    <span>{{ ayudaInstalacion(linea) }}</span>
                                     <button v-if="!linea.instalacion_detalle" type="button"
-                                        class="btn btn-sm btn-soft-primary instalacion-calcular"
+                                        class="instalacion-calcular"
                                         title="Calcular con personas, horas, horario nocturno y transporte"
                                         @click="activarCalculoInstalacion(linea)">
                                         <i class="fa-solid fa-calculator"></i>
                                         Calcular
                                     </button>
                                 </div>
-                                <input v-if="linea.instalacion_detalle" :id="`linea-${index}-instalacion`"
-                                    :value="instalacionDe(linea).toFixed(2)" type="text" class="form-control fw-semibold"
-                                    disabled />
-                                <input v-else :id="`linea-${index}-instalacion`" v-model="linea.instalacion" v-decimal="2"
-                                    type="text" inputmode="decimal" class="form-control" placeholder="0.00" />
-                                <p class="fs-xs text-muted mt-1 mb-0">{{ ayudaInstalacion(linea) }}</p>
                             </div>
                         </div>
                         <div class="col-lg-2 col-6">
