@@ -13,6 +13,24 @@ entrada nueva acá ANTES de darlo por terminado. Ver
 
 ---
 
+## 2026-11-11 — Cotización sin profundidad/niveles en banners, modal de solicitudes web y período en el reporte de producción
+
+**Qué cambió:**
+- **Cotización:** "Profundidad" y "Niveles" solo aparecen si la receta del producto usa esa medida (letras 3D sí; un banner no). Un valor ya guardado se sigue mostrando para poder corregirlo, y al cambiar a un producto que no la usa se vacía.
+- **Solicitudes del sitio web:** el modal de detalle es más ancho (`max-width="3xl"`, opción nueva de `Modal.vue`). Tiene una ficha con cliente, contacto (WhatsApp y correo con enlace), fecha de recepción y vigencia, una tabla con columnas de producto, medidas, área y subtotal sin IVA, y el estimado que vio el visitante destacado.
+- **Informe del BI:** se quitó el botón "Descargar CSV" del modal "Generar informe" (pedido del tutor: el archivo no salía ordenado). Solo queda "Ver PDF"; la ruta `reportes.bi.informe.csv` sigue existiendo por si se retoma.
+- **PDF de producción:** texto más claro bajo "Tiempo promedio por etapa".
+- **Informe "Presupuestos y rentabilidad":** sin el anexo metodológico (las 4 últimas hojas). Termina en la nota de cierre, como el de Alertas. Los demás informes del BI lo conservan; el texto del modal y el "Cómo está organizado" ya no lo mencionan.
+- **Reporte de producción:** filtro de período (pantalla y PDF). Acota las entregas por fecha de entrega real y los tiempos por etapa por fecha de cierre. Sin fechas se toma todo el historial, como antes. La carga por área y los pedidos en curso siguen siendo la situación del momento.
+
+**Por qué:**
+- Pedidos del usuario con capturas: los campos de mueble confundían al cotizar lonas, la tabla del modal no tenía estilo y salía apretada, y el reporte de producción no permitía elegir fechas.
+
+**Cómo:**
+- `Producto::usaMedidaEnReceta()` busca `profundo`/`niveles` en las fórmulas de la receta (ignora la receta si hay costo base). `CotizacionController::datosFormulario` manda `pide_profundidad`/`pide_niveles` por producto.
+- `ReporteProduccionService::datos()` recibe `$desde`/`$hasta` (Carbon, no strings, por sqlite). `InformeReportesService::produccion()` arma `periodo.texto`, que se usa en la nota de alcance y en el PDF. La pantalla aplica el rango sin botón (con 400 ms de espera para la franja mes/año).
+- Tests: CotizacionControllerTest (receta con/sin profundidad) y ReportesPdfTest (rango en pantalla, PDF y validación `hasta ≥ desde`).
+
 ## 2026-11-05 — "Imprimir" salía en blanco con el menú lateral abierto
 
 **Qué cambió:**

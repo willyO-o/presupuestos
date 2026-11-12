@@ -121,6 +121,33 @@ test('the create page requires the crear permission', function () {
         ->assertInertia(fn ($page) => $page->component('Cotizaciones/Create'));
 });
 
+test('the form only asks for profundidad and niveles when the product recipe uses them', function () {
+    $banner = Producto::factory()->create(['nombre' => 'A Banner', 'precio_base' => null]);
+    ProductoMaterial::factory()->dinamica(Formula::factory()->create(['expresion' => 'ancho * alto']))
+        ->create(['producto_id' => $banner->id]);
+
+    $letras = Producto::factory()->create(['nombre' => 'B Letras 3D', 'precio_base' => null]);
+    ProductoMaterial::factory()->dinamica(Formula::factory()->create(['expresion' => '(ancho + alto) * 2 * profundo']))
+        ->create(['producto_id' => $letras->id]);
+
+    $conCostoBase = Producto::factory()->create(['nombre' => 'C Con costo base', 'precio_base' => 50]);
+    ProductoMaterial::factory()->dinamica(Formula::factory()->create(['expresion' => 'ancho * profundo * niveles']))
+        ->create(['producto_id' => $conCostoBase->id]);
+
+    $this->actingAs(userWith('cotizaciones.crear'))
+        ->get(route('cotizaciones.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('productos.0.nombre', 'A Banner')
+            ->where('productos.0.pide_profundidad', false)
+            ->where('productos.0.pide_niveles', false)
+            ->missing('productos.0.producto_materiales')
+            ->where('productos.1.pide_profundidad', true)
+            ->where('productos.1.pide_niveles', false)
+            ->where('productos.2.pide_profundidad', false)
+            ->where('productos.2.pide_niveles', false));
+});
+
 test('storing a cotizacion computes totals on the server and ignores client amounts', function () {
     $user = userWith('cotizaciones.crear');
 

@@ -314,6 +314,23 @@ function pideMedidas(linea) {
     return !producto || producto.requiere_medidas === 'SI';
 }
 
+/**
+ * Profundidad y niveles solo si la receta del producto los usa (letras 3D sí,
+ * un banner no; los muebles tienen su propio cotizador). Un valor ya guardado
+ * se sigue mostrando para poder corregirlo.
+ */
+function pideProfundidad(linea) {
+    return Boolean(productoDe(linea.producto_id)?.pide_profundidad) || filled(linea.profundidad);
+}
+
+function pideNiveles(linea) {
+    return Boolean(productoDe(linea.producto_id)?.pide_niveles) || filled(linea.niveles);
+}
+
+function filled(valor) {
+    return valor !== '' && valor !== null && valor !== undefined;
+}
+
 function onProductoChange(index) {
     const linea = form.detalles[index];
     const producto = productoDe(linea.producto_id);
@@ -327,7 +344,13 @@ function onProductoChange(index) {
     if (producto.requiere_medidas === 'NO') {
         linea.ancho = '';
         linea.alto = '';
+    }
+    // Una medida que el producto nuevo no usa quedaría oculta pero se
+    // enviaría igual al costear y al guardar.
+    if (producto.requiere_medidas === 'NO' || !producto.pide_profundidad) {
         linea.profundidad = '';
+    }
+    if (producto.requiere_medidas === 'NO' || !producto.pide_niveles) {
         linea.niveles = '';
     }
 
@@ -923,7 +946,7 @@ function submit() {
                                         inputmode="decimal" class="form-control" placeholder="0.00" />
                                 </div>
                             </div>
-                            <div class="col-lg-2 col-6">
+                            <div v-if="pideProfundidad(linea)" class="col-lg-2 col-6">
                                 <div class="form-group">
                                     <label class="form-label" :for="`linea-${index}-profundidad`">Profundidad (m)</label>
                                     <input :id="`linea-${index}-profundidad`" v-model="linea.profundidad" v-decimal="2"
@@ -934,7 +957,7 @@ function submit() {
                                     </p>
                                 </div>
                             </div>
-                            <div class="col-lg-2 col-6">
+                            <div v-if="pideNiveles(linea)" class="col-lg-2 col-6">
                                 <div class="form-group">
                                     <label class="form-label" :for="`linea-${index}-niveles`">Niveles</label>
                                     <input :id="`linea-${index}-niveles`" v-model="linea.niveles" v-entero="1"

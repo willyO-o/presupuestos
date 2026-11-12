@@ -45,7 +45,7 @@ function aplicar() {
     router.get(route(route().current()), { ...rango }, { preserveState: true, preserveScroll: true });
 }
 
-/* ----- Informe de proyecciones (PDF / CSV) ------------------------------- */
+/* ----- Informe de proyecciones (PDF) ------------------------------------- */
 
 /**
  * Secciones del informe: mismas claves que
@@ -100,9 +100,18 @@ const sinSecciones = computed(() => seccionesInforme.value.length === 0);
  * Qué trae el PDF según lo marcado: el de Alertas solo es su propio informe
  * (resumen de revisión y alertas por prioridad, sin anexo).
  */
-const contenidoInforme = computed(() => (seccionesInforme.value.length === 1 && seccionesInforme.value[0] === 'alertas'
-    ? 'Incluye un resumen de revisión y las alertas por prioridad, con la acción sugerida para cada grupo.'
-    : 'Incluye gráficos, tablas, una lectura de los resultados y un anexo con el método de cálculo.'));
+const contenidoInforme = computed(() => {
+    const unica = seccionesInforme.value.length === 1 ? seccionesInforme.value[0] : null;
+
+    if (unica === 'alertas') {
+        return 'Incluye un resumen de revisión y las alertas por prioridad, con la acción sugerida para cada grupo.';
+    }
+
+    // Presupuestos y rentabilidad sale sin anexo (InformeProyeccionesPdf).
+    return unica === 'rentabilidad'
+        ? 'Incluye gráficos, tablas y una lectura de los resultados.'
+        : 'Incluye gráficos, tablas, una lectura de los resultados y un anexo con el método de cálculo.';
+});
 
 function enlace(ruta) {
     // El resumen no usa el periodo: no se arrastran las fechas hacia ahí.
@@ -170,17 +179,11 @@ function enlace(ruta) {
                         </li>
                     </ul>
                 </div>
-                <p class="fs-xs text-muted mt-3 mb-0">
-                    El PDF está pensado para leer o presentar; el CSV se abre en Excel con los datos mes a mes, la ficha
-                    del método y las alertas, para trabajarlos.
-                </p>
             </div>
+            <!-- Sin botón CSV a pedido del tutor (2026-11-11): el archivo no salía
+                 ordenado. La ruta reportes.bi.informe.csv sigue existiendo. -->
             <div class="modal-footer bi-informe-acciones">
                 <span v-if="sinSecciones" class="fs-xs text-danger me-auto">Elija al menos una sección.</span>
-                <a :href="sinSecciones ? null : urlInforme('csv')" class="btn btn-outline-primary"
-                    :class="{ disabled: sinSecciones }" :aria-disabled="sinSecciones">
-                    <i class="fa-solid fa-file-csv"></i> Descargar CSV
-                </a>
                 <a :href="sinSecciones ? null : urlInforme('pdf')" target="_blank" rel="noopener" class="btn btn-pdf-solid"
                     :class="{ disabled: sinSecciones }" :aria-disabled="sinSecciones">
                     <i class="fa-solid fa-file-pdf"></i> Ver PDF

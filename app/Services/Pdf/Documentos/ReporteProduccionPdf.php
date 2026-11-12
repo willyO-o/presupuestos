@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
  * pedidos en curso.
  *
  * Mezcla dos tiempos y lo dice en el documento: el cumplimiento y la duración
- * por etapa son del historial completo; la carga y los pedidos en curso son
+ * por etapa son del periodo elegido (o de todo el historial); la carga y los pedidos en curso son
  * una foto del momento en que se generó. Recibe el informe ya armado por
  * `InformeReportesService::produccion()`; acá no se calcula nada.
  */
@@ -61,7 +61,7 @@ class ReporteProduccionPdf extends Documento
             [
                 'rotulo' => 'Qué entra en cada cifra',
                 'lineas' => [
-                    ['Cumplimiento y tiempos:', 'historial completo de pedidos entregados y etapas cerradas.'],
+                    ['Cumplimiento y tiempos:', 'pedidos entregados y etapas cerradas, '.($this->informe['periodo']['texto'] ?? 'todo el historial').'.'],
                     ['Carga y pedidos en curso:', 'lo que está abierto en este momento.'],
                 ],
             ],
@@ -148,7 +148,7 @@ class ReporteProduccionPdf extends Documento
 
         $this->espacio(4);
         $this->tituloSeccion('Tiempo promedio por etapa');
-        $this->parrafo('Días entre que un ítem entra a una etapa y la cierra, promediados sobre todas las etapas cerradas. Las etapas sin registros no se grafican: no son una etapa que tarde cero.');
+        $this->parrafo('Representa el promedio de días que los ítems permanecen en cada etapa, calculado desde su ingreso hasta su cierre. Solo se consideran las etapas que cuentan con registros de cierre; aquellas sin registros se omiten del gráfico, ya que no representan un tiempo de duración igual a cero.');
 
         if ($conDatos !== []) {
             $this->graficoBarras([

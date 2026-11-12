@@ -75,9 +75,14 @@ class ReporteController extends Controller
     public function produccion(ReportePdfRequest $request, InformeReportesService $informes): Response
     {
         return inertia('Reportes/Produccion', [
-            'datos' => $informes->produccion($request->user(), $request->integer('sucursal_id') ?: null),
+            'datos' => $informes->produccion(
+                $request->user(),
+                $request->integer('sucursal_id') ?: null,
+                $request->validated('desde'),
+                $request->validated('hasta'),
+            ),
             'sucursales' => $request->user()->sucursalesDisponibles()->map->only(['id', 'nombre'])->values(),
-            'filters' => $request->only(['sucursal_id']),
+            'filters' => $request->only(['desde', 'hasta', 'sucursal_id']),
             'pageTitle' => 'Reporte de producción',
             'pageSubtitle' => 'Entregas, tiempos de trabajo y pedidos en curso.',
             'breadcrumbs' => ['Reportes', 'Producción'],
@@ -103,7 +108,12 @@ class ReporteController extends Controller
 
     public function produccionPdf(ReportePdfRequest $request, InformeReportesService $informes, GeneradorPdf $generador): RespuestaPdf
     {
-        $pdf = $generador->reporteProduccion($informes->produccion($request->user(), $request->integer('sucursal_id') ?: null));
+        $pdf = $generador->reporteProduccion($informes->produccion(
+            $request->user(),
+            $request->integer('sucursal_id') ?: null,
+            $request->validated('desde'),
+            $request->validated('hasta'),
+        ));
 
         return $request->boolean('descargar') ? $pdf : $generador->previsualizar($pdf);
     }

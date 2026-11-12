@@ -381,8 +381,15 @@ class CotizacionController extends Controller
             // 'imagen' viaja en el select para que el accesor 'imagen_url'
             // se calcule (necesita el atributo base cargado); el formulario
             // la usa para ofrecer "usar imagen del producto" por línea.
+            // `pide_profundidad`/`pide_niveles`: el formulario solo muestra
+            // esas medidas si la receta las usa (letras 3D sí, un banner no).
             'productos' => Producto::query()->estado('ACTIVO')->modoCotizacion($tipo)->orderBy('nombre')
-                ->get(['id', 'nombre', 'descripcion', 'unidad_medida', 'requiere_medidas', 'precio_base', 'costo_mano_obra', 'imagen']),
+                ->with('productoMateriales:id,producto_id,formula_id', 'productoMateriales.formula:id,expresion')
+                ->get(['id', 'nombre', 'descripcion', 'unidad_medida', 'requiere_medidas', 'precio_base', 'costo_mano_obra', 'imagen'])
+                ->each(fn (Producto $producto) => $producto
+                    ->setAttribute('pide_profundidad', $producto->usaMedidaEnReceta('profundo'))
+                    ->setAttribute('pide_niveles', $producto->usaMedidaEnReceta('niveles'))
+                    ->unsetRelation('productoMateriales')),
             'tiposProyecto' => TipoProyecto::query()->estado('ACTIVO')->ordenado()
                 ->get(['id', 'nombre', 'descripcion', 'factor_complejidad', 'margen_minimo']),
             'tiposItem' => CotizacionDetalleItem::ETIQUETAS_TIPO,

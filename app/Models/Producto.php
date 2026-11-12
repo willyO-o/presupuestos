@@ -142,6 +142,28 @@ class Producto extends Model
     }
 
     /**
+     * true si alguna fórmula de la receta usa la medida `$variable`
+     * (`profundo` o `niveles`): solo entonces el cotizador la pregunta. Un
+     * banner se cobra por ancho × alto; unas letras 3D necesitan además la
+     * profundidad. Con costo base la receta no se usa (ver
+     * PrecioSugeridoService), así que tampoco se pide.
+     *
+     * Necesita `productoMateriales.formula` cargado para no consultar por
+     * cada producto del listado.
+     */
+    public function usaMedidaEnReceta(string $variable): bool
+    {
+        if ((float) $this->precio_base > 0) {
+            return false;
+        }
+
+        return $this->productoMateriales->contains(
+            fn (ProductoMaterial $linea) => $linea->formula !== null
+                && preg_match('/\b'.preg_quote($variable, '/').'\b/', $linea->formula->expresion) === 1,
+        );
+    }
+
+    /**
      * Filtra por coincidencia parcial en nombre. Sin término, no aplica ningún filtro.
      */
     #[Scope]

@@ -363,6 +363,7 @@ test('el PDF de produccion trae cumplimiento, atrasos, etapas y carga', function
         ->toContain('REPORTE DE PRODUCCIÓN')
         ->toContain('AL 20/10/2026')
         ->toContain('Resumen de resultados')
+        ->toContain('Representa el promedio de días que los ítems permanecen en cada etapa')
         ->toContain('Se entregó a tiempo el 50,0 % de los pedidos: 1 de 2.')
         ->toContain('El mayor atraso fue de 5 días, en el pedido PED-20260801-TARDE.')
         ->toContain('Control de calidad tuvo la mayor duración promedio: 3,0 días (1 etapa finalizada analizada).')
@@ -397,6 +398,55 @@ test('la pantalla y el PDF de produccion filtran por una sucursal', function () 
     ));
 
     expect($texto)->toContain('Sucursal: Sopocachi')->toContain('PED-20260801-SOPO');
+});
+
+test('la pantalla y el PDF de produccion filtran entregas y tiempos por rango de fechas', function () {
+    pedidoDeReporte('Agosto', 1000, null);
+    pedidoDeReporte('Octubre tarde', 1000, null, [
+        'numero_pedido' => 'PED-20261001-OCT',
+        'fecha_entrega_estimada' => '2026-10-05',
+        'fecha_entrega_real' => '2026-10-08',
+    ]);
+    $enCurso = pedidoDeReporte('En curso', 1000, null, ['estado' => 'ACABADO', 'fecha_entrega_real' => null]);
+
+    // Etapa cerrada en agosto (fuera del rango) y otra en octubre (dentro).
+    foreach ([['2026-08-01 08:00:00', '2026-08-03 08:00:00'], ['2026-10-01 08:00:00', '2026-10-02 08:00:00']] as [$inicio, $fin]) {
+        PedidoSeguimiento::factory()->recycle([$this->sucursal, $this->area, $this->empleado])->create([
+            'pedido_detalle_id' => $enCurso->detalles()->first()->id,
+            'etapa' => 'DISENO',
+            'fecha_inicio' => $inicio,
+            'fecha_fin' => $fin,
+        ]);
+    }
+
+    $usuario = usuarioDeReportes('reportes.produccion', 'reportes.exportar_produccion');
+
+    $this->actingAs($usuario)->get(route('reportes.produccion', ['desde' => '2026-10-01', 'hasta' => '2026-10-20']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.desde', '2026-10-01')
+            ->where('datos.periodo.texto', 'del 1 de octubre al 20 de octubre de 2026')
+            ->where('datos.cumplimiento.entregados', 1)
+            ->where('datos.cumplimiento.tarde', 1)
+            ->where('datos.duracion_por_etapa.0.muestras', 1)
+            ->where('datos.duracion_por_etapa.0.dias_promedio', 1)
+            // La foto del momento no depende del rango.
+            ->where('datos.total_activos', 1));
+
+    $this->actingAs($usuario)->get(route('reportes.produccion'))
+        ->assertInertia(fn ($page) => $page
+            ->where('datos.periodo.texto', 'todo el historial')
+            ->where('datos.cumplimiento.entregados', 2));
+
+    $texto = textoDelReporte(app(GeneradorPdf::class)->reporteProduccion(
+        app(InformeReportesService::class)->produccion($usuario, null, '2026-10-01', '2026-10-20'),
+    ));
+
+    expect($texto)->toContain('del 1 de octubre al 20 de octubre de 2026')
+        ->toContain('PED-20261001-OCT');
+
+    $this->actingAs($usuario)->get(route('reportes.produccion.pdf', ['desde' => '2026-10-20', 'hasta' => '2026-10-01']))
+        ->assertSessionHasErrors('hasta');
 });
 
 test('el PDF de produccion se genera sin ningun dato', function () {

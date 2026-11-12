@@ -7366,6 +7366,17 @@ button.panorama-top-item:hover {
     @apply relative m-0 w-full sm:w-60;
 }
 
+/* Período del historial (entregas y tiempos). Sin rótulo propio: el
+   marcador "Todo el historial" ya dice qué abarca cuando está vacío. */
+.produccion-periodo {
+    @apply w-full sm:w-72;
+}
+
+.produccion-periodo .form-group,
+.produccion-periodo .date-range-filter {
+    @apply mb-0;
+}
+
 .produccion-sucursal i {
     @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs;
 }
@@ -9561,4 +9572,132 @@ button.panorama-top-item:hover {
 
 .cotizador-web-rango > span {
     @apply self-center;
+}
+
+/* ==========================================================================
+   50. SOLICITUDES DEL SITIO WEB: MODAL DE DETALLE (Pages/SolicitudesWeb/Index.vue)
+   --------------------------------------------------------------------------
+   Ficha del visitante (quién · contacto · fechas), su mensaje, la tabla de
+   trabajos (reusa .table-dashboard) y el estimado que vio, destacado: es la
+   cifra que el cliente va a recordar cuando escriba.
+   ========================================================================== */
+
+.solicitud-web-titulo {
+    @apply flex flex-wrap items-center gap-2;
+}
+
+.solicitud-web-codigo {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    @apply text-sm font-medium tracking-wide;
+}
+
+.solicitud-web-ficha {
+    background: var(--page-bg);
+    border-color: var(--border-subtle);
+    @apply mb-4 grid grid-cols-1 gap-x-5 gap-y-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-4;
+}
+
+.solicitud-web-ficha > div {
+    @apply min-w-0;
+}
+
+.solicitud-web-ficha dt {
+    color: var(--text-muted);
+    @apply mb-1 text-xs font-medium;
+}
+
+.solicitud-web-ficha dd {
+    color: var(--text-heading);
+    @apply m-0 text-sm leading-snug;
+}
+
+.solicitud-web-enlace {
+    color: var(--c-primary);
+    text-underline-offset: 3px;
+    @apply text-sm hover:underline;
+}
+
+.solicitud-web-enlace .fa-whatsapp {
+    color: var(--c-success);
+}
+
+.solicitud-web-mensaje {
+    color: var(--text-body);
+    @apply mb-4 flex gap-3 px-1 text-sm leading-relaxed;
+}
+
+.solicitud-web-mensaje > i {
+    color: var(--c-primary);
+    @apply mt-1 shrink-0 text-xs opacity-60;
+}
+
+.solicitud-web-mensaje p {
+    @apply m-0 italic;
+}
+
+/* 5 columnas: cabe en el modal sin el mínimo de 640 px de .table-dashboard;
+   en el teléfono se desplaza dentro de .table-responsive. */
+.table-dashboard.solicitud-web-tabla {
+    min-width: 540px;
+}
+
+.solicitud-web-tabla tbody td {
+    @apply whitespace-nowrap;
+}
+
+.solicitud-web-tabla tbody td:first-child {
+    @apply whitespace-normal;
+}
+
+.solicitud-web-tabla tfoot td {
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-subtle);
+    font-variant-numeric: tabular-nums;
+    @apply px-3 pt-3 text-sm;
+}
+
+.solicitud-web-tabla tfoot td:last-child {
+    color: var(--text-heading);
+    @apply whitespace-nowrap font-semibold;
+}
+
+.solicitud-web-estimado {
+    background: var(--c-primary-soft);
+    @apply flex flex-col gap-3 rounded-xl px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6;
+}
+
+.solicitud-web-estimado-etiqueta {
+    color: var(--text-muted);
+    @apply mb-1 text-xs font-medium;
+}
+
+.solicitud-web-estimado-monto {
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+    @apply m-0 text-xl font-bold leading-tight;
+}
+
+.solicitud-web-estimado-monto span {
+    color: var(--text-muted);
+    @apply mx-1 text-sm font-normal;
+}
+
+.solicitud-web-estimado-notas {
+    color: var(--text-body);
+    @apply m-0 flex list-none flex-col gap-1.5 p-0 text-xs sm:max-w-[16rem];
+}
+
+.solicitud-web-estimado-notas li {
+    @apply flex items-baseline gap-2;
+}
+
+.solicitud-web-estimado-notas i {
+    color: var(--c-primary);
+    @apply w-3.5 shrink-0 text-center;
+}
+
+.solicitud-web-estado {
+    border-color: var(--border-subtle);
+    @apply mb-0 mt-4 border-t pt-4;
 }

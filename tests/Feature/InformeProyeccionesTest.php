@@ -310,9 +310,14 @@ test('el informe de presupuestos y rentabilidad abre con un resumen y sigue los 
 
     $informe = app(InformeProyeccionesService::class)->armar($this->usuario, $this->periodo, ['rentabilidad']);
     $texto = textoDelInforme(app(GeneradorPdf::class)->informeProyecciones($informe));
-    $cuerpo = substr($texto, 0, strpos($texto, 'Anexo metodológico'));
+    $cuerpo = $texto;
 
     expect($texto)
+        // Pedido del usuario: este informe no lleva el anexo metodológico.
+        ->not->toContain('Anexo metodológico')
+        ->not->toContain('Ficha de cada estimación')
+        ->not->toContain('un anexo con el detalle técnico')
+        ->toContain('Las estimaciones suponen que los próximos meses')
         ->toContain('RESUMEN PARA LA GERENCIA')
         ->toContain('Lo principal')
         ->toContain('Por cada Bs 100 de costo ajustado, el resultado calculado es Bs')
@@ -326,7 +331,6 @@ test('el informe de presupuestos y rentabilidad abre con un resumen y sigue los 
         ->toContain('BLOQUE 3 DE 3')
         ->toContain('Cómo salieron los 5 presupuestos emitidos')
         ->toContain('Semáforo del sistema: verde por encima de 30,0 %')
-        ->toContain('Ficha de cada estimación')
         // El pie lleva el nombre de la pestaña, no "Informe del negocio".
         ->toContain('| Presupuestos y rentabilidad')
         // La portada general no va: el resumen la reemplaza.

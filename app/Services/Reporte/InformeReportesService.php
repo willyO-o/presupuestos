@@ -145,9 +145,11 @@ class InformeReportesService
     /**
      * @return array<string, mixed>
      */
-    public function produccion(User $usuario, ?int $sucursalId = null): array
+    public function produccion(User $usuario, ?int $sucursalId = null, ?string $desde = null, ?string $hasta = null): array
     {
-        $datos = $this->produccion->datos($usuario, $sucursalId);
+        $inicio = $desde ? Carbon::parse($desde)->startOfDay() : null;
+        $fin = $hasta ? Carbon::parse($hasta)->endOfDay() : null;
+        $datos = $this->produccion->datos($usuario, $sucursalId, $inicio, $fin);
         $cumplimiento = $datos['cumplimiento'];
 
         $etapas = collect($datos['duracion_por_etapa'])
@@ -165,6 +167,12 @@ class InformeReportesService
             'alcance' => AlcanceReporte::rotulo($usuario, $sucursalId),
             'sucursal_id' => $sucursalId,
             'fecha' => today()->translatedFormat('j \d\e F \d\e Y'),
+            // Lo que abarcan entregas y tiempos (la carga es siempre "hoy").
+            'periodo' => [
+                'desde' => $inicio?->toDateString(),
+                'hasta' => $fin?->toDateString(),
+                'texto' => $this->textoPeriodoProduccion($inicio, $fin),
+            ],
             'indicadores' => [
                 [
                     'rotulo' => 'Entregas a tiempo',
@@ -412,6 +420,20 @@ class InformeReportesService
         }
 
         return $meses;
+    }
+
+    /**
+     * "Todo el historial", "del 1 de enero al 11 de noviembre de 2026",
+     * "desde el …" o "hasta el …" según qué extremos del rango se eligieron.
+     */
+    private function textoPeriodoProduccion(?Carbon $inicio, ?Carbon $fin): string
+    {
+        return match (true) {
+            $inicio !== null && $fin !== null => 'del '.$this->etiquetaPeriodo($inicio, $fin),
+            $inicio !== null => 'desde el '.$inicio->translatedFormat('j \d\e F \d\e Y'),
+            $fin !== null => 'hasta el '.$fin->translatedFormat('j \d\e F \d\e Y'),
+            default => 'todo el historial',
+        };
     }
 
     private function etiquetaPeriodo(Carbon $inicio, Carbon $fin): string

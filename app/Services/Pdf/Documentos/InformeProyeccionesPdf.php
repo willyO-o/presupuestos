@@ -133,7 +133,11 @@ class InformeProyeccionesPdf extends Documento
             ['texto' => 'Las estimaciones suponen que los próximos meses se comportan como los anteriores: son una guía para planificar, no una garantía.', 'negrita' => true],
         ]);
 
-        $this->anexoMetodologico();
+        // Pedido del usuario (2026-11-11): el informe de Presupuestos y
+        // rentabilidad termina en la nota, sin el anexo técnico.
+        if (! $this->soloRentabilidad()) {
+            $this->anexoMetodologico();
+        }
     }
 
     /* -----------------------------------------------------------------
@@ -888,7 +892,7 @@ class InformeProyeccionesPdf extends Documento
         // Una nota y no un recuadro: así el resumen entra en una hoja.
         $trozos = [
             ['texto' => 'Cómo está organizado: ', 'negrita' => true, 'color' => self::OSCURO],
-            ['texto' => 'el bloque 1 muestra el monto cotizado y el aprobado por mes, con su estimación; el bloque 2, la tasa de aprobación, el precio frente al costo y el detalle mes a mes; el bloque 3, la rentabilidad sobre costo con el semáforo y el resultado calculado. Al final, un anexo con el detalle técnico de cada estimación.'],
+            ['texto' => 'el bloque 1 muestra el monto cotizado y el aprobado por mes, con su estimación; el bloque 2, la tasa de aprobación, el precio frente al costo y el detalle mes a mes; el bloque 3, la rentabilidad sobre costo con el semáforo y el resultado calculado.'],
         ];
 
         $this->fuente(8, '', self::SUAVE);
@@ -1492,7 +1496,7 @@ class InformeProyeccionesPdf extends Documento
     {
         $this->AddPage();
 
-        if ($this->soloPreguntas() || $this->soloRentabilidad()) {
+        if ($this->soloPreguntas()) {
             $this->tramoPie = 'Anexo técnico';
         }
 

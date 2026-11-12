@@ -46,8 +46,30 @@ function fecha(value) {
     return formatearFecha(value, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function decimal(valor) {
+    return Number(valor).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function bolivianos(monto) {
-    return `Bs ${Number(monto).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `Bs ${decimal(monto)}`;
+}
+
+/** "2,00 × 8,00 m" (o solo el ancho si se cobra por metro lineal); null si va por unidad. */
+function medidas(linea) {
+    if (!linea.ancho) {
+        return null;
+    }
+
+    return linea.alto ? `${decimal(linea.ancho)} × ${decimal(linea.alto)} m` : `${decimal(linea.ancho)} m`;
+}
+
+function area(linea) {
+    return linea.ancho && linea.alto ? Number(linea.ancho) * Number(linea.alto) : null;
+}
+
+/** Suma de las líneas: lo que valen los trabajos ANTES del IVA y la holgura del estimado. */
+function subtotalTrabajos(solicitud) {
+    return (solicitud.detalle ?? []).reduce((total, linea) => total + Number(linea.subtotal), 0);
 }
 
 /** Sin atender y con la vigencia pasada: el precio que vio el cliente ya no vale. */
@@ -244,10 +266,14 @@ function submit() {
     </div>
 
     <!-- Modal: detalle de lo que pidió el visitante -->
-    <Modal :show="showModal" max-width="lg" @close="closeModal">
+    <Modal :show="showModal" max-width="3xl" @close="closeModal">
         <div class="card-header">
-            <span class="card-title">
-                Solicitud <span class="fs-sm text-muted">— {{ actual?.codigo }}</span>
+            <span class="card-title solicitud-web-titulo">
+                Solicitud
+                <span class="solicitud-web-codigo">{{ actual?.codigo }}</span>
+                <span v-if="actual" class="badge" :class="estadoBadge[actual.estado] ?? 'badge-soft-secondary'">
+                    {{ actual.estado }}
+                </span>
             </span>
             <button type="button" class="modal-close" aria-label="Cerrar" @click="closeModal">
                 <i class="fa-solid fa-xmark"></i>
@@ -256,60 +282,124 @@ function submit() {
 
         <form @submit.prevent="submit">
             <div v-if="actual" class="card-body">
-                <p class="fs-sm text-muted mb-3">
-                    <strong class="text-heading">{{ actual.nombre }}</strong>
-                    <span v-if="actual.empresa"> · {{ actual.empresa }}</span>
-                    <span class="d-block">
-                        {{ actual.telefono }}<span v-if="actual.email"> · {{ actual.email }}</span>
-                    </span>
-                </p>
+                <!-- Quién pidió y hasta cuándo vale lo que vio -->
+                <dl class="solicitud-web-ficha">
+                    <div>
+                        <dt>Cliente</dt>
+                        <dd>
+                            <strong>{{ actual.nombre }}</strong>
+                            <span v-if="actual.empresa" class="d-block text-muted">{{ actual.empresa }}</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Contacto</dt>
+                        <dd>
+                            <a :href="whatsapp(actual)" target="_blank" rel="noopener noreferrer"
+                                class="solicitud-web-enlace" title="Escribir por WhatsApp">
+                                <i class="fa-brands fa-whatsapp"></i>
+                                {{ actual.telefono }}
+                            </a>
+                            <a v-if="actual.email" :href="`mailto:${actual.email}`"
+                                class="solicitud-web-enlace d-block text-truncate">
+                                {{ actual.email }}
+                            </a>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Recibida</dt>
+                        <dd>{{ fecha(actual.created_at) }}</dd>
+                    </div>
+                    <div>
+                        <dt>Válida hasta</dt>
+                        <dd :class="{ 'text-danger': estaVencida(actual) }">
+                            {{ fecha(actual.fecha_vencimiento) }}
+                            <span class="d-block text-muted fs-xs">
+                                <template v-if="estaVencida(actual)">
+                                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                                    Venció sin atender
+                                </template>
+                                <template v-else>{{ actual.vigencia_dias }} días de vigencia</template>
+                            </span>
+                        </dd>
+                    </div>
+                </dl>
 
-                <p v-if="actual.mensaje" class="fs-sm text-muted mb-3">
-                    <em>“{{ actual.mensaje }}”</em>
-                </p>
+                <blockquote v-if="actual.mensaje" class="solicitud-web-mensaje">
+                    <i class="fa-solid fa-quote-left" aria-hidden="true"></i>
+                    <p>{{ actual.mensaje }}</p>
+                </blockquote>
 
+                <!-- Lo que calculó en el cotizador -->
                 <div class="table-responsive mb-3">
-                    <table class="table">
+                    <table class="table-dashboard solicitud-web-tabla">
                         <thead>
                             <tr>
                                 <th>Trabajo</th>
+                                <th>Medidas</th>
                                 <th class="text-center">Cant.</th>
-                                <th class="text-end">P. unit.</th>
+                                <th class="text-end">P. unitario</th>
                                 <th class="text-end">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="(linea, i) in actual.detalle" :key="i">
-                                <td>{{ linea.descripcion }}</td>
+                                <td class="fw-semibold text-heading">{{ linea.producto ?? linea.descripcion }}</td>
+                                <td>
+                                    <template v-if="medidas(linea)">
+                                        {{ medidas(linea) }}
+                                        <span v-if="area(linea)" class="d-block fs-xs text-muted">
+                                            {{ decimal(area(linea)) }} m²
+                                        </span>
+                                    </template>
+                                    <span v-else class="text-muted">Por unidad</span>
+                                </td>
                                 <td class="text-center">{{ linea.cantidad }}</td>
                                 <td class="text-end">{{ bolivianos(linea.precio_unitario) }}</td>
-                                <td class="text-end">{{ bolivianos(linea.subtotal) }}</td>
+                                <td class="text-end fw-semibold text-heading">{{ bolivianos(linea.subtotal) }}</td>
                             </tr>
                         </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" class="text-end">Subtotal de los trabajos (sin IVA)</td>
+                                <td class="text-end">{{ bolivianos(subtotalTrabajos(actual)) }}</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
 
-                <p v-if="actual.descargado_en" class="fs-sm text-muted mb-3">
-                    <i class="fa-solid fa-file-arrow-down"></i>
-                    El visitante descargó el documento el
-                    <strong class="text-heading">{{ fecha(actual.descargado_en) }}</strong>
-                    ({{ actual.descargas }} {{ actual.descargas === 1 ? 'vez' : 'veces' }}).
-                </p>
+                <!-- El precio que vio el visitante: es lo que va a recordar al escribir -->
+                <div class="solicitud-web-estimado">
+                    <div>
+                        <p class="solicitud-web-estimado-etiqueta">Estimado que vio el visitante</p>
+                        <p class="solicitud-web-estimado-monto">
+                            {{ bolivianos(actual.estimado_min) }}
+                            <span>a</span>
+                            {{ bolivianos(actual.estimado_max) }}
+                        </p>
+                    </div>
+                    <ul class="solicitud-web-estimado-notas">
+                        <li><i class="fa-solid fa-receipt"></i> IVA incluido</li>
+                        <li>
+                            <i class="fa-solid fa-arrows-left-right"></i>
+                            ±{{ Math.round(Number(actual.holgura) * 100) }} % de margen
+                        </li>
+                        <li v-if="actual.descargado_en">
+                            <i class="fa-solid fa-file-arrow-down"></i>
+                            Descargó el documento el {{ fecha(actual.descargado_en) }}
+                            ({{ actual.descargas }} {{ actual.descargas === 1 ? 'vez' : 'veces' }})
+                        </li>
+                        <li v-else class="text-muted">
+                            <i class="fa-regular fa-file"></i>
+                            No descargó el documento
+                        </li>
+                    </ul>
+                </div>
 
-                <p class="fs-sm text-muted mb-3">
-                    Estimado mostrado al visitante:
-                    <strong class="text-heading">
-                        {{ bolivianos(actual.estimado_min) }} – {{ bolivianos(actual.estimado_max) }}
-                    </strong>
-                    (IVA incluido, ±{{ Math.round(Number(actual.holgura) * 100) }}%).
-                    Válido {{ actual.vigencia_dias }} días, hasta el {{ fecha(actual.fecha_vencimiento) }}.
-                </p>
-
-                <div v-if="actual.estado === 'CONVERTIDA'" class="alert alert-soft-success fs-sm">
+                <div v-if="actual.estado === 'CONVERTIDA'" class="alert alert-soft-success fs-sm mt-3 mb-0">
                     Esta solicitud ya generó un presupuesto formal. Su estado no se cambia desde acá.
                 </div>
 
-                <div v-else class="form-group" v-can="'solicitudes-web.gestionar'">
+                <div v-else class="form-group solicitud-web-estado" v-can="'solicitudes-web.gestionar'">
                     <label class="form-label" for="estado">Marcar como</label>
                     <select id="estado" v-model="form.estado" class="form-control">
                         <option value="NUEVA">Sin atender</option>

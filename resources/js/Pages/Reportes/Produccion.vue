@@ -1,9 +1,10 @@
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
 import AyudaInfo from '@/Components/AyudaInfo.vue';
+import DateRangeFilter from '@/Components/DateRangeFilter.vue';
 import { userCan } from '@/Directives/Can.js';
 
 defineOptions({ layout: MainDashboardLayout });
@@ -22,7 +23,10 @@ const props = defineProps({
 // Dos enlaces (ver y descargar) bajo el mismo permiso: se decide una vez.
 const puedeExportar = userCan('reportes.exportar_produccion');
 
+// Sin fechas = todo el historial (como antes de existir el filtro).
 const filtro = reactive({
+    desde: props.filters.desde ?? '',
+    hasta: props.filters.hasta ?? '',
     sucursal_id: props.filters.sucursal_id ? Number(props.filters.sucursal_id) : '',
 });
 
@@ -35,16 +39,34 @@ function parametros(extra = {}) {
     );
 }
 
-/** Sin fechas que elegir, la sucursal se aplica al elegirla. */
-function cambiarSucursal() {
+/** Sucursal y período se aplican al elegirlos: la barra no tiene botón "Actualizar". */
+function aplicarFiltros() {
     router.get(route('reportes.produccion'), parametros(), { preserveState: true, preserveScroll: true });
 }
+
+// El selector emite desde y hasta por separado, y la franja de mes/año los
+// reemite con cada cambio: se espera a que el par quede quieto y completo
+// (o vacío, con la "x") antes de pedir el reporte.
+let esperaPeriodo = null;
+
+watch(() => [filtro.desde, filtro.hasta], ([desde, hasta]) => {
+    window.clearTimeout(esperaPeriodo);
+
+    if (Boolean(desde) !== Boolean(hasta)) {
+        return;
+    }
+
+    esperaPeriodo = window.setTimeout(aplicarFiltros, 400);
+});
 
 function urlPdf(descargar = false) {
     return route('reportes.produccion.pdf', parametros(descargar ? { descargar: 1 } : {}));
 }
 
 const hoy = new Date().toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+/** Tope del calendario: el historial no tiene entregas futuras. */
+const hoyYmd = new Date().toLocaleDateString('en-CA');
 
 /* -----------------------------------------------------------------
  * Formato
@@ -187,9 +209,21 @@ const iconosEtapa = {
     <Head title="Reporte de producción" />
 
     <div class="page-stack">
-        <!-- Barra de acciones: fecha de la foto, sucursal y PDF. -->
+        <!-- Barra de acciones: período del historial, fecha de la foto, sucursal y PDF. -->
         <div class="produccion-acciones">
-            <span class="produccion-fecha">
+            <div class="produccion-periodo">
+                <DateRangeFilter
+                    v-model:fecha-desde="filtro.desde"
+                    v-model:fecha-hasta="filtro.hasta"
+                    label=""
+                    placeholder="Todo el historial"
+                    opens="left"
+                    :max-date="hoyYmd"
+                    clearable
+                />
+            </div>
+
+            <span class="produccion-fecha" title="La carga de trabajo y los pedidos en curso son de este momento">
                 <i class="fa-regular fa-calendar" aria-hidden="true"></i>
                 Situación al {{ hoy }}
             </span>
@@ -197,7 +231,7 @@ const iconosEtapa = {
             <label v-if="eligeSucursal" class="produccion-sucursal">
                 <span class="sr-only">Sucursal</span>
                 <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>
-                <select v-model="filtro.sucursal_id" class="form-control" @change="cambiarSucursal">
+                <select v-model="filtro.sucursal_id" class="form-control" @change="aplicarFiltros">
                     <option value="">Todas las sucursales</option>
                     <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
                 </select>
@@ -231,8 +265,8 @@ const iconosEtapa = {
         <p class="financiero-alcance">
             <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
             <span>
-                <strong>Alcance:</strong> entregas y tiempos usan el historial registrado. La carga de trabajo muestra la
-                situación actual.
+                <strong>Alcance:</strong> entregas y tiempos abarcan {{ datos.periodo.texto }}. La carga de trabajo
+                muestra la situación actual.
                 <template v-if="datos.alcance !== 'Toda la empresa'"> <strong>{{ datos.alcance }}</strong>.</template>
             </span>
         </p>

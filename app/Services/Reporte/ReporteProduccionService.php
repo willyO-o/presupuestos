@@ -5,6 +5,8 @@ namespace App\Services\Reporte;
 use App\Models\Pedido;
 use App\Models\PedidoSeguimiento;
 use App\Models\User;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Reporte de producción: cumplimiento de tiempos de entrega, duración
@@ -16,16 +18,26 @@ class ReporteProduccionService
      * `$sucursalId` acota a una sola sucursal DENTRO de lo que el usuario ya
      * ve (el filtro de la pantalla); `null` = todas las suyas.
      *
+     * `$desde`/`$hasta` acotan el HISTORIAL: las entregas por su fecha de
+     * entrega real y los tiempos por la fecha en que cerró la etapa. Sin
+     * fechas se toma todo el historial. La carga por área y los pedidos en
+     * curso no se acotan: son la situación de este momento.
+     *
      * @return array<string, mixed>
      */
-    public function datos(User $usuario, ?int $sucursalId = null): array
+    public function datos(User $usuario, ?int $sucursalId = null, ?CarbonInterface $desde = null, ?CarbonInterface $hasta = null): array
     {
+        $enPeriodo = fn (Builder $query, string $columna): Builder => $query
+            ->when($desde, fn (Builder $query) => $query->where($columna, '>=', $desde->copy()->startOfDay()))
+            ->when($hasta, fn (Builder $query) => $query->where($columna, '<=', $hasta->copy()->endOfDay()));
+
         $entregados = Pedido::query()
             ->visiblePara($usuario)
             ->deSucursal($sucursalId)
             ->where('estado', 'ENTREGADO')
             ->whereNotNull('fecha_entrega_estimada')
             ->whereNotNull('fecha_entrega_real')
+            ->tap(fn (Builder $query) => $enPeriodo($query, 'fecha_entrega_real'))
             ->get(['numero_pedido', 'fecha_entrega_estimada', 'fecha_entrega_real']);
 
         $aTiempo = $entregados->filter(
@@ -37,6 +49,7 @@ class ReporteProduccionService
             ->deSucursal($sucursalId)
             ->whereNotNull('fecha_inicio')
             ->whereNotNull('fecha_fin')
+            ->tap(fn (Builder $query) => $enPeriodo($query, 'fecha_fin'))
             ->get(['etapa', 'fecha_inicio', 'fecha_fin']);
 
         return [
