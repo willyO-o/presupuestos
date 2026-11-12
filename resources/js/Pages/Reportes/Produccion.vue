@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import MainDashboardLayout from '@/Layouts/MainDashboardLayout.vue';
 import BaseChart from '@/Components/Chart/BaseChart.vue';
@@ -58,6 +58,10 @@ watch(() => [filtro.desde, filtro.hasta], ([desde, hasta]) => {
 
     esperaPeriodo = window.setTimeout(aplicarFiltros, 400);
 });
+
+// Si se sale de la página antes de que venza la espera, el pedido pendiente
+// devolvería al usuario a este reporte.
+onBeforeUnmount(() => window.clearTimeout(esperaPeriodo));
 
 function urlPdf(descargar = false) {
     return route('reportes.produccion.pdf', parametros(descargar ? { descargar: 1 } : {}));
